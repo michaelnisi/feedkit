@@ -19,13 +19,13 @@ func payload (queries: [FeedQuery]) -> (NSError?, NSData?) {
         return ["url": url]
       }
     }
-  , options: NSJSONWritingOptions(0)
-  , error: &er
+    , options: NSJSONWritingOptions(0)
+    , error: &er
   )
   return (er, data)
 }
 
-func req (url: NSURL, queries: [FeedQuery]) -> NSMutableURLRequest {
+func req (url: NSURL, queries: [FeedQuery]) -> NSMutableURLRequest? {
   let req = NSMutableURLRequest(URL: url)
   req.HTTPMethod = "POST"
   let (er, data) = payload(queries)
@@ -53,11 +53,9 @@ func feedFrom (dict: NSDictionary) -> (NSError?, Feed?) {
   let url = urlFrom (dict, "feed")
   let valid = title != nil && url != nil
   if !valid {
-    return (NSError(
-      domain: "FeedKit.manger"
-    , code: 1
-    , userInfo: ["message":"missing fields (title or feed) in \(dict)"]
-    ), nil)
+    let info = ["message": "missing fields (title or feed) in \(dict)"]
+    let er = NSError(domain: domain, code: 1, userInfo: info)
+    return (er, nil)
   }
   return (nil, Feed(
     author: dict["author"] as? String
@@ -71,16 +69,8 @@ func feedFrom (dict: NSDictionary) -> (NSError?, Feed?) {
   ))
 }
 
-func stringFrom (errors: [NSError]) -> String {
-  var str: String = errors.count > 0 ? "" : "no errors"
-  for error in errors {
-    str += "\(error.description)\n"
-  }
-  return str
-}
-
-func feedsFrom (dicts: [NSDictionary]) -> (NSError?, [Feed]) {
-  var error: NSError?
+func feedsFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
+  var er: NSError?
   var feeds = [Feed]()
   var errors = [NSError]()
   for dict: NSDictionary in dicts {
@@ -89,13 +79,10 @@ func feedsFrom (dicts: [NSDictionary]) -> (NSError?, [Feed]) {
     if feed != nil { feeds.append(feed!) }
   }
   if errors.count > 0 {
-    error = NSError(
-      domain: "FeedKit.manger"
-    , code: 1
-    , userInfo: ["message":stringFrom(errors)]
-    )
+    let info = ["message": stringFrom(errors)]
+    er = NSError(domain: domain, code: 1, userInfo: info)
   }
-  return (error, feeds)
+  return (er, feeds)
 }
 
 func enclosureFrom (dict: NSDictionary) -> (NSError?, Enclosure?) {
@@ -110,11 +97,9 @@ func enclosureFrom (dict: NSDictionary) -> (NSError?, Enclosure?) {
   let type = dict["type"] as? String
   let valid = href != nil && type != nil && length > 0
   if !valid {
-    return (NSError(
-      domain: "FeedKit.manger"
-    , code: 1
-    , userInfo: ["message": "missing fields (url, length, or type) in \(dict)"])
-    , nil)
+    let info = ["message": "missing fields (url, length, or type) in \(dict)"]
+    let er = NSError(domain: domain, code: 1, userInfo: info)
+    return (er, nil)
   } else {
     return (nil, Enclosure(
       href: href!
@@ -133,11 +118,9 @@ func entryFrom (dict: NSDictionary) -> (NSError?, Entry?) {
   }
   let valid = title != nil && enclosure != nil
   if !valid {
-    return (NSError(
-      domain: "FeedKit.manger"
-    , code: 1
-    , userInfo: ["message": "missing fields (title or enclosure) in \(dict)"])
-    , nil)
+    let info = ["message": "missing fields (title or enclosure) in \(dict)"]
+    let er = NSError(domain: domain, code: 1, userInfo: info)
+    return (er, nil)
   }
   return (nil, Entry(
     author: dict["author"] as? String
@@ -153,8 +136,8 @@ func entryFrom (dict: NSDictionary) -> (NSError?, Entry?) {
   ))
 }
 
-func entriesFrom (dicts: [NSDictionary]) -> (NSError?, [Entry]) {
-  var error: NSError?
+func entriesFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
+  var er: NSError?
   var errors = [NSError]()
   var entries = [Entry]()
   for dict: NSDictionary in dicts {
@@ -163,72 +146,24 @@ func entriesFrom (dicts: [NSDictionary]) -> (NSError?, [Entry]) {
     if entry != nil { entries.append(entry!) }
   }
   if errors.count > 0 {
-    error = NSError(
-      domain: "FeedKit.manger"
-    , code: 1
-    , userInfo: ["message": stringFrom(errors)]
-    )
+    let info = ["message": stringFrom(errors)]
+    er = NSError(domain: domain, code: 1, userInfo: info)
   }
-  return (error, entries)
+  return (er, entries)
+}
+
+enum MangerPath: String {
+  case Feeds = "feeds"
+  case Entries = "entries"
 }
 
 public class MangerService: Service, FeedService {
-  func spawn (
-    queries: [FeedQuery]
-  , path: String
-  , cb: ((NSError?, ServiceResult?) -> Void)) {
-    let url = NSURL(string: path, relativeToURL: baseURL)
-    let sess = self.sess
-    let request = req(url, queries)
-    let task = sess.dataTaskWithRequest(request) { (data, res, er) in
-      if (er != nil) {
-        return cb(er!, nil)
-      }
-      let code = (res as NSHTTPURLResponse).statusCode
-      if code == 200 && data != nil {
-        cb(nil, ServiceResult(request: request, data:data))
-      } else {
-        let dataString = data != nil
-          ? NSString(data: data!, encoding: 4)
-          : "nil"
-        let info = [
-          "message": "no data received"
-        , "response": res
-        , "data": dataString]
-        let er = NSError(domain: "FeedKit.manger", code: code, userInfo: info)
-        cb(er, nil)
-      }
-    }
-    task.resume()
+  public func feeds (queries: [FeedQuery], cb: (NSError?, [Feed]?) -> Void) {
+    cb(niy(), nil)
   }
 
-  func queryError (queries: [FeedQuery]) -> NSError? {
-    if queries.count == 0 {
-      return NSError(
-        domain: "FeedKit.manger"
-      , code: 1
-      , userInfo: ["message":"no queries"])
-    } else {
-      return nil
-    }
-  }
-
-  public func entries (
-    queries: [FeedQuery]
-  , cb:((NSError?, ServiceResult?) -> Void)) {
-    if let er = queryError(queries) {
-      return cb(er, nil)
-    }
-    spawn(queries, path: "entries", cb: cb)
-  }
-
-  public func feeds (
-    queries: [FeedQuery]
-  , cb: ((NSError?, ServiceResult?) -> Void)) {
-    if let er = queryError(queries) {
-      return cb(er, nil)
-    }
-    spawn(queries, path: "feeds", cb: cb)
+  public func entries (queries: [FeedQuery], cb: (NSError?, [Entry]?) -> Void) {
+    cb(niy(), nil)
   }
 }
 

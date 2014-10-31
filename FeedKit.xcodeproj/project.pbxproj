@@ -7,19 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4C3485B21977C2BD008A6B53 /* FeedKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* FeedKit.swift */; };
-		4C6B58D019D7544600E028E9 /* fanboy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6B58CF19D7544600E028E9 /* fanboy.swift */; };
+		4C3485B21977C2BD008A6B53 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4C6D5D2719D29963003A93B5 /* FeedKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4C6D5D2419D2121F003A93B5 /* FeedKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		4C6D5D2B19D35DFE003A93B5 /* FeedRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D5D2A19D35DFE003A93B5 /* FeedRepositoryTests.swift */; };
 		4C6D5D2D19D46918003A93B5 /* EntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D5D2C19D46918003A93B5 /* EntryTests.swift */; };
-		4C6D5D3119D471D5003A93B5 /* TransformTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D5D3019D471D5003A93B5 /* TransformTests.swift */; };
-		4CBB2BB119D9F82B004B13F5 /* EntryRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CBB2BB019D9F82B004B13F5 /* EntryRepositoryTests.swift */; };
+		4C86426F19FD02750066D78F /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C86426E19FD02750066D78F /* Skull.framework */; };
+		4C962EB019E85CB100F33D9D /* common.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C962EAF19E85CB100F33D9D /* common.swift */; };
 		4CBB2BB219D9F966004B13F5 /* manger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C780197E4D2200F7FE54 /* manger.swift */; };
-		4CBB2BB319D9F969004B13F5 /* FeedKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* FeedKit.swift */; };
-		4CBB2BB419D9F975004B13F5 /* fanboy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6B58CF19D7544600E028E9 /* fanboy.swift */; };
+		4CBB2BB319D9F969004B13F5 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4CC7C781197E4D2200F7FE54 /* manger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C780197E4D2200F7FE54 /* manger.swift */; };
 		4CC7C787197E617800F7FE54 /* MangerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C786197E617800F7FE54 /* MangerTests.swift */; };
 		4CC7C789197E628E00F7FE54 /* FeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C788197E628E00F7FE54 /* FeedTests.swift */; };
+		4CD4451819E58AAB008905B6 /* fanboy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD4451719E58AAB008905B6 /* fanboy.swift */; };
+		4CD4451A19E65798008905B6 /* FanboyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD4451919E65798008905B6 /* FanboyTests.swift */; };
+		4CD4451B19E65C71008905B6 /* fanboy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD4451719E58AAB008905B6 /* fanboy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,16 +44,16 @@
 		4C3485991977C236008A6B53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4C3485A01977C237008A6B53 /* FeedKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C3485A61977C237008A6B53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		4C3485B11977C2BD008A6B53 /* FeedKit.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedKit.swift; sourceTree = "<group>"; };
-		4C6B58CF19D7544600E028E9 /* fanboy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = fanboy.swift; sourceTree = "<group>"; };
+		4C3485B11977C2BD008A6B53 /* index.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = index.swift; sourceTree = "<group>"; };
 		4C6D5D2419D2121F003A93B5 /* FeedKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedKit.h; sourceTree = "<group>"; };
-		4C6D5D2A19D35DFE003A93B5 /* FeedRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedRepositoryTests.swift; sourceTree = "<group>"; };
 		4C6D5D2C19D46918003A93B5 /* EntryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntryTests.swift; sourceTree = "<group>"; };
-		4C6D5D3019D471D5003A93B5 /* TransformTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransformTests.swift; sourceTree = "<group>"; };
-		4CBB2BB019D9F82B004B13F5 /* EntryRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntryRepositoryTests.swift; sourceTree = "<group>"; };
+		4C86426E19FD02750066D78F /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../Skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
+		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
 		4CC7C780197E4D2200F7FE54 /* manger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = manger.swift; sourceTree = "<group>"; };
 		4CC7C786197E617800F7FE54 /* MangerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MangerTests.swift; sourceTree = "<group>"; };
 		4CC7C788197E628E00F7FE54 /* FeedTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedTests.swift; sourceTree = "<group>"; };
+		4CD4451719E58AAB008905B6 /* fanboy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = fanboy.swift; sourceTree = "<group>"; };
+		4CD4451919E65798008905B6 /* FanboyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FanboyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C86426F19FD02750066D78F /* Skull.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -77,6 +78,7 @@
 		4C34858B1977C236008A6B53 = {
 			isa = PBXGroup;
 			children = (
+				4C86426E19FD02750066D78F /* Skull.framework */,
 				4C3485971977C236008A6B53 /* FeedKit */,
 				4C3485A41977C237008A6B53 /* FeedKitTests */,
 				4C3485961977C236008A6B53 /* Products */,
@@ -96,9 +98,9 @@
 			isa = PBXGroup;
 			children = (
 				4C6D5D2419D2121F003A93B5 /* FeedKit.h */,
-				4C3485B11977C2BD008A6B53 /* FeedKit.swift */,
+				4C3485B11977C2BD008A6B53 /* index.swift */,
 				4CC7C780197E4D2200F7FE54 /* manger.swift */,
-				4C6B58CF19D7544600E028E9 /* fanboy.swift */,
+				4CD4451719E58AAB008905B6 /* fanboy.swift */,
 				4C3485981977C236008A6B53 /* Supporting Files */,
 			);
 			path = FeedKit;
@@ -115,12 +117,11 @@
 		4C3485A41977C237008A6B53 /* FeedKitTests */ = {
 			isa = PBXGroup;
 			children = (
-				4CBB2BB019D9F82B004B13F5 /* EntryRepositoryTests.swift */,
-				4C6D5D3019D471D5003A93B5 /* TransformTests.swift */,
+				4CD4451919E65798008905B6 /* FanboyTests.swift */,
 				4C6D5D2C19D46918003A93B5 /* EntryTests.swift */,
 				4CC7C786197E617800F7FE54 /* MangerTests.swift */,
 				4CC7C788197E628E00F7FE54 /* FeedTests.swift */,
-				4C6D5D2A19D35DFE003A93B5 /* FeedRepositoryTests.swift */,
+				4C962EAF19E85CB100F33D9D /* common.swift */,
 				4C3485A51977C237008A6B53 /* Supporting Files */,
 			);
 			path = FeedKitTests;
@@ -244,8 +245,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				4CC7C781197E4D2200F7FE54 /* manger.swift in Sources */,
-				4C6B58D019D7544600E028E9 /* fanboy.swift in Sources */,
-				4C3485B21977C2BD008A6B53 /* FeedKit.swift in Sources */,
+				4CD4451819E58AAB008905B6 /* fanboy.swift in Sources */,
+				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,14 +254,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C962EB019E85CB100F33D9D /* common.swift in Sources */,
+				4CD4451A19E65798008905B6 /* FanboyTests.swift in Sources */,
 				4C6D5D2D19D46918003A93B5 /* EntryTests.swift in Sources */,
-				4CBB2BB419D9F975004B13F5 /* fanboy.swift in Sources */,
 				4CBB2BB219D9F966004B13F5 /* manger.swift in Sources */,
-				4C6D5D2B19D35DFE003A93B5 /* FeedRepositoryTests.swift in Sources */,
-				4CBB2BB119D9F82B004B13F5 /* EntryRepositoryTests.swift in Sources */,
-				4CBB2BB319D9F969004B13F5 /* FeedKit.swift in Sources */,
+				4CBB2BB319D9F969004B13F5 /* index.swift in Sources */,
+				4CD4451B19E65C71008905B6 /* fanboy.swift in Sources */,
 				4CC7C787197E617800F7FE54 /* MangerTests.swift in Sources */,
-				4C6D5D3119D471D5003A93B5 /* TransformTests.swift in Sources */,
 				4CC7C789197E628E00F7FE54 /* FeedTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -316,7 +316,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -357,7 +357,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
@@ -377,11 +377,16 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/michael/Workspace/Skull/build/Debug-iphoneos",
+				);
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -395,11 +400,16 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"/Users/michael/Workspace/Skull/build/Debug-iphoneos",
+				);
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_INSTALL_OBJC_HEADER = NO;
 			};
 			name = Release;
 		};

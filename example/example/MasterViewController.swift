@@ -13,7 +13,6 @@ class MasterViewController: UITableViewController {
 
   var objects = NSMutableArray()
 
-
   override func awakeFromNib() {
     super.awakeFromNib()
   }
@@ -25,6 +24,16 @@ class MasterViewController: UITableViewController {
 
     let addButton = UIBarButtonItem(barButtonSystemItem: .Add, target: self, action: "insertNewObject:")
     self.navigationItem.rightBarButtonItem = addButton
+    
+    let svc = MangerHTTPService(host: "localhost", port:8384)
+    let queue = dispatch_queue_create("example", DISPATCH_QUEUE_SERIAL)
+    let cache = MemoryFeedCache()
+    let repo = FeedRepository(svc: svc, queue: queue, cache: cache)
+    let url = NSURL(string: "http://5by5.tv/rss")
+    repo.feed(url) { (er, feed) in
+      assert(er == nil)
+      println(feed)
+    }
   }
 
   override func didReceiveMemoryWarning() {

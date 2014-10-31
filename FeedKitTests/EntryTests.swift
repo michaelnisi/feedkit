@@ -15,7 +15,7 @@ class EntryTests: XCTestCase {
   
   func entry (_ updated: Double = 0) -> Entry {
     let enclosure = Enclosure(
-      href: NSURL(string:"http://cdn.abc.tv")
+      href: NSURL(string:"http://cdn.abc.tv")!
     , length: 123
     , type: "audio/mpeg"
     )

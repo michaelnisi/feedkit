@@ -11,16 +11,87 @@ import FeedKit
 
 class MangerHTTPTests: XCTestCase {
   var svc: MangerHTTPService?
-  
+
   override func setUp () {
     super.setUp()
     svc = MangerHTTPService(host: "localhost", port:8384)
     XCTAssertEqual(svc!.baseURL.absoluteString!, "http://localhost:8384")
   }
-  
+
   override func tearDown() {
     svc = nil
     super.tearDown()
+  }
+
+  func testFeedFromValid () {
+    let dict = ["title":"a", "feed":"b"]
+    let (er, feed) = feedFrom(dict)
+    XCTAssertNil(er)
+    if let found = feed {
+      let wanted = Feed(
+        author: nil
+      , image: nil
+      , language: nil
+      , link: nil
+      , summary: nil
+      , title: "a"
+      , updated: 0.0
+      , url: NSURL(string:"http://some.io/rss")!
+      )
+      XCTAssertEqual(found, wanted)
+    } else {
+      XCTAssert(false, "should have feed")
+    }
+  }
+
+  func testFeedFromInvalid () {
+    let dict = ["title":"invalid"]
+    let wanted = NSError(
+      domain: domain
+    , code: 1
+    , userInfo: ["message":"missing fields (title or feed) in {\n    title = invalid;\n}"]
+    )
+    shouldError(feedFrom, dict, wanted)
+  }
+
+  func testEnclosureFromInvalid () {
+    let dict = ["href":"href"]
+    let wanted = NSError(
+      domain: domain
+    , code: 1
+    , userInfo: ["message":"missing fields (url, length, or type) in {\n    href = href;\n}"]
+    )
+    shouldError(enclosureFrom, dict, wanted)
+  }
+
+  func testEnclosureFromValid () {
+    let dict = [
+      "url":"http://cdn.io/some.mp3"
+      , "length":"100"
+      , "type":"audio/mpeg"
+    ]
+    let (er, enclosure) = enclosureFrom(dict)
+    XCTAssertNil(er)
+    if let found = enclosure {
+      let wanted = Enclosure(
+        href: NSURL(string:"http://cdn.io/some.mp3")!
+        , length: 100
+        , type: "audio/mpeg"
+      )
+      XCTAssertEqual(found, wanted)
+    } else {
+      XCTAssert(false, "should have enclosure")
+    }
+  }
+
+  func testEntryFromInvalid () {
+    let dict = ["title":"a"]
+    let wanted = NSError(
+      domain: domain
+    , code: 1
+    , userInfo: ["message":"missing fields (title or enclosure) in {\n    title = a;\n}"]
+    )
+    shouldError(entryFrom, dict, wanted)
   }
 
   func testUpdated () {
@@ -31,8 +102,8 @@ class MangerHTTPTests: XCTestCase {
   func testQuery () {
     let queries = [
       FeedQuery(string: "")
-    , FeedQuery(url: NSURL(string: ""), date: NSDate(timeIntervalSince1970: 1))
-    , FeedQuery(url: NSURL(string: ""), date: NSDate(timeIntervalSince1970: 1.5))
+    , FeedQuery(url: NSURL(string: "")!, date: NSDate(timeIntervalSince1970: 1))
+    , FeedQuery(url: NSURL(string: "")!, date: NSDate(timeIntervalSince1970: 1.5))
     ]
     for (i, time) in enumerate([
       -1 // no feeds before 00:00:00, 1 January 1970
@@ -44,43 +115,32 @@ class MangerHTTPTests: XCTestCase {
 
   func testPayload () {
     let queries = [
-      FeedQuery(string: "a")
+      FeedQuery(string: "abc")
+    , FeedQuery(
+        url: NSURL(string: "def")!
+      , date: NSDate(timeIntervalSince1970: 1) // seconds in Cocoa
+      )
     ]
     let (payloadError, data) = payload(queries)
     XCTAssertNil(payloadError)
-    let (parseError, dicts: AnyObject?) = parseJSON(data!)
+    let (parseError, items: AnyObject?) = parseJSON(data!)
     XCTAssertNil(parseError)
-    XCTAssertEqual(dicts!.count, 1)
-    XCTAssertEqual(dicts![0]["url"] as NSString, "a")
+    let found = items as [NSDictionary]
+    let wanted = [
+      ["url": "abc"]
+    , ["url": "def", "since": 1000] // milliseconds in JavaScript
+    ]
+    XCTAssertEqual(found, wanted)
   }
 
   func testReq () {
-    var r = req(NSURL(string: "a"), [FeedQuery(string: "b")])
-    XCTAssertEqual(r.HTTPMethod as NSString, "POST")
+    var r = req(NSURL(string: "a")!, [FeedQuery(string: "b")])
   }
 
-  func testFeeds () {
-    let exp = self.expectationWithDescription("fetch feeds")
-    let urls = [
-      "http://feeds.muleradio.net/thetalkshow"
-    , "http://www.friday.com/bbum/feed/"
-    , "http://dtrace.org/blogs/feed/"
-    , "http://5by5.tv/rss"
-    , "http://feeds.feedburner.com/thesartorialist"
-    , "http://hypercritical.co/feeds/main"
-    ]
-    let queries = urls.map { url -> FeedQuery in FeedQuery(string: url) }
-    svc!.feeds(queries) { (er, res) in
-      XCTAssertNil(er)
-      if let dicts = res!.items as? [NSDictionary]{
-        XCTAssertEqual(dicts.map {
-          (dict) ->  NSDictionary in
-          XCTAssertNotNil(dict["title"])
-          return dict
-          }.count, 6)
-      } else {
-        XCTAssertTrue(false, "no feeds")
-      }
+  func testFeedsWithoutQueries () {
+    let exp = self.expectationWithDescription("no queries")
+    svc!.feeds([]) { (er, feeds) in
+      XCTAssertNotNil(er)
       exp.fulfill()
     }
     self.waitForExpectationsWithTimeout(10, handler: {
@@ -88,19 +148,16 @@ class MangerHTTPTests: XCTestCase {
       XCTAssertNil(er)
     })
   }
-  
-  func testWithoutQueries () {
-    for f in [svc!.feeds, svc!.entries] {
-      let exp = self.expectationWithDescription("\(f)")
-      f([]) { (er, res) in
-        XCTAssertNotNil(er)
-        XCTAssertNil(res)
-        exp.fulfill()
-      }
-      self.waitForExpectationsWithTimeout(10, handler: {
-        (er) in
-        XCTAssertNil(er)
-      })
+
+  func testEntriesWithoutQueries () {
+    let exp = self.expectationWithDescription("no queries")
+    svc!.feeds([]) { (er, entries) in
+      XCTAssertNotNil(er)
+      exp.fulfill()
     }
+    self.waitForExpectationsWithTimeout(10, handler: {
+      (er) in
+      XCTAssertNil(er)
+    })
   }
 }

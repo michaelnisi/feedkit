@@ -20,7 +20,7 @@ class FeedTests: XCTestCase {
     , summary: "The director’s commentary track for Daring Fireball."
     , title: "The Talk Show With John Gruber"
     , updated: updated
-    , url: NSURL(string: "http://feeds.muleradio.net/thetalkshow")
+    , url: NSURL(string: "http://feeds.muleradio.net/thetalkshow")!
     )
   }
 
