@@ -24,7 +24,10 @@ func searchResultFrom (dict: NSDictionary) -> (NSError?, SearchResult?) {
   return (nil, SearchResult(author: author!, cat: .Store, feed: feed!))
 }
 
-func searchResultsFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
+func searchResultsFrom (dicts: [NSDictionary]) -> (NSError?, [SearchResult]?) {
+  if dicts.count < 1 {
+    return (nil, nil)
+  }
   var er: NSError?
   var results = [SearchResult]()
   var errors = [NSError]()
@@ -41,10 +44,14 @@ func searchResultsFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
 }
 
 func suggestionsFrom (terms: [String]) -> (NSError?, [Suggestion]?) {
+  if terms.count < 1 {
+    return (nil, nil)
+  }
   let suggestions = terms.map { (term) -> Suggestion in
     return Suggestion(cat: .Store, term: term)
   }
   return (nil, suggestions)
+  // Returning tuples to be consistent with the other transform functions.
 }
 
 enum FanboyPath: String {
@@ -53,32 +60,29 @@ enum FanboyPath: String {
 }
 
 public class FanboyService: NSObject {
-  typealias Handler = (NSError?, NSData?, Bool) -> Void
+  let baseURL: NSURL
+  let queue: NSOperationQueue
 
-  var handlers = [NSURLSessionTask:Handler]()
-
-  let host: String
-  let port: Int
+  lazy var conf: NSURLSessionConfiguration = {
+    let c = NSURLSessionConfiguration.defaultSessionConfiguration()
+    // TODO: Configure
+    return c
+  }()
 
   lazy var session: NSURLSession = {
-    let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
-    let queue = NSOperationQueue.mainQueue()
     return NSURLSession(
-      configuration: conf
-      , delegate: self
-      , delegateQueue: queue
+      configuration: self.conf
+    , delegate: self
+    , delegateQueue: self.queue
     )
   }()
 
-  public lazy var baseURL: NSURL = self.makeBaseURL()!
+  typealias Handler = (NSError?, NSData?, Bool) -> Void
+  var handlers = [NSURLSessionTask:Handler]()
 
-  public init (host: String, port: Int) {
-    self.host = host
-    self.port = port
-  }
-
-  func makeBaseURL() -> NSURL? {
-    return NSURL(string: "http://" + self.host + ":" + String(self.port))
+  public init (host: String, port: Int, queue: NSOperationQueue) {
+    self.baseURL = NSURL(string: "http://\(host):\(port)")!
+    self.queue = queue
   }
 
   private func requestWithPath (
@@ -97,8 +101,7 @@ extension FanboyService: SearchService {
   , cb: (NSError?, [Suggestion]?) -> Void)
   -> NSURLSessionDataTask? {
     if let req = requestWithPath(.Suggest, term: term) {
-      let task = session.dataTaskWithRequest(req)
-      var acc = NSMutableData(capacity: 32)
+      var acc: NSMutableData?
       func handler (error: NSError?, data: NSData?, done: Bool) -> Void {
         if let er = error {
           return cb(er, nil)
@@ -121,9 +124,13 @@ extension FanboyService: SearchService {
           return cb(nil, nil)
         }
         if let buf = data {
+          if acc == nil {
+            acc = NSMutableData(capacity: buf.length)
+          }
           acc?.appendData(buf)
         }
       }
+      let task = session.dataTaskWithRequest(req)
       handlers[task] = handler
       task.resume()
       return task
@@ -148,7 +155,8 @@ extension FanboyService: NSURLSessionTaskDelegate {
       cb(error, nil, true)
       handlers[task] = nil
     } else {
-      println("not ok")
+      // TODO: Remove
+      assert(false)
     }
   }
 }
@@ -162,7 +170,8 @@ extension FanboyService: NSURLSessionDataDelegate {
       if let cb = handlers[dataTask] {
         cb(nil, data, false)
       } else {
-        println("not good")
+        // TODO: Remove
+        assert(false)
       }
     }
   }

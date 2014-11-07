@@ -1,8 +1,8 @@
 //
 //  AppDelegate.swift
-//  example
+//  crasher
 //
-//  Created by Michael Nisi on 29.09.14.
+//  Created by Michael Nisi on 04.11.14.
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
@@ -10,7 +10,7 @@ import UIKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
-                            
+
   var window: UIWindow?
 
 

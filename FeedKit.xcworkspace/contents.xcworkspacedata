@@ -2,12 +2,12 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:crasher/crasher.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:../Skull/Skull.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:FeedKit.xcodeproj">
-   </FileRef>
-   <FileRef
-      location = "group:example/example.xcodeproj">
    </FileRef>
 </Workspace>

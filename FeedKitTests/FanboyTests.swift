@@ -15,7 +15,8 @@ class FanboyTests: XCTestCase {
 
   override func setUp () {
     super.setUp()
-    svc = FanboyService(host: "localhost", port: 8383)
+    let queue = NSOperationQueue()
+    svc = FanboyService(host: "localhost", port: 8383, queue: queue)
     XCTAssertEqual(svc!.baseURL.absoluteString!, "http://localhost:8383")
   }
 
@@ -24,11 +25,16 @@ class FanboyTests: XCTestCase {
     super.tearDown()
   }
 
-
   func testQueryURL () {
     let found = queryURL(svc!.baseURL, "search", "apple")!.absoluteString
     let wanted = "http://localhost:8383/search?q=apple"
     XCTAssertEqual(found!, wanted)
+  }
+  
+  func testSuggestionsFromEmpty () {
+    let (error, suggestions) = suggestionsFrom([])
+    XCTAssertNil(error)
+    XCTAssert(nil == suggestions)
   }
 
   func testSearchResultFromValid () {
@@ -64,7 +70,13 @@ class FanboyTests: XCTestCase {
     , code: 1
     , userInfo: ["message":"missing fields (author or feed) in {\n    author = \"\(author)\";\n}"]
     )
-    shouldError(f, dict, wanted)
+    let (er, result) = f(dict)
+    if let found = er {
+      XCTAssertEqual(found, wanted)
+    } else {
+      XCTAssert(false, "should error")
+    }
+    XCTAssert(nil == result)
   }
 
   func testSuggest () {
@@ -75,6 +87,19 @@ class FanboyTests: XCTestCase {
       XCTAssertEqual(res!, wanted)
       exp.fulfill()
     }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testSuggestCancel () {
+    let exp = self.expectationWithDescription("suggest")
+    let t = svc!.suggest("china") { er, res in
+      XCTAssertEqual(er!.code, -999) // "cancelled"
+      XCTAssert(nil == res)
+      exp.fulfill()
+    }
+    t?.cancel()
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
     }

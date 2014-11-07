@@ -1,15 +1,15 @@
 //
-//  exampleTests.swift
-//  exampleTests
+//  crasherTests.swift
+//  crasherTests
 //
-//  Created by Michael Nisi on 29.09.14.
+//  Created by Michael Nisi on 04.11.14.
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
 import UIKit
 import XCTest
 
-class exampleTests: XCTestCase {
+class crasherTests: XCTestCase {
     
     override func setUp() {
         super.setUp()

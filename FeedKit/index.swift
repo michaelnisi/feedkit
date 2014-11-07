@@ -7,14 +7,22 @@
 //
 
 import Foundation
+import Skull
 
 let domain = "com.michaelnisi.feedkit"
 
 typealias Transform = ([NSDictionary]) -> (NSError?, [AnyObject])
 
+func wait (sema: dispatch_semaphore_t, seconds: Int = 8) -> Bool {
+  let period = Int64(CUnsignedLongLong(seconds) * NSEC_PER_SEC)
+  let timeout = dispatch_time(DISPATCH_TIME_NOW, period)
+  return dispatch_semaphore_wait(sema, timeout) == 0
+}
+
+
 func niy (domain: String = domain) -> NSError {
-  let info = ["message": "not implemented yet"]
-  return NSError(domain: domain, code: 1, userInfo: info)
+ let info = ["message": "not implemented yet"]
+ return NSError(domain: domain, code: 1, userInfo: info)
 }
 
 func stringFrom (errors: [NSError]) -> String {
@@ -60,7 +68,6 @@ public class Service: NSObject {
       session = NSURLSession(configuration: conf)
     }
   }
-
 }
 
 public class ServiceResult: Printable {
@@ -355,89 +362,3 @@ public class EntryRepository {
 
   }
 }
-
-public enum SearchCategory {
-  case Entries
-  case Feeds
-  case Store
-  case Recent
-}
-
-public class SearchResult: Equatable, Printable {
-  public let author: String
-  public let cat: SearchCategory
-  public let feed: NSURL
-
-  public init (author: String, cat: SearchCategory, feed: NSURL) {
-    self.author = author
-    self.cat = cat
-    self.feed = feed
-  }
-
-  public var description: String {
-    return "SearchResult: \(feed) by \(author)"
-  }
-}
-
-public func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
-  return lhs.feed == rhs.feed
-}
-
-public class Suggestion: Equatable, Printable {
-  let cat: SearchCategory
-  let term: String
-
-  public init (cat: SearchCategory, term: String) {
-    self.cat = cat
-    self.term = term
-  }
-
-  public var description: String {
-    return "Suggestion: \(term)"
-  }
-}
-
-public func == (lhs: Suggestion, rhs: Suggestion) -> Bool {
-  return lhs.term == rhs.term
-}
-
-public protocol SearchService {
-  func suggest (term: String, cb: (NSError?, [Suggestion]?) -> Void)
-  -> NSURLSessionDataTask?
-}
-
-public protocol SearchCache {
-  func setSuggestions(suggestions: [Suggestion], forTerm term: String)
-  func suggestionsForTerm(term: String) -> [Suggestion]?
-}
-
-func wait (sema: dispatch_semaphore_t, seconds: Int = 8) -> Bool {
-  let period = Int64(CUnsignedLongLong(seconds) * NSEC_PER_SEC)
-  let timeout = dispatch_time(DISPATCH_TIME_NOW, period)
-  return dispatch_semaphore_wait(sema, timeout) == 0
-}
-
-public class SearchRepository {
-  let queue: dispatch_queue_t
-  let svc: SearchService
-  let cache: SearchCache?
-
-  public init (
-    queue: dispatch_queue_t
-  , svc: SearchService
-  , cache: SearchCache? = nil) {
-    self.queue = queue
-    self.svc = svc
-    self.cache = cache
-  }
-
-  public func suggest (
-    term: String
-  , cb: (NSError?, [Suggestion]?) -> Void // eventually called multiple times
-  , end: (NSError?) -> Void)
-  -> Void {
-
-  }
-}
-
-

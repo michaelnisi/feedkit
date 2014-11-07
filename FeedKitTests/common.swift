@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
+// TODO: Deprecate
+
 import Foundation
 import XCTest
 
