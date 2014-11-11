@@ -406,7 +406,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"/Users/michael/Workspace/Skull/build/Debug-iphoneos",
+					"../Skull/build/Debug-iphoneos",
 				);
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -430,7 +430,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"/Users/michael/Workspace/Skull/build/Debug-iphoneos",
+					"../Skull/build/Debug-iphoneos",
 				);
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
