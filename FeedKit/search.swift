@@ -40,8 +40,8 @@ public func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
 }
 
 public struct Suggestion: Equatable, Printable {
-  let cat: SearchCategory
-  let term: String
+  public let cat: SearchCategory
+  public let term: String
 
   public var description: String {
     return "Suggestion: \(term)"
