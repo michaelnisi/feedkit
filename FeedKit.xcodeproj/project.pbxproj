@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C0605EF1A17C51A00EA76C9 /* SuggestionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0605EE1A17C51A00EA76C9 /* SuggestionTest.swift */; };
 		4C3485B21977C2BD008A6B53 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
 		4C372BFB1A0813B300D22A9A /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BFA1A0813B300D22A9A /* search.swift */; };
@@ -48,6 +49,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4C0605EE1A17C51A00EA76C9 /* SuggestionTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SuggestionTest.swift; sourceTree = "<group>"; };
 		4C3485951977C236008A6B53 /* FeedKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FeedKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C3485991977C236008A6B53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4C3485A01977C237008A6B53 /* FeedKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -133,6 +135,7 @@
 		4C3485A41977C237008A6B53 /* FeedKitTests */ = {
 			isa = PBXGroup;
 			children = (
+				4C0605EE1A17C51A00EA76C9 /* SuggestionTest.swift */,
 				4CA3B2C21A078E890072E0C4 /* SearchRepositoryTests.swift */,
 				4CD4451919E65798008905B6 /* FanboyTests.swift */,
 				4C6D5D2C19D46918003A93B5 /* EntryTests.swift */,
@@ -288,6 +291,7 @@
 				4C372BFD1A08152900D22A9A /* search.swift in Sources */,
 				4C372BFC1A08152600D22A9A /* cache.swift in Sources */,
 				4CA3B2C31A078E890072E0C4 /* SearchRepositoryTests.swift in Sources */,
+				4C0605EF1A17C51A00EA76C9 /* SuggestionTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

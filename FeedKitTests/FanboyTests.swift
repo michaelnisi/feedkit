@@ -15,9 +15,9 @@ class FanboyTests: XCTestCase {
 
   override func setUp () {
     super.setUp()
-    let queue = NSOperationQueue()
-    svc = FanboyService(host: "localhost", port: 8383, queue: queue)
-    XCTAssertEqual(svc!.baseURL.absoluteString!, "http://localhost:8383")
+    let baseURL = NSURL(string: "http://localhost:8383")!
+    let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
+    svc = FanboyService(baseURL: baseURL, conf: conf)
   }
 
   override func tearDown () {
@@ -50,7 +50,7 @@ class FanboyTests: XCTestCase {
     if let found = result {
       let wanted = SearchResult(
        author: author
-        , cat: .Store
+      , cat: .Store
       , feed: NSURL(string: feed)!
       )
       XCTAssertEqual(found, wanted)
@@ -80,21 +80,24 @@ class FanboyTests: XCTestCase {
   }
 
   func testSuggest () {
+    let svc = self.svc!
     let exp = self.expectationWithDescription("suggest")
-    svc!.suggest("china") { er, res in
+    svc.suggest("china") { er, res in
       XCTAssertNil(er)
-      let wanted = [Suggestion(cat: .Store, term: "china")]
+      let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
       XCTAssertEqual(res!, wanted)
       exp.fulfill()
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      // XCTAssertEqual(svc.handlers.count, 0)
     }
   }
   
   func testSuggestCancel () {
+    let svc = self.svc!
     let exp = self.expectationWithDescription("suggest")
-    let t = svc!.suggest("china") { er, res in
+    let t = svc.suggest("china") { er, res in
       XCTAssertEqual(er!.code, -999) // "cancelled"
       XCTAssert(nil == res)
       exp.fulfill()
@@ -102,6 +105,28 @@ class FanboyTests: XCTestCase {
     t?.cancel()
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      // XCTAssertEqual(svc.handlers.count, 0)
+    }
+  }
+  
+  func testSuggestSerial () {
+    let svc = self.svc!
+    let exp = self.expectationWithDescription("suggest")
+    var i = 10
+    var n = i
+    while i-- > 0 {
+      svc.suggest("china") { error, suggestions in
+        XCTAssertNil(error)
+        let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
+        XCTAssertEqual(suggestions!, wanted)
+        if --n == 0 {
+          exp.fulfill()
+        }
+      }
+    }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+      // XCTAssertEqual(svc.handlers.count, 0)
     }
   }
 }

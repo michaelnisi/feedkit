@@ -48,59 +48,46 @@ func suggestionsFrom (terms: [String]) -> (NSError?, [Suggestion]?) {
     return (nil, nil)
   }
   let suggestions = terms.map { (term) -> Suggestion in
-    return Suggestion(cat: .Store, term: term)
+    return Suggestion(cat: .Store, term: term, ts: nil)
   }
   return (nil, suggestions)
-  // Returning tuples to be consistent with the other transform functions.
-}
-
-enum FanboyPath: String {
-  case Search = "search"
-  case Suggest = "suggest"
 }
 
 public class FanboyService: NSObject {
   let baseURL: NSURL
-  let queue: NSOperationQueue
-
-  lazy var conf: NSURLSessionConfiguration = {
-    let c = NSURLSessionConfiguration.defaultSessionConfiguration()
-    // TODO: Configure
-    return c
-  }()
-
-  lazy var session: NSURLSession = {
-    return NSURLSession(
-      configuration: self.conf
-    , delegate: self
-    , delegateQueue: self.queue
-    )
-  }()
+  let conf: NSURLSessionConfiguration
 
   typealias Handler = (NSError?, NSData?, Bool) -> Void
   var handlers = [NSURLSessionTask:Handler]()
 
-  public init (host: String, port: Int, queue: NSOperationQueue) {
-    self.baseURL = NSURL(string: "http://\(host):\(port)")!
-    self.queue = queue
+  var _session: NSURLSession?
+  var session: NSURLSession {
+    get {
+      if _session == nil {
+        _session = NSURLSession(
+          configuration: self.conf
+        , delegate: self
+        , delegateQueue: nil
+        )
+      }
+      return _session!
+    }
   }
 
-  private func requestWithPath (
-    path: FanboyPath
-  , term: String) -> NSURLRequest? {
-    if let url = queryURL(baseURL, path.rawValue, term) {
-      return NSURLRequest(URL: url)
-    }
-    return nil
+  public init (baseURL: NSURL, conf: NSURLSessionConfiguration) {
+    self.baseURL = baseURL
+    self.conf = conf
   }
 }
+
+// MARK: SearchService
 
 extension FanboyService: SearchService {
   public func suggest (
     term: String
   , cb: (NSError?, [Suggestion]?) -> Void)
   -> NSURLSessionDataTask? {
-    if let req = requestWithPath(.Suggest, term: term) {
+    if let url =  queryURL(baseURL, "suggest", term) {
       var acc: NSMutableData?
       func handler (error: NSError?, data: NSData?, done: Bool) -> Void {
         if let er = error {
@@ -120,7 +107,7 @@ extension FanboyService: SearchService {
               return cb(nil, sugs)
             }
           }
-          // If we reach this, we assume there are no suggestions.
+          // If we reach this, we can assume there are no suggestions.
           return cb(nil, nil)
         }
         if let buf = data {
@@ -130,7 +117,7 @@ extension FanboyService: SearchService {
           acc?.appendData(buf)
         }
       }
-      let task = session.dataTaskWithRequest(req)
+      let task = session.dataTaskWithURL(url)
       handlers[task] = handler
       task.resume()
       return task
@@ -144,7 +131,15 @@ extension FanboyService: SearchService {
       return nil
     }
   }
+
+  public func search (term: String, cb: (NSError?, [SearchResult]?) -> Void)
+  -> NSURLSessionDataTask? {
+    assert(false, "not implemented yet")
+    return nil
+  }
 }
+
+// MARK: NSURLSessionTaskDelegate
 
 extension FanboyService: NSURLSessionTaskDelegate {
   public func URLSession(
@@ -153,13 +148,14 @@ extension FanboyService: NSURLSessionTaskDelegate {
   , didCompleteWithError error: NSError?) {
     if let cb = handlers[task] {
       cb(error, nil, true)
-      handlers[task] = nil
     } else {
-      // TODO: Remove
-      assert(false)
+      assert(false, "missing handler")
     }
+    handlers[task] = nil
   }
 }
+
+// MARK: NSURLSessionDataDelegate
 
 extension FanboyService: NSURLSessionDataDelegate {
   public func URLSession(
@@ -170,9 +166,14 @@ extension FanboyService: NSURLSessionDataDelegate {
       if let cb = handlers[dataTask] {
         cb(nil, data, false)
       } else {
-        // TODO: Remove
-        assert(false)
+        assert(false, "missing handler")
       }
     }
+  }
+
+  public func URLSession(
+    session: NSURLSession
+  , didBecomeInvalidWithError error: NSError?) {
+    _session = nil
   }
 }

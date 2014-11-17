@@ -23,11 +23,16 @@ class SuggestionsViewController: UIViewController {
     super.viewDidLoad()
     // Do any additional setup after loading the view, typically from a nib.
     
+    let repoQueue = NSOperationQueue()
+    
     let svcQueue = NSOperationQueue()
     let svc = FanboyService(host: "localhost", port: 8383, queue: svcQueue)
     
-    let repoQueue = NSOperationQueue()
-    let cache = Cache() // TODO: Not sure if like this opaque initializer.
+    let label = "\(domain).cache"
+    let cacheQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
+    let db = Skull()
+    let cache = Cache(queue: cacheQueue, db: db)
+    
     repo = SearchRepository(queue: repoQueue, svc: svc, cache: cache)
     
     var sugs = self.sugs
