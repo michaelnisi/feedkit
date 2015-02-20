@@ -6,10 +6,9 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
-import UIKit
-import XCTest
 import FeedKit
 import Skull
+import XCTest
 
 class CacheTests: XCTestCase {
   var cache: Cache?
@@ -49,7 +48,8 @@ class CacheTests: XCTestCase {
       let label = "\(domain).cache"
       let cacheQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
       let db = Skull()
-      cache = Cache(db: db, queue: cacheQueue)
+      let ttl: NSTimeInterval = 3600
+      cache = Cache(db: db, queue: cacheQueue, rm: true, ttl: ttl)
       XCTAssert(fm.fileExistsAtPath(url.path!))
     } else {
       XCTFail("directory not found")
@@ -72,23 +72,62 @@ class CacheTests: XCTestCase {
   }
 
   func testSuggestions () {
-    XCTAssertNotNil(cache?.addSuggestions([]), "should error if empty")
-    let terms = ["apple", "google", "samsung"]
+    let terms = ["apple", "apple watch", "apple pie"]
     let input = terms.map({ term in
-      Suggestion(cat: .Store, term: term, ts: nil)
+      Suggestion(term: term, ts: nil)
     })
-    let er = cache?.addSuggestions(input)
-    XCTAssertNil(er)
-    XCTAssertNil(cache?.addSuggestions(input), "should replace")
-    let (error, suggestions) = cache!.suggestionsForTerm("a")
+    XCTAssertNil(cache?.setSuggestions(input, forTerm:"apple"))
+    let (error, suggestions) = cache!.suggestionsForTerm("apple pie")
     if let output = suggestions {
       XCTAssertEqual(output.count, 1)
-      let found: Suggestion = output.first!
-      let wanted: Suggestion = input.first!
-      println(found)
+      let found: Suggestion = output.last!
+      XCTAssertNotNil(found.ts!)
+      let wanted: Suggestion = input.last!
       XCTAssertEqual(found, wanted)
     } else {
       XCTFail("should find suggestions")
     }
+  }
+
+  func testRemoveSuggestions () {
+    let terms = ["apple", "apple watch", "apple pie"]
+    let input = terms.map({ term in
+      Suggestion(term: term, ts: nil)
+    })
+    XCTAssertNil(cache?.setSuggestions(input, forTerm:"apple"))
+    XCTAssertNil(cache?.setSuggestions([], forTerm:"pie"))
+    let (error, suggestions) = cache!.suggestionsForTerm("apple")
+    XCTAssertNil(error)
+    if let found = suggestions {
+      XCTAssertEqual(found.count, 2)
+      for (i, sug) in enumerate(found) {
+        XCTAssertEqual(sug, input[i])
+      }
+    } else {
+      XCTFail("should find suggestions")
+    }
+  }
+
+  func hit (term: String, _ wanted: String, _ cache: [String:NSDate]) {
+    if let (found, ts) = subcached(term, cache) {
+      XCTAssertEqual(found, wanted)
+      if countElements(term) > 1 {
+        let pre = term.endIndex.predecessor()
+        hit(term.substringToIndex(pre), wanted, cache)
+      }
+    } else {
+      XCTFail("\(term) should be cached")
+    }
+  }
+
+  func testSubcached () {
+    var cache = [String:NSDate]()
+    cache["a"] = NSDate()
+    hit("abc", "a", cache)
+    cache["a"] = nil
+
+    cache["abc"] = NSDate()
+    XCTAssertNotNil(subcached("abcd", cache)!.0)
+    XCTAssertNil(subcached("ab", cache)?.0)
   }
 }

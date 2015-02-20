@@ -6,69 +6,70 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
-import UIKit
-import XCTest
 import FeedKit
 import Skull
+import XCTest
 
 class SearchRepositoryTests: XCTestCase {
-  var repo: SearchRepository?
-
-  func svc () -> FanboyService {
-    let baseURL = NSURL(string: "http://localhost:8383")!
-    let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
-    return FanboyService(baseURL: baseURL, conf: conf)
+  struct Constants {
+    static let URL = "http://127.0.0.1:8383"
   }
-
+  
+  var repo: SearchRepository!
+  
   override func setUp () {
     super.setUp()
-    let queue = NSOperationQueue()
-    queue.name = "\(domain).search"
-
+    
     let label = "\(domain).cache"
     let cacheQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
     let db = Skull()
-    let cache = Cache(db: db, queue: cacheQueue)!
-
-    repo = SearchRepository(
-      cache: cache
-    , queue: queue
-    , svc: svc()
-    )
+    let ttl: NSTimeInterval = 3600
+    let cache = Cache(db: db, queue: cacheQueue, rm: true, ttl: ttl)!
+    
+    let baseURL = NSURL(string: Constants.URL)!
+    let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
+    let svc = FanboyService(baseURL: baseURL, conf: conf)
+    
+    let queue = NSOperationQueue()
+    queue.name = "\(domain).search"
+    repo = SearchRepository(cache: cache, queue: queue, svc: svc)
   }
 
-  override func tearDown () {
-    repo = nil
-    super.tearDown()
+  func testSearch () {
+    let exp = self.expectationWithDescription("search")
+    var found = [SearchItem]()
+    repo.search("china") { error, items in
+      XCTAssertNil(error)
+      found += items
+    }.completionBlock = {
+      exp.fulfill()
+    }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+      XCTAssertEqual(found.count, 50) // hearsay
+    }
   }
 
   func testSuggest () {
     let exp = self.expectationWithDescription("suggest")
-    repo?.suggest("china", cb: { (error, found) -> Void in
+    var found = [SearchItem]()
+    repo.suggest("china") { error, items in
       XCTAssertNil(error)
-      let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
-      XCTAssertEqual(found!, wanted)
-    }, end: { error -> Void in
-      XCTAssertNil(error)
-      exp.fulfill()
-    })
-    self.waitForExpectationsWithTimeout(10) { er in
-      XCTAssertNil(er)
-    }
-  }
-
-  func testSuggestCached () {
-    let exp = self.expectationWithDescription("suggest")
-    repo?.suggest("china", cb: { (error, found) -> Void in
-      XCTAssertNil(error)
-      let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
-      XCTAssertEqual(found!, wanted)
-      }, end: { error -> Void in
-        XCTAssertNil(error)
+      found += items
+      }.completionBlock = {
         exp.fulfill()
-    })
+    }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(found.count, 1)
+      let first = found.first!
+      switch first {
+      case .Res(let result):
+        XCTFail("should be suggestion")
+      case .Sug(let suggestion):
+        XCTAssertEqual(suggestion.term, "china")
+        XCTAssertNil(suggestion.ts)
+      }
     }
   }
 }

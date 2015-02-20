@@ -79,7 +79,7 @@ func feedsFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
     if feed != nil { feeds.append(feed!) }
   }
   if errors.count > 0 {
-    let info = ["message": stringFrom(errors)]
+    let info = ["message": messageFromErrors(errors)]
     er = NSError(domain: domain, code: 1, userInfo: info)
   }
   return (er, feeds)
@@ -146,7 +146,7 @@ func entriesFrom (dicts: [NSDictionary]) -> (NSError?, [AnyObject]) {
     if entry != nil { entries.append(entry!) }
   }
   if errors.count > 0 {
-    let info = ["message": stringFrom(errors)]
+    let info = ["message": messageFromErrors(errors)]
     er = NSError(domain: domain, code: 1, userInfo: info)
   }
   return (er, entries)

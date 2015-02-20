@@ -13,7 +13,9 @@ let domain = "com.michaelnisi.feedkit"
 
 typealias Transform = ([NSDictionary]) -> (NSError?, [AnyObject])
 
-func wait (sema: dispatch_semaphore_t, seconds: Int = 8) -> Bool {
+func nop (Any) -> Void {}
+
+func wait (sema: dispatch_semaphore_t, seconds: Int = 3600 * 24) -> Bool {
   let period = Int64(CUnsignedLongLong(seconds) * NSEC_PER_SEC)
   let timeout = dispatch_time(DISPATCH_TIME_NOW, period)
   return dispatch_semaphore_wait(sema, timeout) == 0
@@ -25,27 +27,9 @@ func niy (domain: String = domain) -> NSError {
  return NSError(domain: domain, code: 1, userInfo: info)
 }
 
-func stringFrom (errors: [NSError]) -> String {
-  var str: String = errors.count > 0 ? "" : "no errors"
-  for error in errors {
-    str += "\(error.description)\n"
-  }
-  return str
-}
-
-func parseJSON (data: NSData) -> (NSError?, AnyObject?) {
-  var er: NSError?
-  if let json: AnyObject = NSJSONSerialization.JSONObjectWithData(
-    data
-  , options: NSJSONReadingOptions.AllowFragments
-  , error: &er) {
-    return (er, json)
-  }
-  return (NSError(
-    domain: domain
-  , code: 1
-  , userInfo: ["message": "couldn't create JSON object"])
-  , nil)
+public struct Image {
+  let web: NSURL
+  let local: NSURL?
 }
 
 public class Service: NSObject {
@@ -58,7 +42,10 @@ public class Service: NSObject {
   }
   public lazy var baseURL: NSURL = self.makeBaseURL()!
 
-  public init (host: String, port: Int, session osess: NSURLSession? = nil) {
+  public init (
+    host: String
+  , port: Int
+  , session osess: NSURLSession? = nil) {
     self.host = host
     self.port = port
     if let sess = osess {

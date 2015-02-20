@@ -7,37 +7,74 @@
 //
 
 import Foundation
+import Skull
 
-func queryURL (baseURL: NSURL, verb: String, query: String) -> NSURL? {
-  return NSURL(string: "\(verb)?q=\(query)", relativeToURL: baseURL)
+func queryFromString (term: String) -> String? {
+  let query = trimString(term, joinedByString: "+")
+  return query.isEmpty ? nil : query
 }
 
-func searchResultFrom (dict: NSDictionary) -> (NSError?, SearchResult?) {
-  let author = dict["author"] as? String
-  let feed = urlFrom (dict, "feed")
-  let valid = author != nil && feed != nil
-  if !valid {
-    let info = ["message": "missing fields (author or feed) in \(dict)"]
-    let er = NSError(domain: domain, code: 1, userInfo: info)
-    return (er, nil)
+func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
+  if let query = queryFromString(term) {
+    return NSURL(string: "\(verb)?q=\(query)", relativeToURL: baseURL)
   }
-  return (nil, SearchResult(author: author!, cat: .Store, feed: feed!))
+  return nil
 }
 
-func searchResultsFrom (dicts: [NSDictionary]) -> (NSError?, [SearchResult]?) {
-  if dicts.count < 1 {
-    return (nil, nil)
+func imagesFromDictionary (dict: Map) -> ITunesImages? {
+  if let img100 = urlFromDictionary(dict, withKey: "img100") {
+    if let img30 = urlFromDictionary(dict, withKey: "img30") {
+      if let img600 = urlFromDictionary(dict, withKey: "img600") {
+        if let img60 = urlFromDictionary(dict, withKey: "img60") {
+          return ITunesImages(
+            img100: img100
+          , img30: img30
+          , img600: img600
+          , img60: img60)
+        }
+      }
+    }
   }
+  return nil
+}
+
+func searchResultFromDictionary (dict: Map) -> (NSError?, SearchResult?) {
+  if let author = dict["author"] as? String {
+    if let feed = urlFromDictionary(dict, withKey: "feed") {
+      if let guid = dict["guid"] as? Int {
+        if let images = imagesFromDictionary(dict) {
+          if let title = dict["title"] as? String {
+            return (nil, SearchResult(
+              author: author
+            , feed: feed
+            , guid: guid
+            , images: images
+            , title: title
+            , ts: nil
+            ))
+          }
+        }
+      }
+    }
+  }
+  let info = ["message": "missing fields in \(dict)"]
+  let er = NSError(domain: domain, code: 1, userInfo: info)
+  return (er, nil)
+}
+
+
+func searchResultsFrom (dicts: [[String:AnyObject]]) -> (NSError?, [SearchResult]?) {
+  if dicts.isEmpty { return (nil, nil) }
   var er: NSError?
   var results = [SearchResult]()
   var errors = [NSError]()
-  for dict: NSDictionary in dicts {
-    let (er, result) = searchResultFrom(dict)
+  for dict in dicts {
+    let (er, result) = searchResultFromDictionary(dict)
     if er != nil { errors.append(er!) }
     if result != nil { results.append(result!) }
   }
   if errors.count > 0 {
-    let info = ["message": stringFrom(errors)]
+    let info = ["message": messageFromErrors(errors)]
     er = NSError(domain: domain, code: 1, userInfo: info)
   }
   return (er, results)
@@ -48,7 +85,7 @@ func suggestionsFrom (terms: [String]) -> (NSError?, [Suggestion]?) {
     return (nil, nil)
   }
   let suggestions = terms.map { (term) -> Suggestion in
-    return Suggestion(cat: .Store, term: term, ts: nil)
+    return Suggestion(term: term, ts: nil)
   }
   return (nil, suggestions)
 }
@@ -74,20 +111,50 @@ public class FanboyService: NSObject {
     }
   }
 
-  public init (baseURL: NSURL, conf: NSURLSessionConfiguration) {
+  public init (
+    baseURL: NSURL, conf: NSURLSessionConfiguration) {
     self.baseURL = baseURL
     self.conf = conf
+  }
+
+  var certs = [NSURL: SecCertificate]()
+  public func removeCertificateAtURL (url: NSURL) {
+    certs[url] = nil
+  }
+  public func addCertificateAtURL (url: NSURL) -> NSError? {
+    var er: NSError?
+    let bundle = NSBundle(forClass: self.dynamicType)
+    let data = NSData(
+      contentsOfURL: url, options: .DataReadingUncached, error: &er)
+    let cfcert = SecCertificateCreateWithData(nil, data)
+    let cert = cfcert.takeUnretainedValue()
+    certs[url] = cert
+    return er
   }
 }
 
 // MARK: SearchService
 
 extension FanboyService: SearchService {
+  func taskWithVerb (
+    verb: String, forTerm term: String) -> NSURLSessionDataTask? {
+    if let url = queryURL(baseURL, verb, term) {
+      let req = NSMutableURLRequest(URL: url)
+      return session.dataTaskWithRequest(req)
+    }
+    return nil
+  }
+  func searchTaskForTerm (term: String) -> NSURLSessionDataTask? {
+    return taskWithVerb("search", forTerm: term)
+  }
+  func suggestTaskForTerm (term: String) -> NSURLSessionDataTask? {
+    return taskWithVerb("suggest", forTerm: term)
+  }
+
   public func suggest (
     term: String
-  , cb: (NSError?, [Suggestion]?) -> Void)
-  -> NSURLSessionDataTask? {
-    if let url =  queryURL(baseURL, "suggest", term) {
+  , cb: (NSError?, [Suggestion]?) -> Void) -> NSURLSessionDataTask? {
+    if let task = suggestTaskForTerm(term) {
       var acc: NSMutableData?
       func handler (error: NSError?, data: NSData?, done: Bool) -> Void {
         if let er = error {
@@ -108,7 +175,7 @@ extension FanboyService: SearchService {
             }
           }
           // If we reach this, we can assume there are no suggestions.
-          return cb(nil, nil)
+          return cb(nil, [])
         }
         if let buf = data {
           if acc == nil {
@@ -117,7 +184,6 @@ extension FanboyService: SearchService {
           acc?.appendData(buf)
         }
       }
-      let task = session.dataTaskWithURL(url)
       handlers[task] = handler
       task.resume()
       return task
@@ -134,8 +200,71 @@ extension FanboyService: SearchService {
 
   public func search (term: String, cb: (NSError?, [SearchResult]?) -> Void)
   -> NSURLSessionDataTask? {
-    assert(false, "not implemented yet")
-    return nil
+    if let task = searchTaskForTerm(term) {
+      var acc: NSMutableData?
+      func handler (error: NSError?, data: NSData?, done: Bool) -> Void {
+        if let er = error {
+          return cb(er, nil)
+        }
+        if done {
+          let (error, json: AnyObject?) = parseJSON(acc!)
+          if let er = error {
+            return cb(er, nil)
+          }
+          if let items = json as? [[String:AnyObject]] {
+            let (error, searchResults) = searchResultsFrom(items)
+            if let er = error {
+              return cb(er, nil)
+            }
+            if let results = searchResults {
+              return cb(nil, results)
+            }
+          }
+          // If we reach this, we can assume there are no results.
+          return cb(nil, [])
+        }
+        if let buf = data {
+          if acc == nil {
+            acc = NSMutableData(capacity: buf.length)
+          }
+          acc?.appendData(buf)
+        }
+      }
+      handlers[task] = handler
+      task.resume()
+      return task
+    } else {
+      let er = NSError(
+        domain: domain
+      , code: 0
+      , userInfo: ["message": "couldn't create request"]
+      )
+      cb(er, nil)
+      return nil
+    }
+  }
+}
+
+// MARK: NSURLSessionDelegate
+
+extension FanboyService: NSURLSessionDelegate {
+  public func URLSession(
+    session: NSURLSession
+    , didBecomeInvalidWithError error: NSError?) {
+      _session = nil
+  }
+
+  public func URLSession(
+    session: NSURLSession
+  , didReceiveChallenge challenge: NSURLAuthenticationChallenge
+  , completionHandler: (
+      NSURLSessionAuthChallengeDisposition, NSURLCredential!) -> Void
+  ) {
+    let space = challenge.protectionSpace
+    let theCerts = [SecCertificate](certs.values)
+    let status = SecTrustSetAnchorCertificates(
+      space.serverTrust, theCerts)
+    completionHandler(.PerformDefaultHandling, nil)
   }
 }
 
@@ -169,11 +298,5 @@ extension FanboyService: NSURLSessionDataDelegate {
         assert(false, "missing handler")
       }
     }
-  }
-
-  public func URLSession(
-    session: NSURLSession
-  , didBecomeInvalidWithError error: NSError?) {
-    _session = nil
   }
 }

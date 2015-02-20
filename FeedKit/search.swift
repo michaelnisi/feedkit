@@ -8,35 +8,64 @@
 
 import Foundation
 
+public enum SearchItem {
+  case Sug(Suggestion)
+  case Res(SearchResult)
+}
+
+public typealias SearchCallback = (NSError?, [SearchItem]) -> Void
+
+// A lowercase, space-separated representation of the string.
+public func sanitizeString (s: String) -> String {
+  return trimString(s.lowercaseString, joinedByString: " ")
+}
+
 public protocol SearchService {
   func suggest (term: String, cb: (NSError?, [Suggestion]?) -> Void)
-  -> NSURLSessionDataTask?
+    -> NSURLSessionDataTask?
 
   func search (term: String, cb: (NSError?, [SearchResult]?) -> Void)
-  -> NSURLSessionDataTask?
+    -> NSURLSessionDataTask?
 }
 
 public protocol SearchCache {
-  func addSuggestions(suggestions: [Suggestion]) -> NSError?
-  func suggestionsForTerm(term: String) -> (NSError?, [Suggestion]?)
+  func setSuggestions(suggestions: [Suggestion], forTerm: String)
+    -> NSError?
+
+  func suggestionsForTerm(term: String)
+    -> (NSError?, [Suggestion]?)
+
+  func setResults(results: [SearchResult], forTerm: String)
+    -> NSError?
+
+  func resultsForTerm(term: String, orderBy: CacheResultOrder, limitTo: Int)
+    -> (NSError?, [SearchResult]?)
+
+  func resultsMatchingTitle(
+    title: String
+  , orderBy order: CacheResultOrder
+  , limitTo limit: Int) -> (NSError?, [SearchResult]?)
 }
 
-public enum SearchCategory: Int {
-  case Entries
-  case Feeds
-  case Store
-  case Recent
+public struct ITunesImages {
+  public let img100: NSURL
+  public let img30: NSURL
+  public let img600: NSURL
+  public let img60: NSURL
 }
 
 public struct SearchResult: Equatable {
   public let author: String
-  public let cat: SearchCategory
   public let feed: NSURL
+  public let guid: Int
+  public let images: ITunesImages?
+  public let title: String
+  public let ts: NSDate?
 }
 
 extension SearchResult: Printable {
   public var description: String {
-    return "SearchResult: \(feed) by \(author)"
+    return "SearchResult: \(title) by \(author)"
   }
 }
 
@@ -45,16 +74,8 @@ public func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
 }
 
 public struct Suggestion: Equatable {
-  public let cat: SearchCategory
   public let term: String
   public var ts: NSDate? // if cached
-
-  public func stale (ttl: NSTimeInterval) -> Bool {
-    if let t = ts {
-      return ttl + t.timeIntervalSinceNow < 0
-    }
-    return false
-  }
 }
 
 extension Suggestion: Printable {
@@ -67,88 +88,133 @@ public func == (lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
-typealias Suggestions = (NSError?, [Suggestion]?) -> Void
-typealias End = (NSError?) -> Void
-
-class SuggestOperation: NSOperation {
+private class SearchBaseOperation: NSOperation {
   let cache: SearchCache
-  let cb: Suggestions
   let svc: SearchService
   let term: String
-  let ttl: NSTimeInterval = 86400.0
-  var error: NSError?
-  var prevTerm: String?
   var task: NSURLSessionTask?
 
   init (
     cache: SearchCache
-  , cb: Suggestions
-  , prevTerm: String? = nil
   , svc: SearchService
   , term: String) {
     self.cache = cache
-    self.cb = cb
-    self.prevTerm = prevTerm
     self.svc = svc
-    self.term = term
+    // TODO: Tidy the term here, also update UI with tidied term.
+    self.term = term.lowercaseString
   }
 
-  deinit {
+  override func cancel () {
     task?.cancel()
+    super.cancel()
   }
+}
+
+private class SearchOperation: SearchBaseOperation {
+  var cb: SearchCallback?
 
   override func main () {
-    if self.cancelled {
-      return
+    if self.cancelled { return }
+    var dispatch: SearchCallback
+    if let cb = self.cb {
+      dispatch = { error, items in
+        dispatch_async(dispatch_get_main_queue(), {
+          cb(error, items)
+        })
+      }
+    } else {
+      dispatch = nop
     }
     let cache = self.cache
-    let cb = self.cb
     let term = self.term
-    var dispatched: [Suggestion]? = nil
-    let (error, suggestions) = cache.suggestionsForTerm(self.term)
-    if self.cancelled {
+    let (error, results) = cache.resultsForTerm(term, orderBy: .Desc, limitTo: 50)
+    if self.cancelled { return }
+    var dispatched: [SearchItem]?
+    if let cached = results {
+      let items = cached.map { SearchItem.Res($0) }
+      dispatch(error, items)
       return
+    } else if error != nil {
+      dispatch(error, [])
     }
-    self.error = error
-    if let cached = suggestions {
-      dispatch_async(dispatch_get_main_queue(), {
-        cb(error, cached)
-      })
-      if let first = cached.first {
-        if !first.stale(ttl) {
-          return // assuming first is latest cached is fine
-        }
-      }
-      dispatched = cached
-    } else {
-      if prevTerm <= term || term <= prevTerm {
-        return // already checked
-      }
-    }
-    // OK, let's make a request:
-    let cancelled = self.cancelled
+    // If we reach this point, we finally have to make an request.
     let sema = dispatch_semaphore_create(0)
-    var er: NSError? = nil
-    task = svc.suggest(term) { error, suggestions in
-      er = error
-      if let sugs = suggestions {
-        cache.addSuggestions(sugs) // always add
-        if !cancelled {
-          var acc = sugs // not dispatched already
-          if let d = dispatched {
-            acc = sugs.filter({
-              contains(d, $0)
-            })
-          }
-          dispatch_async(dispatch_get_main_queue(), {
-            cb(error, acc)
-          })
+    task = svc.search(term) { error, results in
+      if let res = results {
+        cache.setResults(res, forTerm:term)
+        if res.count > 0 {
+          let sugs = [Suggestion(term: term, ts: nil)]
+          cache.setSuggestions(sugs, forTerm: term)
         }
+        let items = res.map { SearchItem.Res($0) }
+        dispatch(error, items)
+      } else if error != nil {
+        dispatch(error, [])
       }
       dispatch_semaphore_signal(sema)
     }
-    wait(sema)
-    self.error = er
+    if !wait(sema) {
+      dispatch(NSError(domain: domain, code: 504, userInfo: [
+        "message": "timeout occurred"
+      ]), [])
+    }
+  }
+}
+
+private class SuggestOperation: SearchBaseOperation {
+  var cb: SearchCallback?
+
+  override func main () {
+    if self.cancelled { return }
+    var dispatch: SearchCallback
+    if let cb = self.cb {
+      dispatch = { error, items in
+        dispatch_async(dispatch_get_main_queue(), {
+          cb(error, items)
+        })
+      }
+    } else {
+      dispatch = nop
+    }
+    let cache = self.cache
+    let term = self.term
+
+    let (resultError, results) = cache.resultsMatchingTitle(
+      term, orderBy: .Desc, limitTo: 3)
+    if let c = results {
+      let items = c.map { SearchItem.Res($0) }
+      dispatch(resultError, items)
+    } else if resultError != nil {
+      dispatch(resultError, [])
+    }
+
+    let (error, suggestions) = cache.suggestionsForTerm(term)
+    if self.cancelled { return }
+    if let cached = suggestions {
+      let items = cached.map { SearchItem.Sug($0) }
+      dispatch(error, items)
+      return
+    } else if error != nil {
+      dispatch(error, [])
+    }
+    // If we reach this point, we finally have to make an request.
+    let sema = dispatch_semaphore_create(0)
+    task = svc.suggest(term) { error, suggestions in
+      if let sugs = suggestions {
+        cache.setSuggestions(sugs, forTerm:term)
+        let csugs = sugs.count > 5 ? Array(sugs[0...4]) : sugs
+        let items = csugs.map { SearchItem.Sug($0) }
+        dispatch(error, items)
+      } else if error != nil {
+        dispatch(error, [])
+      }
+      dispatch_semaphore_signal(sema)
+    }
+    if !wait(sema) {
+      dispatch(NSError(domain: domain, code: 504, userInfo: [
+        "message": "timeout occurred"
+      ]), [])
+    }
   }
 
   override func cancel () {
@@ -161,7 +227,6 @@ public class SearchRepository {
   let cache: SearchCache
   let queue: NSOperationQueue
   let svc: SearchService
-  var prevTerm: String?
 
   public init (
     cache: SearchCache
@@ -176,24 +241,18 @@ public class SearchRepository {
     queue.cancelAllOperations()
   }
 
-  public func suggest (
-    term: String
-  , cb: (NSError?, [Suggestion]?) -> Void // might get called multiple times
-  , end: (NSError?) -> Void)
-    -> NSOperation {
-    let op = SuggestOperation(
-      cache: cache
-    , cb: cb
-    , prevTerm: prevTerm
-    , svc: svc
-    , term: term
-    )
-    prevTerm = term // TODO: Move to parameters
+  public func suggest (term: String, cb: SearchCallback) -> NSOperation {
+    let op = SuggestOperation(cache: cache, svc: svc, term: term)
+    op.cb = cb
     op.qualityOfService = .UserInitiated
-    unowned let _op = op
-    op.completionBlock = {
-      end(_op.error)
-    }
+    queue.addOperation(op)
+    return op
+  }
+
+  public func search (term: String, cb: SearchCallback) -> NSOperation {
+    let op = SearchOperation(cache: cache, svc: svc, term: term)
+    op.cb = cb
+    op.qualityOfService = .UserInitiated
     queue.addOperation(op)
     return op
   }

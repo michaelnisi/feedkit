@@ -6,18 +6,27 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
+import FeedKit
 import UIKit
 import XCTest
-import FeedKit
 
 class FanboyTests: XCTestCase {
+  struct Constants {
+    static let URL = "http://127.0.0.1:8383"
+    // static let URL = "https://10.0.1.24"
+    static let SECRET = "beep"
+  }
   var svc: FanboyService?
 
   override func setUp () {
     super.setUp()
-    let baseURL = NSURL(string: "http://localhost:8383")!
     let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
+    conf.HTTPAdditionalHeaders = ["secret": Constants.SECRET]
+    let baseURL = NSURL(string: Constants.URL)!
     svc = FanboyService(baseURL: baseURL, conf: conf)
+    let bundle = NSBundle(forClass: self.dynamicType)
+    let url = bundle.URLForResource("local", withExtension: "der")!
+    svc!.addCertificateAtURL(url)
   }
 
   override func tearDown () {
@@ -25,12 +34,26 @@ class FanboyTests: XCTestCase {
     super.tearDown()
   }
 
-  func testQueryURL () {
-    let found = queryURL(svc!.baseURL, "search", "apple")!.absoluteString
-    let wanted = "http://localhost:8383/search?q=apple"
-    XCTAssertEqual(found!, wanted)
+  func testQueryFromString () {
+    XCTAssertNil(queryFromString(""))
+    XCTAssertNil(queryFromString(" "))
   }
-  
+
+  func testQueryURL () {
+    func t (term: String) -> String {
+      if let url = queryURL(svc!.baseURL, "search", term) {
+        return url.absoluteString!
+      }
+      return "invalid URL"
+    }
+    let found = ["apple", "apple watch"].map(t)
+    let wanted = [
+      "\(Constants.URL)/search?q=apple"
+    , "\(Constants.URL)/search?q=apple+watch"
+    ]
+    XCTAssertEqual(found, wanted)
+  }
+
   func testSuggestionsFromEmpty () {
     let (error, suggestions) = suggestionsFrom([])
     XCTAssertNil(error)
@@ -38,20 +61,55 @@ class FanboyTests: XCTestCase {
   }
 
   func testSearchResultFromValid () {
-    let f = searchResultFrom
+    let f = searchResultFromDictionary
     let author = "Apple Inc."
     let feed = "http://www.apple.com/podcasts/filmmaker_uk/oliver/oliver.xml"
-    let dict = [
+    let guid = 763718821
+    let img100 = "http://a4.mzstatic.com"
+    let img30 = "http://a4.mzstatic.com"
+    let img60 = "http://a4.mzstatic.com"
+    let img600 = "http://a4.mzstatic.com"
+    let title = "Meet the Chef: Jamie Oliver"
+    let ts: NSTimeInterval = 1423561670666
+    let updated: NSTimeInterval = 1385122020000
+
+    let dict: [String:AnyObject] = [
       "author": author
     , "feed": feed
+    , "guid": guid
+    , "img100": img100
+    , "img30": img30
+    , "img60": img60
+    , "img600": img600
+    , "title": title
+    , "ts": ts
+    , "updated": updated
     ]
     let (er, result) = f(dict)
+    let feedURL = NSURL(string: feed)!
+
+    let img100URL = NSURL(string: img100)
+    let img30URL = NSURL(string: img30)
+    let img60URL = NSURL(string: img60)
+    let img600URL = NSURL(string: img600)
+    let images = ITunesImages(
+      img100: img100URL!
+    , img30: img30URL!
+    , img600: img600URL!
+    , img60: img60URL!
+    )
+
+    let updatedDate = NSDate(timeIntervalSince1970: updated)
+    let tsDate = NSDate(timeIntervalSince1970: ts)
     XCTAssertNil(er)
     if let found = result {
       let wanted = SearchResult(
-       author: author
-      , cat: .Store
-      , feed: NSURL(string: feed)!
+        author: author
+      , feed: feedURL
+      , guid: guid
+      , images: images
+      , title: title
+      , ts: nil
       )
       XCTAssertEqual(found, wanted)
     } else {
@@ -60,7 +118,7 @@ class FanboyTests: XCTestCase {
   }
 
   func testSearchResultFromInvalid () {
-    let f = searchResultFrom
+    let f = searchResultFromDictionary
     let author = "Apple Inc."
     let dict = [
       "author": author
@@ -68,7 +126,7 @@ class FanboyTests: XCTestCase {
     let wanted = NSError(
       domain: domain
     , code: 1
-    , userInfo: ["message":"missing fields (author or feed) in {\n    author = \"\(author)\";\n}"]
+    , userInfo: ["message":"missing fields in [author: \(author)]"]
     )
     let (er, result) = f(dict)
     if let found = er {
@@ -79,36 +137,59 @@ class FanboyTests: XCTestCase {
     XCTAssert(nil == result)
   }
 
+  func testSearch () {
+    let svc = self.svc!
+    let exp = self.expectationWithDescription("search")
+    svc.search("china") { error, searchResults in
+      XCTAssertNil(error)
+      XCTAssertEqual(searchResults!.count, 50) // speculation
+      exp.fulfill()
+    }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+    }
+  }
+
+  func testSearchCancel () {
+    let svc = self.svc!
+    let exp = self.expectationWithDescription("search")
+    svc.search("china") { er, res in
+      XCTAssertEqual(er!.code, -999) // "cancelled"
+      XCTAssert(nil == res)
+      exp.fulfill()
+    }?.cancel()
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+    }
+  }
+
   func testSuggest () {
     let svc = self.svc!
     let exp = self.expectationWithDescription("suggest")
     svc.suggest("china") { er, res in
       XCTAssertNil(er)
-      let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
+      let wanted = [Suggestion(term: "china", ts: nil)]
       XCTAssertEqual(res!, wanted)
       exp.fulfill()
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
-      // XCTAssertEqual(svc.handlers.count, 0)
     }
   }
-  
+
   func testSuggestCancel () {
     let svc = self.svc!
     let exp = self.expectationWithDescription("suggest")
-    let t = svc.suggest("china") { er, res in
+    svc.suggest("china") { er, res in
       XCTAssertEqual(er!.code, -999) // "cancelled"
       XCTAssert(nil == res)
       exp.fulfill()
-    }
-    t?.cancel()
+    }?.cancel()
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
-      // XCTAssertEqual(svc.handlers.count, 0)
     }
   }
-  
+
   func testSuggestSerial () {
     let svc = self.svc!
     let exp = self.expectationWithDescription("suggest")
@@ -117,7 +198,7 @@ class FanboyTests: XCTestCase {
     while i-- > 0 {
       svc.suggest("china") { error, suggestions in
         XCTAssertNil(error)
-        let wanted = [Suggestion(cat: .Store, term: "china", ts: nil)]
+        let wanted = [Suggestion(term: "china", ts: nil)]
         XCTAssertEqual(suggestions!, wanted)
         if --n == 0 {
           exp.fulfill()
@@ -126,7 +207,10 @@ class FanboyTests: XCTestCase {
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
-      // XCTAssertEqual(svc.handlers.count, 0)
     }
+  }
+
+  func testHandlers () {
+    XCTAssertEqual(svc!.handlers.count, 0)
   }
 }
