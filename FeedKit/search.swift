@@ -8,9 +8,34 @@
 
 import Foundation
 
-public enum SearchItem {
+public enum SearchItem: Equatable {
   case Sug(Suggestion)
   case Res(SearchResult)
+}
+
+public func == (lhs: SearchItem, rhs: SearchItem) -> Bool {
+  var lhsRes: SearchResult?
+  var lhsSug: Suggestion?
+  switch lhs {
+  case .Res(let res):
+    lhsRes = res
+  case .Sug(let sug):
+    lhsSug = sug
+  }
+  var rhsRes: SearchResult?
+  var rhsSug: Suggestion?
+  switch rhs {
+  case .Res(let res):
+    rhsRes = res
+  case .Sug(let sug):
+    rhsSug = sug
+  }
+  if lhsRes != nil && rhsRes != nil {
+    return lhsRes == rhsRes
+  } else if lhsSug != nil && rhsSug != nil {
+    return lhsSug == rhsSug
+  }
+  return false
 }
 
 public typealias SearchCallback = (NSError?, [SearchItem]) -> Void
@@ -100,8 +125,7 @@ private class SearchBaseOperation: NSOperation {
   , term: String) {
     self.cache = cache
     self.svc = svc
-    // TODO: Tidy the term here, also update UI with tidied term.
-    self.term = term.lowercaseString
+    self.term = term
   }
 
   override func cancel () {
@@ -179,25 +203,28 @@ private class SuggestOperation: SearchBaseOperation {
     let cache = self.cache
     let term = self.term
 
-    let (resultError, results) = cache.resultsMatchingTitle(
+    // Aggregating callbacks to make things easier for the UI.
+    var items = [SearchItem]()
+
+    let (resError, results) = cache.resultsMatchingTitle(
       term, orderBy: .Desc, limitTo: 3)
-    if let c = results {
-      let items = c.map { SearchItem.Res($0) }
-      dispatch(resultError, items)
-    } else if resultError != nil {
-      dispatch(resultError, [])
+    if let res = results {
+      items += res.map { SearchItem.Res($0) }
+    } else if resError != nil {
+      dispatch(resError, [])
     }
 
-    let (error, suggestions) = cache.suggestionsForTerm(term)
+    let (sugError, suggestions) = cache.suggestionsForTerm(term)
     if self.cancelled { return }
-    if let cached = suggestions {
-      let items = cached.map { SearchItem.Sug($0) }
-      dispatch(error, items)
+    if let sugs = suggestions {
+      items += sugs.map { SearchItem.Sug($0) }
+      dispatch(sugError, items)
       return
-    } else if error != nil {
-      dispatch(error, [])
+    } else if sugError != nil || items.count > 0 {
+      dispatch(sugError, items)
     }
-    // If we reach this point, we finally have to make an request.
+
+    // If we reach this point, we have to make the request.
     let sema = dispatch_semaphore_create(0)
     task = svc.suggest(term) { error, suggestions in
       if let sugs = suggestions {
@@ -206,6 +233,7 @@ private class SuggestOperation: SearchBaseOperation {
         let items = csugs.map { SearchItem.Sug($0) }
         dispatch(error, items)
       } else if error != nil {
+        // TODO: Fall back to cache
         dispatch(error, [])
       }
       dispatch_semaphore_signal(sema)

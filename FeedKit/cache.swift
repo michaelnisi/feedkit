@@ -11,7 +11,6 @@ import Skull
 
 public enum CacheResultOrder: String {
   case Desc = "ORDER BY ts DESC"
-  case Random = "ORDER BY RANDOM()" // TODO: Remove
 }
 
 func urlInRow (row: SkullRow, forKey key: String) -> NSURL? {
@@ -124,18 +123,22 @@ public class Cache {
   let db: Skull
   let queue: dispatch_queue_t
   let rm: Bool
+  let schema: String
   let ttl: NSTimeInterval
   public var url: NSURL?
   var noSuggestions = [String:NSDate]()
+  var noResults = [String:NSDate]()
 
   public init? (
     db: Skull
   , queue: dispatch_queue_t
   , rm: Bool
+  , schema: String
   , ttl: NSTimeInterval) {
     self.db = db
     self.queue = queue
     self.rm = rm
+    self.schema = schema
     self.ttl = ttl
     self.dates = SQLDates(ttl: ttl)
     if let er = open(rm) {
@@ -150,6 +153,7 @@ public class Cache {
 
   func open (rm: Bool) -> NSError? {
     let db = self.db
+    let schema = self.schema
     var error: NSError? = nil
     var url: NSURL?
     dispatch_sync(queue, {
@@ -176,32 +180,22 @@ public class Cache {
       if exists && !rm {
         return
       }
-      // TODO: Pass path
-      let bundle = NSBundle(forClass: self.dynamicType)
-      if let path = bundle.pathForResource("schema", ofType: "sql") {
-        var er: NSError?
-        if let sql = String(
-          contentsOfFile: path
-        , encoding: NSUTF8StringEncoding
-        , error: &er) {
-          if er != nil {
-            return error = er
-          }
-          if let er = db.exec(sql) {
-            return error = er
-          }
-        } else {
-          return error = NSError(
-            domain: domain
-          , code: 1
-          , userInfo: ["message": "couldn't create string from \(path)"]
-          )
+      var er: NSError?
+      if let sql = String(
+        contentsOfFile: schema
+      , encoding: NSUTF8StringEncoding
+      , error: &er) {
+        if er != nil {
+          return error = er
+        }
+        if let er = db.exec(sql) {
+          return error = er
         }
       } else {
         return error = NSError(
           domain: domain
         , code: 1
-        , userInfo: ["message": "couldn't locate schema.sql"]
+        , userInfo: ["message": "couldn't create string from \(schema)"]
         )
       }
     })
@@ -240,8 +234,21 @@ extension Cache: SearchCache {
   , forTerm term: String) -> NSError? {
     let db = self.db
     if results.count == 0 {
-      // TODO: Delete results from cache.
-      return nil
+      noResults[term] = NSDate()
+      var er: NSError?
+       dispatch_sync(queue, {
+        let sql = "".join([
+          "DELETE FROM search_result "
+        , "WHERE guid = ("
+        , "SELECT * FROM search "
+        , "WHERE term = \(term));"
+        ])
+        er = db.exec(sql)
+      })
+      return er
+    }
+    if let (cachedTerm, _) = subcached(term, noResults) {
+      noResults[cachedTerm] = nil
     }
     var errors = [NSError]()
     dispatch_sync(queue, {
@@ -311,6 +318,15 @@ extension Cache: SearchCache {
     term: String
   , orderBy order: CacheResultOrder
   , limitTo limit: Int) -> (NSError?, [SearchResult]?) {
+    let ttl = self.ttl
+    if let (cachedTerm, ts) = subcached(term, noResults) {
+      if stale(ts, ttl) {
+        noResults[cachedTerm] = nil
+        return (nil, nil)
+      } else {
+        return (nil, [])
+      }
+    }
     return selectResultsInSelect("SELECT guid FROM search_fts "
       , match: "WHERE term MATCH '\(term)*' "
       , orderBy: order
@@ -376,8 +392,8 @@ extension Cache: SearchCache {
   // Returns an empty suggestions array, if the data has been requested
   // before and has not expired yet; nil on the other hand, if for the
   // given term no data has been cached yet.
-  public
-  func suggestionsForTerm (term: String) -> (NSError?, [Suggestion]?) {
+  public func suggestionsForTerm (
+    term: String) -> (NSError?, [Suggestion]?) {
     let ttl = self.ttl
     if let (cachedTerm, ts) = subcached(term, noSuggestions) {
       if stale(ts, ttl) {

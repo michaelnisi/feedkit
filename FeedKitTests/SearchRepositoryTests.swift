@@ -23,8 +23,10 @@ class SearchRepositoryTests: XCTestCase {
     let label = "\(domain).cache"
     let cacheQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
     let db = Skull()
+    let schema = schemaForClass(self.dynamicType)
     let ttl: NSTimeInterval = 3600
-    let cache = Cache(db: db, queue: cacheQueue, rm: true, ttl: ttl)!
+    let cache = Cache(
+      db: db, queue: cacheQueue, rm: true, schema: schema, ttl: ttl)!
     
     let baseURL = NSURL(string: Constants.URL)!
     let conf = NSURLSessionConfiguration.defaultSessionConfiguration()

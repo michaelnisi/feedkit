@@ -11,6 +11,11 @@ import XCTest
 
 typealias AnyFrom = NSDictionary -> (NSError?, AnyObject?)
 
+func schemaForClass (aClass: AnyClass!) -> String {
+  let bundle = NSBundle(forClass: aClass)
+  return bundle.pathForResource("schema", ofType: "sql")!
+}
+
 func shouldError (from: AnyFrom, dict: NSDictionary, wanted: NSError) {
   let (er, result: AnyObject?) = from(dict)
   if let found = er {
