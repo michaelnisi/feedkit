@@ -22,10 +22,10 @@ func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
 }
 
 func imagesFromDictionary (dict: Map) -> ITunesImages? {
-  if let img100 = urlFromDictionary(dict, withKey: "img100") {
-    if let img30 = urlFromDictionary(dict, withKey: "img30") {
-      if let img600 = urlFromDictionary(dict, withKey: "img600") {
-        if let img60 = urlFromDictionary(dict, withKey: "img60") {
+  if let img100 = dict["img100"] as? String {
+    if let img30 = dict["img30"] as? String {
+      if let img600 = dict["img600"] as? String {
+        if let img60 = dict["img60"] as? String {
           return ITunesImages(
             img100: img100
           , img30: img30
@@ -40,7 +40,7 @@ func imagesFromDictionary (dict: Map) -> ITunesImages? {
 
 func searchResultFromDictionary (dict: Map) -> (NSError?, SearchResult?) {
   if let author = dict["author"] as? String {
-    if let feed = urlFromDictionary(dict, withKey: "feed") {
+    if let feed = dict["feed"] as? String {
       if let guid = dict["guid"] as? Int {
         if let images = imagesFromDictionary(dict) {
           if let title = dict["title"] as? String {
@@ -91,8 +91,13 @@ func suggestionsFrom (terms: [String]) -> (NSError?, [Suggestion]?) {
 }
 
 public class FanboyService: NSObject {
-  let baseURL: NSURL
-  let conf: NSURLSessionConfiguration
+  public let baseURL: NSURL
+
+  public var conf: NSURLSessionConfiguration {
+    didSet {
+      self._session = nil
+    }
+  }
 
   typealias Handler = (NSError?, NSData?, Bool) -> Void
   var handlers = [NSURLSessionTask:Handler]()
@@ -136,6 +141,12 @@ public class FanboyService: NSObject {
 // MARK: SearchService
 
 extension FanboyService: SearchService {
+  public var allowsCellularAccess: Bool {
+    get {
+      return self.session.configuration.allowsCellularAccess
+    }
+  }
+
   func taskWithVerb (
     verb: String, forTerm term: String) -> NSURLSessionDataTask? {
     if let url = queryURL(baseURL, verb, term) {
@@ -208,11 +219,13 @@ extension FanboyService: SearchService {
         }
         if done {
           let (error, json: AnyObject?) = parseJSON(acc!)
+          NSLog("Parsed JSON")
           if let er = error {
             return cb(er, nil)
           }
           if let items = json as? [[String:AnyObject]] {
             let (error, searchResults) = searchResultsFrom(items)
+            NSLog("Created results")
             if let er = error {
               return cb(er, nil)
             }
@@ -276,11 +289,11 @@ extension FanboyService: NSURLSessionTaskDelegate {
   , task: NSURLSessionTask
   , didCompleteWithError error: NSError?) {
     if let cb = handlers[task] {
+      handlers[task] = nil
       cb(error, nil, true)
     } else {
       assert(false, "missing handler")
     }
-    handlers[task] = nil
   }
 }
 

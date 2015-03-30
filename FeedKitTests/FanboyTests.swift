@@ -86,17 +86,12 @@ class FanboyTests: XCTestCase {
     , "updated": updated
     ]
     let (er, result) = f(dict)
-    let feedURL = NSURL(string: feed)!
 
-    let img100URL = NSURL(string: img100)
-    let img30URL = NSURL(string: img30)
-    let img60URL = NSURL(string: img60)
-    let img600URL = NSURL(string: img600)
     let images = ITunesImages(
-      img100: img100URL!
-    , img30: img30URL!
-    , img600: img600URL!
-    , img60: img60URL!
+      img100: img100
+    , img30: img30
+    , img600: img600
+    , img60: img60
     )
 
     let updatedDate = NSDate(timeIntervalSince1970: updated)
@@ -105,7 +100,7 @@ class FanboyTests: XCTestCase {
     if let found = result {
       let wanted = SearchResult(
         author: author
-      , feed: feedURL
+      , feed: feed
       , guid: guid
       , images: images
       , title: title
@@ -135,6 +130,36 @@ class FanboyTests: XCTestCase {
       XCTAssert(false, "should error")
     }
     XCTAssert(nil == result)
+  }
+  
+  func testSearchResultPerf () {
+    let author = "Apple Inc."
+    let feed = "http://www.apple.com/podcasts/filmmaker_uk/oliver/oliver.xml"
+    let guid = 763718821
+    let img100 = "http://a4.mzstatic.com"
+    let img30 = "http://a4.mzstatic.com"
+    let img60 = "http://a4.mzstatic.com"
+    let img600 = "http://a4.mzstatic.com"
+    let title = "Meet the Chef: Jamie Oliver"
+    let ts: NSTimeInterval = 1423561670666
+    let updated: NSTimeInterval = 1385122020000
+    
+    let dict: [String:AnyObject] = [
+      "author": author
+      , "feed": feed
+      , "guid": guid
+      , "img100": img100
+      , "img30": img30
+      , "img60": img60
+      , "img600": img600
+      , "title": title
+      , "ts": ts
+      , "updated": updated
+    ]
+    
+    self.measureBlock() {
+      let (er, result) = searchResultFromDictionary(dict)
+    }
   }
 
   func testSearch () {

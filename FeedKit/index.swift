@@ -15,21 +15,28 @@ typealias Transform = ([NSDictionary]) -> (NSError?, [AnyObject])
 
 func nop (Any) -> Void {}
 
+public func createTimer (
+  queue: dispatch_queue_t, time: Double, cb: dispatch_block_t)
+  -> dispatch_source_t {
+    let timer = dispatch_source_create(
+      DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue)
+    let delta = time * Double(NSEC_PER_SEC)
+    let start = dispatch_time(DISPATCH_TIME_NOW, Int64(delta))
+    dispatch_source_set_timer(timer, start, 0, 0)
+    dispatch_source_set_event_handler(timer, cb)
+    dispatch_resume(timer)
+    return timer
+  }
+
 func wait (sema: dispatch_semaphore_t, seconds: Int = 3600 * 24) -> Bool {
   let period = Int64(CUnsignedLongLong(seconds) * NSEC_PER_SEC)
   let timeout = dispatch_time(DISPATCH_TIME_NOW, period)
   return dispatch_semaphore_wait(sema, timeout) == 0
 }
 
-
 func niy (domain: String = domain) -> NSError {
  let info = ["message": "not implemented yet"]
  return NSError(domain: domain, code: 1, userInfo: info)
-}
-
-public struct Image {
-  let web: NSURL
-  let local: NSURL?
 }
 
 public class Service: NSObject {
