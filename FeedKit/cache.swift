@@ -9,10 +9,6 @@
 import Foundation
 import Skull
 
-public enum CacheResultOrder: String {
-  case Desc = "ORDER BY ts DESC"
-}
-
 func urlInRow (row: SkullRow, forKey key: String) -> NSURL? {
   if let str = row[key] as? String {
     return NSURL(string: str)
@@ -124,7 +120,7 @@ public class Cache {
   let queue: dispatch_queue_t
   let rm: Bool
   let schema: String
-  let ttl: NSTimeInterval
+  public let ttl: NSTimeInterval
   public var url: NSURL?
   var noSuggestions = [String:NSDate]()
   var noResults = [String:NSDate]()
@@ -155,7 +151,7 @@ public class Cache {
     let db = self.db
     let schema = self.schema
     var error: NSError? = nil
-    var url: NSURL?
+    var url: NSURL!
     dispatch_sync(queue, {
       let fm = NSFileManager.defaultManager()
       let dir = fm.URLForDirectory(
@@ -169,7 +165,7 @@ public class Cache {
         return
       }
       url = NSURL(string: Constants.FILENAME, relativeToURL: dir)
-      let exists = fm.fileExistsAtPath(url!.path!)
+      let exists = fm.fileExistsAtPath(url.path!)
       if exists && rm { // remove file
         var er: NSError? = nil
         fm.removeItemAtURL(url!, error: &er)
@@ -281,27 +277,12 @@ extension Cache: SearchCache {
     return nil
   }
 
-  private func selectResultsInSelect (
-    select: String
-  , match: String
-  , orderBy order: CacheResultOrder
-  , limitTo limit: Int) -> (NSError?, [SearchResult]?) {
+  func resultsForSQL (sql: String) -> (NSError?, [SearchResult]?) {
     let db = self.db
     let df = self.dates
-    let ttl = self.ttl
     var er: NSError?
     var results = [SearchResult]()
-    let now = df.now()
-    let then = df.then()
     dispatch_sync(queue, {
-      let sql = "".join([
-        "SELECT * FROM search_result WHERE guid IN("
-      , "\(select) "
-      , "\(match) "
-      , "AND ts BETWEEN '\(then)' AND '\(now)') "
-      , "\(order.rawValue) "
-      , "LIMIT \(limit);"
-      ])
       er = db.query(sql) { er, row -> Int in
         if let r = row {
           if let result = resultFromRow(r, df) {
@@ -315,9 +296,7 @@ extension Cache: SearchCache {
   }
 
   public func resultsForTerm (
-    term: String
-  , orderBy order: CacheResultOrder
-  , limitTo limit: Int) -> (NSError?, [SearchResult]?) {
+    term: String) -> (NSError?, [SearchResult]?) {
     let ttl = self.ttl
     if let (cachedTerm, ts) = subcached(term, noResults) {
       if stale(ts, ttl) {
@@ -327,20 +306,24 @@ extension Cache: SearchCache {
         return (nil, [])
       }
     }
-    return selectResultsInSelect("SELECT guid FROM search_fts "
-      , match: "WHERE term MATCH '\(term)*' "
-      , orderBy: order
-      , limitTo: limit)
+    return resultsForSQL("".join([
+      "SELECT * FROM search_result WHERE guid IN("
+    , "SELECT guid FROM search_fts "
+    , "WHERE term MATCH '\(term)') "
+    , "ORDER BY ts DESC "
+    , "LIMIT 50;"
+    ]))
   }
 
-  public func resultsMatchingTitle (
-    title: String
-  , orderBy order: CacheResultOrder
-  , limitTo limit: Int) -> (NSError?, [SearchResult]?) {
-    return selectResultsInSelect("SELECT guid FROM search_result_fts "
-      , match: "WHERE title MATCH '*\(title)*' "
-      , orderBy: order
-      , limitTo: limit)
+  public func resultsMatchingTerm (
+    term: String) -> (NSError?, [SearchResult]?) {
+    return resultsForSQL("".join([
+      "SELECT * FROM search_result WHERE guid IN ("
+    , "SELECT guid FROM search_result_fts "
+    , "WHERE search_result_fts MATCH '\(term)*') "
+    , "ORDER BY ts DESC "
+    , "LIMIT 3;"
+    ]))
   }
 
   public func setSuggestions (
@@ -389,34 +372,12 @@ extension Cache: SearchCache {
     return nil
   }
 
-  // Returns an empty suggestions array, if the data has been requested
-  // before and has not expired yet; nil on the other hand, if for the
-  // given term no data has been cached yet.
-  public func suggestionsForTerm (
-    term: String) -> (NSError?, [Suggestion]?) {
-    let ttl = self.ttl
-    if let (cachedTerm, ts) = subcached(term, noSuggestions) {
-      if stale(ts, ttl) {
-        noSuggestions[cachedTerm] = nil
-        return (nil, nil)
-      } else {
-        return (nil, [])
-      }
-    }
+  func suggestionsForSQL (sql: String) -> (NSError?, [Suggestion]?) {
     let db = self.db
     let df = self.dates
-    let now = df.now()
-    let then = df.then()
     var er: NSError?
     var sugs = [Suggestion]()
     dispatch_sync(queue, {
-      let sql = "".join([
-        "SELECT * FROM sug_fts "
-      , "WHERE term MATCH '\(term)*' "
-      , "AND ts BETWEEN '\(then)' AND '\(now)' "
-      , "ORDER BY ts DESC "
-      , "LIMIT 5;"
-      ])
       er = db.query(sql) { er, row -> Int in
         if let r = row {
           if let sug = suggestionFromRow(r, df) {
@@ -428,5 +389,23 @@ extension Cache: SearchCache {
     })
     return (er, sugs.count > 0 ? sugs : nil)
   }
-}
 
+  public func suggestionsForTerm (
+    term: String) -> (NSError?, [Suggestion]?) {
+    let ttl = self.ttl
+    if let (cachedTerm, ts) = subcached(term, noSuggestions) {
+      if stale(ts, ttl) {
+        noSuggestions[cachedTerm] = nil
+        return (nil, nil)
+      } else {
+        return (nil, [])
+      }
+    }
+    return suggestionsForSQL("".join([
+      "SELECT * FROM sug_fts "
+    , "WHERE term MATCH '\(term)*' "
+    , "ORDER BY ts DESC "
+    , "LIMIT 5;"
+    ]))
+  }
+}

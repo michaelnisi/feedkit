@@ -1,5 +1,5 @@
 //
-//  ParseTests.swift
+//  SerializeTests.swift
 //  FeedKit
 //
 //  Created by Michael Nisi on 10.02.15.
@@ -8,7 +8,7 @@
 
 import XCTest
 
-class ParseTests: XCTestCase {
+class SerializeTests: XCTestCase {
   override func setUp() {
     super.setUp()
   }

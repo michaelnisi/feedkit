@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS search(
 CREATE VIRTUAL TABLE IF NOT EXISTS search_result_fts USING fts4(
   content="search_result",
   guid,
+  author,
   title,
   ts
 );
@@ -80,13 +81,13 @@ CREATE TRIGGER search_result_bd BEFORE DELETE ON search_result BEGIN
 END;
 
 CREATE TRIGGER search_result_au AFTER UPDATE ON search_result BEGIN
-  INSERT INTO search_result_fts(docid, title, ts) VALUES(
-    new.rowid, new.title, new.ts);
+  INSERT INTO search_result_fts(docid, author, title, ts) VALUES(
+    new.rowid, new.author, new.title, new.ts);
 END;
 
 CREATE TRIGGER search_result_ai AFTER INSERT ON search_result BEGIN
-  INSERT INTO search_result_fts(docid, title, ts) VALUES(
-    new.rowid, new.title, new.ts);
+  INSERT INTO search_result_fts(docid, author, title, ts) VALUES(
+    new.rowid, new.author, new.title, new.ts);
 END;
 
 -- Search FTS

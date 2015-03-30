@@ -41,6 +41,7 @@ class SearchRepositoryTests: XCTestCase {
     let exp = self.expectationWithDescription("search")
     var found = [SearchItem]()
     repo.search("china") { error, items in
+      println(items)
       XCTAssertNil(error)
       found += items
     }.completionBlock = {

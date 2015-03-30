@@ -136,6 +136,36 @@ class FanboyTests: XCTestCase {
     }
     XCTAssert(nil == result)
   }
+  
+  func testSearchResultPerf () {
+    let author = "Apple Inc."
+    let feed = "http://www.apple.com/podcasts/filmmaker_uk/oliver/oliver.xml"
+    let guid = 763718821
+    let img100 = "http://a4.mzstatic.com"
+    let img30 = "http://a4.mzstatic.com"
+    let img60 = "http://a4.mzstatic.com"
+    let img600 = "http://a4.mzstatic.com"
+    let title = "Meet the Chef: Jamie Oliver"
+    let ts: NSTimeInterval = 1423561670666
+    let updated: NSTimeInterval = 1385122020000
+    
+    let dict: [String:AnyObject] = [
+      "author": author
+      , "feed": feed
+      , "guid": guid
+      , "img100": img100
+      , "img30": img30
+      , "img60": img60
+      , "img600": img600
+      , "title": title
+      , "ts": ts
+      , "updated": updated
+    ]
+    
+    self.measureBlock() {
+      let (er, result) = searchResultFromDictionary(dict)
+    }
+  }
 
   func testSearch () {
     let svc = self.svc!

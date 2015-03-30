@@ -91,8 +91,13 @@ func suggestionsFrom (terms: [String]) -> (NSError?, [Suggestion]?) {
 }
 
 public class FanboyService: NSObject {
-  let baseURL: NSURL
-  let conf: NSURLSessionConfiguration
+  public let baseURL: NSURL
+
+  public var conf: NSURLSessionConfiguration {
+    didSet {
+      self._session = nil
+    }
+  }
 
   typealias Handler = (NSError?, NSData?, Bool) -> Void
   var handlers = [NSURLSessionTask:Handler]()
@@ -136,6 +141,12 @@ public class FanboyService: NSObject {
 // MARK: SearchService
 
 extension FanboyService: SearchService {
+  public var allowsCellularAccess: Bool {
+    get {
+      return self.session.configuration.allowsCellularAccess
+    }
+  }
+
   func taskWithVerb (
     verb: String, forTerm term: String) -> NSURLSessionDataTask? {
     if let url = queryURL(baseURL, verb, term) {
@@ -208,11 +219,13 @@ extension FanboyService: SearchService {
         }
         if done {
           let (error, json: AnyObject?) = parseJSON(acc!)
+          NSLog("Parsed JSON")
           if let er = error {
             return cb(er, nil)
           }
           if let items = json as? [[String:AnyObject]] {
             let (error, searchResults) = searchResultsFrom(items)
+            NSLog("Created results")
             if let er = error {
               return cb(er, nil)
             }
@@ -276,11 +289,11 @@ extension FanboyService: NSURLSessionTaskDelegate {
   , task: NSURLSessionTask
   , didCompleteWithError error: NSError?) {
     if let cb = handlers[task] {
+      handlers[task] = nil
       cb(error, nil, true)
     } else {
       assert(false, "missing handler")
     }
-    handlers[task] = nil
   }
 }
 

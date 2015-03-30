@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../Ola/Ola.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:crasher/crasher.xcodeproj">
    </FileRef>
    <FileRef
