@@ -16,7 +16,6 @@
 		4C3AE17E1A4899B600F7DB4E /* local.der in Resources */ = {isa = PBXBuildFile; fileRef = 4C3AE17D1A4899B600F7DB4E /* local.der */; };
 		4C6D5D2719D29963003A93B5 /* FeedKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4C6D5D2419D2121F003A93B5 /* FeedKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		4C6D5D2D19D46918003A93B5 /* EntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D5D2C19D46918003A93B5 /* EntryTests.swift */; };
-		4C86426F19FD02750066D78F /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C86426E19FD02750066D78F /* Skull.framework */; };
 		4C962EB019E85CB100F33D9D /* common.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C962EAF19E85CB100F33D9D /* common.swift */; };
 		4CA3B2BE1A068BC80072E0C4 /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */; };
 		4CA3B2C01A068D8E0072E0C4 /* schema.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BF1A068D8E0072E0C4 /* schema.sql */; };
@@ -25,7 +24,6 @@
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CA3D3201A89EC4400CA58E9 /* SerializeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */; };
 		4CA3D3211A89EC4C00CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
-		4CAB48621A9F03FE00E50EC7 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CAB48611A9F03FE00E50EC7 /* Ola.framework */; };
 		4CAB487B1AA75ADA00E50EC7 /* SearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAB487A1AA75ADA00E50EC7 /* SearchTests.swift */; };
 		4CBB2BB219D9F966004B13F5 /* manger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C780197E4D2200F7FE54 /* manger.swift */; };
 		4CBB2BB319D9F969004B13F5 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
@@ -66,14 +64,12 @@
 		4C3AE17D1A4899B600F7DB4E /* local.der */ = {isa = PBXFileReference; lastKnownFileType = file; path = local.der; sourceTree = "<group>"; };
 		4C6D5D2419D2121F003A93B5 /* FeedKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedKit.h; sourceTree = "<group>"; };
 		4C6D5D2C19D46918003A93B5 /* EntryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntryTests.swift; sourceTree = "<group>"; };
-		4C86426E19FD02750066D78F /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../Skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
 		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
 		4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
 		4CA3B2BF1A068D8E0072E0C4 /* schema.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = schema.sql; sourceTree = "<group>"; };
 		4CA3B2C21A078E890072E0C4 /* SearchRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchRepositoryTests.swift; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = serialize.swift; path = ../../FeedKit/FeedKit/serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SerializeTests.swift; path = ../../FeedKit/FeedKitTests/SerializeTests.swift; sourceTree = "<group>"; };
-		4CAB48611A9F03FE00E50EC7 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../Ola/build/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
 		4CAB487A1AA75ADA00E50EC7 /* SearchTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SearchTests.swift; path = ../../FeedKit/FeedKitTests/SearchTests.swift; sourceTree = "<group>"; };
 		4CC7C780197E4D2200F7FE54 /* manger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = manger.swift; sourceTree = "<group>"; };
 		4CC7C786197E617800F7FE54 /* MangerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MangerTests.swift; sourceTree = "<group>"; };
@@ -87,8 +83,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4CAB48621A9F03FE00E50EC7 /* Ola.framework in Frameworks */,
-				4C86426F19FD02750066D78F /* Skull.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,8 +99,6 @@
 		4C34858B1977C236008A6B53 = {
 			isa = PBXGroup;
 			children = (
-				4CAB48611A9F03FE00E50EC7 /* Ola.framework */,
-				4C86426E19FD02750066D78F /* Skull.framework */,
 				4C3485971977C236008A6B53 /* FeedKit */,
 				4C3485A41977C237008A6B53 /* FeedKitTests */,
 				4C3485961977C236008A6B53 /* Products */,
