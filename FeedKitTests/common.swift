@@ -8,20 +8,119 @@
 
 import Foundation
 import XCTest
+import Skull
+@testable import FeedKit
 
-typealias AnyFrom = NSDictionary -> (NSError?, AnyObject?)
-
-func schemaForClass (aClass: AnyClass!) -> String {
+func schemaForClass(aClass: AnyClass!) -> String {
   let bundle = NSBundle(forClass: aClass)
   return bundle.pathForResource("schema", ofType: "sql")!
 }
 
-func shouldError (from: AnyFrom, dict: NSDictionary, wanted: NSError) {
-  let (er, result: AnyObject?) = from(dict)
-  if let found = er {
-    XCTAssertEqual(found, wanted)
-  } else {
-    XCTAssert(false, "should error")
+private func ttl() -> CacheTTL {
+  return CacheTTL(short: 3600, medium: 3600 * 24, long: 3600 * 24 * 3)
+}
+
+func freshCache(aClass: AnyClass!, ttl: CacheTTL = ttl()) -> Cache {
+  let cacheQueue = dispatch_queue_create("com.michaelnisi.feedkit.cache-testing", DISPATCH_QUEUE_SERIAL)
+  let db = Skull()
+  let schema = schemaForClass(aClass)
+  return try! Cache(
+    db: db,
+    queue: cacheQueue,
+    rm: true,
+    schema: schema,
+    ttl: ttl
+  )
+}
+
+func JSONFromFileAtURL(url: NSURL) throws -> [[String:AnyObject]] {
+  let data = NSData(contentsOfURL: url)
+  let json = try NSJSONSerialization.JSONObjectWithData(data!, options: .AllowFragments)
+  if let dict = json as? [String: AnyObject] {
+    return dict.isEmpty ? [] : [dict]
+  } else if let arr = json as? [[String:AnyObject]] {
+    return arr
   }
-  XCTAssertNil(result)
+  throw FeedKitError.UnexpectedJSON
+}
+
+func feedsFromFileAtURL(url: NSURL) throws -> [Feed] {
+  let json = try JSONFromFileAtURL(url)
+  return try! feedsFromPayload(json)
+}
+
+func entriesFromFileAtURL(url: NSURL) throws -> [Entry] {
+  let json = try JSONFromFileAtURL(url)
+  return try! entriesFromPayload(json)
+}
+
+func entryWithName(name: String) throws -> Entry {
+  switch name {
+    case "thetalkshow":
+      return Entry(
+        author: "Daring Fireball / John Gruber",
+        enclosure: Enclosure(
+          url: "http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3",
+          length: 110282964,
+          type: try! EnclosureType(withString: "audio/mpeg")
+        ),
+        duration: "02:33:05",
+        feed: "http://feeds.muleradio.net/thetalkshow",
+        id: "http://daringfireball.net/thetalkshow/2015/10/17/ep-133",
+        img: "http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png,",
+        link: "http://daringfireball.net/thetalkshow/2015/10/17/ep-133",
+        subtitle: "Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.",
+        summary: "Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.",
+        title: "Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell",
+        ts: nil,
+        updated: NSDate(timeIntervalSince1970: 1445110501000 / 1000)
+    )
+    default:
+      throw FeedKitError.NotAnEntry
+  }
+}
+
+func feedWithName(name: String) throws -> Feed {
+  switch name {
+  case "thetalkshow":
+    return Feed(
+      author: "Daring Fireball / John Gruber",
+      guid: 528458508,
+      images: FeedImages(
+        img: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
+        img100: nil,
+        img30: nil,
+        img60: nil,
+        img600: nil
+      ),
+      link: "http://feeds.muleradio.net/thetalkshow",
+      summary: "The director’s commentary track for Daring Fireball.",
+      title: "The Talk Show With John Gruber",
+      ts: NSDate(),
+      uid: nil,
+      updated: NSDate(timeIntervalSince1970: 1445110501000 / 1000),
+      url: "http://feeds.muleradio.net/thetalkshow"
+    )
+  case "roderickontheline":
+    return Feed(
+      author: "Merlin Mann",
+      guid: 471418144,
+      images: FeedImages(
+        img: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
+        img100: nil,
+        img30: nil,
+        img60: nil,
+        img600: nil
+      ),
+      link: nil,
+      summary: nil,
+      title: "Roderick on the Line",
+      ts: nil,
+      uid: nil,
+      updated: NSDate(timeIntervalSince1970: 0),
+      url: "http://feeds.feedburner.com/RoderickOnTheLine"
+    )
+  default:
+    throw FeedKitError.NotAFeed
+  }
 }

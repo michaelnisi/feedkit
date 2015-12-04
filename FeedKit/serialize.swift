@@ -1,5 +1,5 @@
 //
-//  serialize.swift - some common serialization functions
+//  serialize.swift - transform things received from our services
 //  FeedKit
 //
 //  Created by Michael Nisi on 10.02.15.
@@ -8,8 +8,7 @@
 
 import Foundation
 import Skull
-
-typealias Map = [String:AnyObject]
+import MangerKit
 
 func trimString (s: String, joinedByString j:String = "") -> String {
   let ws = NSCharacterSet.whitespaceCharacterSet()
@@ -23,40 +22,161 @@ func trimString (s: String, joinedByString j:String = "") -> String {
   }
 }
 
-func urlFromDictionary (dict: Map, withKey key: String) -> NSURL? {
-  if let str = dict[key] as? String {
-    return NSURL(string: str)
-  }
-  return nil
+func timeIntervalFromJS (value: Int) -> NSTimeInterval {
+  return Double(value) / 1000 as NSTimeInterval
 }
 
-func dateFromDictionary (dict: Map, withKey key: String) -> NSDate? {
-  if let value = dict[key] as? NSTimeInterval {
-    return NSDate(timeIntervalSince1970: value / 1000)
-  }
-  return nil
+func dateFromDictionary (dict: [String:AnyObject], withKey key: String) -> NSDate? {
+  guard let ms = dict[key] as? Int else { return nil }
+  let s = timeIntervalFromJS(ms)
+  return NSDate(timeIntervalSince1970: s)
 }
 
-func messageFromErrors (errors: [NSError]) -> String {
-  var str: String = errors.count > 0 ? "" : "no errors"
-  for error in errors {
-    str += "\(error.description)\n"
-  }
-  return str
-}
-
-func parseJSON (data: NSData) -> (NSError?, AnyObject?) {
-  var er: NSError?
-  if let json: AnyObject = NSJSONSerialization.JSONObjectWithData(
-    data
-  , options: NSJSONReadingOptions.AllowFragments
-  , error: &er) {
-    return (er, json)
-  }
-  er = NSError(
-    domain: domain
-  , code: 1
-  , userInfo: ["message": "couldn't create JSON object"]
+func FeedImagesFromDictionary(dict: [String:AnyObject]) -> FeedImages {
+  let img = dict["image"] as? String
+  let img100 = dict["img100"] as? String
+  let img30 = dict["img30"] as? String
+  let img60 = dict["img60"] as? String
+  let img600 = dict["img600"] as? String
+  
+  return FeedImages(
+    img: img,
+    img100: img100,
+    img30: img30,
+    img60: img60,
+    img600: img600
   )
-  return (er, nil)
+}
+
+func feedFromDictionary (dict: [String:AnyObject]) throws -> Feed {
+  let author = dict["author"] as? String
+  let guid =  dict["feed"] as? Int
+  guard let link = dict["link"] as? String else { throw FeedKitError.Missing(name: "link") }
+  let images: FeedImages = FeedImagesFromDictionary(dict)
+  guard let summary = dict["summary"] as? String else { throw FeedKitError.Missing(name: "summary") }
+  guard let title = dict["title"] as? String else { throw FeedKitError.Missing(name: "title") }
+  let updated = dateFromDictionary(dict, withKey: "updated")
+  guard let url = dict["feed"] as? String else { throw FeedKitError.Missing(name: "url") }
+
+  return Feed(
+    author: author,
+    guid: guid,
+    images: images,
+    link: link,
+    summary: summary,
+    title: title,
+    ts: nil,
+    uid: nil,
+    updated: updated,
+    url: url
+  )
+}
+
+func feedsFromPayload(dicts: [[String: AnyObject]]) throws -> [Feed] {
+  var errors = [ErrorType]()
+  let feeds = dicts.reduce([Feed]()) { acc, dict in
+    do {
+      let feed = try feedFromDictionary(dict)
+      return acc + [feed]
+    } catch let er {
+      errors.append(er)
+      return acc
+    }
+  }
+  if !errors.isEmpty {
+    throw FeedKitError.Multiple(errors: errors)
+  }
+  return feeds
+}
+
+func enclosureFromDictionary (dict: [String:AnyObject]) throws -> Enclosure? {
+  guard let url = dict["url"] as? String else {
+    throw FeedKitError.Missing(name: "url")
+  }
+  var length: Int?
+  if let lenstr = dict["length"] as? String {
+    length = Int(lenstr)
+  }
+  guard let t = dict["type"] as? String else {
+    throw FeedKitError.Missing(name: "type")
+  }
+  let type = try EnclosureType(withString: t)
+  
+  return Enclosure(
+    url: url,
+    length: length,
+    type: type
+  )
+}
+
+func entryFromDictionary (dict: [String:AnyObject]) throws -> Entry {
+  let author = dict["author"] as? String
+  
+  var enclosure: Enclosure?
+  if let enc = dict["enclosure"] as? [String:AnyObject] {
+    enclosure = try enclosureFromDictionary(enc)
+  }
+  
+  let duration = dict["duration"] as? String
+  guard let feed = dict["feed"] as? String else {
+    throw FeedKitError.Missing(name: "feed")
+  }
+  guard let id = dict["id"] as? String else {
+    throw FeedKitError.Missing(name: "id")
+  }
+  let img = dict["image"] as? String
+  let link = dict["link"] as? String
+  let subtitle = dict["subtitle"] as? String
+  let summary = dict["summary"] as? String
+  guard let title = dict["title"] as? String else {
+    throw FeedKitError.Missing(name: "title")
+  }
+  let updated = dateFromDictionary(dict, withKey: "updated")
+
+  return Entry(
+    author: author,
+    enclosure: enclosure,
+    duration: duration,
+    feed: feed,
+    id: id,
+    img: img,
+    link: link,
+    subtitle: subtitle,
+    summary: summary,
+    title: title,
+    ts: nil,
+    updated: updated
+  )
+}
+
+func entriesFromPayload(dicts: [[String: AnyObject]]) throws -> [Entry] {
+  var errors = [ErrorType]()
+  let entries = dicts.reduce([Entry]()) { acc, dict in
+    do {
+      let entry = try entryFromDictionary(dict)
+      return acc + [entry]
+    } catch let er {
+      errors.append(er)
+      return acc
+    }
+  }
+  if !errors.isEmpty {
+    throw FeedKitError.Multiple(errors: errors)
+  }
+  return entries
+}
+
+func queryFromString (term: String) -> String? {
+  let query = trimString(term, joinedByString: "+")
+  return query.isEmpty ? nil : query
+}
+
+func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
+  guard let query = queryFromString(term) else { return nil }
+  return NSURL(string: "\(verb)?q=\(query)", relativeToURL: baseURL)
+}
+
+func suggestionsFromTerms (terms: [String]) -> [Suggestion]? {
+  guard !terms.isEmpty else { return nil } // TODO: Again: why nil?
+  return terms.map { Suggestion(term: $0, ts: nil) }
 }

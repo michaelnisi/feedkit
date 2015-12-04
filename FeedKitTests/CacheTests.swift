@@ -6,103 +6,179 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
-import FeedKit
+@testable import FeedKit
 import Skull
 import XCTest
+import Foundation
+import FeedKit
 
 class CacheTests: XCTestCase {
-  var cache: Cache?
-
-  func dbURL () -> NSURL? {
-    var er: NSError?
-    let fm = NSFileManager.defaultManager()
-    let dir = fm.URLForDirectory(
-      .CachesDirectory
-    , inDomain: .UserDomainMask
-    , appropriateForURL: nil
-    , create: true
-    , error: &er
-    )
-    if er == nil {
-      return NSURL(string: "feedkit.db", relativeToURL: dir)
-    }
-    return nil
-  }
-
-  func rm (url: NSURL) -> NSError? {
-    let fm = NSFileManager.defaultManager()
-    var er: NSError?
-    fm.removeItemAtURL(url, error: &er)
-    return er
-  }
+  var cache: Cache!
+  let fm = NSFileManager.defaultManager()
 
   override func setUp() {
     super.setUp()
-    if let url = dbURL() {
-      let fm = NSFileManager.defaultManager()
-      if fm.fileExistsAtPath(url.path!) {
-        if let er = rm(url) {
-          XCTFail("could not remove file")
-        }
-      }
-      let label = "\(domain).cache"
-      let cacheQueue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
-      let db = Skull()
-      let schema = schemaForClass(self.dynamicType)
-      let ttl: NSTimeInterval = 3600
-      cache = Cache(
-        db: db, queue: cacheQueue, rm: true, schema: schema, ttl: ttl)
-      XCTAssert(fm.fileExistsAtPath(url.path!))
-    } else {
-      XCTFail("directory not found")
-    }
+    cache = freshCache(self.classForCoder)
+    let url = cache.url!
+    XCTAssert(fm.fileExistsAtPath(url.path!))
   }
 
   override func tearDown() {
-    if let url = dbURL() {
-      if let er = rm(url) {
-        XCTFail("could not remove file")
-      }
-      let fm = NSFileManager.defaultManager()
-      XCTAssertFalse(fm.fileExistsAtPath(url.path!))
-    } else {
-      XCTFail("directory not found")
-    }
-
+    let url = cache.url!
+    try! fm.removeItemAtURL(url)
+    XCTAssertFalse(fm.fileExistsAtPath(url.path!), "should remove database file")
     cache = nil
     super.tearDown()
   }
+  
+  func testUpdateFeeds() {
+    let bundle = NSBundle(forClass: self.classForCoder)
+    
+    let feedsURL = bundle.URLForResource("feeds", withExtension: "json")
+    let feeds = try! feedsFromFileAtURL(feedsURL!)
+    
+    try! cache.updateFeeds(feeds)
+  
+    func testUpdate() {
+      let feed = feeds.first!
+      try! cache.updateFeeds([feed])
+    }
+    testUpdate()
+    
+    let urls = feeds.map { $0.url }
+    let found = try! cache.feedsWithURLs(urls)
+    
+    let wanted = feeds
+    XCTAssertEqual(found!, wanted)
+    for (i, wantedFeed) in wanted.enumerate() {
+      let foundFeed = found![i]
 
-  func testSuggestions () {
+      XCTAssertEqual(foundFeed.author, wantedFeed.author)
+      XCTAssertEqual(foundFeed.guid, wantedFeed.guid)
+      XCTAssertEqual(foundFeed.images, wantedFeed.images)
+      XCTAssertEqual(foundFeed.link, wantedFeed.link)
+      XCTAssertEqual(foundFeed.summary, wantedFeed.summary)
+      XCTAssertEqual(foundFeed.title, wantedFeed.title)
+      XCTAssertNotNil(foundFeed.ts, "should bear timestamp")
+      XCTAssertEqual(foundFeed.updated, wantedFeed.updated)
+      XCTAssertEqual(foundFeed.url, wantedFeed.url)
+
+      let url = foundFeed.url
+      XCTAssertTrue(cache.hasURL(url))
+      let uid = try! cache.feedIDForURL(url)
+      XCTAssertEqual(uid, foundFeed.uid)
+    }
+  }
+
+  func testFeedsWithURLs() {
+    let urls = ["", "abc.de"]
+    let found = try! cache.feedsWithURLs(urls)
+    XCTAssertNil(found)
+  }
+  
+  func testUpdateEntriesOfUncachedFeeds() {
+    let entries = [
+      try! entryWithName("thetalkshow")
+    ]
+    var foundURLs: [String]? = nil
+    let wantedURLs = ["http://feeds.muleradio.net/thetalkshow"]
+    do {
+      try cache.updateEntries(entries)
+    } catch FeedKitError.FeedNotCached(let urls) {
+      foundURLs = urls
+    } catch {
+      XCTFail("should throw expected error")
+    }
+    XCTAssertEqual(foundURLs!, wantedURLs)
+  }
+
+  func populate() throws -> ([Feed], [Entry]) {
+    let bundle = NSBundle(forClass: self.classForCoder)
+    
+    let feedsURL = bundle.URLForResource("feeds", withExtension: "json")
+    let feeds = try! feedsFromFileAtURL(feedsURL!)
+    
+    try! cache.updateFeeds(feeds)
+    
+    let entriesURL = bundle.URLForResource("entries", withExtension: "json")
+    let entries = try! entriesFromFileAtURL(entriesURL!)
+    
+    try! cache.updateEntries(entries)
+    
+    return (feeds, entries)
+  }
+  
+  func testUpdateEntries() {
+    let (feeds, entries) = try! populate()
+    let urls = feeds.map { $0.url }
+    let intervals = urls.map { EntryInterval(url: $0) }
+    let found = try! cache.entriesOfIntervals(intervals)
+    let wanted = entries
+    XCTAssertEqual(found!, wanted)
+    for (i, wantedEntry) in wanted.enumerate() {
+      let foundEntry = found![i]
+      XCTAssertEqual(foundEntry.author, wantedEntry.author)
+      XCTAssertEqual(foundEntry.duration, wantedEntry.duration)
+      XCTAssertEqual(foundEntry.enclosure, wantedEntry.enclosure)
+      XCTAssertEqual(foundEntry.feed, wantedEntry.feed)
+      XCTAssertEqual(foundEntry.id, wantedEntry.id)
+      XCTAssertEqual(foundEntry.img, wantedEntry.img)
+      XCTAssertEqual(foundEntry.link, wantedEntry.link)
+      XCTAssertEqual(foundEntry.subtitle, wantedEntry.subtitle)
+      XCTAssertEqual(foundEntry.summary, wantedEntry.summary)
+      XCTAssertEqual(foundEntry.title, wantedEntry.title)
+      XCTAssertNotNil(foundEntry.ts, "should bear timestamp")
+      XCTAssertEqual(foundEntry.updated, wantedEntry.updated)
+    }
+  }
+  
+  func testRemoveFeedsWithURLs() {
+    let (feeds, _) = try! populate()
+    let urls = feeds.map { $0.url }
+    
+    urls.forEach { url in
+      XCTAssertTrue(cache.hasURL(url))
+    }
+    
+    try! cache.updateFeeds(feeds) // to provoke dopplers
+    try! cache.removeFeedsWithURLs(urls)
+    
+    urls.forEach { url in
+      XCTAssertFalse(cache.hasURL(url))
+    }
+    
+    let intervals = urls.map { EntryInterval(url: $0) }
+    let found = try! cache.entriesOfIntervals(intervals)
+    XCTAssertNil(found, "should have removed entries too")
+  }
+
+  func testSuggestions() {
     let terms = ["apple", "apple watch", "apple pie"]
     let input = terms.map({ term in
       Suggestion(term: term, ts: nil)
     })
-    XCTAssertNil(cache?.setSuggestions(input, forTerm:"apple"))
-    let (error, suggestions) = cache!.suggestionsForTerm("apple pie")
-    if let output = suggestions {
-      XCTAssertEqual(output.count, 1)
-      let found: Suggestion = output.last!
+    try! cache.updateSuggestions(input, forTerm:"apple")
+    if let sugs = try! cache.suggestionsForTerm("apple p") {
+      XCTAssertEqual(sugs.count, 1)
+      let found: Suggestion = sugs.last!
       XCTAssertNotNil(found.ts!)
       let wanted: Suggestion = input.last!
       XCTAssertEqual(found, wanted)
     } else {
-      XCTFail("should find suggestions")
+      XCTFail("should find suggestion")
     }
   }
 
-  func testRemoveSuggestions () {
+  func testRemoveSuggestions() {
     let terms = ["apple", "apple watch", "apple pie"]
     let input = terms.map({ term in
       Suggestion(term: term, ts: nil)
     })
-    XCTAssertNil(cache?.setSuggestions(input, forTerm:"apple"))
-    XCTAssertNil(cache?.setSuggestions([], forTerm:"pie"))
-    let (error, suggestions) = cache!.suggestionsForTerm("apple")
-    XCTAssertNil(error)
-    if let found = suggestions {
+    try! cache.updateSuggestions(input, forTerm:"apple")
+    try! cache.updateSuggestions([], forTerm:"pie")
+    if let found = try! cache.suggestionsForTerm("apple") {
       XCTAssertEqual(found.count, 2)
-      for (i, sug) in enumerate(found) {
+      for (i, sug) in found.enumerate() {
         XCTAssertEqual(sug, input[i])
       }
     } else {
@@ -111,11 +187,11 @@ class CacheTests: XCTestCase {
   }
 
   func hit (term: String, _ wanted: String, _ cache: [String:NSDate]) {
-    if let (found, ts) = subcached(term, cache) {
+    if let (found, _) = subcached(term, dict: cache) {
       XCTAssertEqual(found, wanted)
-      if countElements(term) > 1 {
+      if term.lengthOfBytesUsingEncoding(NSUTF8StringEncoding) > 1 {
         let pre = term.endIndex.predecessor()
-        hit(term.substringToIndex(pre), wanted, cache)
+        self.hit(term.substringToIndex(pre), wanted, cache)
       }
     } else {
       XCTFail("\(term) should be cached")
@@ -129,7 +205,7 @@ class CacheTests: XCTestCase {
     cache["a"] = nil
 
     cache["abc"] = NSDate()
-    XCTAssertNotNil(subcached("abcd", cache)!.0)
-    XCTAssertNil(subcached("ab", cache)?.0)
+    XCTAssertNotNil(subcached("abcd", dict: cache)!.0)
+    XCTAssertNil(subcached("ab", dict: cache)?.0)
   }
 }

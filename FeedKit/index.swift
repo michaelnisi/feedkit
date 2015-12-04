@@ -1,5 +1,5 @@
 //
-//  index.swift
+//  index.swift - API and common internal functions
 //  FeedKit
 //
 //  Created by Michael Nisi on 17.07.14.
@@ -7,352 +7,292 @@
 //
 
 import Foundation
-import Skull
 
-let domain = "com.michaelnisi.feedkit"
+// MARK: Types
 
-typealias Transform = ([NSDictionary]) -> (NSError?, [AnyObject])
-
-func nop (Any) -> Void {}
-
-public func createTimer (
-  queue: dispatch_queue_t, time: Double, cb: dispatch_block_t)
-  -> dispatch_source_t {
-    let timer = dispatch_source_create(
-      DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue)
-    let delta = time * Double(NSEC_PER_SEC)
-    let start = dispatch_time(DISPATCH_TIME_NOW, Int64(delta))
-    dispatch_source_set_timer(timer, start, 0, 0)
-    dispatch_source_set_event_handler(timer, cb)
-    dispatch_resume(timer)
-    return timer
-  }
-
-func wait (sema: dispatch_semaphore_t, seconds: Int = 3600 * 24) -> Bool {
-  let period = Int64(CUnsignedLongLong(seconds) * NSEC_PER_SEC)
-  let timeout = dispatch_time(DISPATCH_TIME_NOW, period)
-  return dispatch_semaphore_wait(sema, timeout) == 0
+public enum FeedKitError: ErrorType, Equatable {
+  case Unknown
+  case NIY
+  case NotAString
+  case General(message: String)
+  case CancelledByUser
+  case Missing(name: String)
+  case NotAFeed
+  case NotAnEntry
+  case ServiceUnavailable(error: ErrorType, urls: [String])
+  case FeedNotCached(urls: [String])
+  case UnknownEnclosureType(type: String)
+  case Multiple(errors: [ErrorType])
+  case UnexpectedJSON
+  case SQLFormatting
+  case CacheFailure(error: ErrorType)
 }
 
-func niy (domain: String = domain) -> NSError {
- let info = ["message": "not implemented yet"]
- return NSError(domain: domain, code: 1, userInfo: info)
+public func == (lhs: FeedKitError, rhs: FeedKitError) -> Bool {
+  return lhs._code == rhs._code
 }
 
-public class Service: NSObject {
-  let host: String
-  let port: Int
-  let session: NSURLSession
-
-  func makeBaseURL () -> NSURL? {
-    return nil // Override
-  }
-  public lazy var baseURL: NSURL = self.makeBaseURL()!
-
-  public init (
-    host: String
-  , port: Int
-  , session osess: NSURLSession? = nil) {
-    self.host = host
-    self.port = port
-    if let sess = osess {
-      self.session = sess
-    } else {
-      let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
-      session = NSURLSession(configuration: conf)
-    }
-  }
+public struct FeedImages: Equatable {
+  public let img: String?
+  public let img100: String?
+  public let img30: String?
+  public let img60: String?
+  public let img600: String?
 }
 
-public class ServiceResult: Printable {
-  public let request: NSURLRequest
-  public let items: [AnyObject]?
-  public var error: NSError?
+public func == (lhs: FeedImages, rhs: FeedImages) -> Bool {
+  return (
+    lhs.img == rhs.img &&
+    lhs.img100 == rhs.img100 &&
+    lhs.img30 == rhs.img30 &&
+    lhs.img60 == rhs.img60 &&
+    lhs.img600 == rhs.img600
+  )
+}
 
-  init (request: NSURLRequest, data: NSData) {
-    self.request = request
-    if let json: AnyObject = parse(data) {
-      self.items = json as? [AnyObject]
-    }
-  }
+public protocol Searchable: Equatable {}
 
+public protocol Cachable {
+  var ts: NSDate? { get }
+  var url: String { get }
+}
+
+public struct Feed: Searchable, Cachable {
+  public let author: String?
+  public let guid: Int?
+  public let images: FeedImages?
+  public let link: String?
+  public let summary: String?
+  public let title: String
+  public let ts: NSDate?
+  public let uid: Int?
+  public let updated: NSDate?
+  public let url: String
+}
+
+extension Feed: CustomStringConvertible {
   public var description: String {
-    return "ServiceResult: \(request) \(items) \(error)"
-  }
-
-  func parse (data: NSData) -> AnyObject? {
-    let (er, json: AnyObject?) = parseJSON(data)
-    if let parseError = er {
-      error = NSError(
-        domain: domain
-      , code: 1
-      , userInfo: [
-          "request": request.description
-        , "json": parseError.description]
-      )
-    }
-    return json
-  }
-}
-
-public struct FeedQuery: Equatable, Printable {
-  let url: NSURL
-  let date: NSDate?
-
-  public init (string: String) {
-    self.url = NSURL(string: string)!
-  }
-
-  public init (url: NSURL) {
-    self.url = url
-  }
-
-  public init (url: NSURL, date: NSDate) {
-    self.url = url
-    self.date = date
-  }
-
-  public var time: Int {
-    return date != nil ? Int(round(date!.timeIntervalSince1970 * 1000)) : -1
-  }
-
-  public var description: String {
-    return "FeedQuery: \(url) since \(date)"
-  }
-}
-
-public func == (lhs: FeedQuery, rhs: FeedQuery) -> Bool {
-  return lhs.url == rhs.url
-}
-
-public func == (lhs: Feed, rhs: AnyObject) -> Bool {
-  if rhs is Feed {
-    return lhs == rhs as Feed
-  } else {
-    return false
+    return "Feed: \(title) @ \(url)"
   }
 }
 
 public func == (lhs: Feed, rhs: Feed) -> Bool {
-  return
-    lhs.author == rhs.author &&
-    lhs.image == rhs.image &&
-    lhs.language == rhs.language &&
-    lhs.link == rhs.link &&
-    lhs.summary == rhs.summary &&
-    lhs.title == rhs.title &&
-    lhs.updated == rhs.updated
+  return lhs.url == rhs.url
 }
 
-public class Feed: Equatable, Printable {
-  public let author: String?
-  public let image: String?
-  public let language: String?
-  public let link: NSURL?
-  public let summary: String?
-  public let title: String
-  public let updated: Double?
-  public let url: NSURL
-
-  public lazy var date: NSDate
-    = NSDate(timeIntervalSince1970: self.updated!)
-
-  public var description: String {
-    return "Feed: \(title) @ \(url)"
-  }
-
-  init (
-    author: String?
-  , image: String?
-  , language: String?
-  , link: NSURL?
-  , summary: String?
-  , title: String
-  , updated: Double?
-  , url: NSURL) {
-    self.author = author
-    self.image = image
-    self.language = language
-    self.link = link
-    self.summary = summary
-    self.title = title
-    self.updated = updated
-    self.url = url
-  }
-}
-
-public func == (lhs: Enclosure, rhs: Enclosure) -> Bool {
-  return
-    lhs.href == rhs.href &&
-    lhs.length == rhs.length &&
-    lhs.type == rhs.type
-}
-
-public class Enclosure: Equatable, Printable {
-  let href: NSURL
-  let length: Int?
-  let type: String
-
-  public var description: String {
-    return "Enclosure: \(href)"
-  }
-
-  public init (href: NSURL, length: Int, type: String) {
-    self.href = href
-    self.length = length
-    self.type = type
-  }
-}
-
-public func == (lhs: Entry, rhs: Entry) -> Bool {
-  return
-    lhs.author == rhs.author &&
-    lhs.enclosure == rhs.enclosure &&
-    lhs.duration == rhs.duration &&
-    lhs.id == rhs.id &&
-    lhs.image == rhs.image &&
-    lhs.link == rhs.link &&
-    lhs.subtitle == rhs.subtitle &&
-    lhs.title == rhs.title &&
-    lhs.updated == rhs.updated
-}
-
-public class Entry: Equatable, Printable {
-  public let author: String?
-  public let enclosure: Enclosure
-  public let duration: Int?
-  public let id: String?
-  public let image: String?
-  public let link: NSURL?
-  public let subtitle: String?
-  public let summary: String?
-  public let title: String?
-  public let updated: Double?
-
-  public var description: String {
-    return "Entry: \(title) @ \(enclosure.href)"
-  }
-
-  init (
-    author: String?
-  , enclosure: Enclosure
-  , duration: Int?
-  , id: String?
-  , image: String?
-  , link: NSURL?
-  , subtitle: String?
-  , summary: String?
-  , title: String?
-  , updated: Double?) {
-    self.author = author
-    self.enclosure = enclosure
-    self.duration = duration
-    self.id = id
-    self.image = image
-    self.link = link
-    self.subtitle = subtitle
-    self.summary = summary
-    self.title = title
-    self.updated = updated
-  }
-}
-
-public protocol FeedService {
-  func feeds (queries: [FeedQuery], cb: (NSError?, [Feed]?) -> Void)
-  func entries (queries: [FeedQuery], cb: (NSError?, [Entry]?) -> Void)
-}
-
-public protocol FeedCache {
-  mutating func set (feed: Feed) -> Void
-  func get (url: NSURL) -> Feed?
-  mutating func reset () -> Void
-}
-
-public class MemoryFeedCache: FeedCache  {
-  let cache: NSCache
-
-  public init () {
-    cache = NSCache()
-  }
-
-  public func set(feed: Feed) {
-    cache.setObject(feed, forKey: feed.url)
-  }
-
-  public func get(url: NSURL) -> Feed? {
-    return cache.objectForKey(url) as? Feed
-  }
-
-  public func reset() {
-    cache.removeAllObjects()
-  }
-}
-
-public class FeedRepository {
-  let svc: FeedService
-  let queue: dispatch_queue_t
-  let cache: FeedCache
-
-  public init (svc: FeedService, queue: dispatch_queue_t, cache: FeedCache) {
-    self.svc = svc
-    self.queue = queue
-    self.cache = cache
-  }
-
-  public func feeds (urls: [NSURL], cb: (NSError?, [Feed]?) -> Void) -> Void {
-    let cache = self.cache
-    let svc = self.svc
-    dispatch_async(queue, {
-      var cached = [Feed]()
-      var queries = [FeedQuery]()
-      for url: NSURL in urls {
-        if let feed = cache.get(url) {
-          cached.append(feed)
-        } else {
-          let query = FeedQuery(url: url)
-          queries.append(query)
-        }
-      }
-      svc.feeds(queries) { (er, result) in
-        func partly () -> [Feed]? {
-          return cached.count > 0 ? cached : nil
-        }
-        if er != nil {
-          return cb(er, partly())
-        }
-        if let retrieved = result {
-          let feeds = cached + retrieved
-          cb(nil, feeds)
-        } else {
-          let info = ["message": "unexpected service error"]
-          let er = NSError(domain: domain, code: 1, userInfo: info)
-          cb(er, partly())
-        }
-      }
-    })
-  }
-
-  public func feed (url: NSURL, cb: (NSError?, Feed?) -> Void) -> Void {
-    feeds([url]) { (er, feeds) in
-      cb(er, feeds?.first)
+public enum EnclosureType: Int {
+  case AudioMPEG
+  case AudioXMPEG
+  case VideoXM4V
+  // TODO: Add more types
+  public init (withString type: String) throws {
+    switch type {
+    case "audio/mpeg": self = .AudioMPEG
+    case "audio/x-mpeg": self = .AudioXMPEG
+    case "video/x-m4v": self = .VideoXM4V
+    default: throw FeedKitError.UnknownEnclosureType(type: type)
     }
   }
 }
 
-public class EntryRepository {
-  public func recent (feeds: [Feed], cb: (NSError?, [Entry]?) -> Void) -> Void {
+public struct Enclosure: Equatable {
+  let url: String
+  let length: Int?
+  let type: EnclosureType
+}
 
+extension Enclosure: CustomStringConvertible {
+  public var description: String {
+    return "Enclosure: \(url)"
   }
+}
 
-  public func entries (feed: Feed, cb: (NSError?, [Entry]?) -> Void) -> Void {
+public func == (lhs: Enclosure, rhs: Enclosure) -> Bool {
+  return lhs.url == rhs.url
+}
 
+public struct Entry: Equatable, Cachable {
+  public let author: String?
+  public let enclosure: Enclosure?
+  public let duration: String?
+  public let feed: String
+  public let id: String
+  public let img: String?
+  public let link: String?
+  public let subtitle: String?
+  public let summary: String?
+  public let title: String
+  public let ts: NSDate?
+  public let updated: NSDate?
+  
+  public var url: String {
+    get { return feed }
   }
+}
 
-  public func entry (url: NSURL, cb: (NSError?, Entry?) -> Void) -> Void {
-
+extension Entry: CustomStringConvertible {
+  public var description: String {
+    return "Entry: \(title)"
   }
+}
 
-  public func update (queries: [FeedQuery], cb: (NSError?, [Entry]?) -> Void) -> Void {
+public func == (lhs: Entry, rhs: Entry) -> Bool {
+  return lhs.id == rhs.id
+}
 
+public struct EntryInterval: Equatable {
+  public let url: String
+  public let since: NSDate
+  
+  public init(url: String, since: NSDate = NSDate(timeIntervalSince1970: 0)) {
+    self.url = url
+    self.since = since
   }
+}
+
+extension EntryInterval: CustomStringConvertible {
+  public var description: String {
+    return "EntryInterval: \(url) since: \(since)"
+  }
+}
+
+public func == (lhs: EntryInterval, rhs: EntryInterval) -> Bool {
+  return lhs.url == rhs.url && lhs.since == rhs.since
+}
+
+public struct Suggestion: Searchable {
+  public let term: String
+  public var ts: NSDate? // if cached
+}
+
+extension Suggestion: CustomStringConvertible {
+  public var description: String {
+    return "Suggestion: \(term) \(ts)"
+  }
+}
+
+public func == (lhs: Suggestion, rhs: Suggestion) -> Bool {
+  return lhs.term == rhs.term
+}
+
+public enum SearchItem: Equatable {
+  case Sug(Suggestion)
+  case Res(Feed)
+  case Fed(Feed)
+  var ts: NSDate? {
+    switch self {
+    case .Res(let it): return it.ts
+    case .Sug(let it): return it.ts
+    case .Fed(let it): return it.ts
+    }
+  }
+}
+
+public func == (lhs: SearchItem, rhs: SearchItem) -> Bool {
+  var lhsRes: Feed?
+  var lhsSug: Suggestion?
+  var lhsFed: Feed?
+  switch lhs {
+  case .Res(let res):
+    lhsRes = res
+  case .Sug(let sug):
+    lhsSug = sug
+  case .Fed(let fed):
+    lhsFed = fed
+  }
+  var rhsRes: Feed?
+  var rhsSug: Suggestion?
+  var rhsFed: Feed?
+  switch rhs {
+  case .Res(let res):
+    rhsRes = res
+  case .Sug(let sug):
+    rhsSug = sug
+  case .Fed(let fed):
+    rhsFed = fed
+  }
+  if lhsRes != nil && rhsRes != nil {
+    return lhsRes == rhsRes
+  } else if lhsSug != nil && rhsSug != nil {
+    return lhsSug == rhsSug
+  } else if lhsFed != nil && rhsFed != nil {
+    return lhsFed == rhsFed
+  }
+  return false
+}
+
+
+// MARK: Caching
+
+public struct CacheTTL {
+  let short: NSTimeInterval
+  let medium: NSTimeInterval
+  let long: NSTimeInterval
+}
+
+public protocol FeedCaching {
+  var ttl: CacheTTL { get }
+  
+  func updateFeeds(feeds:[Feed]) throws
+  func feedsWithURLs(urls: [String]) throws -> [Feed]?
+
+  func updateEntries(entries:[Entry]) throws
+  func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]?
+
+  func removeFeedsWithURLs(urls: [String]) throws
+}
+
+public protocol SearchCaching {
+  var ttl: CacheTTL { get }
+
+  func updateSuggestions(suggestions: [Suggestion], forTerm: String) throws
+  func suggestionsForTerm(term: String) throws -> [Suggestion]?
+
+  func updateFeeds(feeds: [Feed], forTerm: String) throws
+  func feedsForTerm(term: String) throws -> [Feed]?
+  func feedsMatchingTerm(term: String) throws -> [Feed]?
+
+  func entriesMatchingTerm(term: String) throws -> [Entry]?
+}
+
+public protocol ImageCaching {
+  
+}
+
+// MARK: Repositories
+
+public protocol Browsing {
+  func feeds(urls: [String], cb:(ErrorType?, [Feed]) -> Void) -> NSOperation
+  func entries(intervals: [EntryInterval], cb:(ErrorType?, [Entry]) -> Void) -> NSOperation
+}
+
+public protocol Subscribing {
+  func update() -> NSOperation
+  func subscribeToFeedWithURL(url: String, cb:(ErrorType?, Feed?) -> Void) -> NSOperation
+  func unsubscribeFromFeedWithURL(url: String, cb:(ErrorType?, Feed?) -> Void) -> NSOperation
+}
+
+public protocol Searching {
+
+}
+
+public protocol ImageLibrary {
+
+}
+
+// MARK: Common functions
+
+func nop(_: Any) -> Void {}
+
+func createTimer(
+  queue: dispatch_queue_t,
+  time: Double,
+  cb: dispatch_block_t) -> dispatch_source_t {
+  let timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue)
+  let delta = time * Double(NSEC_PER_SEC)
+  let start = dispatch_time(DISPATCH_TIME_NOW, Int64(delta))
+  dispatch_source_set_timer(timer, start, 0, 0)
+  dispatch_source_set_event_handler(timer, cb)
+  dispatch_resume(timer)
+  return timer
 }
