@@ -46,11 +46,13 @@ func entriesFromCache(cache: FeedCaching, withIntervals intervals: [EntryInterva
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.short)
 }
 
+// TODO: Make this operation concurrent
+
 class FeedRepoOperation: NSOperation {
   let cache: FeedCaching
   let svc: MangerService
 
-  var op: NSOperation?
+  var task: NSURLSessionTask?
   var error: ErrorType?
 
   init(cache: FeedCaching, svc: MangerService) {
@@ -75,7 +77,7 @@ class FeedRepoOperation: NSOperation {
 
   override func cancel() {
     error = FeedKitError.CancelledByUser
-    op?.cancel()
+    task?.cancel()
     unlock()
     super.cancel()
   }
@@ -111,7 +113,7 @@ class EntriesOperation: FeedRepoOperation {
       // TODO: Remove when https://openradar.appspot.com/23499056 got fixed
       let queries: [MangerQuery] = intervals.map { $0 }
       
-      op = try svc.entries(queries) { error, payload in
+      task = try svc.entries(queries) { error, payload in
         defer {
           self.unlock()
         }
@@ -178,7 +180,7 @@ class FeedsOperation: FeedRepoOperation {
       
       let queries: [MangerQuery] = urlsToRequest!.map { EntryInterval(url: $0) }
       
-      op = try svc.feeds(queries) { error, payload in
+      task = try svc.feeds(queries) { error, payload in
         defer {
           self.unlock()
         }
@@ -215,6 +217,8 @@ public class FeedRepository: Browsing {
   let cache: FeedCaching
   let svc: MangerService
   let queue: NSOperationQueue
+  
+  let feedQueue = NSOperationQueue()
 
   public init(cache: FeedCaching, svc: MangerService, queue: NSOperationQueue) {
     self.cache = cache
@@ -226,7 +230,7 @@ public class FeedRepository: Browsing {
     queue.cancelAllOperations()
   }
 
-  public func feeds(urls: [String], cb:(ErrorType?, [Feed]) -> Void) -> NSOperation {
+  public func feeds (urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation {
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     queue.addOperation(op)
     op.completionBlock = { [unowned op] in
@@ -235,7 +239,9 @@ public class FeedRepository: Browsing {
     return op
   }
 
-  public func entries(intervals: [EntryInterval], cb:(ErrorType?, [Entry]) -> Void) -> NSOperation {
+  // TODO: Make entries method thread safe
+  
+  public func entries (intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation {
     let urls = intervals.map { $0.url }
     let dep = FeedsOperation(cache: cache, svc: svc, urls: urls)
     var error: ErrorType?
@@ -247,8 +253,8 @@ public class FeedRepository: Browsing {
       cb(op.error ?? error, op.entries ?? [Entry]())
     }
     op.addDependency(dep)
-    queue.addOperation(op)
     queue.addOperation(dep)
+    queue.addOperation(op)
     return op
   }
 }

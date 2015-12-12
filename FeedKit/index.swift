@@ -175,6 +175,8 @@ public func == (lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
+// TODO: Rename to Find
+
 public enum SearchItem: Equatable {
   case Sug(Suggestion)
   case Res(Feed)
@@ -221,6 +223,8 @@ public func == (lhs: SearchItem, rhs: SearchItem) -> Bool {
   return false
 }
 
+// --
+
 
 // MARK: Caching
 
@@ -230,64 +234,62 @@ public struct CacheTTL {
   let long: NSTimeInterval
 }
 
+/// A persistent cache for feeds and entries.
 public protocol FeedCaching {
   var ttl: CacheTTL { get }
   
-  func updateFeeds(feeds:[Feed]) throws
-  func feedsWithURLs(urls: [String]) throws -> [Feed]?
+  func updateFeeds (feeds:[Feed]) throws
+  func feedsWithURLs (urls: [String]) throws -> [Feed]?
 
-  func updateEntries(entries:[Entry]) throws
-  func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]?
+  func updateEntries (entries:[Entry]) throws
+  func entriesOfIntervals (intervals: [EntryInterval]) throws -> [Entry]?
 
-  func removeFeedsWithURLs(urls: [String]) throws
+  func removeFeedsWithURLs (urls: [String]) throws
 }
 
+/// A persistent cache of things related to searching for feeds and entries.
 public protocol SearchCaching {
   var ttl: CacheTTL { get }
 
-  func updateSuggestions(suggestions: [Suggestion], forTerm: String) throws
-  func suggestionsForTerm(term: String) throws -> [Suggestion]?
+  func updateSuggestions (suggestions: [Suggestion], forTerm: String) throws
+  func suggestionsForTerm (term: String) throws -> [Suggestion]?
 
-  func updateFeeds(feeds: [Feed], forTerm: String) throws
-  func feedsForTerm(term: String) throws -> [Feed]?
-  func feedsMatchingTerm(term: String) throws -> [Feed]?
-
-  func entriesMatchingTerm(term: String) throws -> [Entry]?
-}
-
-public protocol ImageCaching {
+  func updateFeeds (feeds: [Feed], forTerm: String) throws
+  func feedsForTerm (term: String) throws -> [Feed]?
   
+  func feedsMatchingTerm (term: String) throws -> [Feed]?
+  func entriesMatchingTerm(term: String) throws -> [Entry]?
 }
 
 // MARK: Repositories
 
 public protocol Browsing {
-  func feeds(urls: [String], cb:(ErrorType?, [Feed]) -> Void) -> NSOperation
-  func entries(intervals: [EntryInterval], cb:(ErrorType?, [Entry]) -> Void) -> NSOperation
+  func feeds (urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation
+  func entries (intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation
 }
 
 public protocol Subscribing {
-  func update() -> NSOperation
-  func subscribeToFeedWithURL(url: String, cb:(ErrorType?, Feed?) -> Void) -> NSOperation
-  func unsubscribeFromFeedWithURL(url: String, cb:(ErrorType?, Feed?) -> Void) -> NSOperation
+  func update () -> NSOperation
+  func subscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
+  func unsubscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
+  func subscribed (cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
+  func unsubscribed (recent: Int, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
 }
 
 public protocol Searching {
-
-}
-
-public protocol ImageLibrary {
-
+  func search (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+  func suggest (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
 }
 
 // MARK: Common functions
 
-func nop(_: Any) -> Void {}
+func nop (_: Any) -> Void {}
 
-func createTimer(
+func createTimer (
   queue: dispatch_queue_t,
   time: Double,
   cb: dispatch_block_t) -> dispatch_source_t {
+    
   let timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue)
   let delta = time * Double(NSEC_PER_SEC)
   let start = dispatch_time(DISPATCH_TIME_NOW, Int64(delta))

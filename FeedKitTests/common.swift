@@ -20,17 +20,39 @@ private func ttl() -> CacheTTL {
   return CacheTTL(short: 3600, medium: 3600 * 24, long: 3600 * 24 * 3)
 }
 
-func freshCache(aClass: AnyClass!, ttl: CacheTTL = ttl()) -> Cache {
-  let cacheQueue = dispatch_queue_create("com.michaelnisi.feedkit.cache-testing", DISPATCH_QUEUE_SERIAL)
-  let db = Skull()
+private func cacheURL (name: String) -> NSURL {
+  let fm = NSFileManager.defaultManager()
+  let dir = try! fm.URLForDirectory(
+    .CachesDirectory,
+    inDomain: .UserDomainMask,
+    appropriateForURL: nil,
+    create: true
+  )
+  return NSURL(string: name, relativeToURL: dir)!
+}
+
+func freshCache (aClass: AnyClass!, ttl: CacheTTL = ttl()) -> Cache {
+  let name = "feedkit.test.db"
+  let url = cacheURL(name)
+  let fm = NSFileManager.defaultManager()
+  let exists = fm.fileExistsAtPath(url.path!)
+  if exists {
+    try! fm.removeItemAtURL(url)
+  }
   let schema = schemaForClass(aClass)
   return try! Cache(
-    db: db,
-    queue: cacheQueue,
-    rm: true,
     schema: schema,
-    ttl: ttl
+    ttl: ttl,
+    url: nil
   )
+}
+
+func destroyCache (cache: Cache) throws {
+  if let url = cache.url {
+    let fm = NSFileManager.defaultManager()
+    try fm.removeItemAtURL(url)
+    XCTAssertFalse(fm.fileExistsAtPath(url.path!), "should remove database file")
+  }
 }
 
 func JSONFromFileAtURL(url: NSURL) throws -> [[String:AnyObject]] {

@@ -8,36 +8,34 @@
 
 import XCTest
 import MangerKit
+
 @testable import FeedKit
 
 class FeedRepositoryTests: XCTestCase {
   
   var repo: FeedRepository!
   var cache: Cache!
-  var queue: NSOperationQueue!
   var svc: Manger!
-  
-  var concurrentDispatchQueue = dispatch_queue_create("com.michaelnisi.tmp", DISPATCH_QUEUE_CONCURRENT)
   
   func freshManger(string: String = "http://localhost:8384") -> Manger {
     let baseURL = NSURL(string: string)!
-    let queue = NSOperationQueue()
+    let queue = dispatch_queue_create("com.michaelnisi.manger.json", DISPATCH_QUEUE_CONCURRENT)
     let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
     conf.HTTPShouldUsePipelining = true
     let session = NSURLSession(configuration: conf)
-    return Manger(baseURL: baseURL, queue: queue, session: session)
+    return Manger(URL: baseURL, queue: queue, session: session)
   }
   
   override func setUp() {
     super.setUp()
-    svc = freshManger()
-    queue = NSOperationQueue()
     cache = freshCache(self.classForCoder)
+    svc = freshManger()
+    let queue = NSOperationQueue()
     repo = FeedRepository(cache: cache, svc: svc, queue: queue)
   }
   
   override func tearDown() {
-    queue.cancelAllOperations()
+    try! destroyCache(cache)
     super.tearDown()
   }
   
@@ -72,10 +70,6 @@ class FeedRepositoryTests: XCTestCase {
       let a = found[i]
       XCTAssertEqual(a, b)
     }
-  }
-  
-  func testSubtractItemsFromURLsWithTTL() {
-    XCTFail("should be tested")
   }
   
   // MARK: Feeds
@@ -122,13 +116,17 @@ class FeedRepositoryTests: XCTestCase {
     let exp = self.expectationWithDescription("feeds")
     let repo = self.repo
     var count = urls.count
+    let queue = dispatch_queue_create("com.michaelnisi.tmp", DISPATCH_QUEUE_CONCURRENT)
     urls.forEach { url in
-      dispatch_async(concurrentDispatchQueue) {
+      dispatch_async(queue) {
         repo.feeds([url]) { er, feeds in
           XCTAssertNil(er)
           XCTAssertNotNil(feeds)
-          if --count == 0 {
-            exp.fulfill()
+          dispatch_sync(dispatch_get_main_queue()) {
+            count -= 1
+            if count == 0 {
+              exp.fulfill()
+            }
           }
         }
       }
@@ -151,6 +149,7 @@ class FeedRepositoryTests: XCTestCase {
     let unavailable = freshManger("http://localhost:8385")
     let ttl = CacheTTL(short: 0, medium: 0, long: 0)
     let zeroCache = freshCache(classForCoder, ttl: ttl)
+    let queue = NSOperationQueue()
     let a = FeedRepository(cache: zeroCache, svc: unavailable, queue: queue)
     func go() {
       a.feeds(urls) { er, feeds in
@@ -265,13 +264,17 @@ class FeedRepositoryTests: XCTestCase {
     let exp = self.expectationWithDescription("entries")
     let repo = self.repo
     var count = intervals.count
+    let queue = dispatch_queue_create("com.michaelnisi.tmp", DISPATCH_QUEUE_CONCURRENT)
     intervals.forEach { query in
-      dispatch_async(concurrentDispatchQueue) {
+      dispatch_async(queue) {
         repo.entries([query]) { er, entries in
           XCTAssertNil(er)
           XCTAssertNotNil(entries)
-          if --count == 0 {
-            exp.fulfill()
+          dispatch_sync(dispatch_get_main_queue()) {
+            count -= 1
+            if count == 0 {
+              exp.fulfill()
+            }
           }
         }
       }
@@ -304,7 +307,6 @@ class FeedRepositoryTests: XCTestCase {
   
   func testEntriesInterval() {
     let url = urls.first!
-    print(url)
     let since = NSDate(timeIntervalSinceNow: -3600 * 24 * 14)
     let interval = EntryInterval(url: url, since: since)
     let exp = self.expectationWithDescription("entries")

@@ -232,7 +232,7 @@ class SQLFormatter {
     do {
       enclosure = try enclosureFromRow(row)
     } catch {
-      // TODO: Throw FeedKitError.EntryWithoutEnclosure
+      // TODO: Handle entries without enclosure
     }
     
     let duration = row["duration"] as? String

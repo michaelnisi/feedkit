@@ -19,15 +19,13 @@ class CacheTests: XCTestCase {
   override func setUp() {
     super.setUp()
     cache = freshCache(self.classForCoder)
-    let url = cache.url!
-    XCTAssert(fm.fileExistsAtPath(url.path!))
+    if let url = cache.url {
+      XCTAssert(fm.fileExistsAtPath(url.path!))
+    }
   }
 
   override func tearDown() {
-    let url = cache.url!
-    try! fm.removeItemAtURL(url)
-    XCTAssertFalse(fm.fileExistsAtPath(url.path!), "should remove database file")
-    cache = nil
+    try! destroyCache(cache)
     super.tearDown()
   }
   

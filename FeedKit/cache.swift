@@ -28,94 +28,66 @@ func stale(ts: NSDate, ttl: NSTimeInterval) -> Bool {
 }
 
 public class Cache {
-  let sqlFormatter: SQLFormatter
-  let db: Skull
-  
-  let queue: dispatch_queue_t
-  let rm: Bool
   let schema: String
-  let name: String
-  
   public let ttl: CacheTTL
+  public var url: NSURL?
+  
+  let db: Skull
+  let queue: dispatch_queue_t
+  let sqlFormatter: SQLFormatter
 
   var noSuggestions = [String:NSDate]()
   var noResults = [String:NSDate]()
   var feedIDsCache = NSCache()
-  
-  public var url: NSURL?
 
-  public init(
-    db: Skull,
-    queue: dispatch_queue_t,
-    rm: Bool,
-    schema: String,
-    ttl: CacheTTL,
-    name:String = "feedkit.db") throws {
-    self.db = db
-    self.queue = queue
-    self.rm = rm
+  public init (schema: String, ttl: CacheTTL, url: NSURL?) throws {
     self.schema = schema
     self.ttl = ttl
+    self.url = url
+    
+    self.db = Skull()
+    self.queue = dispatch_queue_create("com.michaelnisi.feedkit.cache", DISPATCH_QUEUE_SERIAL)
     self.sqlFormatter = SQLFormatter()
-    self.name = name
-    try open(rm)
+
+    try open()
   }
 
   deinit {
     try! db.close()
   }
-
-  func open(rm: Bool) throws {
-    let db = self.db
-    let name = self.name
-    let schema = self.schema
-
+  
+  func open () throws {
     var error: ErrorType?
+    
+    let db = self.db
+    let schema = self.schema
+    let maybeURL = self.url
 
-    dispatch_sync(queue, {
-      let fm = NSFileManager.defaultManager()
-      let dir: NSURL?
+    dispatch_sync(queue) {
+      var exists = false
       do {
-        dir = try fm.URLForDirectory(
-          .CachesDirectory,
-          inDomain: .UserDomainMask,
-          appropriateForURL: nil,
-          create: true
-        )
-      } catch let er {
-        return error = er
-      }
-      let url = NSURL(string: name, relativeToURL: dir)!
-      let exists = fm.fileExistsAtPath(url.path!)
-      
-      self.url = url
-      
-      if exists && rm {
-        do {
-          try fm.removeItemAtURL(url)
-        } catch let er {
-          return error = er
+        if let url = maybeURL {
+          let fm = NSFileManager.defaultManager()
+          exists = fm.fileExistsAtPath(url.path!)
+          try db.open(url)
+        } else {
+          try db.open()
         }
-      }
-      do {
-        try db.open(url)
       } catch let er {
         return error = er
       }
-      if exists && !rm {
-        return
-      }
-      if let sql = try? String(contentsOfFile: schema,
-        encoding: NSUTF8StringEncoding) {
+      if !exists {
         do {
+          let sql = try String(
+            contentsOfFile: schema,
+            encoding: NSUTF8StringEncoding
+          )
           try db.exec(sql)
         } catch let er {
           return error = er
         }
-      } else {
-        return error = FeedKitError.NotAString
       }
-    })
+    }
     if let er = error {
       throw er
     }
@@ -129,7 +101,7 @@ public class Cache {
     try db.flush()
   }
   
-  func feedIDForURL(url: String) throws -> Int {
+  func feedIDForURL (url: String) throws -> Int {
     if let cachedFeedID = feedIDsCache.objectForKey(url) as? Int {
       return cachedFeedID
     }
@@ -160,7 +132,7 @@ public class Cache {
 
 extension Cache: FeedCaching {
   
-  public func updateFeeds(feeds: [Feed]) throws {
+  public func updateFeeds (feeds: [Feed]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
     var error: ErrorType?
@@ -184,7 +156,7 @@ extension Cache: FeedCaching {
     }
   }
   
-  func feedIDsForURLs(urls: [String]) throws -> [String:Int]? {
+  func feedIDsForURLs (urls: [String]) throws -> [String:Int]? {
     var result = [String:Int]()
     try urls.forEach { url in
       do {
@@ -200,7 +172,7 @@ extension Cache: FeedCaching {
     return result
   }
   
-  public func feedsWithURLs(urls: [String]) throws -> [Feed]? {
+  public func feedsWithURLs (urls: [String]) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: ErrorType?
     dispatch_sync(queue) {
@@ -219,7 +191,7 @@ extension Cache: FeedCaching {
     return feeds
   }
   
-  func hasURL(url: String) -> Bool {
+  func hasURL (url: String) -> Bool {
     do {
       try feedIDForURL(url)
     } catch {
@@ -228,7 +200,7 @@ extension Cache: FeedCaching {
     return true
   }
   
-  public func updateEntries(entries: [Entry]) throws {
+  public func updateEntries (entries: [Entry]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
     var error: ErrorType?
@@ -263,7 +235,7 @@ extension Cache: FeedCaching {
     }
   }
   
-  func entriesForSQL(sql: String) throws -> [Entry]? {
+  func entriesForSQL (sql: String) throws -> [Entry]? {
     let db = self.db
     let df = self.sqlFormatter
     
@@ -296,7 +268,7 @@ extension Cache: FeedCaching {
     return entries.isEmpty ? nil : entries
   }
   
-  public func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]? {
+  public func entriesOfIntervals (intervals: [EntryInterval]) throws -> [Entry]? {
     var entries: [Entry]?
     var error: ErrorType?
     let fmt = self.sqlFormatter
@@ -329,7 +301,7 @@ extension Cache: FeedCaching {
     return entries
   }
   
-  public func removeFeedsWithURLs(urls: [String]) throws {
+  public func removeFeedsWithURLs (urls: [String]) throws {
     let db = self.db
     let feedIDsCache = self.feedIDsCache
     var error: ErrorType?
@@ -388,7 +360,7 @@ extension Cache: SearchCaching {
 
     var errors = [ErrorType]()
     let df = self.sqlFormatter
-    dispatch_sync(queue, { 
+    dispatch_sync(queue, {
       do {
         try db.exec("BEGIN IMMEDIATE;")
       } catch let er {

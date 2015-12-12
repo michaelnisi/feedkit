@@ -37,11 +37,6 @@
                BlueprintName = "FeedKitTests"
                ReferencedContainer = "container:FeedKit.xcodeproj">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "FeedRepositoryTests/testSubtractItemsFromURLsWithTTL()">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
       <MacroExpansion>
