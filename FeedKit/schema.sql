@@ -29,8 +29,7 @@ create virtual table if not exists feed_fts using fts4(
   rowid,
   author,
   summary,
-  title,
-  ts
+  title
 );
 
 create trigger feed_bu before update on feed begin
@@ -43,22 +42,20 @@ create trigger feed_bd before delete on feed begin
 end;
 
 create trigger feed_au after update on feed begin
-  insert into feed_fts(docid, author, summary, title, ts) values(
+  insert into feed_fts(docid, author, summary, title) values(
     new.rowid,
     new.author,
     new.summary,
-    new.title,
-    new.ts
+    new.title
   );
 end;
 
 create trigger feed_ai after insert on feed begin
-  insert into feed_fts(docid, author, summary, title, ts) values(
+  insert into feed_fts(docid, author, summary, title) values(
     new.rowid,
     new.author,
     new.summary,
-    new.title,
-    new.ts
+    new.title
   );
 end;
 
@@ -105,6 +102,43 @@ create table if not exists entry(
   url text
 );
 
+create virtual table if not exists entry_fts using fts4(
+  content="entry",
+  rowid,
+  author,
+  subtitle,
+  summary,
+  title
+);
+
+create trigger entry_bu before update on entry begin
+  delete from entry_fts where docid=old.rowid;
+end;
+
+create trigger entry_bd before delete on entry begin
+  delete from entry_fts where docid=old.rowid;
+end;
+
+create trigger entry_au after update on entry begin
+  insert into entry_fts(docid, author, subtitle, summary, title) values(
+    new.rowid,
+    new.author,
+    new.subtitle,
+    new.summary,
+    new.title
+  );
+end;
+
+create trigger entry_ai after insert on entry begin
+  insert into entry_fts(docid, author, subtitle, summary, title) values(
+    new.rowid,
+    new.author,
+    new.subtitle,
+    new.summary,
+    new.title
+  );
+end;
+
 create view if not exists entry_view
 as select
   e.author,
@@ -118,28 +152,25 @@ as select
   e.title,
   e.ts,
   e.type,
+  e.rowid uid,
   e.updated,
   e.url,
   f.rowid feedid,
   f.url feed
 from feed f left join entry e on f.rowid=e.feedid;
 
--- TODO: Create virtual tables for full text searching in entries
-
 -- Searching
 
 create table if not exists search(
-  uid int primary key references feed(uid) on delete cascade,
+  feedid references feed(uid) on delete cascade,
   term text not null collate nocase,
-  ts datetime default current_timestamp,
-  unique(uid, term)
+  ts datetime default current_timestamp
 );
 
 create virtual table if not exists search_fts using fts4(
   content="search",
-  uid,
-  term,
-  ts
+  feedid,
+  term
 );
 
 create trigger search_bu before update on search begin
@@ -152,21 +183,37 @@ create trigger search_bd before delete on search begin
 end;
 
 create trigger search_au after update on search begin
-  insert into search_fts(docid, term, ts) values(
+  insert into search_fts(docid, term) values(
     new.rowid,
-    new.term,
-    new.ts
+    new.term
   );
 end;
 
 create trigger search_ai after insert on search begin
-  insert into search_fts(docid, term, ts) values(
+  insert into search_fts(docid, term) values(
     new.rowid,
-    new.term,
-    new.ts
+    new.term
   );
   insert into sug(term) values(new.term);
 end;
+
+create view if not exists search_view
+as select
+  f.author,
+  f.guid,
+  f.img,
+  f.img100,
+  f.img30,
+  f.img60,
+  f.img600,
+  f.link,
+  f.rowid uid,
+  f.summary,
+  f.title,
+  s.ts,
+  f.updated,
+  f.url
+from feed f left join search s on f.rowid=s.feedid;
 
 -- Suggestions
 

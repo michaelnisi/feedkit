@@ -52,11 +52,6 @@ func reduceFeeds (a: [Feed], b: [Feed]?, max: Int = 50) -> [SearchItem]? {
   }
 }
 
-// TODO: Add Entry
-
-
-
-
 public typealias SearchCallback = (ErrorType?, [SearchItem]) -> Void
 
 /// A lowercase, space-separated representation of the string.

@@ -263,22 +263,25 @@ public protocol SearchCaching {
 
 // MARK: Repositories
 
+public protocol Searching {
+  func search (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+  func suggest (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+}
+
 public protocol Browsing {
   func feeds (urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation
   func entries (intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation
 }
 
 public protocol Subscribing {
-  func update () -> NSOperation
   func subscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
   func unsubscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
   func subscribed (cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
   func unsubscribed (recent: Int, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
 }
 
-public protocol Searching {
-  func search (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
-  func suggest (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+public protocol Updating {
+  // TODO: Design updating API
 }
 
 // MARK: Common functions

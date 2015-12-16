@@ -33,11 +33,41 @@ func SQLToSelectFeedIDFromURLView(url: String) -> String {
   return "SELECT feedid FROM url_view WHERE url = '\(url)';"
 }
 
-// etc.
+func SQLToInsertFeedID(feedID: Int, forTerm term: String) -> String {
+  return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), '\(term)');"
+}
 
-// TODO: Evaluate what should go into the formatter class or just live as a function.
+func SQLToSelectFeedsByTerm(term: String, limit: Int) -> String {
+  return [
+    "SELECT * FROM search_view WHERE uid IN (",
+    "SELECT feedid FROM search_fts ",
+    "WHERE term MATCH '\(term)') ",
+    "ORDER BY ts DESC ",
+    "LIMIT \(limit);"
+  ].joinWithSeparator("")
+}
 
-class SQLFormatter {
+func SQLToSelectFeedsMatchingTerm(term: String, limit: Int) -> String {
+  return [
+    "SELECT * FROM feed_view WHERE uid IN (",
+    "SELECT rowid FROM feed_fts ",
+    "WHERE feed_fts MATCH '\(term)*') ",
+    "ORDER BY ts DESC ",
+    "LIMIT \(limit);"
+  ].joinWithSeparator("")
+}
+
+func SQLToSelectEntriesMatchingTerm(term: String, limit: Int) -> String {
+  return [
+    "SELECT * FROM entry_view WHERE uid IN (",
+    "SELECT rowid FROM entry_fts ",
+    "WHERE entry_fts MATCH '\(term)*') ",
+    "ORDER BY ts DESC ",
+    "LIMIT \(limit);"
+    ].joinWithSeparator("")
+}
+
+final class SQLFormatter {
 
   lazy var df: NSDateFormatter = {
     let df = NSDateFormatter()
@@ -75,7 +105,7 @@ class SQLFormatter {
       "img, img100, img30, img60, img600, ",
       "link, summary, title, updated, url) VALUES(",
       "\(author), \(guid), ",
-      "\(img), \(img30), \(img60), \(img100), \(img600), ",
+      "\(img), \(img100), \(img30), \(img60), \(img600), ",
       "\(link), \(summary), \(title), \(updated), \(url)",
       ");"
     ].joinWithSeparator("")

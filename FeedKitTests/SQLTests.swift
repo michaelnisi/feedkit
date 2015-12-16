@@ -74,6 +74,45 @@ class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
   }
   
+  func testSQLToInsertFeedIDForTerm() {
+    let found = SQLToInsertFeedID(1, forTerm: "abc")
+    let wanted = "INSERT OR REPLACE INTO search(feedID, term) VALUES(1, 'abc');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToInsertFeedID() {
+    let found = SQLToSelectFeedsByTerm("abc", limit: 50)
+    let wanted =
+      "SELECT * FROM search_view WHERE uid IN (" +
+      "SELECT feedid FROM search_fts " +
+      "WHERE term MATCH 'abc') " +
+      "ORDER BY ts DESC " +
+      "LIMIT 50;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectFeedsMatchingTerm() {
+    let found = SQLToSelectFeedsMatchingTerm("abc", limit: 3)
+    let wanted =
+      "SELECT * FROM feed_view WHERE uid IN (" +
+      "SELECT rowid FROM feed_fts " +
+      "WHERE feed_fts MATCH 'abc*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT 3;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectEntriesMatchingTerm() {
+    let found = SQLToSelectEntriesMatchingTerm("abc", limit: 3)
+    let wanted =
+      "SELECT * FROM entry_view WHERE uid IN (" +
+      "SELECT rowid FROM entry_fts " +
+      "WHERE entry_fts MATCH 'abc*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT 3;"
+    XCTAssertEqual(found, wanted)
+  }
+  
   func testSQLFormatter() {
     let f = formatter.stringFromAnyObject
     let found = [

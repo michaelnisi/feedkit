@@ -9,8 +9,6 @@
 import Foundation
 import Skull
 
-// TODO: Understand this recursive function
-
 func subcached(term: String, dict: [String:NSDate]) -> (String, NSDate)? {
   if let ts = dict[term] {
     return (term, ts)
@@ -27,7 +25,7 @@ func stale(ts: NSDate, ttl: NSTimeInterval) -> Bool {
   return ts.timeIntervalSinceNow + ttl < 0
 }
 
-public class Cache {
+public final class Cache {
   let schema: String
   public let ttl: CacheTTL
   public var url: NSURL?
@@ -40,11 +38,12 @@ public class Cache {
   var noResults = [String:NSDate]()
   var feedIDsCache = NSCache()
 
-  public init (schema: String, ttl: CacheTTL, url: NSURL?) throws {
+  public init(schema: String, ttl: CacheTTL, url: NSURL?) throws {
     self.schema = schema
     self.ttl = ttl
     self.url = url
     
+    // If we'd pass these, we could break the cache into separate objects.
     self.db = Skull()
     self.queue = dispatch_queue_create("com.michaelnisi.feedkit.cache", DISPATCH_QUEUE_SERIAL)
     self.sqlFormatter = SQLFormatter()
@@ -56,7 +55,7 @@ public class Cache {
     try! db.close()
   }
   
-  func open () throws {
+  func open() throws {
     var error: ErrorType?
     
     let db = self.db
@@ -93,15 +92,15 @@ public class Cache {
     }
   }
 
-  func close () throws {
+  func close() throws {
     try db.close()
   }
 
-  public func flush () throws {
+  public func flush() throws {
     try db.flush()
   }
   
-  func feedIDForURL (url: String) throws -> Int {
+  func feedIDForURL(url: String) throws -> Int {
     if let cachedFeedID = feedIDsCache.objectForKey(url) as? Int {
       return cachedFeedID
     }
@@ -125,270 +124,6 @@ public class Cache {
     let feedID = id!
     feedIDsCache.setObject(feedID, forKey: url)
     return feedID
-  }
-}
-
-// MARK: FeedCaching
-
-extension Cache: FeedCaching {
-  
-  public func updateFeeds (feeds: [Feed]) throws {
-    let fmt = self.sqlFormatter
-    let db = self.db
-    var error: ErrorType?
-    dispatch_sync(queue) {
-      do {
-        let sql = try feeds.reduce([String]()) { acc, feed in
-          do {
-            let feedID = try self.feedIDForURL(feed.url)
-            return acc + [fmt.SQLToUpdateFeed(feed, withID: feedID)]
-          } catch FeedKitError.FeedNotCached {
-            return acc + [fmt.SQLToInsertFeed(feed)]
-          }
-        }.joinWithSeparator("\n")
-        try db.exec(sql)
-      } catch let er {
-        error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-  }
-  
-  func feedIDsForURLs (urls: [String]) throws -> [String:Int]? {
-    var result = [String:Int]()
-    try urls.forEach { url in
-      do {
-        let feedID = try self.feedIDForURL(url)
-        result[url] = feedID
-      } catch FeedKitError.FeedNotCached {
-        // No need to throw this, our user can ascertain uncached feeds from result.
-      }
-    }
-    if result.isEmpty {
-      return nil
-    }
-    return result
-  }
-  
-  public func feedsWithURLs (urls: [String]) throws -> [Feed]? {
-    var feeds: [Feed]?
-    var error: ErrorType?
-    dispatch_sync(queue) {
-      do {
-        guard let dicts = try self.feedIDsForURLs(urls) else { return }
-        let feedIDs = dicts.map { $0.1 }
-        guard let sql = SQLToSelectFeedsByFeedIDs(feedIDs) else { return }
-        feeds = try self.feedsForSQL(sql)
-      } catch let er {
-        return error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-    return feeds
-  }
-  
-  func hasURL (url: String) -> Bool {
-    do {
-      try feedIDForURL(url)
-    } catch {
-      return false
-    }
-    return true
-  }
-  
-  public func updateEntries (entries: [Entry]) throws {
-    let fmt = self.sqlFormatter
-    let db = self.db
-    var error: ErrorType?
-    dispatch_sync(queue) {
-      var unidentified = [String]()
-      do {
-        let sql = entries.reduce([String]()) { acc, entry in
-          var feedID: Int?
-          do {
-            feedID = try self.feedIDForURL(entry.feed)
-          } catch {
-            let url = entry.feed
-            if !unidentified.contains(url) {
-              unidentified.append(url)
-            }
-            return acc
-          }
-          return acc + [fmt.SQLToInsertEntry(entry, forFeedID: feedID!)]
-        }.joinWithSeparator("\n")
-        if sql != "\n" {
-          try db.exec(sql)
-        }
-        if !unidentified.isEmpty {
-          throw FeedKitError.FeedNotCached(urls: unidentified)
-        }
-      } catch let er {
-        error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-  }
-  
-  func entriesForSQL (sql: String) throws -> [Entry]? {
-    let db = self.db
-    let df = self.sqlFormatter
-    
-    var er: ErrorType?
-    var entries = [Entry]()
-    
-    do {
-      try db.query(sql) { skullError, row -> Int in
-        guard skullError == nil else {
-          er = skullError
-          return 1
-        }
-        if let r = row {
-          do {
-            let result = try df.entryFromRow(r)
-            entries.append(result)
-          } catch let error {
-            er = error
-            return 0
-          }
-        }
-        return 0
-      }
-    } catch let error {
-      er = error
-    }
-    if let error = er {
-      throw error
-    }
-    return entries.isEmpty ? nil : entries
-  }
-  
-  public func entriesOfIntervals (intervals: [EntryInterval]) throws -> [Entry]? {
-    var entries: [Entry]?
-    var error: ErrorType?
-    let fmt = self.sqlFormatter
-    dispatch_sync(queue) {
-      do {
-        let urls = intervals.map { $0.url }
-        guard let feedIDsByURLs = try self.feedIDsForURLs(urls) else {
-          return
-        }
-        let specs = intervals.reduce([(Int, NSDate)]()) { acc, interval in
-          let url = interval.url
-          let since = interval.since
-          if let feedID = feedIDsByURLs[url] {
-            return acc + [(feedID, since)]
-          } else {
-            return acc
-          }
-        }
-        guard let sql = fmt.SQLToSelectEntriesByIntervals(specs) else {
-          return
-        }
-        entries = try self.entriesForSQL(sql)
-      } catch let er {
-        return error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-    return entries
-  }
-  
-  public func removeFeedsWithURLs (urls: [String]) throws {
-    let db = self.db
-    let feedIDsCache = self.feedIDsCache
-    var error: ErrorType?
-    dispatch_sync(queue) {
-      do {
-        guard let dicts = try self.feedIDsForURLs(urls) else { return }
-        let feedIDs = dicts.map { $0.1 }
-        guard let sql = SQLToRemoveFeedsWithFeedIDs(feedIDs) else {
-          throw FeedKitError.SQLFormatting
-        }
-        try db.exec(sql)
-        urls.forEach {
-          feedIDsCache.removeObjectForKey($0)
-        }
-      } catch let er {
-        error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-  }
-}
-
-// MARK: SearchCaching
-
-extension Cache: SearchCaching {
-  public func updateFeeds(feeds: [Feed], forTerm term: String) throws {
-    let db = self.db
-    if feeds.count == 0 {
-      noResults[term] = NSDate()
-      var error: ErrorType?
-      dispatch_sync(queue, {
-        let sql = [
-          "DELETE FROM feed ",
-          "WHERE guid = (",
-          "SELECT * FROM search ",
-          "WHERE term = \(term));"
-        ].joinWithSeparator("")
-        do {
-          try db.exec(sql)
-        } catch let er {
-          error = er
-        }
-      })
-      if let er = error {
-        throw er
-      }
-    }
-    if let (cachedTerm, _) = subcached(term, dict: noResults) {
-      noResults[cachedTerm] = nil
-    }
-    if let (cachedTerm, _) = subcached(term, dict: noSuggestions) {
-      noSuggestions[cachedTerm] = nil
-    }
-
-    var errors = [ErrorType]()
-    let df = self.sqlFormatter
-    dispatch_sync(queue, {
-      do {
-        try db.exec("BEGIN IMMEDIATE;")
-      } catch let er {
-        errors.append(er)
-      }
-      // TODO: Make this more elegant by using reduce
-      for feed in feeds {
-        let guid = feed.guid
-        let sql = [
-          "INSERT OR REPLACE INTO search(guid, term) ",
-          "VALUES(\(guid), '\(term)');",
-          df.SQLToInsertFeed(feed)
-        ].joinWithSeparator("")
-        do {
-          try  db.exec(sql)
-        } catch let er {
-          errors.append(er)
-        }
-      }
-      do {
-        try db.exec("COMMIT;")
-      } catch let er {
-        errors.append(er)
-      }
-    })
-    if errors.count > 0 {
-      throw FeedKitError.Unknown
-    }
   }
   
   func feedsForSQL(sql: String) throws -> [Feed]? {
@@ -423,39 +158,314 @@ extension Cache: SearchCaching {
     }
     return feeds.isEmpty ? nil : feeds
   }
+}
 
-  public func feedsForTerm(term: String) throws -> [Feed]? {
-    let ttl = self.ttl
-    if let (cachedTerm, ts) = subcached(term, dict: noResults) {
-      if stale(ts, ttl: ttl.medium) {
-        noResults[cachedTerm] = nil
-        return nil
-      } else {
-        return []
+// MARK: FeedCaching
+
+extension Cache: FeedCaching {
+  
+  public func updateFeeds(feeds: [Feed]) throws {
+    let fmt = self.sqlFormatter
+    let db = self.db
+    var error: ErrorType?
+    dispatch_sync(queue) {
+      do {
+        let sql = try feeds.reduce([String]()) { acc, feed in
+          do {
+            let feedID = try self.feedIDForURL(feed.url)
+            return acc + [fmt.SQLToUpdateFeed(feed, withID: feedID)]
+          } catch FeedKitError.FeedNotCached {
+            return acc + [fmt.SQLToInsertFeed(feed)]
+          }
+        }.joinWithSeparator("\n")
+        try db.exec(sql)
+      } catch let er {
+        error = er
       }
     }
-    return try feedsForSQL([
-      "SELECT * FROM feed WHERE guid IN (",
-      "SELECT guid FROM search_fts ",
-      "WHERE term MATCH '\(term)') ",
-      "ORDER BY ts DESC ",
-      "LIMIT 50;"
-    ].joinWithSeparator(""))
+    if let er = error {
+      throw er
+    }
+  }
+  
+  func feedIDsForURLs(urls: [String]) throws -> [String:Int]? {
+    var result = [String:Int]()
+    try urls.forEach { url in
+      do {
+        let feedID = try self.feedIDForURL(url)
+        result[url] = feedID
+      } catch FeedKitError.FeedNotCached {
+        // No need to throw this, our user can ascertain uncached feeds from result.
+      }
+    }
+    if result.isEmpty {
+      return nil
+    }
+    return result
+  }
+  
+  public func feedsWithURLs(urls: [String]) throws -> [Feed]? {
+    var feeds: [Feed]?
+    var error: ErrorType?
+    dispatch_sync(queue) {
+      do {
+        guard let dicts = try self.feedIDsForURLs(urls) else { return }
+        let feedIDs = dicts.map { $0.1 }
+        guard let sql = SQLToSelectFeedsByFeedIDs(feedIDs) else { return }
+        feeds = try self.feedsForSQL(sql)
+      } catch let er {
+        return error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+    return feeds
+  }
+  
+  func hasURL (url: String) -> Bool {
+    do {
+      try feedIDForURL(url)
+    } catch {
+      return false
+    }
+    return true
+  }
+  
+  public func updateEntries(entries: [Entry]) throws {
+    let fmt = self.sqlFormatter
+    let db = self.db
+    var error: ErrorType?
+    dispatch_sync(queue) {
+      var unidentified = [String]()
+      do {
+        let sql = entries.reduce([String]()) { acc, entry in
+          var feedID: Int?
+          do {
+            feedID = try self.feedIDForURL(entry.feed)
+          } catch {
+            let url = entry.feed
+            if !unidentified.contains(url) {
+              unidentified.append(url)
+            }
+            return acc
+          }
+          return acc + [fmt.SQLToInsertEntry(entry, forFeedID: feedID!)]
+        }.joinWithSeparator("\n")
+        if sql != "\n" {
+          try db.exec(sql)
+        }
+        if !unidentified.isEmpty {
+          throw FeedKitError.FeedNotCached(urls: unidentified)
+        }
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+  }
+  
+  func entriesForSQL(sql: String) throws -> [Entry]? {
+    let db = self.db
+    let df = self.sqlFormatter
+    
+    var er: ErrorType?
+    var entries = [Entry]()
+    
+    do {
+      try db.query(sql) { skullError, row -> Int in
+        guard skullError == nil else {
+          er = skullError
+          return 1
+        }
+        if let r = row {
+          do {
+            let result = try df.entryFromRow(r)
+            entries.append(result)
+          } catch let error {
+            er = error
+            return 0
+          }
+        }
+        return 0
+      }
+    } catch let error {
+      er = error
+    }
+    if let error = er {
+      throw error
+    }
+    return entries.isEmpty ? nil : entries
+  }
+  
+  public func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]? {
+    var entries: [Entry]?
+    var error: ErrorType?
+    let fmt = self.sqlFormatter
+    dispatch_sync(queue) {
+      do {
+        let urls = intervals.map { $0.url }
+        guard let feedIDsByURLs = try self.feedIDsForURLs(urls) else {
+          return
+        }
+        let specs = intervals.reduce([(Int, NSDate)]()) { acc, interval in
+          let url = interval.url
+          let since = interval.since
+          if let feedID = feedIDsByURLs[url] {
+            return acc + [(feedID, since)]
+          } else {
+            return acc
+          }
+        }
+        guard let sql = fmt.SQLToSelectEntriesByIntervals(specs) else {
+          return
+        }
+        entries = try self.entriesForSQL(sql)
+      } catch let er {
+        return error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+    return entries
+  }
+  
+  public func removeFeedsWithURLs(urls: [String]) throws {
+    let db = self.db
+    let feedIDsCache = self.feedIDsCache
+    var error: ErrorType?
+    dispatch_sync(queue) {
+      do {
+        guard let dicts = try self.feedIDsForURLs(urls) else { return }
+        let feedIDs = dicts.map { $0.1 }
+        guard let sql = SQLToRemoveFeedsWithFeedIDs(feedIDs) else {
+          throw FeedKitError.SQLFormatting
+        }
+        try db.exec(sql)
+        urls.forEach {
+          feedIDsCache.removeObjectForKey($0)
+        }
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+  }
+}
+
+// MARK: SearchCaching
+
+extension Cache: SearchCaching {
+  func removeTerm(term: String) throws {
+    noResults[term] = NSDate()
+    throw FeedKitError.NIY
+  }
+  
+  public func updateFeeds(feeds: [Feed], forTerm term: String) throws {
+    guard !feeds.isEmpty else {
+      return try removeTerm(term)
+    }
+    
+    // TODO: Figure out this subcached stuff
+    
+    if let (cachedTerm, _) = subcached(term, dict: noResults) {
+      noResults[cachedTerm] = nil
+    }
+    if let (cachedTerm, _) = subcached(term, dict: noSuggestions) {
+      noSuggestions[cachedTerm] = nil
+    }
+    
+    try updateFeeds(feeds)
+    
+    let db = self.db
+    var error: ErrorType?
+    
+    dispatch_sync(queue) {
+      // TODO: Remove all feed ids for term
+      do {
+        let sql = try feeds.reduce([String]()) { acc, feed in
+          let feedID = try self.feedIDForURL(feed.url)
+          return acc + [SQLToInsertFeedID(feedID, forTerm: term)]
+        }.joinWithSeparator("\n")
+        try db.exec(sql)
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+  }
+
+  public func feedsForTerm(term: String) throws -> [Feed]? {
+    var feeds: [Feed]?
+    var error: ErrorType?
+
+    dispatch_sync(queue) {
+      let ttl = self.ttl
+      if let (cachedTerm, ts) = subcached(term, dict: self.noResults) {
+        if stale(ts, ttl: ttl.medium) {
+          self.noResults[cachedTerm] = nil
+          feeds = nil
+        } else {
+          feeds = []
+        }
+      }
+      let sql = SQLToSelectFeedsByTerm(term, limit: 50)
+      do {
+        feeds = try self.feedsForSQL(sql)
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+    return feeds
   }
 
   public func feedsMatchingTerm(term: String) throws -> [Feed]? {
-    return try feedsForSQL([
-      "SELECT * FROM feed WHERE guid IN (",
-      "SELECT guid FROM feed_fts ",
-      "WHERE feed_fts MATCH '\(term)*') ",
-      "ORDER BY ts DESC ",
-      "LIMIT 3;"
-    ].joinWithSeparator(""))
+    var feeds: [Feed]?
+    var error: ErrorType?
+    
+    dispatch_sync(queue) {
+      let sql = SQLToSelectFeedsMatchingTerm(term, limit: 3)
+      do {
+        feeds = try self.feedsForSQL(sql)
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+    return feeds
   }
   
   public func entriesMatchingTerm(term: String) throws -> [Entry]? {
-    throw FeedKitError.NIY
+    var entries: [Entry]?
+    var error: ErrorType?
+    
+    dispatch_sync(queue) {
+      let sql = SQLToSelectEntriesMatchingTerm(term, limit: 3)
+      do {
+        entries = try self.entriesForSQL(sql)
+      } catch let er {
+        error = er
+      }
+    }
+    if let er = error {
+      throw er
+    }
+    return entries
   }
+  
+  // TODO: Rewrite suggestion caching stuff
 
   public func updateSuggestions(suggestions: [Suggestion], forTerm term: String) throws {
     let db = self.db

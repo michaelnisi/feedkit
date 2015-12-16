@@ -239,10 +239,10 @@ class FeedRepositoryTests: XCTestCase {
     let exp = self.expectationWithDescription("entries")
     repo.entries(intervals) { error, entries in
       XCTAssertNil(error)
-      XCTAssertNotNil(entries)
+      XCTAssert(entries.count > 0)
       exp.fulfill()
     }
-    self.waitForExpectationsWithTimeout(30) { er in
+    self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
     }
   }
@@ -289,14 +289,23 @@ class FeedRepositoryTests: XCTestCase {
     let wanted = urls
     func go() {
       repo.entries(intervals) { er, entries in
+        XCTAssertNil(er)
+        XCTAssert(entries.count > 0)
+        for entry in entries {
+          XCTAssertNotNil(entry.ts)
+        }
+        let found = entries.map { $0.feed }
+        wanted.forEach { url in
+          XCTAssertTrue(found.contains(url))
+        }
         exp.fulfill()
       }
     }
     repo.entries(intervals) { er, entries in
       XCTAssertNil(er)
-      let found = entries.map { $0.feed }
-      wanted.forEach { url in
-        XCTAssertTrue(found.contains(url))
+      XCTAssert(entries.count > 0)
+      for entry in entries {
+        XCTAssertNil(entry.ts)
       }
       go()
     }

@@ -31,22 +31,26 @@ func subtractItems<T: Cachable>
     }
 }
 
-func feedsFromCache(cache: FeedCaching, withURLs urls: [String]) throws -> ([Feed], [Feed], [String]?) {
+func feedsFromCache(
+  cache: FeedCaching,
+  withURLs urls: [String]) throws -> ([Feed], [Feed], [String]?) {
+    
   guard let items = try cache.feedsWithURLs(urls) else {
     return ([], [], urls)
   }
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.long)
 }
 
-func entriesFromCache(cache: FeedCaching, withIntervals intervals: [EntryInterval]) throws -> ([Entry], [Entry], [String]?) {
-  let urls = intervals.map { $0.url }
-  guard let items = try cache.entriesOfIntervals(intervals) else {
+func entriesFromCache(
+  cache: FeedCaching,
+  withIntervals intvls: [EntryInterval]) throws -> ([Entry], [Entry], [String]?) {
+    
+  let urls = intvls.map { $0.url }
+  guard let items = try cache.entriesOfIntervals(intvls) else {
     return ([], [], urls)
   }
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.short)
 }
-
-// TODO: Make this operation concurrent
 
 class FeedRepoOperation: NSOperation {
   let cache: FeedCaching
@@ -54,68 +58,85 @@ class FeedRepoOperation: NSOperation {
 
   var task: NSURLSessionTask?
   var error: ErrorType?
+  
+  private var _executing: Bool = false
+  
+  override var executing: Bool {
+    get { return _executing }
+    set {
+      guard newValue != _executing else {
+        return
+      }
+      willChangeValueForKey("isExecuting")
+      _executing = newValue
+      didChangeValueForKey("isExecuting")
+    }
+  }
+  
+  private var _finished: Bool = false
+  
+  override var finished: Bool {
+    get { return _finished }
+    set {
+      guard newValue != _finished else {
+        return
+      }
+      willChangeValueForKey("isFinished")
+      _finished = newValue
+      didChangeValueForKey("isFinished")
+    }
+  }
 
   init(cache: FeedCaching, svc: MangerService) {
     self.cache = cache
     self.svc = svc
   }
-
-  var sema: dispatch_semaphore_t?
-
-  func lock() {
-    if !cancelled && sema == nil {
-      sema = dispatch_semaphore_create(0)
-      dispatch_semaphore_wait(sema!, DISPATCH_TIME_FOREVER)
-    }
-  }
-
-  func unlock() {
-    if let sema = self.sema {
-      dispatch_semaphore_signal(sema)
-    }
-  }
-
+  
   override func cancel() {
     error = FeedKitError.CancelledByUser
     task?.cancel()
-    unlock()
     super.cancel()
   }
 }
 
 extension EntryInterval: MangerQuery {}
 
-class EntriesOperation: FeedRepoOperation {
+final class EntriesOperation: FeedRepoOperation {
   var entries: [Entry]?
   let intervals: [EntryInterval]
-
+  
   init (cache: FeedCaching, svc: MangerService, intervals: [EntryInterval]) {
     self.intervals = intervals
     super.init(cache: cache, svc: svc)
   }
 
-  override func main () {
+  override func start() {
     if cancelled {
-      return
+      return finished = true
     }
+    executing = true
     do {
+      // TODO: Move functionalities to separate methods with clear APIs
+      
       let cache = self.cache
       let svc = self.svc
       let (c, s, required) = try entriesFromCache(cache, withIntervals: intervals)
       if cancelled {
         entries = [Entry]()
-        return
+        return finished = true
       }
       guard required != nil else {
-        return entries = c
+        entries = c
+        return finished = true
       }
       
-      // TODO: Remove when https://openradar.appspot.com/23499056 got fixed
+      // TODO: Only request required URLs
+      
       let queries: [MangerQuery] = intervals.map { $0 }
       
       task = try svc.entries(queries) { error, payload in
         defer {
-          self.unlock()
+          self.finished = true
         }
         if self.cancelled {
           return
@@ -125,14 +146,16 @@ class EntriesOperation: FeedRepoOperation {
             error: error!,
             urls: required!
           )
-          self.entries = c + s
-          return
+          return self.entries = c + s
         }
         guard payload != nil else {
           return
         }
         do {
           let entries = try entriesFromPayload(payload!)
+          
+          // TODO: Merge with cached entries
+          
           self.entries = entries
           try cache.updateEntries(entries)
         } catch FeedKitError.FeedNotCached {
@@ -144,7 +167,6 @@ class EntriesOperation: FeedRepoOperation {
     } catch let er {
       return self.error = er
     }
-    lock()
   }
 }
 
@@ -155,7 +177,7 @@ func subtractStrings(a: [String], fromStrings b:[String]) -> [String] {
   return Array(diff)
 }
 
-class FeedsOperation: FeedRepoOperation {
+final class FeedsOperation: FeedRepoOperation {
   var feeds: [Feed]?
   let urls: [String]
 
@@ -164,25 +186,29 @@ class FeedsOperation: FeedRepoOperation {
     super.init(cache: cache, svc: svc)
   }
 
-  override func main () {
+  override func start() {
     if cancelled {
-      return
+      return finished = true
     }
+    executing = true
     do {
+      // TODO: Move functionalities to separate methods with clear APIs
+      
       let cache = self.cache
       let (cachedFeeds, staleFeeds, urlsToRequest) = try feedsFromCache(cache, withURLs: urls)
       if cancelled {
-        return
+        return finished = true
       }
       guard urlsToRequest != nil else {
-        return feeds = cachedFeeds
+        feeds = cachedFeeds
+        return finished = true
       }
       
       let queries: [MangerQuery] = urlsToRequest!.map { EntryInterval(url: $0) }
       
       task = try svc.feeds(queries) { error, payload in
         defer {
-          self.unlock()
+          self.finished = true
         }
         if self.cancelled {
           return
@@ -192,8 +218,7 @@ class FeedsOperation: FeedRepoOperation {
             error: error!,
             urls: urlsToRequest!
           )
-          self.feeds = cachedFeeds + staleFeeds
-          return
+          return self.feeds = cachedFeeds + staleFeeds
         }
         guard payload != nil else {
           return
@@ -209,11 +234,10 @@ class FeedsOperation: FeedRepoOperation {
     } catch let er {
       return self.error = er
     }
-    lock()
   }
 }
 
-public class FeedRepository: Browsing {
+public final class FeedRepository: Browsing {
   let cache: FeedCaching
   let svc: MangerService
   let queue: NSOperationQueue
@@ -233,24 +257,22 @@ public class FeedRepository: Browsing {
   public func feeds (urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation {
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     queue.addOperation(op)
-    op.completionBlock = { [unowned op] in
-      cb(op.error, op.feeds ?? [Feed]())
+    op.completionBlock = { [weak op] in
+      cb(op?.error, op?.feeds ?? [Feed]())
     }
     return op
   }
-
-  // TODO: Make entries method thread safe
   
   public func entries (intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation {
     let urls = intervals.map { $0.url }
     let dep = FeedsOperation(cache: cache, svc: svc, urls: urls)
     var error: ErrorType?
-    dep.completionBlock = { [unowned dep] in
-      error = dep.error
+    dep.completionBlock = { [weak dep] in
+      error = dep?.error
     }
     let op = EntriesOperation(cache: cache, svc: svc, intervals: intervals)
-    op.completionBlock = { [unowned op] in
-      cb(op.error ?? error, op.entries ?? [Entry]())
+    op.completionBlock = { [weak op] in
+      cb(op?.error ?? error, op?.entries ?? [Entry]())
     }
     op.addDependency(dep)
     queue.addOperation(dep)

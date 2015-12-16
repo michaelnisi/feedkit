@@ -50,10 +50,10 @@ func FeedImagesFromDictionary(dict: [String:AnyObject]) -> FeedImages {
 
 func feedFromDictionary (dict: [String:AnyObject]) throws -> Feed {
   let author = dict["author"] as? String
-  let guid =  dict["feed"] as? Int
-  guard let link = dict["link"] as? String else { throw FeedKitError.Missing(name: "link") }
+  let guid =  dict["guid"] as? Int
+  let link = dict["link"] as? String
   let images: FeedImages = FeedImagesFromDictionary(dict)
-  guard let summary = dict["summary"] as? String else { throw FeedKitError.Missing(name: "summary") }
+  let summary = dict["summary"] as? String
   guard let title = dict["title"] as? String else { throw FeedKitError.Missing(name: "title") }
   let updated = dateFromDictionary(dict, withKey: "updated")
   guard let url = dict["feed"] as? String else { throw FeedKitError.Missing(name: "url") }
