@@ -9,6 +9,12 @@
 import Foundation
 import Skull
 
+/// The `subcached` function scans the provided dictionary, containing 
+/// timestamps by terms, for a term and its predecessing substrings.
+/// - Parameter term: The term to look for.
+/// - Parameter dict: A dictionary of timestamps by terms.
+/// - Returns: A tuple containing the matching term and a timestamp, or, if no
+/// matches were found, `nil`.
 func subcached(term: String, dict: [String:NSDate]) -> (String, NSDate)? {
   if let ts = dict[term] {
     return (term, ts)
@@ -35,7 +41,7 @@ public final class Cache {
   let sqlFormatter: SQLFormatter
 
   var noSuggestions = [String:NSDate]()
-  var noResults = [String:NSDate]()
+  var noSearch = [String:NSDate]()
   var feedIDsCache = NSCache()
 
   public init(schema: String, ttl: CacheTTL, url: NSURL?) throws {
@@ -43,9 +49,10 @@ public final class Cache {
     self.ttl = ttl
     self.url = url
     
-    // If we'd pass these, we could break the cache into separate objects.
+    // If we'd pass these, we could disjoint the cache into separate objects.
     self.db = Skull()
-    self.queue = dispatch_queue_create("com.michaelnisi.feedkit.cache", DISPATCH_QUEUE_SERIAL)
+    let label = "com.michaelnisi.feedkit.cache"
+    self.queue = dispatch_queue_create(label, DISPATCH_QUEUE_SERIAL)
     self.sqlFormatter = SQLFormatter()
 
     try open()
@@ -361,37 +368,31 @@ extension Cache: FeedCaching {
 // MARK: SearchCaching
 
 extension Cache: SearchCaching {
-  func removeTerm(term: String) throws {
-    noResults[term] = NSDate()
-    throw FeedKitError.NIY
-  }
-  
   public func updateFeeds(feeds: [Feed], forTerm term: String) throws {
-    guard !feeds.isEmpty else {
-      return try removeTerm(term)
+    if feeds.isEmpty {
+      noSearch[term] = NSDate()
+    } else {
+      try updateFeeds(feeds)
+      noSearch[term] = nil
     }
-    
-    // TODO: Figure out this subcached stuff
-    
-    if let (cachedTerm, _) = subcached(term, dict: noResults) {
-      noResults[cachedTerm] = nil
-    }
-    if let (cachedTerm, _) = subcached(term, dict: noSuggestions) {
-      noSuggestions[cachedTerm] = nil
-    }
-    
-    try updateFeeds(feeds)
     
     let db = self.db
     var error: ErrorType?
     
     dispatch_sync(queue) {
-      // TODO: Remove all feed ids for term
       do {
-        let sql = try feeds.reduce([String]()) { acc, feed in
+        let delete = SQLToDeleteSearchForTerm(term)
+        let insert = try feeds.reduce([String]()) { acc, feed in
           let feedID = try self.feedIDForURL(feed.url)
           return acc + [SQLToInsertFeedID(feedID, forTerm: term)]
         }.joinWithSeparator("\n")
+        // TODO: Detect performance effect of transactions
+        let sql = [
+          "BEGIN;",
+          delete,
+          insert,
+          "COMMIT;"
+        ].joinWithSeparator("\n")
         try db.exec(sql)
       } catch let er {
         error = er
@@ -405,15 +406,16 @@ extension Cache: SearchCaching {
   public func feedsForTerm(term: String) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: ErrorType?
+    let ttl = self.ttl
+    let noSearch = self.noSearch
 
-    dispatch_sync(queue) {
-      let ttl = self.ttl
-      if let (cachedTerm, ts) = subcached(term, dict: self.noResults) {
+    dispatch_sync(queue) { [unowned self] in
+      if let ts = noSearch[term] {
         if stale(ts, ttl: ttl.medium) {
-          self.noResults[cachedTerm] = nil
-          feeds = nil
+          self.noSearch[term] = nil
+          return
         } else {
-          feeds = []
+          return feeds = []
         }
       }
       let sql = SQLToSelectFeedsByTerm(term, limit: 50)
@@ -547,11 +549,12 @@ extension Cache: SearchCaching {
     if let (cachedTerm, ts) = subcached(term, dict: noSuggestions) {
       if stale(ts, ttl: ttl.medium) {
         noSuggestions[cachedTerm] = nil
-        return nil
+        return nil // try the server
       } else {
-        return []
+        return [] // no suggestions - you're done
       }
     }
+    // we might have some cached stuff
     return try suggestionsForSQL([
       "SELECT * FROM sug_fts ",
       "WHERE term MATCH '\(term)*' ",

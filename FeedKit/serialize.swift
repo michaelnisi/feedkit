@@ -10,7 +10,12 @@ import Foundation
 import Skull
 import MangerKit
 
-func trimString (s: String, joinedByString j:String = "") -> String {
+/// Remove whitespace from string and replace it with `""` or any provided string.
+/// Consecutive spaces are reduced to single spaces.
+/// - Parameter s: The string to trim..
+/// - Parameter j: The string to replace whitespace with.
+/// - Returns: The trimmed string.
+func trimString(s: String, joinedByString j:String = "") -> String {
   let ws = NSCharacterSet.whitespaceCharacterSet()
   let ts = s.stringByTrimmingCharactersInSet(ws)
   let cmps = ts.componentsSeparatedByString(" ") as [String]
@@ -177,6 +182,6 @@ func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
 }
 
 func suggestionsFromTerms (terms: [String]) -> [Suggestion]? {
-  guard !terms.isEmpty else { return nil } // TODO: Again: why nil?
+  guard !terms.isEmpty else { return nil }
   return terms.map { Suggestion(term: $0, ts: nil) }
 }

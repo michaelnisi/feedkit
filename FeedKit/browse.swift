@@ -9,7 +9,7 @@
 import Foundation
 import MangerKit
 
-func subtractItems<T: Cachable>
+private func subtractItems<T: Cachable>
   (items: [T], fromURLs urls: [String], withTTL ttl: NSTimeInterval)
   -> ([T], [T], [String]?) {
     var cachedItems = [T]()
@@ -52,50 +52,13 @@ func entriesFromCache(
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.short)
 }
 
-class FeedRepoOperation: NSOperation {
+class FeedRepoOperation: SessionTaskOperation {
   let cache: FeedCaching
   let svc: MangerService
-
-  var task: NSURLSessionTask?
-  var error: ErrorType?
-  
-  private var _executing: Bool = false
-  
-  override var executing: Bool {
-    get { return _executing }
-    set {
-      guard newValue != _executing else {
-        return
-      }
-      willChangeValueForKey("isExecuting")
-      _executing = newValue
-      didChangeValueForKey("isExecuting")
-    }
-  }
-  
-  private var _finished: Bool = false
-  
-  override var finished: Bool {
-    get { return _finished }
-    set {
-      guard newValue != _finished else {
-        return
-      }
-      willChangeValueForKey("isFinished")
-      _finished = newValue
-      didChangeValueForKey("isFinished")
-    }
-  }
 
   init(cache: FeedCaching, svc: MangerService) {
     self.cache = cache
     self.svc = svc
-  }
-  
-  override func cancel() {
-    error = FeedKitError.CancelledByUser
-    task?.cancel()
-    super.cancel()
   }
 }
 
@@ -116,23 +79,25 @@ final class EntriesOperation: FeedRepoOperation {
     }
     executing = true
     do {
-      // TODO: Move functionalities to separate methods with clear APIs
-      
       let cache = self.cache
-      let svc = self.svc
-      let (c, s, required) = try entriesFromCache(cache, withIntervals: intervals)
+      let (
+        cachedEntries,
+        staleEntries,
+        urlsToRequest
+      ) = try entriesFromCache(cache, withIntervals: intervals)
       if cancelled {
         entries = [Entry]()
         return finished = true
       }
-      guard required != nil else {
-        entries = c
+      guard urlsToRequest != nil else {
+        entries = cachedEntries
         return finished = true
       }
       
-      // TODO: Only request required URLs
-      
-      let queries: [MangerQuery] = intervals.map { $0 }
+      let svc = self.svc
+      let queries: [MangerQuery] = intervals.filter {
+        urlsToRequest!.contains($0.url)
+      }.map { $0 } // extra map to compensate Swift bug
       
       task = try svc.entries(queries) { error, payload in
         defer {
@@ -142,30 +107,26 @@ final class EntriesOperation: FeedRepoOperation {
           return
         }
         guard error == nil else {
-          self.error = FeedKitError.ServiceUnavailable(
-            error: error!,
-            urls: required!
-          )
-          return self.entries = c + s
+          self.error = FeedKitError.ServiceUnavailable(error: error!)
+          return self.entries = cachedEntries + staleEntries
         }
         guard payload != nil else {
           return
         }
         do {
           let entries = try entriesFromPayload(payload!)
-          
-          // TODO: Merge with cached entries
-          
-          self.entries = entries
+          self.entries = entries + cachedEntries
           try cache.updateEntries(entries)
         } catch FeedKitError.FeedNotCached {
+          // TODO: Remove fatal error for production
           fatalError("feedkit: cannot update entries of uncached feeds")
         } catch let er {
           self.error = er
         }
       }
     } catch let er {
-      return self.error = er
+      self.error = er
+      return finished = true
     }
   }
 }
@@ -192,10 +153,13 @@ final class FeedsOperation: FeedRepoOperation {
     }
     executing = true
     do {
-      // TODO: Move functionalities to separate methods with clear APIs
-      
       let cache = self.cache
-      let (cachedFeeds, staleFeeds, urlsToRequest) = try feedsFromCache(cache, withURLs: urls)
+      let (
+        cachedFeeds,
+        staleFeeds,
+        urlsToRequest
+      ) = try feedsFromCache(cache, withURLs: urls)
+      
       if cancelled {
         return finished = true
       }
@@ -214,11 +178,9 @@ final class FeedsOperation: FeedRepoOperation {
           return
         }
         guard error == nil else {
-          self.error = FeedKitError.ServiceUnavailable(
-            error: error!,
-            urls: urlsToRequest!
-          )
-          return self.feeds = cachedFeeds + staleFeeds
+          self.error = FeedKitError.ServiceUnavailable(error: error!)
+          self.feeds = cachedFeeds + staleFeeds
+          return
         }
         guard payload != nil else {
           return
@@ -232,7 +194,8 @@ final class FeedsOperation: FeedRepoOperation {
         }
       }
     } catch let er {
-      return self.error = er
+      self.error = er
+      return finished = true
     }
   }
 }

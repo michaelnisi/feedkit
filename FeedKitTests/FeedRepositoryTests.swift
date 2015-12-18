@@ -156,9 +156,8 @@ class FeedRepositoryTests: XCTestCase {
         XCTAssertNotNil(er)
         do {
           throw er!
-        } catch FeedKitError.ServiceUnavailable(let er, let urls) {
+        } catch FeedKitError.ServiceUnavailable(let er) {
           XCTAssertEqual(er._code, -1004)
-          XCTAssertEqual(subtractStrings(urls, fromStrings: self.urls).count, 0)
         } catch {
           XCTFail("should be expected error")
         }

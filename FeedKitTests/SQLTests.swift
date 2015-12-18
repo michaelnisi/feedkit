@@ -113,6 +113,12 @@ class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
   }
   
+  func testSQLToDeleteSearchForTerm() {
+    let found = SQLToDeleteSearchForTerm("abc")
+    let wanted = "DELETE FROM search WHERE term='abc';"
+    XCTAssertEqual(found, wanted)
+  }
+  
   func testSQLFormatter() {
     let f = formatter.stringFromAnyObject
     let found = [

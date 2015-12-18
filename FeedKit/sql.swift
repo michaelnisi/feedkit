@@ -67,6 +67,10 @@ func SQLToSelectEntriesMatchingTerm(term: String, limit: Int) -> String {
     ].joinWithSeparator("")
 }
 
+func SQLToDeleteSearchForTerm(term: String) -> String {
+  return "DELETE FROM search WHERE term='\(term)';"
+}
+
 final class SQLFormatter {
 
   lazy var df: NSDateFormatter = {

@@ -21,6 +21,7 @@
 		4CA3D3201A89EC4400CA58E9 /* SerializeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */; };
 		4CCC8C831C0472D000120D07 /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CCC8C801C0472D000120D07 /* Skull.framework */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
+		4CD2201F1C2315CF001EBE70 /* SearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */; };
 		4CD48F971BCE9B71003C8CCC /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */; };
 		4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594A1BDF4E8B00EA7780 /* sql.swift */; };
 		4CDA594E1BE340AB00EA7780 /* SQLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594D1BE340AB00EA7780 /* SQLTests.swift */; };
@@ -69,6 +70,7 @@
 		4CC7C788197E628E00F7FE54 /* FeedTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedTests.swift; sourceTree = "<group>"; };
 		4CCC8C801C0472D000120D07 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
+		4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchRepositoryTests.swift; sourceTree = "<group>"; };
 		4CDA594A1BDF4E8B00EA7780 /* sql.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = sql.swift; sourceTree = "<group>"; };
 		4CDA594D1BE340AB00EA7780 /* SQLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SQLTests.swift; sourceTree = "<group>"; };
 		4CDA59531BE6931900EA7780 /* feed_query.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feed_query.json; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 				4C962EAF19E85CB100F33D9D /* common.swift */,
 				4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */,
 				4C1D302F1BCA3FCD00F5171F /* FeedRepositoryTests.swift */,
+				4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */,
 				4CDA594D1BE340AB00EA7780 /* SQLTests.swift */,
 				4C3485A51977C237008A6B53 /* Supporting Files */,
 			);
@@ -326,6 +329,7 @@
 				4CE9893B1BCA41D000AFD589 /* FeedRepositoryTests.swift in Sources */,
 				4CA3D3201A89EC4400CA58E9 /* SerializeTests.swift in Sources */,
 				4C1D302D1BC79CE600F5171F /* SearchTests.swift in Sources */,
+				4CD2201F1C2315CF001EBE70 /* SearchRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -365,7 +369,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -414,7 +418,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -440,10 +444,10 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 2;
+				DYLIB_CURRENT_VERSION = 3;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;
@@ -463,10 +467,10 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 2;
+				DYLIB_CURRENT_VERSION = 3;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;

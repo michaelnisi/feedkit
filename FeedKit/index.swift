@@ -19,7 +19,7 @@ public enum FeedKitError: ErrorType, Equatable {
   case Missing(name: String)
   case NotAFeed
   case NotAnEntry
-  case ServiceUnavailable(error: ErrorType, urls: [String])
+  case ServiceUnavailable(error: ErrorType)
   case FeedNotCached(urls: [String])
   case UnknownEnclosureType(type: String)
   case Multiple(errors: [ErrorType])
@@ -264,7 +264,7 @@ public protocol SearchCaching {
 // MARK: Repositories
 
 public protocol Searching {
-  func search (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+  func search (term: String, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
   func suggest (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
 }
 
@@ -284,7 +284,7 @@ public protocol Updating {
   // TODO: Design updating API
 }
 
-// MARK: Common functions
+// MARK: Common functions and classes
 
 func nop (_: Any) -> Void {}
 
@@ -300,4 +300,43 @@ func createTimer (
   dispatch_source_set_event_handler(timer, cb)
   dispatch_resume(timer)
   return timer
+}
+
+class SessionTaskOperation: NSOperation {
+  var task: NSURLSessionTask?
+  var error: ErrorType?
+  
+  private var _executing: Bool = false
+  
+  override var executing: Bool {
+    get { return _executing }
+    set {
+      guard newValue != _executing else {
+        return
+      }
+      willChangeValueForKey("isExecuting")
+      _executing = newValue
+      didChangeValueForKey("isExecuting")
+    }
+  }
+  
+  private var _finished: Bool = false
+  
+  override var finished: Bool {
+    get { return _finished }
+    set {
+      guard newValue != _finished else {
+        return
+      }
+      willChangeValueForKey("isFinished")
+      _finished = newValue
+      didChangeValueForKey("isFinished")
+    }
+  }
+  
+  override func cancel() {
+    error = FeedKitError.CancelledByUser
+    task?.cancel()
+    super.cancel()
+  }
 }
