@@ -39,24 +39,27 @@ class SearchRepositoryTests: XCTestCase {
     super.tearDown()
   }
   
-  // Mark: Search
+  // MARK: Search
   
   func testSearch() {
     let exp = self.expectationWithDescription("search")
     func go(done: Bool = false) {
-      repo.search("apple") { error, feeds in
+      repo.search("apple", feedsBlock: { error, feeds in
         XCTAssertNil(error)
-        XCTAssert(feeds!.count > 0)
-        if done {
-          for feed in feeds! {
-            XCTAssertNotNil(feed.ts, "should be cached")
-          }
-          exp.fulfill()
-        } else {
-          for feed in feeds! {
+        XCTAssert(feeds.count > 0)
+        if !done {
+          for feed in feeds {
             XCTAssertNil(feed.ts)
           }
-          dispatch_sync(dispatch_get_main_queue()) {
+        }
+      }) { error in
+        XCTAssertNil(error)
+        if done {
+          dispatch_async(dispatch_get_main_queue()) {
+            exp.fulfill()
+          }
+        } else {
+          dispatch_async(dispatch_get_main_queue()) {
             go(true)
           }
         }
@@ -72,14 +75,18 @@ class SearchRepositoryTests: XCTestCase {
     let exp = self.expectationWithDescription("search")
     func go(terms: [String]) {
       guard !terms.isEmpty else {
-        return exp.fulfill()
+        return dispatch_async(dispatch_get_main_queue()) {
+          exp.fulfill()
+        }
       }
       var t = terms
       let term = t.removeFirst()
-      repo.search(term) { error, feeds in
+      repo.search(term, feedsBlock: { error, feeds in
         XCTAssertNil(error)
-        XCTAssertEqual(feeds!.count, 0)
-        dispatch_sync(dispatch_get_main_queue()) {
+        XCTAssertEqual(feeds.count, 0)
+      }) { error in
+        XCTAssertNil(error)
+        dispatch_async(dispatch_get_main_queue()) {
           go(t)
         }
       }
@@ -100,9 +107,11 @@ class SearchRepositoryTests: XCTestCase {
     let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
     for term in terms {
       dispatch_async(queue) {
-        repo.search(term) { er, feeds in
+        repo.search(term, feedsBlock: { er, feeds in
           XCTAssertNil(er)
           XCTAssertNotNil(feeds)
+        }) { error in
+          XCTAssertNil(error)
           dispatch_async(dispatch_get_main_queue()) {
             count -= 1
             if count == 0 {
@@ -119,10 +128,104 @@ class SearchRepositoryTests: XCTestCase {
   
   func testSearchCancel() {
     let exp = self.expectationWithDescription("search")
-    let op = repo.search("apple") { er, feeds in
-      XCTAssertEqual(er as? FeedKitError , FeedKitError.CancelledByUser)
-      XCTAssert(feeds!.isEmpty)
-      exp.fulfill()
+    let op = repo.search("apple", feedsBlock: { er, feeds in
+      XCTFail("should not get dispatched")
+    }) { error in
+      XCTAssertEqual(error as? FeedKitError , FeedKitError.CancelledByUser)
+      dispatch_async(dispatch_get_main_queue()) {
+        exp.fulfill()
+      }
+    }
+    op.cancel()
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  // MARK: Suggest
+  
+  func feedsFromFile(name: String = "feeds") throws -> [Feed] {
+    let bundle = NSBundle(forClass: self.classForCoder)
+    let feedsURL = bundle.URLForResource(name, withExtension: "json")
+    return try feedsFromFileAtURL(feedsURL!)
+  }
+  
+  func entriesFromFile() throws -> [Entry] {
+    let bundle = NSBundle(forClass: self.classForCoder)
+    let entriesURL = bundle.URLForResource("entries", withExtension: "json")
+    return try entriesFromFileAtURL(entriesURL!)
+  }
+  
+  func populate() throws -> ([Feed], [Entry]) {
+    let feeds = try! feedsFromFile()
+    try! cache.updateFeeds(feeds)
+    
+    let entries = try! entriesFromFile()
+    try! cache.updateEntries(entries)
+    
+    return (feeds, entries)
+  }
+  
+  func testSuggest() {
+    let exp = self.expectationWithDescription("suggest")
+    var op: SessionTaskOperation?
+    func go() {
+      var found:UInt = 4
+      func shift () { found = found << 1 }
+      repo.suggest("a", perFindGroupBlock: { er, finds in
+        XCTAssertNil(er)
+        XCTAssertFalse(finds.isEmpty)
+        for find in finds {
+          switch find {
+          case .SuggestedTerm:
+            if found ==  4 { shift() }
+          case .RecentSearch:
+            if found ==  8 { shift() }
+          case .SuggestedFeed:
+            if found == 16 { shift() }
+          case .SuggestedEntry:
+            if found == 32 { shift() }
+          }
+        }
+      }) { er in
+        XCTAssertNil(er)
+        let wanted = UInt(64)
+        XCTAssertEqual(found, wanted, "should apply all callbacks in expected order")
+        exp.fulfill()
+      }
+    }
+    
+    try! populate()
+    
+    let terms = ["apple", "automobile", "art"]
+    for (i, term) in terms.enumerate() {
+      repo.search(term, feedsBlock: { error, feeds in
+        XCTAssertNil(error)
+        XCTAssert(feeds.count > 0)
+        guard i == terms.count - 1 else { return }
+      }) { error in
+        dispatch_async(dispatch_get_main_queue()) {
+          go()
+        }
+      }
+    }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testCancelledSuggest() {
+    let exp = self.expectationWithDescription("suggest")
+    let op = repo.suggest("a", perFindGroupBlock: { _, _ in
+      XCTFail("should not get dispatched")
+    }) { er in
+      do {
+        throw er!
+      } catch FeedKitError.CancelledByUser {
+        exp.fulfill()
+      } catch {
+        XCTFail("should not pass unexpected error")
+      }
     }
     op.cancel()
     self.waitForExpectationsWithTimeout(10) { er in

@@ -10,7 +10,8 @@ import Foundation
 
 // MARK: Types
 
-public enum FeedKitError: ErrorType, Equatable {
+/// The sole error type of the FeedKit module.
+public enum FeedKitError : ErrorType, Equatable {
   case Unknown
   case NIY
   case NotAString
@@ -26,13 +27,15 @@ public enum FeedKitError: ErrorType, Equatable {
   case UnexpectedJSON
   case SQLFormatting
   case CacheFailure(error: ErrorType)
+  case UnexpectedDeallocation
 }
 
-public func == (lhs: FeedKitError, rhs: FeedKitError) -> Bool {
+public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
   return lhs._code == rhs._code
 }
 
-public struct FeedImages: Equatable {
+/// A set of images associated with a feed.
+public struct FeedImages : Equatable {
   public let img: String?
   public let img100: String?
   public let img30: String?
@@ -40,7 +43,7 @@ public struct FeedImages: Equatable {
   public let img600: String?
 }
 
-public func == (lhs: FeedImages, rhs: FeedImages) -> Bool {
+public func ==(lhs: FeedImages, rhs: FeedImages) -> Bool {
   return (
     lhs.img == rhs.img &&
     lhs.img100 == rhs.img100 &&
@@ -50,14 +53,17 @@ public func == (lhs: FeedImages, rhs: FeedImages) -> Bool {
   )
 }
 
-public protocol Searchable: Equatable {}
+/// Mark objects as searchable.
+public protocol Searchable : Equatable {}
 
+/// Objects that need to be cached must implement this protocol.
 public protocol Cachable {
   var ts: NSDate? { get }
   var url: String { get }
 }
 
-public struct Feed: Searchable, Cachable {
+/// Feeds are the central object of this framework.
+public struct Feed : Searchable, Cachable {
   public let author: String?
   public let guid: Int?
   public let images: FeedImages?
@@ -70,16 +76,17 @@ public struct Feed: Searchable, Cachable {
   public let url: String
 }
 
-extension Feed: CustomStringConvertible {
+extension Feed : CustomStringConvertible {
   public var description: String {
-    return "Feed: \(title) @ \(url)"
+    return "Feed: \(title)"
   }
 }
 
-public func == (lhs: Feed, rhs: Feed) -> Bool {
+public func ==(lhs: Feed, rhs: Feed) -> Bool {
   return lhs.url == rhs.url
 }
 
+/// Enumerates possible media types enclosures are allowed to have.
 public enum EnclosureType: Int {
   case AudioMPEG
   case AudioXMPEG
@@ -95,6 +102,7 @@ public enum EnclosureType: Int {
   }
 }
 
+/// The infamous RSS enclosure tag is mapped to this structure.
 public struct Enclosure: Equatable {
   let url: String
   let length: Int?
@@ -107,11 +115,12 @@ extension Enclosure: CustomStringConvertible {
   }
 }
 
-public func == (lhs: Enclosure, rhs: Enclosure) -> Bool {
+public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
   return lhs.url == rhs.url
 }
 
-public struct Entry: Equatable, Cachable {
+/// Feeds transport streams of entries.
+public struct Entry: Searchable, Cachable {
   public let author: String?
   public let enclosure: Enclosure?
   public let duration: String?
@@ -136,14 +145,20 @@ extension Entry: CustomStringConvertible {
   }
 }
 
-public func == (lhs: Entry, rhs: Entry) -> Bool {
+public func ==(lhs: Entry, rhs: Entry) -> Bool {
   return lhs.id == rhs.id
 }
 
+/// Entry intervals are used to specify intervals of entries of a specific
+/// feed.
 public struct EntryInterval: Equatable {
   public let url: String
   public let since: NSDate
   
+  /// Returns a new interval.
+  /// - Parameter url: The URL of the feed.
+  /// - Parameter since: A date in the past where the interval begins.
+  /// - Returns: The newly created interval.
   public init(url: String, since: NSDate = NSDate(timeIntervalSince1970: 0)) {
     self.url = url
     self.since = since
@@ -156,63 +171,76 @@ extension EntryInterval: CustomStringConvertible {
   }
 }
 
-public func == (lhs: EntryInterval, rhs: EntryInterval) -> Bool {
+public func ==(lhs: EntryInterval, rhs: EntryInterval) -> Bool {
   return lhs.url == rhs.url && lhs.since == rhs.since
 }
 
+/// A suggested search term, bearing the timestamp of when it was added
+/// (to the cache) or updated.
 public struct Suggestion: Searchable {
   public let term: String
   public var ts: NSDate? // if cached
 }
 
-extension Suggestion: CustomStringConvertible {
+extension Suggestion : CustomStringConvertible {
   public var description: String {
     return "Suggestion: \(term) \(ts)"
   }
 }
 
-public func == (lhs: Suggestion, rhs: Suggestion) -> Bool {
+public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
-// TODO: Rename to Find
-
-public enum SearchItem: Equatable {
-  case Sug(Suggestion)
-  case Res(Feed)
-  case Fed(Feed)
+/// Enumerates findable things hiding their type.
+public enum Find : Searchable {
+  case RecentSearch(Feed)
+  case SuggestedTerm(Suggestion)
+  case SuggestedEntry(Entry)
+  case SuggestedFeed(Feed)
+  
+  /// The timestamp applied by the database.
   var ts: NSDate? {
     switch self {
-    case .Res(let it): return it.ts
-    case .Sug(let it): return it.ts
-    case .Fed(let it): return it.ts
+    case .RecentSearch(let it): return it.ts
+    case .SuggestedTerm(let it): return it.ts
+    case .SuggestedEntry(let it): return it.ts
+    case .SuggestedFeed(let it): return it.ts
     }
   }
 }
 
-public func == (lhs: SearchItem, rhs: SearchItem) -> Bool {
-  var lhsRes: Feed?
+public func ==(lhs: Find, rhs: Find) -> Bool {
+  var lhsRes: Entry?
   var lhsSug: Suggestion?
   var lhsFed: Feed?
+  
   switch lhs {
-  case .Res(let res):
+  case .SuggestedEntry(let res):
     lhsRes = res
-  case .Sug(let sug):
+  case .SuggestedTerm(let sug):
     lhsSug = sug
-  case .Fed(let fed):
+  case .SuggestedFeed(let fed):
+    lhsFed = fed
+  case .RecentSearch(let fed):
     lhsFed = fed
   }
-  var rhsRes: Feed?
+  
+  var rhsRes: Entry?
   var rhsSug: Suggestion?
   var rhsFed: Feed?
+  
   switch rhs {
-  case .Res(let res):
+  case .SuggestedEntry(let res):
     rhsRes = res
-  case .Sug(let sug):
+  case .SuggestedTerm(let sug):
     rhsSug = sug
-  case .Fed(let fed):
+  case .SuggestedFeed(let fed):
+    rhsFed = fed
+  case .RecentSearch(let fed):
     rhsFed = fed
   }
+  
   if lhsRes != nil && rhsRes != nil {
     return lhsRes == rhsRes
   } else if lhsSug != nil && rhsSug != nil {
@@ -223,11 +251,9 @@ public func == (lhs: SearchItem, rhs: SearchItem) -> Bool {
   return false
 }
 
-// --
-
-
 // MARK: Caching
 
+/// The time-to live settings for caching.
 public struct CacheTTL {
   let short: NSTimeInterval
   let medium: NSTimeInterval
@@ -236,59 +262,106 @@ public struct CacheTTL {
 
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
+  
+  /// The time to live settings of this cache.
   var ttl: CacheTTL { get }
   
-  func updateFeeds (feeds:[Feed]) throws
-  func feedsWithURLs (urls: [String]) throws -> [Feed]?
+  /// Update feeds in the cache. Feeds that are not cached yet are inserted.
+  /// - Parameter feeds: The feeds to insert or update.
+  func updateFeeds(feeds: [Feed]) throws
+  
+  /// Retrieve feeds from the cache identified by their URLs.
+  /// - Parameter urls: An array of feed URL strings.
+  /// - Returns: An array of feeds currently in the cache.
+  func feedsWithURLs(urls: [String]) throws -> [Feed]
 
-  func updateEntries (entries:[Entry]) throws
-  func entriesOfIntervals (intervals: [EntryInterval]) throws -> [Entry]?
+  /// Update entries in the cache inserting new ones.
+  /// - Parameter entries: An array of entries to be cached.
+  func updateEntries(entries:[Entry]) throws
+  
+  /// Retrieve entries within the specified intervals.
+  /// - Parameter intervals: An array of time intervals between now and the past.
+  /// - Returns: The matching array of entries currently cached.
+  func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]
 
-  func removeFeedsWithURLs (urls: [String]) throws
+  /// Remove feeds and, respectively, their associated entries.
+  /// - Parameter urls: The URL strings of the feeds to remove.
+  func removeFeedsWithURLs(urls: [String]) throws
 }
 
-/// A persistent cache of things related to searching for feeds and entries.
+/// A persistent cache of things related to searching feeds and entries.
+///
+/// Note that this API, addtionally to empty arrays, uses optionals to be more 
+/// expressive. Empty array means the item is cached but has no results; nil 
+/// means the item has not been cached yet.
 public protocol SearchCaching {
   var ttl: CacheTTL { get }
 
-  func updateSuggestions (suggestions: [Suggestion], forTerm: String) throws
-  func suggestionsForTerm (term: String) throws -> [Suggestion]?
+  func updateSuggestions(suggestions: [Suggestion], forTerm: String) throws
+  func suggestionsForTerm(term: String, limit: Int) throws -> [Suggestion]?
 
-  func updateFeeds (feeds: [Feed], forTerm: String) throws
-  func feedsForTerm (term: String) throws -> [Feed]?
+  func updateFeeds(feeds: [Feed], forTerm: String) throws
+  func feedsForTerm(term: String, limit: Int) throws -> [Feed]?
   
-  func feedsMatchingTerm (term: String) throws -> [Feed]?
-  func entriesMatchingTerm(term: String) throws -> [Entry]?
+  func feedsMatchingTerm(term: String, limit: Int) throws -> [Feed]?
+  func entriesMatchingTerm(term: String, limit: Int) throws -> [Entry]?
 }
 
-// MARK: Repositories
+// MARK: API
 
 public protocol Searching {
-  func search (term: String, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
-  func suggest (term: String, cb: (ErrorType?, [SearchItem]?) -> Void) -> NSOperation
+  
+  /// Search for feeds by term.
+  ///
+  /// - Parameter term: The term to search for.
+  /// - Parameter cb: The block to receive feeds.
+  /// - Parameter searchCompletionBlock: The block to execute after the 
+  ///   search is complete.
+  func search(
+    term: String,
+    feedsBlock: (ErrorType?, [Feed]) -> Void,
+    searchCompletionBlock: (ErrorType?) -> Void
+  ) -> NSOperation
+  
+  /// Get lexicographical suggestions for a search term combining locally cached
+  /// and remote data.
+  ///
+  /// - Parameter term: The search term.
+  /// - Parameter perFindGroupBlock: The block to receive finds - called once 
+  ///   per find group as enumerated in `Find`.
+  /// - Parameter completionBlock: A block called when the operation has finished.
+  func suggest(
+    term: String,
+    perFindGroupBlock: (ErrorType?, [Find]) -> Void,
+    suggestCompletionBlock: (ErrorType?) -> Void
+  ) -> NSOperation
 }
 
 public protocol Browsing {
-  func feeds (urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation
-  func entries (intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation
+  func feeds(urls: [String], cb: (ErrorType?, [Feed]) -> Void) -> NSOperation
+  func entries(intervals: [EntryInterval], cb: (ErrorType?, [Entry]) -> Void) -> NSOperation
 }
 
 public protocol Subscribing {
-  func subscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
-  func unsubscribeURLs (urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
-  func subscribed (cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
-  func unsubscribed (recent: Int, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
+  func subscribeURLs(urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
+  func unsubscribeURLs(urls: [String], cb: (ErrorType?, Feed?) -> Void) -> NSOperation
+  func subscribed(cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
+  func unsubscribed(recent: Int, cb: (ErrorType?, [Feed]?) -> Void) -> NSOperation
 }
 
-public protocol Updating {
-  // TODO: Design updating API
+public protocol Sequencing {
+  var nextEntry: Entry { get }
+  var previousEntry: Entry { get }
+  var currentEntry: Entry { get }
+  var entries: [Entry] { get }
+  func setCurrentEntry(entry: Entry) throws
 }
 
-// MARK: Common functions and classes
+// MARK: Common functions and classes]
 
-func nop (_: Any) -> Void {}
+func nop(_: Any) -> Void {}
 
-func createTimer (
+func createTimer(
   queue: dispatch_queue_t,
   time: Double,
   cb: dispatch_block_t) -> dispatch_source_t {
@@ -302,17 +375,18 @@ func createTimer (
   return timer
 }
 
+/// A generic concurrent operation providing a task and an error property.
+/// This abstract class is to be extended.
 class SessionTaskOperation: NSOperation {
-  var task: NSURLSessionTask?
-  var error: ErrorType?
+  final var task: NSURLSessionTask?
   
   private var _executing: Bool = false
   
-  override var executing: Bool {
+  override final var executing: Bool {
     get { return _executing }
     set {
       guard newValue != _executing else {
-        return
+        fatalError("SessionTaskOperation: already executing")
       }
       willChangeValueForKey("isExecuting")
       _executing = newValue
@@ -322,11 +396,11 @@ class SessionTaskOperation: NSOperation {
   
   private var _finished: Bool = false
   
-  override var finished: Bool {
+  override final var finished: Bool {
     get { return _finished }
     set {
       guard newValue != _finished else {
-        return
+        fatalError("SessionTaskOperation: already finished")
       }
       willChangeValueForKey("isFinished")
       _finished = newValue
@@ -335,8 +409,17 @@ class SessionTaskOperation: NSOperation {
   }
   
   override func cancel() {
-    error = FeedKitError.CancelledByUser
     task?.cancel()
+    super.cancel()
+  }
+}
+
+// TODO: Remove temporary class
+
+class TmpSessionTaskOperation: SessionTaskOperation {
+  final var error: ErrorType?
+  override func cancel() {
+    error = FeedKitError.CancelledByUser
     super.cancel()
   }
 }

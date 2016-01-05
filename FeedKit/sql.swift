@@ -9,6 +9,8 @@
 import Foundation
 import Skull
 
+// MARK: Browsing
+
 func SQLToSelectFeedsByFeedIDs(feedIDs: [Int]) -> String? {
   guard !feedIDs.isEmpty else {
     return nil
@@ -29,46 +31,83 @@ func SQLToRemoveFeedsWithFeedIDs(feedIDs: [Int]) -> String? {
   return sql
 }
 
+func SQLStringFromString(string: String) -> String {
+  let s = string.stringByReplacingOccurrencesOfString(
+    "'",
+    withString: "''",
+    options: NSStringCompareOptions.LiteralSearch,
+    range: nil
+  )
+  return "'\(s)'"
+}
+
 func SQLToSelectFeedIDFromURLView(url: String) -> String {
-  return "SELECT feedid FROM url_view WHERE url = '\(url)';"
+  let s = SQLStringFromString(url)
+  return "SELECT feedid FROM url_view WHERE url = \(s);"
 }
 
 func SQLToInsertFeedID(feedID: Int, forTerm term: String) -> String {
   return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), '\(term)');"
 }
 
+// MARK: Searching
+
 func SQLToSelectFeedsByTerm(term: String, limit: Int) -> String {
-  return [
-    "SELECT * FROM search_view WHERE uid IN (",
-    "SELECT feedid FROM search_fts ",
-    "WHERE term MATCH '\(term)') ",
-    "ORDER BY ts DESC ",
-    "LIMIT \(limit);"
-  ].joinWithSeparator("")
+  let sql =
+  "SELECT * FROM search_view WHERE uid IN (" +
+  "SELECT feedid FROM search_fts " +
+  "WHERE term MATCH '\(term)*') " +
+  "ORDER BY ts DESC " +
+  "LIMIT \(limit);"
+  return sql
 }
 
 func SQLToSelectFeedsMatchingTerm(term: String, limit: Int) -> String {
-  return [
-    "SELECT * FROM feed_view WHERE uid IN (",
-    "SELECT rowid FROM feed_fts ",
-    "WHERE feed_fts MATCH '\(term)*') ",
-    "ORDER BY ts DESC ",
-    "LIMIT \(limit);"
-  ].joinWithSeparator("")
+  let sql =
+  "SELECT * FROM feed_view WHERE uid IN (" +
+  "SELECT rowid FROM feed_fts " +
+  "WHERE feed_fts MATCH '\(term)*') " +
+  "ORDER BY ts DESC " +
+  "LIMIT \(limit);"
+  return sql
 }
 
 func SQLToSelectEntriesMatchingTerm(term: String, limit: Int) -> String {
-  return [
-    "SELECT * FROM entry_view WHERE uid IN (",
-    "SELECT rowid FROM entry_fts ",
-    "WHERE entry_fts MATCH '\(term)*') ",
-    "ORDER BY ts DESC ",
-    "LIMIT \(limit);"
-    ].joinWithSeparator("")
+  let sql =
+  "SELECT * FROM entry_view WHERE uid IN (" +
+  "SELECT rowid FROM entry_fts " +
+  "WHERE entry_fts MATCH '\(term)*') " +
+  "ORDER BY ts DESC " +
+  "LIMIT \(limit);"
+  return sql
 }
 
 func SQLToDeleteSearchForTerm(term: String) -> String {
   return "DELETE FROM search WHERE term='\(term)';"
+}
+
+// MARK: Suggestions
+
+func SQLToInsertSuggestionForTerm(term: String) -> String {
+  return "INSERT OR REPLACE INTO sug(term) VALUES('\(term)');"
+}
+
+func SQLToSelectSuggestionsForTerm(term: String, limit: Int) -> String {
+  let sql =
+  "SELECT * FROM sug WHERE rowid IN (" +
+  "SELECT rowid FROM sug_fts " +
+  "WHERE term MATCH '\(term)*') " +
+  "ORDER BY ts DESC " +
+  "LIMIT \(limit);"
+  return sql
+}
+
+func SQLToDeleteSuggestionsMatchingTerm(term: String) -> String {
+  let sql =
+  "DELETE FROM sug " +
+  "WHERE rowid IN (" +
+  "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
+  return sql
 }
 
 final class SQLFormatter {
@@ -103,18 +142,18 @@ final class SQLFormatter {
     let updated = stringFromAnyObject(feed.updated)
     let url = stringFromAnyObject(feed.url)
 
-    return [
-      "INSERT INTO feed(",
-      "author, guid, ",
-      "img, img100, img30, img60, img600, ",
-      "link, summary, title, updated, url) VALUES(",
-      "\(author), \(guid), ",
-      "\(img), \(img100), \(img30), \(img60), \(img600), ",
-      "\(link), \(summary), \(title), \(updated), \(url)",
-      ");"
-    ].joinWithSeparator("")
+    let sql =
+    "INSERT INTO feed(" +
+    "author, guid, " +
+    "img, img100, img30, img60, img600, " +
+    "link, summary, title, updated, url) VALUES(" +
+    "\(author), \(guid), " +
+    "\(img), \(img100), \(img30), \(img60), \(img600), " +
+    "\(link), \(summary), \(title), \(updated), \(url)" +
+    ");"
+    return sql
   }
-  
+
   func SQLToUpdateFeed(feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAnyObject(feed.author)
     let guid = stringFromAnyObject(feed.guid)
@@ -128,16 +167,16 @@ final class SQLFormatter {
     let title = stringFromAnyObject(feed.title)
     let updated = stringFromAnyObject(feed.updated)
     let url = stringFromAnyObject(feed.url)
-    
-    return [
-      "UPDATE feed ",
-      "SET author = \(author), guid = \(guid), ",
-      "img = \(img), img100 = \(img100), img30 = \(img30), ",
-      "img60 = \(img60), img600 = \(img600), ", "link = \(link), ",
-      "summary = \(summary), title = \(title), updated = \(updated), ",
-      "url = \(url) ",
-      "WHERE rowid = \(rowid);"
-    ].joinWithSeparator("")
+
+    let sql =
+    "UPDATE feed " +
+    "SET author = \(author), guid = \(guid), " +
+    "img = \(img), img100 = \(img100), img30 = \(img30), " +
+    "img60 = \(img60), img600 = \(img600), link = \(link), " +
+    "summary = \(summary), title = \(title), updated = \(updated), " +
+    "url = \(url) " +
+    "WHERE rowid = \(rowid);"
+    return sql
   }
 
   func SQLToInsertEntry(entry: Entry, forFeedID feedID: Int) -> String {
@@ -155,14 +194,14 @@ final class SQLFormatter {
     let updated = stringFromAnyObject(entry.updated)
     let url = stringFromAnyObject(entry.enclosure?.url)
 
-    return [
-      "INSERT OR REPLACE INTO entry(",
-      "author, duration, feedid, id, img, length, link, ",
-      "subtitle, summary, title, type, updated, url) VALUES(",
-      "\(author), \(duration), \(feedid), \(id), \(img), \(length), \(link), ",
-      "\(subtitle), \(summary), \(title), \(type), \(updated), \(url)",
-      ");"
-    ].joinWithSeparator("")
+    let sql =
+    "INSERT OR REPLACE INTO entry(" +
+    "author, duration, feedid, id, img, length, link, " +
+    "subtitle, summary, title, type, updated, url) VALUES(" +
+    "\(author), \(duration), \(feedid), \(id), \(img), \(length), \(link), " +
+    "\(subtitle), \(summary), \(title), \(type), \(updated), \(url)" +
+    ");"
+    return sql
   }
 
   func stringFromAnyObject(obj: AnyObject?) -> String {
@@ -172,22 +211,16 @@ final class SQLFormatter {
     case is Int, is Double:
       return "\(obj!)"
     case let value as String:
-      let s = value.stringByReplacingOccurrencesOfString(
-        "'",
-        withString: "''",
-        options: NSStringCompareOptions.LiteralSearch,
-        range: nil
-      )
-      return "'\(s)'"
+      return SQLStringFromString(value)
     case let value as NSDate:
       return "'\(df.stringFromDate(value))'"
     case let value as NSURL:
-      return value.absoluteString
+      return SQLStringFromString(value.absoluteString)
     default:
       return "NULL"
     }
   }
-  
+
   func SQLToSelectEntriesByIntervals(intervals: [(Int, NSDate)]) -> String? {
     guard !intervals.isEmpty else {
       return nil
@@ -261,14 +294,14 @@ final class SQLFormatter {
 
   func entryFromRow(row: SkullRow) throws -> Entry {
     let author = row["author"] as? String
-    
+
     var enclosure: Enclosure?
     do {
       enclosure = try enclosureFromRow(row)
     } catch {
       // TODO: Handle entries without enclosure
     }
-    
+
     let duration = row["duration"] as? String
     guard let feed = row["feed"] as? String else {
       throw FeedKitError.Missing(name: "feed")

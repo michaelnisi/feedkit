@@ -29,13 +29,66 @@ class CacheTests: XCTestCase {
     super.tearDown()
   }
   
+  func feedsFromFile(name: String = "feeds") throws -> [Feed] {
+    let bundle = NSBundle(forClass: self.classForCoder)
+    let feedsURL = bundle.URLForResource(name, withExtension: "json")
+    return try feedsFromFileAtURL(feedsURL!)
+  }
+  
+  func testFeedIDForURL() {
+    do {
+      let url = "abc"
+      var found: [String]?
+      let wanted = [url]
+      do {
+        try cache.feedIDForURL(url)
+      } catch FeedKitError.FeedNotCached(let urls) {
+        found = urls
+      } catch {
+        XCTFail("should not throw unexpected error")
+      }
+      XCTAssertEqual(found!, wanted)
+    }
+    
+    var url: String?
+    var feed: Feed?
+    
+    do {
+      let feeds = try! feedsFromFile()
+      try! cache.updateFeeds(feeds)
+      feed = feeds.first!
+      url = feed!.url
+      let found = try! cache.feedIDForURL(url!)
+      let wanted = 1
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      try! cache.removeFeedsWithURLs([url!])
+      var found: [String]?
+      let wanted = [url!]
+      do {
+        try cache.feedIDForURL(url!)
+      } catch FeedKitError.FeedNotCached(let urls) {
+        found = urls
+      } catch {
+        XCTFail("should not throw unexpected error")
+      }
+      XCTAssertEqual(found!, wanted)
+    }
+    
+    do {
+      try! cache.updateFeeds([feed!])
+      let found = try! cache.feedIDForURL(url!)
+      let wanted = 11
+      XCTAssertEqual(found, wanted)
+    }
+  }
+  
   // MARK: Feed Caching
   
   func testUpdateFeeds() {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    
-    let feedsURL = bundle.URLForResource("feeds", withExtension: "json")
-    let feeds = try! feedsFromFileAtURL(feedsURL!)
+    let feeds = try! feedsFromFile()
     
     try! cache.updateFeeds(feeds)
   
@@ -49,9 +102,9 @@ class CacheTests: XCTestCase {
     let found = try! cache.feedsWithURLs(urls)
     
     let wanted = feeds
-    XCTAssertEqual(found!, wanted)
+    XCTAssertEqual(found, wanted)
     for (i, wantedFeed) in wanted.enumerate() {
-      let foundFeed = found![i]
+      let foundFeed = found[i]
 
       XCTAssertEqual(foundFeed.author, wantedFeed.author)
       XCTAssertEqual(foundFeed.guid, wantedFeed.guid)
@@ -73,7 +126,7 @@ class CacheTests: XCTestCase {
   func testFeedsWithURLs() {
     let urls = ["", "abc.de"]
     let found = try! cache.feedsWithURLs(urls)
-    XCTAssertNil(found)
+    XCTAssert(found.isEmpty, "should not be nil but empty")
   }
   
   func testUpdateEntriesOfUncachedFeeds() {
@@ -97,12 +150,6 @@ class CacheTests: XCTestCase {
     let entriesURL = bundle.URLForResource("entries", withExtension: "json")
     return try entriesFromFileAtURL(entriesURL!)
   }
-  
-  func feedsFromFile(name: String = "feeds") throws -> [Feed] {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    let feedsURL = bundle.URLForResource(name, withExtension: "json")
-    return try feedsFromFileAtURL(feedsURL!)
-  }
 
   func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
@@ -120,9 +167,9 @@ class CacheTests: XCTestCase {
     let intervals = urls.map { EntryInterval(url: $0) }
     let found = try! cache.entriesOfIntervals(intervals)
     let wanted = entries
-    XCTAssertEqual(found!, wanted)
+    XCTAssertEqual(found, wanted)
     for (i, wantedEntry) in wanted.enumerate() {
-      let foundEntry = found![i]
+      let foundEntry = found[i]
       XCTAssertEqual(foundEntry.author, wantedEntry.author)
       XCTAssertEqual(foundEntry.duration, wantedEntry.duration)
       XCTAssertEqual(foundEntry.enclosure, wantedEntry.enclosure)
@@ -155,7 +202,7 @@ class CacheTests: XCTestCase {
     
     let intervals = urls.map { EntryInterval(url: $0) }
     let found = try! cache.entriesOfIntervals(intervals)
-    XCTAssertNil(found, "should have removed entries too")
+    XCTAssert(found.isEmpty, "should have removed entries too")
   }
   
   // MARK: Search Caching
@@ -164,55 +211,91 @@ class CacheTests: XCTestCase {
     let feeds = try! feedsFromFile("search")
     let term = "newyorker"
     
-    try! cache.updateFeeds(feeds, forTerm: term)
+    do {
+      try cache.updateFeeds(feeds, forTerm: term)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
     
-    let found = try! cache.feedsForTerm(term)
-    let wanted = feeds
+    do {
+      let found = try cache.feedsForTerm(term, limit: 50)
+      let wanted = feeds
+      XCTAssertEqual(found!, wanted)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
     
-    XCTAssertEqual(found!, wanted)
+    do {
+      let found = try cache.suggestionsForTerm(term, limit: 5)
+      let wanted = suggestionsFromTerms([term])
+      XCTAssertEqual(found!, wanted)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
+    
+    do {
+      try cache.updateFeeds([], forTerm: term)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
+    
+    do {
+      let found = try cache.feedsForTerm(term, limit: 50)
+      XCTAssert(found!.isEmpty)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
+    
+    do {
+      let found = try cache.suggestionsForTerm(term, limit: 5)
+      XCTAssertNil(found)
+    } catch let er {
+      XCTFail("should not throw \(er)")
+    }
   }
   
   func testFeedsForTerm() {
     let feeds = try! feedsFromFile("search")
     let term = "newyorker"
     
-    try! cache.updateFeeds(feeds, forTerm: term)
+    XCTAssertNil(try! cache.feedsForTerm(term, limit: 50))
     
-    XCTAssertNil(try! cache.feedsForTerm("apple"))
-    
-    let found = try! cache.feedsForTerm(term)!
-    let wanted = feeds
-    
-    XCTAssertEqual(found, wanted)
-    
-    for (i, wantedFeed) in wanted.enumerate() {
-      let foundFeed = found[i]
+    for _ in 0...1 {
+      try! cache.updateFeeds(feeds, forTerm: term)
       
-      XCTAssertEqual(foundFeed.author, wantedFeed.author)
-      XCTAssertEqual(foundFeed.guid, wantedFeed.guid)
-      XCTAssertEqual(foundFeed.images, wantedFeed.images)
-      XCTAssertEqual(foundFeed.link, wantedFeed.link)
-      XCTAssertEqual(foundFeed.summary, wantedFeed.summary)
-      XCTAssertEqual(foundFeed.title, wantedFeed.title)
-      XCTAssertNotNil(foundFeed.ts, "should bear timestamp")
-      XCTAssertEqual(foundFeed.updated, wantedFeed.updated)
-      XCTAssertEqual(foundFeed.url, wantedFeed.url)
+      let found = try! cache.feedsForTerm(term, limit: 50)!
+      let wanted = feeds
+      XCTAssertEqual(found, wanted)
       
-      let url = foundFeed.url
-      XCTAssertTrue(cache.hasURL(url))
-      let uid = try! cache.feedIDForURL(url)
-      XCTAssertEqual(uid, foundFeed.uid)
+      for (i, wantedFeed) in wanted.enumerate() {
+        let foundFeed = found[i]
+        
+        XCTAssertEqual(foundFeed.author, wantedFeed.author)
+        XCTAssertEqual(foundFeed.guid, wantedFeed.guid)
+        XCTAssertEqual(foundFeed.images, wantedFeed.images)
+        XCTAssertEqual(foundFeed.link, wantedFeed.link)
+        XCTAssertEqual(foundFeed.summary, wantedFeed.summary)
+        XCTAssertEqual(foundFeed.title, wantedFeed.title)
+        XCTAssertNotNil(foundFeed.ts, "should bear timestamp")
+        XCTAssertEqual(foundFeed.updated, wantedFeed.updated)
+        XCTAssertEqual(foundFeed.url, wantedFeed.url)
+        
+        let url = foundFeed.url
+        XCTAssertTrue(cache.hasURL(url))
+        let uid = try! cache.feedIDForURL(url)
+        XCTAssertEqual(uid, foundFeed.uid)
+      }
     }
   }
   
   func testFeedsMatchingTerm() {
     let feeds = try! feedsFromFile("search")
+    let term = "newyorker"
+    XCTAssertNil(try! cache.feedsForTerm(term, limit: 50))
     
-    XCTAssertNil(try! cache.feedsForTerm("apple"))
-    
-    try! cache.updateFeeds(feeds, forTerm: "newyorker")
+    try! cache.updateFeeds(feeds, forTerm: term)
 
-    let found = try! cache.feedsMatchingTerm("new")
+    let found = try! cache.feedsMatchingTerm("new", limit: 3)
     
     var wanted = [Feed]()
     for i in 0...2 { wanted.append(feeds[i]) }
@@ -222,36 +305,67 @@ class CacheTests: XCTestCase {
   
   func testEntriesMatchingTerm() {
     try! populate()
-    let found = try! cache.entriesMatchingTerm("supercomputer")
+    let found = try! cache.entriesMatchingTerm("supercomputer", limit: 3)
     XCTAssertEqual(found!.count, 1)
     XCTAssertEqual(found!.first?.title, "Seven Deadly Sins")
   }
 
   func testSuggestions() {
+    XCTAssertNil(try! cache.suggestionsForTerm("a", limit: 5))
+    
     let terms = ["apple", "apple watch", "apple pie"]
-    let input = terms.map({ term in
-      Suggestion(term: term, ts: nil)
-    })
+    let input = suggestionsFromTerms(terms)
     try! cache.updateSuggestions(input, forTerm:"apple")
-    if let sugs = try! cache.suggestionsForTerm("apple p") {
+    
+    do {
+      var term: String = ""
+      for c in "apple ".characters {
+        term.append(c)
+        if let sugs = try! cache.suggestionsForTerm(term, limit: 5) {
+          XCTAssertEqual(sugs.count, terms.count)
+          for sug in sugs {
+            XCTAssertNotNil(sug.ts)
+          }
+          XCTAssertEqual(sugs, input)
+        } else {
+          XCTFail("should suggest")
+        }
+      }
+    }
+    
+    if let sugs = try! cache.suggestionsForTerm("apple p", limit: 5) {
       XCTAssertEqual(sugs.count, 1)
       let found: Suggestion = sugs.last!
       XCTAssertNotNil(found.ts!)
       let wanted: Suggestion = input.last!
       XCTAssertEqual(found, wanted)
     } else {
-      XCTFail("should find suggestion")
+      XCTFail("should suggest")
+    }
+    
+    try! cache.updateSuggestions([], forTerm:"apple")
+    
+    XCTAssertNil(try! cache.suggestionsForTerm("a", limit: 5))
+    
+    do {
+      let terms = ["apple", "apple ", "apple p", "apple pi", "apple pie"]
+      for term in terms {
+        if let sugs = try! cache.suggestionsForTerm(term, limit: 5) {
+          XCTAssert(sugs.isEmpty)
+        } else {
+          XCTFail("should suggest")
+        }
+      }
     }
   }
 
   func testRemoveSuggestions() {
     let terms = ["apple", "apple watch", "apple pie"]
-    let input = terms.map({ term in
-      Suggestion(term: term, ts: nil)
-    })
+    let input = suggestionsFromTerms(terms)
+    
     try! cache.updateSuggestions(input, forTerm:"apple")
     try! cache.updateSuggestions([], forTerm:"pie")
-    if let found = try! cache.suggestionsForTerm("apple") {
+    if let found = try! cache.suggestionsForTerm("apple", limit: 5) {
       XCTAssertEqual(found.count, 2)
       for (i, sug) in found.enumerate() {
         XCTAssertEqual(sug, input[i])

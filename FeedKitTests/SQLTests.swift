@@ -17,6 +17,42 @@ class SQLTests: XCTestCase {
     formatter = SQLFormatter()
   }
   
+  func testSQLStringFromString() {
+    let found = SQLStringFromString("abc'd")
+    let wanted = "'abc''d'"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  // MARK: Suggestions
+  
+  func testSQLToInsertSuggestionForTerm() {
+    let found = SQLToInsertSuggestionForTerm("abc")
+    let wanted = "INSERT OR REPLACE INTO sug(term) VALUES('abc');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectSuggestionsForTerm() {
+    let found = SQLToSelectSuggestionsForTerm("abc", limit: 5)
+    let wanted =
+    "SELECT * FROM sug WHERE rowid IN (" +
+    "SELECT rowid FROM sug_fts " +
+    "WHERE term MATCH 'abc*') " +
+    "ORDER BY ts DESC " +
+    "LIMIT 5;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToDeleteSuggestionsMatchingTerm() {
+    let found = SQLToDeleteSuggestionsMatchingTerm("abc")
+    let wanted =
+    "DELETE FROM sug " +
+    "WHERE rowid IN (" +
+    "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  // MARK: Entries
+  
   func testSQLToSelectEntriesByIntervals() {
     let f = formatter.SQLToSelectEntriesByIntervals
     XCTAssertNil(f([]))
@@ -69,8 +105,8 @@ class SQLTests: XCTestCase {
   }
   
   func testSQLToSelectFeedIDFromURLView() {
-    let found = SQLToSelectFeedIDFromURLView("abc")
-    let wanted = "SELECT feedid FROM url_view WHERE url = 'abc';"
+    let found = SQLToSelectFeedIDFromURLView("abc'")
+    let wanted = "SELECT feedid FROM url_view WHERE url = 'abc''';"
     XCTAssertEqual(found, wanted)
   }
   
@@ -80,12 +116,12 @@ class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
   }
   
-  func testSQLToInsertFeedID() {
+  func testSQLToSelectFeedsByTerm() {
     let found = SQLToSelectFeedsByTerm("abc", limit: 50)
     let wanted =
       "SELECT * FROM search_view WHERE uid IN (" +
       "SELECT feedid FROM search_fts " +
-      "WHERE term MATCH 'abc') " +
+      "WHERE term MATCH 'abc*') " +
       "ORDER BY ts DESC " +
       "LIMIT 50;"
     XCTAssertEqual(found, wanted)

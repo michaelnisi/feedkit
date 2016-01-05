@@ -9,24 +9,6 @@
 import Foundation
 import Skull
 
-/// The `subcached` function scans the provided dictionary, containing 
-/// timestamps by terms, for a term and its predecessing substrings.
-/// - Parameter term: The term to look for.
-/// - Parameter dict: A dictionary of timestamps by terms.
-/// - Returns: A tuple containing the matching term and a timestamp, or, if no
-/// matches were found, `nil`.
-func subcached(term: String, dict: [String:NSDate]) -> (String, NSDate)? {
-  if let ts = dict[term] {
-    return (term, ts)
-  } else {
-    if !term.isEmpty {
-      let pre = term.endIndex.predecessor()
-      return subcached(term.substringToIndex(pre), dict: dict)
-    }
-    return nil
-  }
-}
-
 func stale(ts: NSDate, ttl: NSTimeInterval) -> Bool {
   return ts.timeIntervalSinceNow + ttl < 0
 }
@@ -114,7 +96,6 @@ public final class Cache {
     var er: ErrorType?
     var id: Int?
     let sql = SQLToSelectFeedIDFromURLView(url)
-    
     try db.query(sql) { error, row in
       guard error == nil else {
         er = error!
@@ -132,6 +113,8 @@ public final class Cache {
     feedIDsCache.setObject(feedID, forKey: url)
     return feedID
   }
+  
+  // TODO: Write test for feedsForSQL method
   
   func feedsForSQL(sql: String) throws -> [Feed]? {
     let db = self.db
@@ -211,7 +194,7 @@ extension Cache: FeedCaching {
     return result
   }
   
-  public func feedsWithURLs(urls: [String]) throws -> [Feed]? {
+  public func feedsWithURLs(urls: [String]) throws -> [Feed] {
     var feeds: [Feed]?
     var error: ErrorType?
     dispatch_sync(queue) {
@@ -227,7 +210,7 @@ extension Cache: FeedCaching {
     if let er = error {
       throw er
     }
-    return feeds
+    return feeds ?? [Feed]()
   }
   
   func hasURL (url: String) -> Bool {
@@ -307,7 +290,7 @@ extension Cache: FeedCaching {
     return entries.isEmpty ? nil : entries
   }
   
-  public func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry]? {
+  public func entriesOfIntervals(intervals: [EntryInterval]) throws -> [Entry] {
     var entries: [Entry]?
     var error: ErrorType?
     let fmt = self.sqlFormatter
@@ -337,7 +320,7 @@ extension Cache: FeedCaching {
     if let er = error {
       throw er
     }
-    return entries
+    return entries ?? [Entry]()
   }
   
   public func removeFeedsWithURLs(urls: [String]) throws {
@@ -367,9 +350,31 @@ extension Cache: FeedCaching {
 
 // MARK: SearchCaching
 
+/// The `subcached` function scans the provided dictionary, containing
+/// timestamps by terms, backwards for a term or its predecessing substrings.
+/// If a matching term is found, it is returned in a tuple with its timestamp.
+///
+/// - Parameter term: The term to look for.
+/// - Parameter dict: A dictionary of timestamps by terms.
+/// - Returns: A tuple containing the matching term and a timestamp, or, if no
+/// matches were found, `nil`.
+func subcached(term: String, dict: [String:NSDate]) -> (String, NSDate)? {
+  if let ts = dict[term] {
+    return (term, ts)
+  } else {
+    if !term.isEmpty {
+      let pre = term.endIndex.predecessor()
+      return subcached(term.substringToIndex(pre), dict: dict)
+    }
+    return nil
+  }
+}
+
 extension Cache: SearchCaching {
+  
   public func updateFeeds(feeds: [Feed], forTerm term: String) throws {
     if feeds.isEmpty {
+      // We keep the feeds.
       noSearch[term] = NSDate()
     } else {
       try updateFeeds(feeds)
@@ -379,14 +384,16 @@ extension Cache: SearchCaching {
     let db = self.db
     var error: ErrorType?
     
+    // To stay synchronized with the remote state, we, before inserting 
+    // feed identifiers, firstly delete all searches for this term.
+    
     dispatch_sync(queue) {
       do {
         let delete = SQLToDeleteSearchForTerm(term)
         let insert = try feeds.reduce([String]()) { acc, feed in
-          let feedID = try self.feedIDForURL(feed.url)
+          let feedID = try feed.uid ?? self.feedIDForURL(feed.url)
           return acc + [SQLToInsertFeedID(feedID, forTerm: term)]
         }.joinWithSeparator("\n")
-        // TODO: Detect performance effect of transactions
         let sql = [
           "BEGIN;",
           delete,
@@ -403,7 +410,7 @@ extension Cache: SearchCaching {
     }
   }
 
-  public func feedsForTerm(term: String) throws -> [Feed]? {
+  public func feedsForTerm(term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: ErrorType?
     let ttl = self.ttl
@@ -418,7 +425,7 @@ extension Cache: SearchCaching {
           return feeds = []
         }
       }
-      let sql = SQLToSelectFeedsByTerm(term, limit: 50)
+      let sql = SQLToSelectFeedsByTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
       } catch let er {
@@ -431,12 +438,12 @@ extension Cache: SearchCaching {
     return feeds
   }
 
-  public func feedsMatchingTerm(term: String) throws -> [Feed]? {
+  public func feedsMatchingTerm(term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: ErrorType?
     
     dispatch_sync(queue) {
-      let sql = SQLToSelectFeedsMatchingTerm(term, limit: 3)
+      let sql = SQLToSelectFeedsMatchingTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
       } catch let er {
@@ -449,12 +456,12 @@ extension Cache: SearchCaching {
     return feeds
   }
   
-  public func entriesMatchingTerm(term: String) throws -> [Entry]? {
+  public func entriesMatchingTerm(term: String, limit: Int) throws -> [Entry]? {
     var entries: [Entry]?
     var error: ErrorType?
     
     dispatch_sync(queue) {
-      let sql = SQLToSelectEntriesMatchingTerm(term, limit: 3)
+      let sql = SQLToSelectEntriesMatchingTerm(term, limit: limit)
       do {
         entries = try self.entriesForSQL(sql)
       } catch let er {
@@ -467,52 +474,47 @@ extension Cache: SearchCaching {
     return entries
   }
   
-  // TODO: Rewrite suggestion caching stuff
-
   public func updateSuggestions(suggestions: [Suggestion], forTerm term: String) throws {
     let db = self.db
-    if suggestions.count == 0 {
+    
+    guard !suggestions.isEmpty else {
       noSuggestions[term] = NSDate()
       var er: ErrorType?
-      dispatch_sync(queue, {
-        let sql = [
-          "DELETE FROM sug ",
-          "WHERE rowid = (",
-          "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
-        ].joinWithSeparator("")
+      dispatch_sync(queue) {
+        let sql = SQLToDeleteSuggestionsMatchingTerm(term)
         do {
           try db.exec(sql)
         } catch let error {
           er = error
         }
-      })
+      }
       if let error = er {
         throw error
       }
+      return
     }
+    
     if let (cachedTerm, _) = subcached(term, dict: noSuggestions) {
       noSuggestions[cachedTerm] = nil
     }
-    var errors = [ErrorType]()
+
+    var er: ErrorType?
     dispatch_sync(queue, {
       do {
-        try db.exec("BEGIN IMMEDIATE;")
-        for suggestion in suggestions {
-          let term = suggestion.term
-          let sql = [
-            "INSERT OR REPLACE INTO sug(rowid, term) ",
-            "VALUES((SELECT rowid FROM sug ",
-            "WHERE term = '\(term)'), '\(term)');"
-            ].joinWithSeparator("")
-          try db.exec(sql)
-        }
-        try db.exec("COMMIT;")
-      } catch let er {
-        errors.append(er)
+        let sql = [
+          "BEGIN;",
+          suggestions.map {
+            SQLToInsertSuggestionForTerm($0.term)
+          }.joinWithSeparator("\n"),
+          "COMMIT;"
+        ].joinWithSeparator("\n")
+        try db.exec(sql)
+      } catch let error {
+        er = error
       }
     })
-    if !errors.isEmpty {
-      throw FeedKitError.General(message: "cache: multiple errors occured")
+    if let error = er {
+      throw error
     }
   }
 
@@ -544,22 +546,20 @@ extension Cache: SearchCaching {
     return sugs.isEmpty ? nil : sugs
   }
 
-  public func suggestionsForTerm(term: String) throws -> [Suggestion]? {
+  /// Retrieve cached suggestions matching a term from the database. If no 
+  /// suggestions are cached `nil` is returned. Having no suggestions can also
+  /// be cached and is expressed by returning an empty array.
+  public func suggestionsForTerm(term: String, limit: Int) throws -> [Suggestion]? {
     let ttl = self.ttl
     if let (cachedTerm, ts) = subcached(term, dict: noSuggestions) {
-      if stale(ts, ttl: ttl.medium) {
+      if stale(ts, ttl: ttl.long) {
         noSuggestions[cachedTerm] = nil
-        return nil // try the server
+        return nil
       } else {
-        return [] // no suggestions - you're done
+        return []
       }
     }
-    // we might have some cached stuff
-    return try suggestionsForSQL([
-      "SELECT * FROM sug_fts ",
-      "WHERE term MATCH '\(term)*' ",
-      "ORDER BY ts DESC ",
-      "LIMIT 5;"
-    ].joinWithSeparator(""))
+    let sql = SQLToSelectSuggestionsForTerm(term, limit: limit)
+    return try suggestionsForSQL(sql)
   }
 }

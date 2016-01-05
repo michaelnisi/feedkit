@@ -181,7 +181,6 @@ func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
   return NSURL(string: "\(verb)?q=\(query)", relativeToURL: baseURL)
 }
 
-func suggestionsFromTerms (terms: [String]) -> [Suggestion]? {
-  guard !terms.isEmpty else { return nil }
+func suggestionsFromTerms (terms: [String]) -> [Suggestion] {
   return terms.map { Suggestion(term: $0, ts: nil) }
 }

@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		4C0549D51A8BDD5700104B3E /* browse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0549D41A8BDD5700104B3E /* browse.swift */; };
 		4C1D30291BC636D400F5171F /* FeedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CC7C788197E628E00F7FE54 /* FeedTests.swift */; };
-		4C1D302D1BC79CE600F5171F /* SearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAB487A1AA75ADA00E50EC7 /* SearchTests.swift */; };
 		4C3485B21977C2BD008A6B53 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
 		4C6D5D2719D29963003A93B5 /* FeedKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4C6D5D2419D2121F003A93B5 /* FeedKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -66,7 +65,6 @@
 		4CA3B2BF1A068D8E0072E0C4 /* schema.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = schema.sql; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = serialize.swift; path = ../../FeedKit/FeedKit/serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
-		4CAB487A1AA75ADA00E50EC7 /* SearchTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchTests.swift; sourceTree = "<group>"; };
 		4CC7C788197E628E00F7FE54 /* FeedTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedTests.swift; sourceTree = "<group>"; };
 		4CCC8C801C0472D000120D07 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
@@ -149,7 +147,6 @@
 		4C3485A41977C237008A6B53 /* FeedKitTests */ = {
 			isa = PBXGroup;
 			children = (
-				4CAB487A1AA75ADA00E50EC7 /* SearchTests.swift */,
 				4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */,
 				4CC7C788197E628E00F7FE54 /* FeedTests.swift */,
 				4C962EAF19E85CB100F33D9D /* common.swift */,
@@ -328,7 +325,6 @@
 				4C1D30291BC636D400F5171F /* FeedTests.swift in Sources */,
 				4CE9893B1BCA41D000AFD589 /* FeedRepositoryTests.swift in Sources */,
 				4CA3D3201A89EC4400CA58E9 /* SerializeTests.swift in Sources */,
-				4C1D302D1BC79CE600F5171F /* SearchTests.swift in Sources */,
 				4CD2201F1C2315CF001EBE70 /* SearchRepositoryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -369,7 +365,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -418,7 +414,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -444,10 +440,10 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 3;
+				DYLIB_CURRENT_VERSION = 4;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;
@@ -467,10 +463,10 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				DEFINES_MODULE = YES;
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 3;
+				DYLIB_CURRENT_VERSION = 4;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;

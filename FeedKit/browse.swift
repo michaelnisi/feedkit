@@ -12,6 +12,9 @@ import MangerKit
 private func subtractItems<T: Cachable>
   (items: [T], fromURLs urls: [String], withTTL ttl: NSTimeInterval)
   -> ([T], [T], [String]?) {
+    guard !items.isEmpty else {
+      return ([], [], urls)
+    }
     var cachedItems = [T]()
     var staleItems = [T]()
     let cachedURLs = items.reduce([String]()) { acc, item in
@@ -31,28 +34,22 @@ private func subtractItems<T: Cachable>
     }
 }
 
-func feedsFromCache(
-  cache: FeedCaching,
-  withURLs urls: [String]) throws -> ([Feed], [Feed], [String]?) {
-    
-  guard let items = try cache.feedsWithURLs(urls) else {
-    return ([], [], urls)
-  }
+func feedsFromCache(cache: FeedCaching, withURLs urls: [String])
+throws -> ([Feed], [Feed], [String]?) {
+  
+  let items = try cache.feedsWithURLs(urls)
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.long)
 }
 
-func entriesFromCache(
-  cache: FeedCaching,
-  withIntervals intvls: [EntryInterval]) throws -> ([Entry], [Entry], [String]?) {
-    
+func entriesFromCache(cache: FeedCaching, withIntervals intvls: [EntryInterval])
+throws -> ([Entry], [Entry], [String]?) {
+  
   let urls = intvls.map { $0.url }
-  guard let items = try cache.entriesOfIntervals(intvls) else {
-    return ([], [], urls)
-  }
+  let items = try cache.entriesOfIntervals(intvls) 
   return subtractItems(items, fromURLs: urls, withTTL: cache.ttl.short)
 }
 
-class FeedRepoOperation: SessionTaskOperation {
+class FeedRepoOperation: TmpSessionTaskOperation {
   let cache: FeedCaching
   let svc: MangerService
 
@@ -221,6 +218,9 @@ public final class FeedRepository: Browsing {
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     queue.addOperation(op)
     op.completionBlock = { [weak op] in
+      guard op != nil else {
+        return cb(FeedKitError.UnexpectedDeallocation, [Feed]())
+      }
       cb(op?.error, op?.feeds ?? [Feed]())
     }
     return op
@@ -235,6 +235,9 @@ public final class FeedRepository: Browsing {
     }
     let op = EntriesOperation(cache: cache, svc: svc, intervals: intervals)
     op.completionBlock = { [weak op] in
+      guard op != nil else {
+        return cb(FeedKitError.UnexpectedDeallocation, [Entry]())
+      }
       cb(op?.error ?? error, op?.entries ?? [Entry]())
     }
     op.addDependency(dep)

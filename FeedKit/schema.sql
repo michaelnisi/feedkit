@@ -3,7 +3,6 @@
 begin immediate transaction;
 
 pragma journal_mode = WAL;
-pragma foreign_keys = on;
 pragma user_version = 1;
 
 -- Feeds
@@ -39,6 +38,7 @@ end;
 create trigger feed_bd before delete on feed begin
   delete from entry where feedid=old.rowid;
   delete from feed_fts where docid=old.rowid;
+  delete from search where feedid=old.rowid;
 end;
 
 create trigger feed_au after update on feed begin
@@ -159,10 +159,43 @@ as select
   f.url feed
 from feed f left join entry e on f.rowid=e.feedid;
 
+-- Suggestions
+
+create table if not exists sug(
+  term text unique not null collate nocase,
+  ts datetime default current_timestamp
+);
+
+create virtual table if not exists sug_fts using fts4(
+  content="sug",
+  term,
+  ts
+);
+
+create trigger sug_bu before update on sug begin
+  delete from sug_fts where docid=old.rowid;
+end;
+
+create trigger sug_bd before delete on sug begin
+  delete from sug_fts where docid=old.rowid;
+end;
+
+create trigger sug_au after update on sug begin
+  insert into sug_fts(docid, term, ts) values(
+    new.rowid, new.term, new.ts
+  );
+end;
+
+create trigger sug_ai after insert on sug begin
+  insert into sug_fts(docid, term, ts) values(
+    new.rowid, new.term, new.ts
+  );
+end;
+
 -- Searching
 
 create table if not exists search(
-  feedid references feed(uid) on delete cascade,
+  feedid int not null,
   term text not null collate nocase,
   ts datetime default current_timestamp
 );
@@ -214,38 +247,5 @@ as select
   f.updated,
   f.url
 from feed f left join search s on f.rowid=s.feedid;
-
--- Suggestions
-
-create table if not exists sug(
-  term text unique not null collate nocase,
-  ts datetime default current_timestamp
-);
-
-create virtual table if not exists sug_fts using fts4(
-  content="sug",
-  term,
-  ts
-);
-
-create trigger sug_bu before update on sug begin
-  delete from sug_fts where docid=old.rowid;
-end;
-
-create trigger sug_bd before delete on sug begin
-  delete from sug_fts where docid=old.rowid;
-end;
-
-create trigger sug_au after update on sug begin
-  insert into sug_fts(docid, term, ts) values(
-    new.rowid, new.term, new.ts
-  );
-end;
-
-create trigger sug_ai after insert on sug begin
-  insert into sug_fts(docid, term, ts) values(
-    new.rowid, new.term, new.ts
-  );
-end;
 
 commit transaction;

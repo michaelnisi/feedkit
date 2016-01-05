@@ -122,7 +122,7 @@ class FeedRepositoryTests: XCTestCase {
         repo.feeds([url]) { er, feeds in
           XCTAssertNil(er)
           XCTAssertNotNil(feeds)
-          dispatch_sync(dispatch_get_main_queue()) {
+          dispatch_async(dispatch_get_main_queue()) {
             count -= 1
             if count == 0 {
               exp.fulfill()
@@ -269,7 +269,7 @@ class FeedRepositoryTests: XCTestCase {
         repo.entries([query]) { er, entries in
           XCTAssertNil(er)
           XCTAssertNotNil(entries)
-          dispatch_sync(dispatch_get_main_queue()) {
+          dispatch_async(dispatch_get_main_queue()) {
             count -= 1
             if count == 0 {
               exp.fulfill()
