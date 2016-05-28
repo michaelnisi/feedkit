@@ -8,7 +8,6 @@
 
 import XCTest
 import MangerKit
-
 @testable import FeedKit
 
 class FeedRepositoryTests: XCTestCase {
@@ -19,7 +18,8 @@ class FeedRepositoryTests: XCTestCase {
   
   func freshManger(string: String = "http://localhost:8384") -> Manger {
     let baseURL = NSURL(string: string)!
-    let queue = dispatch_queue_create("com.michaelnisi.manger.json", DISPATCH_QUEUE_CONCURRENT)
+    let label = "com.michaelnisi.manger.json"
+    let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
     let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
     conf.HTTPShouldUsePipelining = true
     let session = NSURLSession(configuration: conf)
@@ -47,11 +47,40 @@ class FeedRepositoryTests: XCTestCase {
     return urls
   }()
   
-  lazy var intervals: [EntryInterval] = {
-    return self.urls.map { EntryInterval(url: $0) }
+  lazy var locators: [EntryLocator] = {
+    return self.urls.map { EntryLocator(url: $0) }
   }()
   
   // MARK: General
+  
+  func testLatest() {
+    struct Thing: Cachable {
+      let url: String
+      let ts: NSDate?
+      func equals(rhs: Thing) -> Bool {
+        return url == rhs.url
+      }
+    }
+    let a = Thing(url: "abc", ts: NSDate(timeIntervalSince1970: 0))
+    let b = Thing(url: "def", ts: NSDate(timeIntervalSince1970: 3600))
+    let c = Thing(url: "ghi", ts: NSDate(timeIntervalSince1970: 7200))
+    let found = [
+      latest([a, b, c]),
+      latest([c, b, a]),
+      latest([a, c, b]),
+      latest([b, c, a])
+    ]
+    let wanted = [
+      c,
+      c,
+      c,
+      c
+    ]
+    for (i, b) in wanted.enumerate() {
+      let a = found[i]
+      XCTAssert(a.equals(b))
+    }
+  }
   
   func testSubtractStringsFromStrings() {
     let f = subtractStrings
@@ -59,16 +88,20 @@ class FeedRepositoryTests: XCTestCase {
     let found = [
       f(abc, fromStrings: abc),
       f(abc, fromStrings: abc + ["d"]),
-      f(abc, fromStrings: abc + ["d", "e", "f"])
+      f(abc, fromStrings: abc + ["d", "e", "f"]),
+      f(["a", "a"], fromStrings: abc),
+      f(["c", "c", "a", "a"], fromStrings: abc)
     ]
     let wanted = [
       [],
       ["d"],
-      ["e", "f", "d"]
+      ["d", "e", "f"],
+      ["b", "c"],
+      ["b"]
     ]
     for (i, b) in wanted.enumerate() {
       let a = found[i]
-      XCTAssertEqual(a, b)
+      XCTAssert(a == b || a == ["e", "f", "d"])
     }
   }
   
@@ -79,52 +112,67 @@ class FeedRepositoryTests: XCTestCase {
     let urls = self.urls
     let cache = self.cache
     let wanted = urls
-    repo.feeds(urls) { er, feeds in
+    var found = [String]()
+    repo.feeds(urls, feedsBlock: { er, feeds in
       XCTAssertNil(er)
-      let found = feeds.map { $0.url }
-      XCTAssertEqual(found, wanted)
-      urls.forEach() { url in
-        XCTAssertTrue(cache.hasURL(url))
-      }
+      XCTAssert(!feeds.isEmpty)
+      found += feeds.map { $0.url }
+    }) { er in
+      XCTAssertNil(er)
       exp.fulfill()
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(found, wanted)
+      urls.forEach() { url in
+        XCTAssertTrue(cache.hasURL(url))
+      }
     }
   }
   
   func testFeedsRecursively() {
     let exp = self.expectationWithDescription("feeds")
-    func go(var urls: [String]) {
+    var count = 0
+    var urls = self.urls
+    func go() {
       guard !urls.isEmpty else {
         return exp.fulfill()
       }
-      let url = urls.popLast()
-      repo.feeds([url!]) { er, feeds in
+      let url = urls.popLast()!
+      repo.feeds([url], feedsBlock: { er, feeds in
         XCTAssertNil(er)
-        XCTAssertNotNil(feeds)
-        go(urls)
+        count += feeds.count
+      }) { er in
+        XCTAssertNil(er)
+        go()
       }
     }
-    go(self.urls)
+    go()
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(count, 10)
     }
   }
   
   func testFeedsConcurrently() {
     let exp = self.expectationWithDescription("feeds")
     let repo = self.repo
-    var count = urls.count
-    let queue = dispatch_queue_create("com.michaelnisi.tmp", DISPATCH_QUEUE_CONCURRENT)
+    let label = "com.michaelnisi.tmp"
+    let q = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
+    
+    var n = urls.count
+    var count = 0
+    
     urls.forEach { url in
-      dispatch_async(queue) {
-        repo.feeds([url]) { er, feeds in
+      dispatch_async(q) {
+        repo.feeds([url], feedsBlock: { er, feeds in
           XCTAssertNil(er)
-          XCTAssertNotNil(feeds)
+          count += feeds.count
+        }) { er in
+          XCTAssertNil(er)
           dispatch_async(dispatch_get_main_queue()) {
-            count -= 1
-            if count == 0 {
+            n -= 1
+            if (n == 0) {
               exp.fulfill()
             }
           }
@@ -133,6 +181,7 @@ class FeedRepositoryTests: XCTestCase {
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(count, 10)
     }
   }
   
@@ -150,9 +199,14 @@ class FeedRepositoryTests: XCTestCase {
     let ttl = CacheTTL(short: 0, medium: 0, long: 0)
     let zeroCache = freshCache(classForCoder, ttl: ttl)
     let queue = NSOperationQueue()
-    let a = FeedRepository(cache: zeroCache, svc: unavailable, queue: queue)
+
+    let repo = FeedRepository(cache: zeroCache, svc: unavailable, queue: queue)
+    var found = [String]()
     func go() {
-      a.feeds(urls) { er, feeds in
+      repo.feeds(urls, feedsBlock: { er, feeds in
+        XCTAssertNil(er)
+        found += feeds.map { $0.url }
+      }) { er in
         XCTAssertNotNil(er)
         do {
           throw er!
@@ -161,69 +215,90 @@ class FeedRepositoryTests: XCTestCase {
         } catch {
           XCTFail("should be expected error")
         }
-        let found = feeds.map { $0.url }
         XCTAssertEqual(found, wanted)
         exp.fulfill()
       }
     }
-    let b = FeedRepository(cache: zeroCache, svc: svc, queue: queue)
-    b.feeds(urls) { er, feeds in
-      XCTAssertNil(er)
-      let found = feeds.map { $0.url }
-      XCTAssertEqual(found, wanted)
-      go()
-    }
-    self.waitForExpectationsWithTimeout(10) { er in
-      XCTAssertNil(er)
+
+    do {
+      let repo = FeedRepository(cache: zeroCache, svc: svc, queue: queue)
+      var found = [String]()
+      repo.feeds(urls, feedsBlock: { er, feeds in
+        XCTAssertNil(er)
+        found += feeds.map { $0.url }
+      }) { er in
+        XCTAssertNil(er)
+        XCTAssertEqual(found, wanted)
+        go()
+      }
+      self.waitForExpectationsWithTimeout(10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
   
   func testFeedsOneExtra() {
     let exp = self.expectationWithDescription("feeds")
     let wanted = urls
+    var count = 0
     func go() {
       let extra = try! feedWithName("thetalkshow")
-      repo.feeds(urls + [extra.url]) { er, feeds in
-        XCTAssertEqual(feeds.count, 11)
+      repo.feeds(urls + [extra.url], feedsBlock: { er, feeds in
+        count += feeds.count
+      }) { er in
         exp.fulfill()
       }
     }
-    repo.feeds(urls) { er, feeds in
+    repo.feeds(urls, feedsBlock: { er, feeds in
       XCTAssertNil(er)
       let found = feeds.map { $0.url }
       XCTAssertEqual(found, wanted)
+      count += feeds.count
+    }) { er in
       go()
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(count, 21)
     }
   }
   
+
   func testFeedsAllCached() {
     let exp = self.expectationWithDescription("feeds")
     let wanted = urls
+    var count = 0
     func go() {
-      repo.feeds(urls) { er, feeds in
-        XCTAssertEqual(feeds.count, 10)
+      repo.feeds(urls, feedsBlock: { er, feeds in
+        XCTAssertNil(er)
+        count += feeds.count
+      }) { er in
+        XCTAssertNil(er)
         exp.fulfill()
       }
     }
-    repo.feeds(urls) { er, feeds in
+    repo.feeds(urls, feedsBlock: { er, feeds in
       XCTAssertNil(er)
+      count += feeds.count
       let found = feeds.map { $0.url }
       XCTAssertEqual(found, wanted)
+    }) { er in
+      XCTAssertNil(er)
       go()
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
+      XCTAssertEqual(count, 20)
     }
   }
   
   func testFeedsCancel() {
     let exp = self.expectationWithDescription("feeds")
-    let op = repo.feeds(urls) { er, feeds in
-      XCTAssertEqual(er as? FeedKitError , FeedKitError.CancelledByUser)
+    let op = repo.feeds(urls, feedsBlock: { er, feeds in
+      XCTAssertNil(er)
       XCTAssert(feeds.isEmpty)
+    }) { er in
+      XCTAssertEqual(er as? FeedKitError , FeedKitError.CancelledByUser)
       exp.fulfill()
     }
     op.cancel()
@@ -236,10 +311,51 @@ class FeedRepositoryTests: XCTestCase {
 
   func testEntries() {
     let exp = self.expectationWithDescription("entries")
-    repo.entries(intervals) { error, entries in
+    var found = [Entry]()
+    repo.entries(locators, entriesBlock: { error, entries in
       XCTAssertNil(error)
-      XCTAssert(entries.count > 0)
+      XCTAssertFalse(entries.isEmpty)
+      found += entries
+    }) { er in
+      XCTAssertNil(er)
       exp.fulfill()
+    }
+    self.waitForExpectationsWithTimeout(10) { er in
+      XCTAssertNil(er)
+      XCTAssertFalse(found.isEmpty)
+    }
+  }
+  
+  func testEntriesWithGuid() {
+    let exp = self.expectationWithDescription("entries")
+    let repo = self.repo
+    var entry: Entry?
+    repo.entries(locators, entriesBlock: { error, entries in
+      XCTAssertNil(error)
+      entry = entries.last // any should do
+    }) { er in
+      XCTAssertNil(er)
+      let url = entry!.feed
+      let guid = entry!.guid
+      XCTAssertEqual(guid, entryGUID(url, id: entry!.id, updated: entry!.updated))
+      let since = NSDate(timeInterval: -1, sinceDate: entry!.updated)
+      print(url)
+      let locators = [
+        EntryLocator(url: url, since: since, guid: guid)
+      ]
+      var found = [Entry]()
+      repo.entries(locators, entriesBlock: { error, entries in
+        XCTAssertNil(error)
+        XCTAssertFalse(entries.isEmpty)
+        found += entries
+      }) { er in
+        XCTAssertNil(er)
+        XCTAssertFalse(found.isEmpty)
+        let guids = found.map { $0.guid }
+        XCTAssertEqual(guids.count, 1)
+        XCTAssertEqual(guids.first!, guid)
+        exp.fulfill()
+      }
     }
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
@@ -248,9 +364,10 @@ class FeedRepositoryTests: XCTestCase {
   
   func testEntriesCancel() {
     let exp = self.expectationWithDescription("entries")
-    let op = repo.entries(intervals) { er, entries in
+    let op = repo.entries(locators, entriesBlock: { er, entries in
+      XCTFail("should not be applied")
+    }) { er in
       XCTAssertEqual(er as? FeedKitError , FeedKitError.CancelledByUser)
-      XCTAssert(entries.isEmpty)
       exp.fulfill()
     }
     op.cancel()
@@ -262,18 +379,25 @@ class FeedRepositoryTests: XCTestCase {
   func testEntriesConcurrently() {
     let exp = self.expectationWithDescription("entries")
     let repo = self.repo
-    var count = intervals.count
-    let queue = dispatch_queue_create("com.michaelnisi.tmp", DISPATCH_QUEUE_CONCURRENT)
-    intervals.forEach { query in
-      dispatch_async(queue) {
-        repo.entries([query]) { er, entries in
+    let label = "com.michaelnisi.tmp"
+    let q = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
+    
+
+    let min = locators.count
+    var count = 0
+    var n = locators.count
+    
+    locators.forEach { query in
+      dispatch_async(q) {
+        repo.entries([query], entriesBlock: { er, entries in
           XCTAssertNil(er)
-          XCTAssertNotNil(entries)
-          dispatch_async(dispatch_get_main_queue()) {
-            count -= 1
-            if count == 0 {
-              exp.fulfill()
-            }
+          XCTAssertFalse(entries.isEmpty)
+          count += entries.count
+        }) { er in
+          n -= 1
+          if n == 0 {
+            XCTAssert(count > min)
+            exp.fulfill()
           }
         }
       }
@@ -286,59 +410,83 @@ class FeedRepositoryTests: XCTestCase {
   func testEntriesAllCached() {
     let exp = self.expectationWithDescription("entries")
     let wanted = urls
+    var found = [Entry]()
+    
     func go() {
-      repo.entries(intervals) { er, entries in
+      repo.entries(locators, entriesBlock: { er, entries in
         XCTAssertNil(er)
-        XCTAssert(entries.count > 0)
-        for entry in entries {
-          XCTAssertNotNil(entry.ts)
+        XCTAssertFalse(entries.isEmpty)
+        found += entries
+      }) { er in
+        XCTAssertNil(er)
+        XCTAssertFalse(found.isEmpty)
+        for entry in found {
+          XCTAssertNotNil(entry.ts, "should be cached")
         }
-        let found = entries.map { $0.feed }
+        let urls = found.map { $0.feed }
         wanted.forEach { url in
-          XCTAssertTrue(found.contains(url))
+          XCTAssertTrue(urls.contains(url))
         }
         exp.fulfill()
       }
     }
-    repo.entries(intervals) { er, entries in
-      XCTAssertNil(er)
-      XCTAssert(entries.count > 0)
-      for entry in entries {
-        XCTAssertNil(entry.ts)
+    
+    do {
+      var found = [Entry]()
+      repo.entries(locators, entriesBlock: { er, entries in
+        XCTAssertNil(er)
+        XCTAssertFalse(entries.isEmpty)
+        found += entries
+      }) { er in
+        XCTAssertNil(er)
+        XCTAssertFalse(found.isEmpty)
+        for entry in found {
+          XCTAssertNil(entry.ts, "should not be cached")
+        }
+        go()
       }
-      go()
     }
+    
     self.waitForExpectationsWithTimeout(30) { er in
       XCTAssertNil(er)
     }
   }
   
   func testEntriesInterval() {
-    let url = urls.first!
-    let since = NSDate(timeIntervalSinceNow: -3600 * 24 * 14)
-    let interval = EntryInterval(url: url, since: since)
     let exp = self.expectationWithDescription("entries")
+    
+    let url = urls.first! // This American Life
     var done = false
-    repo.entries([interval]) { er, entries in
-      XCTAssertNil(er)
-      XCTAssertFalse(entries.isEmpty)
-      if done {
-        exp.fulfill()
+    
+    do {
+      // Any interval reasonable for the “This American Life” feed.
+      let threeWeeks = NSTimeInterval(-3600 * 24 * 21)
+      let since = NSDate(timeIntervalSinceNow: threeWeeks)
+      let interval = EntryLocator(url: url, since: since)
+      repo.entries([interval], entriesBlock: { er, entries in
+        XCTAssertNil(er)
+        XCTAssertFalse(entries.isEmpty)
+      }) { er in
+        XCTAssertNil(er)
+        if done { exp.fulfill() }
+        done = true
       }
-      done = true
     }
-    repo.entries([EntryInterval(url: url, since: NSDate())]) { er, entries in
-      XCTAssertNil(er)
-      XCTAssert(entries.isEmpty)
-      if done {
-        exp.fulfill()
+    
+    do {
+      let interval = EntryLocator(url: url, since: NSDate())
+      repo.entries([interval], entriesBlock:  { er, entries in
+        XCTAssertNil(er)
+        XCTAssert(entries.isEmpty)
+      }) { er in
+        XCTAssertNil(er)
+        if done { exp.fulfill() }
+        done = true
       }
-      done = true
     }
+    
     self.waitForExpectationsWithTimeout(10) { er in
       XCTAssertNil(er)
     }
   }
-  
-  // TODO: Add more entries tests
 }

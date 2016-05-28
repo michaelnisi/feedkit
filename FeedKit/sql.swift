@@ -9,25 +9,42 @@
 import Foundation
 import Skull
 
+// TODO: Review map functions regarding limits
+//
+// Maximum Depth Of An Expression Tree https://www.sqlite.org/limits.html
+// Here's the deal, basically every time an array of identifiers is longer than
+// 1000 these will break.
+
 // MARK: Browsing
 
-func SQLToSelectFeedsByFeedIDs(feedIDs: [Int]) -> String? {
-  guard !feedIDs.isEmpty else {
-    return nil
-  }
-  let sql = "SELECT * FROM feed_view WHERE" + feedIDs.map {
+private func selectRowsByUIDs(table: String, ids: [Int]) -> String? {
+  guard !ids.isEmpty else { return nil }
+  let sql = "SELECT * FROM \(table) WHERE" + ids.map {
     " uid = \($0)"
   }.joinWithSeparator(" OR") + ";"
   return sql
 }
 
+func SQLToSelectEntriesByEntryIDs(entryIDs: [Int]) -> String? {
+  return selectRowsByUIDs("entry_view", ids: entryIDs)
+}
+
+func SQLToSelectFeedsByFeedIDs(feedIDs: [Int]) -> String? {
+  return selectRowsByUIDs("feed_view", ids: feedIDs)
+}
+
+func SQLToSelectEntryByGUID(guid: String) -> String {
+  return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
+}
+
+// TODO: Make sure entries are removed when their feed is removed
+//
+// The triggers are there: just write some tests already!
 func SQLToRemoveFeedsWithFeedIDs(feedIDs: [Int]) -> String? {
-  guard !feedIDs.isEmpty else {
-    return nil
-  }
+  guard !feedIDs.isEmpty else { return nil }
   let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
     "\($0)"
-    }.joinWithSeparator(", ") + ");"
+  }.joinWithSeparator(", ") + ");"
   return sql
 }
 
@@ -110,6 +127,8 @@ func SQLToDeleteSuggestionsMatchingTerm(term: String) -> String {
   return sql
 }
 
+// MARK: SQLFormatter
+
 final class SQLFormatter {
 
   lazy var df: NSDateFormatter = {
@@ -130,7 +149,7 @@ final class SQLFormatter {
 
   func SQLToInsertFeed(feed: Feed) -> String {
     let author = stringFromAnyObject(feed.author)
-    let guid = stringFromAnyObject(feed.guid)
+    let guid = stringFromAnyObject(feed.iTunesGuid)
     let img = stringFromAnyObject(feed.images?.img)
     let img100 = stringFromAnyObject(feed.images?.img100)
     let img30 = stringFromAnyObject(feed.images?.img30)
@@ -156,7 +175,7 @@ final class SQLFormatter {
 
   func SQLToUpdateFeed(feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAnyObject(feed.author)
-    let guid = stringFromAnyObject(feed.guid)
+    let guid = stringFromAnyObject(feed.iTunesGuid)
     let img = stringFromAnyObject(feed.images?.img)
     let img100 = stringFromAnyObject(feed.images?.img100)
     let img30 = stringFromAnyObject(feed.images?.img30)
@@ -183,6 +202,7 @@ final class SQLFormatter {
     let author = stringFromAnyObject(entry.author)
     let duration = stringFromAnyObject(entry.duration)
     let feedid = stringFromAnyObject(feedID)
+    let guid = SQLStringFromString(entry.guid)
     let id = stringFromAnyObject(entry.id)
     let img = stringFromAnyObject(entry.img)
     let length = stringFromAnyObject(entry.enclosure?.length)
@@ -190,16 +210,17 @@ final class SQLFormatter {
     let subtitle = stringFromAnyObject(entry.subtitle)
     let summary = stringFromAnyObject(entry.summary)
     let title = stringFromAnyObject(entry.title)
+
     let type = stringFromAnyObject(entry.enclosure?.type.rawValue)
     let updated = stringFromAnyObject(entry.updated)
     let url = stringFromAnyObject(entry.enclosure?.url)
 
     let sql =
     "INSERT OR REPLACE INTO entry(" +
-    "author, duration, feedid, id, img, length, link, " +
-    "subtitle, summary, title, type, updated, url) VALUES(" +
-    "\(author), \(duration), \(feedid), \(id), \(img), \(length), \(link), " +
-    "\(subtitle), \(summary), \(title), \(type), \(updated), \(url)" +
+    "author, duration, feedid, guid, id, img, length, " +
+    "link, subtitle, summary, title, type, updated, url) VALUES(" +
+    "\(author), \(duration), \(feedid), \(guid), \(id), \(img), \(length), " +
+    "\(link), \(subtitle), \(summary), \(title), \(type), \(updated), \(url)" +
     ");"
     return sql
   }
@@ -227,9 +248,9 @@ final class SQLFormatter {
     }
     return "SELECT * FROM entry_view WHERE" + intervals.map {
       let feedID = $0.0
-      let ts = df.stringFromDate($0.1)
-      return " feedid = \(feedID) AND ts > '\(ts)'"
-    }.joinWithSeparator(" OR") + " ORDER BY feedid, ts;"
+      let updated = df.stringFromDate($0.1)
+      return " feedid = \(feedID) AND updated > '\(updated)'"
+    }.joinWithSeparator(" OR") + " ORDER BY feedid, updated;"
   }
 
   func feedImagesFromRow(row: SkullRow) -> FeedImages {
@@ -250,23 +271,23 @@ final class SQLFormatter {
 
   func feedFromRow(row: SkullRow) throws -> Feed {
     let author = row["author"] as? String
-    let guid = row["guid"] as? Int
+    let iTunesGuid = row["guid"] as? Int
     let link = row["link"] as? String
     let img = feedImagesFromRow(row)
     let summary = row["summary"] as? String
     guard let title = row["title"] as? String else {
-      throw FeedKitError.Missing(name: "title")
+      throw FeedKitError.InvalidFeed(reason: "missing title")
     }
     let ts = dateFromString(row["ts"] as? String)
     let uid = row["uid"] as? Int
     let updated = dateFromString(row["updated"] as? String)
     guard let url = row["url"] as? String else {
-      throw FeedKitError.Missing(name: "url")
+      throw FeedKitError.InvalidFeed(reason: "missing url")
     }
 
     return Feed(
       author: author,
-      guid: guid,
+      iTunesGuid: iTunesGuid,
       images: img,
       link: link,
       summary: summary,
@@ -280,50 +301,51 @@ final class SQLFormatter {
 
   func enclosureFromRow(row: SkullRow) throws -> Enclosure {
     guard let url = row["url"] as? String else {
-      throw FeedKitError.Missing(name: "url")
+      throw FeedKitError.InvalidEnclosure(reason: "missing url")
     }
     let length = row["length"] as? Int
     guard let rawType = row["type"] as? Int else {
-      throw FeedKitError.Missing(name: "type")
+      throw FeedKitError.InvalidEnclosure(reason: "missing type")
     }
     guard let type = EnclosureType(rawValue: rawType) else {
-      throw FeedKitError.UnknownEnclosureType(type: "raw value: \(rawType)")
+      throw FeedKitError.InvalidEnclosure(reason: "unknown type: \(rawType)")
     }
     return Enclosure(url: url, length: length, type: type)
   }
 
+  /// Create an entry from a database row.
+  ///
+  /// - Parameter row: The database row to use.
+  /// - Returns: The resulting entry.
+  /// - Throws: If this throws our database got corrupted, thus, int that case,
+  /// users of this function are well advised to crash. The only reason for not
+  /// crashing directly from here is debugging during development.
   func entryFromRow(row: SkullRow) throws -> Entry {
     let author = row["author"] as? String
-
-    var enclosure: Enclosure?
-    do {
-      enclosure = try enclosureFromRow(row)
-    } catch {
-      // TODO: Handle entries without enclosure
-    }
-
+    let enclosure = try enclosureFromRow(row)
     let duration = row["duration"] as? String
-    guard let feed = row["feed"] as? String else {
-      throw FeedKitError.Missing(name: "feed")
-    }
-    guard let id = row["id"] as? String else {
-      throw FeedKitError.Missing(name: "id")
-    }
+    let feed = row["feed"] as! String
+    let feedTitle = row["feed_title"] as! String
+    let guid = row["guid"] as! String
+    let id = row["id"] as! String
     let img = row["img"] as? String
     let link = row["link"] as? String
     let subtitle = row["subtitle"] as? String
     let summary = row["summary"] as? String
-    guard let title = row["title"] as? String else {
-      throw FeedKitError.Missing(name: "title")
-    }
+    let title = row["title"] as! String
     let ts = dateFromString(row["ts"] as? String)
-    let updated = dateFromString(row["updated"] as? String)
+
+    guard let updated = dateFromString(row["updated"] as? String) else {
+      throw FeedKitError.InvalidEntry(reason: "missing updated")
+    }
 
     return Entry(
       author: author,
       enclosure: enclosure,
       duration: duration,
       feed: feed,
+      feedTitle: feedTitle,
+      guid: guid,
       id: id,
       img: img,
       link: link,
@@ -337,10 +359,10 @@ final class SQLFormatter {
 
   func suggestionFromRow(row: SkullRow) throws -> Suggestion {
     guard let term = row["term"] as? String else {
-      throw FeedKitError.Missing(name: "term")
+      throw FeedKitError.InvalidSuggestion(reason: "missing term")
     }
     guard let ts = row["ts"] as? String else {
-      throw FeedKitError.Missing(name: "ts")
+      throw FeedKitError.InvalidSuggestion(reason: "missing ts")
     }
     return Suggestion(term: term, ts: dateFromString(ts))
   }

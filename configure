@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -o xtrace
+
+if [ -n "$SDKROOT" ]; then
+  SDK=$SDKROOT
+else
+  if [ -n "$1" ]; then
+    SDK=$1
+  else
+    L=`xcodebuild -showBuildSettings | grep SDKROOT`
+    ARR=($L)
+    SDK=${ARR[2]}
+  fi
+fi
+
+COMMON_CRYPTO="/usr/include/CommonCrypto/CommonCrypto.h"
+
+sed \
+  -e "s;%COMMON_CRYPTO%;$SDK$COMMON_CRYPTO;g" \
+  module/module.modulemap.in > module/module.modulemap
+
+exit 0

@@ -8,12 +8,12 @@
 
 import XCTest
 import FanboyKit
-
 @testable import FeedKit
 
 private func freshFanboy(string: String = "http://localhost:8383") -> Fanboy {
   let baseURL = NSURL(string: string)!
-  let queue = dispatch_queue_create("com.michaelnisi.fanboy.json", DISPATCH_QUEUE_CONCURRENT)
+  let label = "com.michaelnisi.fanboy.json"
+  let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
   let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
   conf.HTTPShouldUsePipelining = true
   conf.requestCachePolicy = .ReloadIgnoringLocalCacheData
@@ -44,12 +44,12 @@ class SearchRepositoryTests: XCTestCase {
   func testSearch() {
     let exp = self.expectationWithDescription("search")
     func go(done: Bool = false) {
-      repo.search("apple", feedsBlock: { error, feeds in
+      repo.search("john   gruber", perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
-        XCTAssert(feeds.count > 0)
+        XCTAssert(finds.count > 0)
         if !done {
-          for feed in feeds {
-            XCTAssertNil(feed.ts)
+          for find in finds {
+            XCTAssertNil(find.ts)
           }
         }
       }) { error in
@@ -66,7 +66,7 @@ class SearchRepositoryTests: XCTestCase {
       }
     }
     go()
-    self.waitForExpectationsWithTimeout(10) { er in
+    self.waitForExpectationsWithTimeout(61) { er in
       XCTAssertNil(er)
     }
   }
@@ -81,9 +81,9 @@ class SearchRepositoryTests: XCTestCase {
       }
       var t = terms
       let term = t.removeFirst()
-      repo.search(term, feedsBlock: { error, feeds in
+      repo.search(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
-        XCTAssertEqual(feeds.count, 0)
+        XCTAssertEqual(finds.count, 0)
       }) { error in
         XCTAssertNil(error)
         dispatch_async(dispatch_get_main_queue()) {
@@ -93,13 +93,13 @@ class SearchRepositoryTests: XCTestCase {
     }
     // Mere speculation that these return no results from iTunes.
     go(["0", "0a", "0", "0a"])
-    self.waitForExpectationsWithTimeout(10) { er in
+    self.waitForExpectationsWithTimeout(61) { er in
       XCTAssertNil(er)
     }
   }
   
   func testSearchConcurrently() {
-    let exp = self.expectationWithDescription("feeds")
+    let exp = self.expectationWithDescription("search")
     let repo = self.repo
     let terms = ["apple", "gruber", "newyorker", "nyt", "literature"]
     var count = terms.count
@@ -107,9 +107,9 @@ class SearchRepositoryTests: XCTestCase {
     let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
     for term in terms {
       dispatch_async(queue) {
-        repo.search(term, feedsBlock: { er, feeds in
+        repo.search(term, perFindGroupBlock: { er, finds in
           XCTAssertNil(er)
-          XCTAssertNotNil(feeds)
+          XCTAssertNotNil(finds)
         }) { error in
           XCTAssertNil(error)
           dispatch_async(dispatch_get_main_queue()) {
@@ -121,14 +121,14 @@ class SearchRepositoryTests: XCTestCase {
         }
       }
     }
-    self.waitForExpectationsWithTimeout(10) { er in
+    self.waitForExpectationsWithTimeout(61) { er in
       XCTAssertNil(er)
     }
   }
   
   func testSearchCancel() {
     let exp = self.expectationWithDescription("search")
-    let op = repo.search("apple", feedsBlock: { er, feeds in
+    let op = repo.search("apple", perFindGroupBlock: { er, finds in
       XCTFail("should not get dispatched")
     }) { error in
       XCTAssertEqual(error as? FeedKitError , FeedKitError.CancelledByUser)
@@ -190,7 +190,7 @@ class SearchRepositoryTests: XCTestCase {
       }) { er in
         XCTAssertNil(er)
         let wanted = UInt(64)
-        XCTAssertEqual(found, wanted, "should apply all callbacks in expected order")
+        XCTAssertEqual(found, wanted, "should apply callback sequentially")
         exp.fulfill()
       }
     }
@@ -199,9 +199,9 @@ class SearchRepositoryTests: XCTestCase {
     
     let terms = ["apple", "automobile", "art"]
     for (i, term) in terms.enumerate() {
-      repo.search(term, feedsBlock: { error, feeds in
+      repo.search(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
-        XCTAssert(feeds.count > 0)
+        XCTAssert(finds.count > 0)
         guard i == terms.count - 1 else { return }
       }) { error in
         dispatch_async(dispatch_get_main_queue()) {
@@ -214,22 +214,46 @@ class SearchRepositoryTests: XCTestCase {
     }
   }
   
-  func testCancelledSuggest() {
+  func testFirstSuggestion() {
     let exp = self.expectationWithDescription("suggest")
-    let op = repo.suggest("a", perFindGroupBlock: { _, _ in
-      XCTFail("should not get dispatched")
-    }) { er in
-      do {
-        throw er!
-      } catch FeedKitError.CancelledByUser {
-        exp.fulfill()
-      } catch {
-        XCTFail("should not pass unexpected error")
+    let term = "apple"
+    var found: String?
+    repo.suggest(term, perFindGroupBlock: { error, finds in
+      XCTAssertNil(error)
+      XCTAssert(!finds.isEmpty, "should never be empty")
+      guard found == nil else { return }
+      switch finds.first! {
+      case .SuggestedTerm(let sug):
+        found = sug.term
+      default:
+        XCTFail("should suggest term")
       }
+    }) { error in
+      XCTAssertNil(error)
+      XCTAssertEqual(found, term)
+      exp.fulfill()
     }
-    op.cancel()
-    self.waitForExpectationsWithTimeout(10) { er in
-      XCTAssertNil(er)
+    self.waitForExpectationsWithTimeout(10) { er in XCTAssertNil(er) }
+  }
+  
+  func testCancelledSuggest() {
+    for _ in 0...100 {
+      let exp = self.expectationWithDescription("suggest")
+      let op = repo.suggest("a", perFindGroupBlock: { _, _ in
+        XCTFail("should not get dispatched")
+        }) { er in
+          do {
+            throw er!
+          } catch FeedKitError.CancelledByUser {
+            exp.fulfill()
+          } catch {
+            XCTFail("should not pass unexpected error")
+          }
+      }
+      op.cancel()
+      self.waitForExpectationsWithTimeout(10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
 }

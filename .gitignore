@@ -16,4 +16,5 @@
 *.xcuserstate
 DerivedData
 build/
+module/module.modulemap
 xcuserdata

@@ -10,12 +10,13 @@ import Foundation
 import Skull
 import MangerKit
 
-/// Remove whitespace from string and replace it with `""` or any provided string.
-/// Consecutive spaces are reduced to single spaces.
-/// - Parameter s: The string to trim..
-/// - Parameter j: The string to replace whitespace with.
+/// Remove whitespace from specified string and replace it with `""` or a
+/// provided string. Consecutive spaces are reduced to single spaces.
+///
+/// - Parameter String: The string to trim..
+/// - Parameter joinedByString: The string to replace whitespace with.
 /// - Returns: The trimmed string.
-func trimString(s: String, joinedByString j:String = "") -> String {
+public func trimString(s: String, joinedByString j: String = "") -> String {
   let ws = NSCharacterSet.whitespaceCharacterSet()
   let ts = s.stringByTrimmingCharactersInSet(ws)
   let cmps = ts.componentsSeparatedByString(" ") as [String]
@@ -27,16 +28,35 @@ func trimString(s: String, joinedByString j:String = "") -> String {
   }
 }
 
-func timeIntervalFromJS (value: Int) -> NSTimeInterval {
+/// Create Cocoa time interval from JavaScript time.
+///
+/// As `NSJSONSerialization` returns Foundation objects, the input for this needs
+/// to be `NSNumber`, especially to ensure we are OK on 32 bit as well.
+///
+/// - Parameter value: A timestamp from JSON in milliseconds.
+/// - Returns: The respective time interval (in seconds):
+func timeIntervalFromJS(value: NSNumber) -> NSTimeInterval {
   return Double(value) / 1000 as NSTimeInterval
 }
 
-func dateFromDictionary (dict: [String:AnyObject], withKey key: String) -> NSDate? {
-  guard let ms = dict[key] as? Int else { return nil }
+/// Create and return a foundation date from a universal timestamp in 
+/// milliseconds, contained in a a dictionary, matching a specified key. If the
+/// dictionary does not contain a value for the key or the value cannot be used
+/// to create a date `nil` is returned.
+/// 
+/// - Parameter dict: The dictionary to look at.
+/// - Parameter key: The key of a potential UTC timestamp in milliseconds.
+/// - Returns: The date or `nil`.
+func dateFromDictionary(
+  dict: [String:AnyObject],
+  withKey key: String
+) -> NSDate? {
+  guard let ms = dict[key] as? NSNumber else { return nil }
   let s = timeIntervalFromJS(ms)
   return NSDate(timeIntervalSince1970: s)
 }
 
+/// Create a feed image set from a JSON payload.
 func FeedImagesFromDictionary(dict: [String:AnyObject]) -> FeedImages {
   let img = dict["image"] as? String
   let img100 = dict["img100"] as? String
@@ -53,19 +73,30 @@ func FeedImagesFromDictionary(dict: [String:AnyObject]) -> FeedImages {
   )
 }
 
+/// Tries to create and return a feed from the specified dictionary.
+///
+/// - Parameter dict: The JSON dictionary to use.
+/// - Returns: The newly create feed object.
+/// - Throws: If the required properties `feed` and `title` are invalid, this
+/// function throws `FeedKitError.InvalidFeed`.
 func feedFromDictionary (dict: [String:AnyObject]) throws -> Feed {
+  guard let url = dict["feed"] as? String else {
+    throw FeedKitError.InvalidFeed(reason: "feed missing")
+  }
+  guard let title = dict["title"] as? String else {
+    throw FeedKitError.InvalidFeed(reason: "title missing")
+  }
+  
   let author = dict["author"] as? String
-  let guid =  dict["guid"] as? Int
+  let iTunesGuid =  dict["guid"] as? Int
   let link = dict["link"] as? String
   let images: FeedImages = FeedImagesFromDictionary(dict)
   let summary = dict["summary"] as? String
-  guard let title = dict["title"] as? String else { throw FeedKitError.Missing(name: "title") }
   let updated = dateFromDictionary(dict, withKey: "updated")
-  guard let url = dict["feed"] as? String else { throw FeedKitError.Missing(name: "url") }
 
   return Feed(
     author: author,
-    guid: guid,
+    iTunesGuid: iTunesGuid,
     images: images,
     link: link,
     summary: summary,
@@ -77,7 +108,17 @@ func feedFromDictionary (dict: [String:AnyObject]) throws -> Feed {
   )
 }
 
-func feedsFromPayload(dicts: [[String: AnyObject]]) throws -> [Feed] {
+/// Create an array of feeds from a JSON payload.
+///
+/// It should be noted, relying on our service written by ourselves, there
+/// shouldn't be any errors, handling these should be a mere safety measure for 
+/// more transparent debugging.
+///
+/// - Parameter dicts: A JSON array of dictionaries to serialize.
+/// - Returns: A tuple of errors and feeds.
+/// - Throws: Doesn't throw but collects its errors and returns them in the
+/// result tuple alongside the feeds.
+func feedsFromPayload(dicts: [[String: AnyObject]]) -> ([ErrorType], [Feed]) {
   var errors = [ErrorType]()
   let feeds = dicts.reduce([Feed]()) { acc, dict in
     do {
@@ -88,24 +129,23 @@ func feedsFromPayload(dicts: [[String: AnyObject]]) throws -> [Feed] {
       return acc
     }
   }
-  if !errors.isEmpty {
-    throw FeedKitError.Multiple(errors: errors)
-  }
-  return feeds
+  return (errors, feeds)
 }
 
+/// Create an enclosure from a JSON payload.
 func enclosureFromDictionary (dict: [String:AnyObject]) throws -> Enclosure? {
   guard let url = dict["url"] as? String else {
-    throw FeedKitError.Missing(name: "url")
+    throw FeedKitError.InvalidEnclosure(reason: "missing url")
   }
+  guard let t = dict["type"] as? String else {
+    throw FeedKitError.InvalidEnclosure(reason: "missing type")
+  }
+  
   var length: Int?
   if let lenstr = dict["length"] as? String {
     length = Int(lenstr)
   }
-  guard let t = dict["type"] as? String else {
-    throw FeedKitError.Missing(name: "type")
-  }
-  let type = try EnclosureType(withString: t)
+  let type = EnclosureType(withString: t)
   
   return Enclosure(
     url: url,
@@ -114,35 +154,75 @@ func enclosureFromDictionary (dict: [String:AnyObject]) throws -> Enclosure? {
   )
 }
 
-func entryFromDictionary (dict: [String:AnyObject]) throws -> Entry {
+/// An artifical string to globally identify an entry. 
+///
+/// But remember that to restore an entry from thin air you'd additionally need 
+/// its feed URL. And even then it cannot be guranteed that you'd get the entry, 
+/// because the might not contain the specific entry you are looking for. Feeds 
+/// commonly limit the number of items they contain. In such a case, if the 
+/// entry cannot be found in the local or remote caches, we'd be out of luck.
+func entryGUID(feed: String, id: String, updated: NSDate) -> String {
+  // TODO: Remove meaningless separator
+  // or replace with @@
+  let str = "\(feed)%\(id)%\(updated.timeIntervalSince1970)"
+  return md5Digest(str)
+}
+
+/// Tries to create and return an entry from the specified dictionary.
+///
+/// To create a valid entry feed, title, and id are required. Also the updated
+/// timestamp is relevant, but if this isn't present, its value will be set to
+/// zero (1970-01-01 00:00:00 UTC).
+///
+/// - Parameter dict: The JSON dictonary to serialize.
+/// - Parameter podcast: Flag that having an enclosure is required.
+/// - Returns: The valid entry.
+/// - Throws: Throws `FeedKitError.InvalidEntry` if `"feed"`, `"title"`, or 
+/// `"id"` are missing from the dictionary. If enclosure is required and not
+/// present, also invalid entry is thrown.
+func entryFromDictionary (
+  dict: [String:AnyObject],
+  podcast: Bool = true
+) throws -> Entry {
+  guard let feed = dict["feed"] as? String else {
+    throw FeedKitError.InvalidEntry(reason: "missing feed")
+  }
+  guard let title = dict["title"] as? String else {
+    throw FeedKitError.InvalidEntry(reason: "missing title: \(feed)")
+  }
+  guard let id = dict["id"] as? String else {
+    throw FeedKitError.InvalidEntry(reason: "missing id: \(feed)")
+  }
+  
+  let updated = dateFromDictionary(dict, withKey: "updated") ??
+    NSDate(timeIntervalSince1970: 0)
+  
+  let guid = entryGUID(feed, id: id, updated: updated)
+  
   let author = dict["author"] as? String
+  let duration = dict["duration"] as? String
+  let img = dict["image"] as? String
+  let link = dict["link"] as? String
+  let subtitle = dict["subtitle"] as? String
+  let summary = dict["summary"] as? String
   
   var enclosure: Enclosure?
   if let enc = dict["enclosure"] as? [String:AnyObject] {
     enclosure = try enclosureFromDictionary(enc)
   }
-  
-  let duration = dict["duration"] as? String
-  guard let feed = dict["feed"] as? String else {
-    throw FeedKitError.Missing(name: "feed")
+  if podcast {
+    guard enclosure != nil else {
+      throw FeedKitError.InvalidEntry(reason: "missing enclosure: \(feed)")
+    }
   }
-  guard let id = dict["id"] as? String else {
-    throw FeedKitError.Missing(name: "id")
-  }
-  let img = dict["image"] as? String
-  let link = dict["link"] as? String
-  let subtitle = dict["subtitle"] as? String
-  let summary = dict["summary"] as? String
-  guard let title = dict["title"] as? String else {
-    throw FeedKitError.Missing(name: "title")
-  }
-  let updated = dateFromDictionary(dict, withKey: "updated")
 
   return Entry(
     author: author,
     enclosure: enclosure,
     duration: duration,
     feed: feed,
+    feedTitle: nil,
+    guid: guid,
     id: id,
     img: img,
     link: link,
@@ -154,33 +234,39 @@ func entryFromDictionary (dict: [String:AnyObject]) throws -> Entry {
   )
 }
 
-func entriesFromPayload(dicts: [[String: AnyObject]]) throws -> [Entry] {
+/// Create an array of entries from a JSON payload.
+///
+/// - Parameter dicts: An array of—presumably—entry dictionaries.
+/// - Parameter podcast: A flag to require an enclosure for each entry.
+/// - Returns: A tuple containing errors and entries.
+/// - Throws: This function doesn't throw because it collects the entries it 
+/// successfully serialized and returns them, additionally it also collects
+/// the occuring errors and returns them too. May the user act wisely!
+func entriesFromPayload(
+  dicts: [[String: AnyObject]],
+  podcast: Bool = true
+) -> ([ErrorType], [Entry]) {
   var errors = [ErrorType]()
   let entries = dicts.reduce([Entry]()) { acc, dict in
     do {
-      let entry = try entryFromDictionary(dict)
+      let entry = try entryFromDictionary(dict, podcast: podcast)
       return acc + [entry]
     } catch let er {
       errors.append(er)
       return acc
     }
   }
-  if !errors.isEmpty {
-    throw FeedKitError.Multiple(errors: errors)
-  }
-  return entries
+  return (errors, entries)
 }
 
-func queryFromString (term: String) -> String? {
-  let query = trimString(term, joinedByString: "+")
+/// Return a search query, actually just a trimmed string, from a string.
+///
+/// We don't validate more because the Search UI already restricts inputs by
+/// limiting the keyboard. Take care if you pass values programmatically.
+///
+/// - Parameter term: Any string including just some spaces.
+/// - Returns: The search query or nil.
+func queryFromString(term: String) -> String? {
+  let query = trimString(term, joinedByString: " ")
   return query.isEmpty ? nil : query
-}
-
-func queryURL (baseURL: NSURL, verb: String, term: String) -> NSURL? {
-  guard let query = queryFromString(term) else { return nil }
-  return NSURL(string: "\(verb)?q=\(query)", relativeToURL: baseURL)
-}
-
-func suggestionsFromTerms (terms: [String]) -> [Suggestion] {
-  return terms.map { Suggestion(term: $0, ts: nil) }
 }

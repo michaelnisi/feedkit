@@ -1,11 +1,15 @@
 -- FeedKit database schema
 
-begin immediate transaction;
-
 pragma journal_mode = WAL;
 pragma user_version = 1;
 
+begin immediate transaction;
+
+-- TODO: Use underscores, for example, feed_id instead of feedid
+
 -- Feeds
+
+-- TODO: Rename guid to itunes_guid
 
 create table if not exists feed(
   author text not null,
@@ -23,6 +27,10 @@ create table if not exists feed(
   url text not null unique
 );
 
+create trigger if not exists feed_ts after update on feed for each row begin
+  update feed set ts = current_timestamp where rowid = old.rowid;
+end;
+
 create virtual table if not exists feed_fts using fts4(
   content="feed",
   rowid,
@@ -31,17 +39,17 @@ create virtual table if not exists feed_fts using fts4(
   title
 );
 
-create trigger feed_bu before update on feed begin
+create trigger if not exists feed_bu before update on feed begin
   delete from feed_fts where docid=old.rowid;
 end;
 
-create trigger feed_bd before delete on feed begin
+create trigger if not exists feed_bd before delete on feed begin
   delete from entry where feedid=old.rowid;
   delete from feed_fts where docid=old.rowid;
   delete from search where feedid=old.rowid;
 end;
 
-create trigger feed_au after update on feed begin
+create trigger if not exists feed_au after update on feed begin
   insert into feed_fts(docid, author, summary, title) values(
     new.rowid,
     new.author,
@@ -50,7 +58,7 @@ create trigger feed_au after update on feed begin
   );
 end;
 
-create trigger feed_ai after insert on feed begin
+create trigger if not exists feed_ai after insert on feed begin
   insert into feed_fts(docid, author, summary, title) values(
     new.rowid,
     new.author,
@@ -77,6 +85,8 @@ as select
   url
 from feed;
 
+-- TODO: Review url_view view
+
 create view if not exists url_view
 as select
   f.url,
@@ -89,7 +99,8 @@ create table if not exists entry(
   author text,
   duration text,
   feedid int not null,
-  id text not null unique,
+  guid text not null unique,
+  id text,
   img text,
   length int,
   link text,
@@ -111,15 +122,15 @@ create virtual table if not exists entry_fts using fts4(
   title
 );
 
-create trigger entry_bu before update on entry begin
+create trigger if not exists entry_bu before update on entry begin
   delete from entry_fts where docid=old.rowid;
 end;
 
-create trigger entry_bd before delete on entry begin
+create trigger if not exists entry_bd before delete on entry begin
   delete from entry_fts where docid=old.rowid;
 end;
 
-create trigger entry_au after update on entry begin
+create trigger if not exists entry_au after update on entry begin
   insert into entry_fts(docid, author, subtitle, summary, title) values(
     new.rowid,
     new.author,
@@ -129,7 +140,7 @@ create trigger entry_au after update on entry begin
   );
 end;
 
-create trigger entry_ai after insert on entry begin
+create trigger if not exists entry_ai after insert on entry begin
   insert into entry_fts(docid, author, subtitle, summary, title) values(
     new.rowid,
     new.author,
@@ -143,21 +154,23 @@ create view if not exists entry_view
 as select
   e.author,
   e.duration,
+  e.guid,
   e.id,
   e.img,
   e.length,
   e.link,
+  e.rowid uid,
   e.subtitle,
   e.summary,
   e.title,
   e.ts,
   e.type,
-  e.rowid uid,
   e.updated,
   e.url,
   f.rowid feedid,
+  f.title feed_title,
   f.url feed
-from feed f left join entry e on f.rowid=e.feedid;
+from feed f inner join entry e on f.rowid=e.feedid;
 
 -- Suggestions
 
@@ -172,21 +185,21 @@ create virtual table if not exists sug_fts using fts4(
   ts
 );
 
-create trigger sug_bu before update on sug begin
+create trigger if not exists sug_bu before update on sug begin
   delete from sug_fts where docid=old.rowid;
 end;
 
-create trigger sug_bd before delete on sug begin
+create trigger if not exists sug_bd before delete on sug begin
   delete from sug_fts where docid=old.rowid;
 end;
 
-create trigger sug_au after update on sug begin
+create trigger if not exists sug_au after update on sug begin
   insert into sug_fts(docid, term, ts) values(
     new.rowid, new.term, new.ts
   );
 end;
 
-create trigger sug_ai after insert on sug begin
+create trigger if not exists sug_ai after insert on sug begin
   insert into sug_fts(docid, term, ts) values(
     new.rowid, new.term, new.ts
   );
@@ -206,23 +219,23 @@ create virtual table if not exists search_fts using fts4(
   term
 );
 
-create trigger search_bu before update on search begin
+create trigger if not exists search_bu before update on search begin
   delete from search_fts where docid=old.rowid;
 end;
 
-create trigger search_bd before delete on search begin
+create trigger if not exists search_bd before delete on search begin
   delete from search_fts where docid=old.rowid;
   delete from sug where term=old.term;
 end;
 
-create trigger search_au after update on search begin
+create trigger if not exists search_au after update on search begin
   insert into search_fts(docid, term) values(
     new.rowid,
     new.term
   );
 end;
 
-create trigger search_ai after insert on search begin
+create trigger if not exists search_ai after insert on search begin
   insert into search_fts(docid, term) values(
     new.rowid,
     new.term

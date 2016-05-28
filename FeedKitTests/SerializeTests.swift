@@ -13,27 +13,34 @@ class SerializeTests: XCTestCase {
 
   func testTrimString () {
     func f (s: String) -> String {
-      return trimString(s, joinedByString: "+")
+      return trimString(s.lowercaseString, joinedByString: " ")
     }
     let input = [
       "apple",
       "apple watch",
       "  apple  watch ",
-      "  apple     watch kit  ",
+      "  apple     Watch Kit  ",
       " ",
       ""
     ]
     let wanted = [
       "apple",
-      "apple+watch",
-      "apple+watch",
-      "apple+watch+kit",
+      "apple watch",
+      "apple watch",
+      "apple watch kit",
       "",
       ""
     ]
     for (n, it) in wanted.enumerate() {
-      XCTAssertEqual(it, f(input[n]))
+      XCTAssertEqual(f(input[n]), it)
     }
+  }
+  
+  func testQueryFromString() {
+    let f = queryFromString
+    XCTAssertNil(f(""))
+    XCTAssertNil(f(" "))
+    XCTAssertNil(f("   "))
   }
 
   func testTimeIntervalFromJS () {
@@ -51,10 +58,66 @@ class SerializeTests: XCTestCase {
       XCTAssertEqual(it, found[n])
     }
   }
-
-  func testQueryFromString () {
-    XCTAssertNil(queryFromString(""))
-    XCTAssertNil(queryFromString(" "))
+  
+  func testFeedFromInvalidDictonaries() {
+    let things = [
+      ([String:AnyObject](), "feed missing"),
+      (["feed":"abc"], "title missing")
+    ]
+    things.forEach { (let dict, let wanted) in
+      var ok = false
+      do {
+        try feedFromDictionary(dict)
+      } catch FeedKitError.InvalidFeed(let reason) {
+        XCTAssertEqual(reason, wanted)
+        ok = true
+      } catch {
+        XCTFail("should be caught")
+      }
+      XCTAssert(ok)
+    }
+  }
+  
+  func testFeedFromDictionary() {
+    let dict = ["feed": "abc", "title": "A title"]
+    let wanted = Feed(author: nil, iTunesGuid: nil, images: nil, link: nil,
+      summary: nil, title: "A title", ts: nil, uid: nil, updated: nil,
+      url: "abc"
+    )
+    let found = try! feedFromDictionary(dict)
+    XCTAssertEqual(found, wanted)
+  }
+  
+  // TODO: Replace alibi with proper test
+  func testFeedsFromPayload() {
+    let dict = ["feed": "abc", "title": "A title"]
+    let wanted = [Feed(author: nil, iTunesGuid: nil, images: nil, link: nil,
+      summary: nil, title: "A title", ts: nil, uid: nil, updated: nil,
+      url: "abc"
+    )]
+    let (errors, feeds) = feedsFromPayload([dict])
+    XCTAssert(errors.isEmpty)
+    XCTAssertEqual(feeds, wanted)
+  }
+  
+  func testEntryFromDictionary() {
+    let feed = "abc"
+    let title = "Giant Robots"
+    let id = "abc:def"
+    let updated = NSDate(timeIntervalSince1970: 3600)
+    let dict = [
+      "feed": feed,
+      "title": title,
+      "id": id,
+      "updated": NSNumber(double: 3600000) // ms
+    ]
+    let guid = entryGUID(feed, id: id, updated: updated)
+    let wanted = Entry(author: nil, enclosure: nil, duration: nil, feed: feed,
+      feedTitle: nil, guid: guid, id: id, img: nil, link: nil, subtitle: nil,
+      summary: nil, title: title, ts: nil, updated: updated
+    )
+    let found = try! entryFromDictionary(dict, podcast: false)
+    XCTAssertEqual(found, wanted)
   }
   
   func testEnclosureFromDictionary () {

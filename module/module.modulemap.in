@@ -1,0 +1,5 @@
+module CommonCrypto [system] {
+  header "%COMMON_CRYPTO%"
+  link "CommonCrypto"
+  export *
+}
