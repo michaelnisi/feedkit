@@ -11,71 +11,66 @@ import XCTest
 import Skull
 @testable import FeedKit
 
-func schemaForClass(aClass: AnyClass!) -> String {
-  let bundle = NSBundle(forClass: aClass)
-  return bundle.pathForResource("schema", ofType: "sql")!
+func schemaForClass(_ aClass: AnyClass!) -> String {
+  let bundle = Bundle(for: aClass)
+  return bundle.path(forResource: "schema", ofType: "sql")!
 }
 
-private func ttl() -> CacheTTL {
-  return CacheTTL(short: 3600, medium: 3600 * 24, long: 3600 * 24 * 3)
-}
-
-private func cacheURL(name: String) -> NSURL {
-  let fm = NSFileManager.defaultManager()
-  let dir = try! fm.URLForDirectory(
-    .CachesDirectory,
-    inDomain: .UserDomainMask,
-    appropriateForURL: nil,
+private func cacheURL(_ name: String) -> URL {
+  let fm = FileManager.default
+  let dir = try! fm.url(
+    for: .cachesDirectory,
+    in: .userDomainMask,
+    appropriateFor: nil,
     create: true
   )
-  return NSURL(string: name, relativeToURL: dir)!
+  return URL(string: name, relativeTo: dir)!
 }
 
-func freshCache(aClass: AnyClass!, ttl: CacheTTL = ttl()) -> Cache {
+func freshCache(_ aClass: AnyClass!) -> Cache {
   let name = "feedkit.test.db"
   let url = cacheURL(name)
 
-  let fm = NSFileManager.defaultManager()
-  let exists = fm.fileExistsAtPath(url.path!)
+  let fm = FileManager.default
+  let exists = fm.fileExists(atPath: url.path)
   if exists {
-    try! fm.removeItemAtURL(url)
+    try! fm.removeItem(at: url)
   }
   let schema = schemaForClass(aClass)
   return try! Cache(
     schema: schema,
-    ttl: ttl,
     url: nil
   )
 }
 
-func destroyCache(cache: Cache) throws {
+func destroyCache(_ cache: Cache) throws {
   if let url = cache.url {
-    let fm = NSFileManager.defaultManager()
-    try fm.removeItemAtURL(url)
-    XCTAssertFalse(fm.fileExistsAtPath(url.path!), "should remove database file")
+    let fm = FileManager.default
+    try fm.removeItem(at: url)
+    XCTAssertFalse(fm.fileExists(atPath: url.path), "should remove database file")
   }
 }
 
-func JSONFromFileAtURL(url: NSURL) throws -> [[String:AnyObject]] {
-  let data = NSData(contentsOfURL: url)
-  let json = try NSJSONSerialization.JSONObjectWithData(data!, options: .AllowFragments)
-  if let dict = json as? [String: AnyObject] {
+func JSONFromFileAtURL(_ url: URL) throws -> [[String : Any]] {
+  let data = try? Data(contentsOf: url)
+  let json = try JSONSerialization.jsonObject(with: data!, options: .allowFragments)
+  if let dict = json as? [String : Any] {
     return dict.isEmpty ? [] : [dict]
-  } else if let arr = json as? [[String:AnyObject]] {
+  } else if let arr = json as? [[String : Any]] {
     return arr
   }
-  throw FeedKitError.UnexpectedJSON
+  throw FeedKitError.unexpectedJSON
 }
 
-func feedsFromFileAtURL(url: NSURL) throws -> [Feed] {
-  let json = try JSONFromFileAtURL(url)
+func feedsFromFileAtURL(_ url: URL) throws -> [Feed] {
+  let json = try JSONFromFileAtURL(url as URL)
   let (errors, feeds) = feedsFromPayload(json)
   XCTAssert(errors.isEmpty, "should return no errors")
   return feeds
 }
 
-func entriesFromFileAtURL(url: NSURL) throws -> [Entry] {
-  let json = try JSONFromFileAtURL(url)
+func entriesFromFileAtURL(_ url: URL) throws -> [Entry] {
+  let json = try JSONFromFileAtURL(url as URL)
   let (errors, entries) = entriesFromPayload(json)
   XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
   return entries
@@ -86,7 +81,7 @@ func entriesFromFileAtURL(url: NSURL) throws -> [Entry] {
 /// - Parameter name: An arbitary name making sense in the test domain.
 /// - Returns: The named entry.
 /// - Throws: This, of course, throws if the requested name is unknown.
-func entryWithName(name: String) throws -> Entry {
+func entryWithName(_ name: String) throws -> Entry {
   switch name {
     case "thetalkshow":
       let feed = "http://daringfireball.net/thetalkshow/rss"
@@ -99,7 +94,7 @@ func entryWithName(name: String) throws -> Entry {
         type: EnclosureType(withString: "audio/mpeg")
       )
       
-      let updated = NSDate(timeIntervalSince1970: 1445110501000 / 1000)
+      let updated = Date(timeIntervalSince1970: 1445110501000 / 1000)
       
       let guid = entryGUID(feed, id: id, updated: updated)
       
@@ -120,11 +115,11 @@ func entryWithName(name: String) throws -> Entry {
         updated: updated
     )
     default:
-      throw FeedKitError.NotAnEntry
+      throw FeedKitError.notAnEntry
   }
 }
 
-func feedWithName(name: String) throws -> Feed {
+func feedWithName(_ name: String) throws -> Feed {
   switch name {
   case "thetalkshow":
     return Feed(
@@ -140,9 +135,9 @@ func feedWithName(name: String) throws -> Feed {
       link: nil,
       summary: "The director’s commentary track for Daring Fireball.",
       title: "The Talk Show With John Gruber",
-      ts: NSDate(),
+      ts: Date(),
       uid: nil,
-      updated: NSDate(timeIntervalSince1970: 1445110501000 / 1000),
+      updated: Date(timeIntervalSince1970: 1445110501000 / 1000),
       url: "http://daringfireball.net/thetalkshow/rss"
     )
   case "roderickontheline":
@@ -161,10 +156,10 @@ func feedWithName(name: String) throws -> Feed {
       title: "Roderick on the Line",
       ts: nil,
       uid: nil,
-      updated: NSDate(timeIntervalSince1970: 0),
+      updated: Date(timeIntervalSince1970: 0),
       url: "http://feeds.feedburner.com/RoderickOnTheLine"
     )
   default:
-    throw FeedKitError.NotAFeed
+    throw FeedKitError.notAFeed
   }
 }

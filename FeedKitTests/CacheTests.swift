@@ -13,13 +13,13 @@ import Foundation
 
 class CacheTests: XCTestCase {
   var cache: Cache!
-  let fm = NSFileManager.defaultManager()
+  let fm = FileManager.default
 
   override func setUp() {
     super.setUp()
     cache = freshCache(self.classForCoder)
     if let url = cache.url {
-      XCTAssert(fm.fileExistsAtPath(url.path!))
+      XCTAssert(fm.fileExists(atPath: url.path))
     }
   }
 
@@ -28,10 +28,10 @@ class CacheTests: XCTestCase {
     super.tearDown()
   }
 
-  func feedsFromFile(name: String = "feeds") throws -> [Feed] {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    let feedsURL = bundle.URLForResource(name, withExtension: "json")
-    return try feedsFromFileAtURL(feedsURL!)
+  func feedsFromFile(_ name: String = "feeds") throws -> [Feed] {
+    let bundle = Bundle(for: self.classForCoder)
+    let feedsURL = bundle.url(forResource: name, withExtension: "json")!
+    return try feedsFromFileAtURL(feedsURL)
   }
 
   func testFeedIDForURL() {
@@ -40,8 +40,8 @@ class CacheTests: XCTestCase {
       var found: [String]?
       let wanted = [url]
       do {
-        try cache.feedIDForURL(url)
-      } catch FeedKitError.FeedNotCached(let urls) {
+        let _ = try cache.feedIDForURL(url)
+      } catch FeedKitError.feedNotCached(let urls) {
         found = urls
       } catch {
         XCTFail("should not throw unexpected error")
@@ -67,8 +67,8 @@ class CacheTests: XCTestCase {
       var found: [String]?
       let wanted = [url!]
       do {
-        try cache.feedIDForURL(url!)
-      } catch FeedKitError.FeedNotCached(let urls) {
+        let _ = try cache.feedIDForURL(url!)
+      } catch FeedKitError.feedNotCached(let urls) {
         found = urls
       } catch {
         XCTFail("should not throw unexpected error")
@@ -102,7 +102,7 @@ class CacheTests: XCTestCase {
 
     let wanted = feeds
     XCTAssertEqual(found, wanted)
-    for (i, wantedFeed) in wanted.enumerate() {
+    for (i, wantedFeed) in wanted.enumerated() {
       let foundFeed = found[i]
 
       XCTAssertEqual(foundFeed.author, wantedFeed.author)
@@ -136,7 +136,7 @@ class CacheTests: XCTestCase {
     let wantedURLs = ["http://daringfireball.net/thetalkshow/rss"]
     do {
       try cache.updateEntries(entries)
-    } catch FeedKitError.FeedNotCached(let urls) {
+    } catch FeedKitError.feedNotCached(let urls) {
       foundURLs = urls
     } catch {
       XCTFail("should throw expected error")
@@ -145,8 +145,8 @@ class CacheTests: XCTestCase {
   }
 
   func entriesFromFile() throws -> [Entry] {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    let entriesURL = bundle.URLForResource("entries", withExtension: "json")
+    let bundle = Bundle(for: self.classForCoder)
+    let entriesURL = bundle.url(forResource: "entries", withExtension: "json")
     return try entriesFromFileAtURL(entriesURL!)
   }
 
@@ -160,8 +160,8 @@ class CacheTests: XCTestCase {
     return (feeds, entries)
   }
   
-  func checkEntries(found: [Entry], wanted: [Entry]) {
-    for (i, wantedEntry) in wanted.enumerate() {
+  func checkEntries(_ found: [Entry], wanted: [Entry]) {
+    for (i, wantedEntry) in wanted.enumerated() {
       let foundEntry = found[i]
       XCTAssertEqual(foundEntry.author, wantedEntry.author)
       XCTAssertEqual(foundEntry.duration, wantedEntry.duration)
@@ -266,7 +266,9 @@ class CacheTests: XCTestCase {
 
     do {
       let found = try cache.feedsForTerm(term, limit: 50)
-      let wanted = feeds
+      let wanted = feeds.sorted {
+        $0.updated!.timeIntervalSince1970 > $1.updated!.timeIntervalSince1970
+      }
       XCTAssertEqual(found!, wanted)
     } catch let er {
       XCTFail("should not throw \(er)")
@@ -311,10 +313,12 @@ class CacheTests: XCTestCase {
       try! cache.updateFeeds(feeds, forTerm: term)
 
       let found = try! cache.feedsForTerm(term, limit: 50)!
-      let wanted = feeds
+      let wanted = feeds.sorted {
+        $0.updated!.timeIntervalSince1970 > $1.updated!.timeIntervalSince1970
+      }
       XCTAssertEqual(found, wanted)
 
-      for (i, wantedFeed) in wanted.enumerate() {
+      for (i, wantedFeed) in wanted.enumerated() {
         let foundFeed = found[i]
 
         XCTAssertEqual(foundFeed.author, wantedFeed.author)
@@ -350,7 +354,7 @@ class CacheTests: XCTestCase {
 
     XCTAssertEqual(found, wanted)
 
-    for (i, that) in wanted.enumerate() {
+    for (i, that) in wanted.enumerated() {
       let this = found[i]
       XCTAssertEqual(this.title, that.title)
       XCTAssertEqual(this.url, that.url)
@@ -359,7 +363,7 @@ class CacheTests: XCTestCase {
   }
 
   func testEntriesMatchingTerm() {
-    try! populate()
+    let _ = try! populate()
     let found = try! cache.entriesMatchingTerm("supercomputer", limit: 3)
     XCTAssertEqual(found!.count, 1)
     XCTAssertEqual(found!.first?.title, "Seven Deadly Sins")
@@ -422,7 +426,7 @@ class CacheTests: XCTestCase {
     try! cache.updateSuggestions([], forTerm:"pie")
     if let found = try! cache.suggestionsForTerm("apple", limit: 5) {
       XCTAssertEqual(found.count, 2)
-      for (i, sug) in found.enumerate() {
+      for (i, sug) in found.enumerated() {
         XCTAssertEqual(sug, input[i])
       }
     } else {
@@ -430,12 +434,12 @@ class CacheTests: XCTestCase {
     }
   }
 
-  private func hit (term: String, _ wanted: String, _ cache: [String:NSDate]) {
+  fileprivate func hit (_ term: String, _ wanted: String, _ cache: [String:Date]) {
     if let (found, _) = subcached(term, dict: cache) {
       XCTAssertEqual(found, wanted)
-      if term.lengthOfBytesUsingEncoding(NSUTF8StringEncoding) > 1 {
-        let pre = term.endIndex.predecessor()
-        self.hit(term.substringToIndex(pre), wanted, cache)
+      if term.lengthOfBytes(using: String.Encoding.utf8) > 1 {
+        let pre = term.characters.index(before: term.endIndex)
+        self.hit(term.substring(to: pre), wanted, cache)
       }
     } else {
       XCTFail("\(term) should be cached")
@@ -443,12 +447,12 @@ class CacheTests: XCTestCase {
   }
 
   func testSubcached () {
-    var cache = [String:NSDate]()
-    cache["a"] = NSDate()
+    var cache = [String:Date]()
+    cache["a"] = Date()
     hit("abc", "a", cache)
     cache["a"] = nil
 
-    cache["abc"] = NSDate()
+    cache["abc"] = Date()
     XCTAssertNotNil(subcached("abcd", dict: cache)!.0)
     XCTAssertNil(subcached("ab", dict: cache)?.0)
   }

@@ -8,7 +8,7 @@ else
   if [ -n "$1" ]; then
     SDK=$1
   else
-    L=`xcodebuild -showBuildSettings | grep SDKROOT`
+    L=`xcodebuild -showBuildSettings | grep CORRESPONDING_SIMULATOR_SDK_DIR`
     ARR=($L)
     SDK=${ARR[2]}
   fi

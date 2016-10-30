@@ -7,32 +7,46 @@
 //
 
 import Foundation
+import Ola
+import Patron
+
+// TODO: Free tests from network dependencies
+
+// TODO: Rename probe parameter to probe
+
+// MARK: Notifications
+
+/// Posted when a remote request has been started.
+public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
+
+/// Posted when a remote response has been received.
+public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
 
 // MARK: Types
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
-public enum FeedKitError : ErrorType, Equatable {
-  case Unknown
-  case NIY
-  case NotAString
-  case General(message: String)
-  case CancelledByUser
-  case NotAFeed
-  case NotAnEntry
-  case ServiceUnavailable(error: ErrorType)
-  case FeedNotCached(urls: [String])
-  case UnknownEnclosureType(type: String)
-  case Multiple(errors: [ErrorType])
-  case UnexpectedJSON
-  case SQLFormatting
-  case CacheFailure(error: ErrorType)
-  case InvalidSearchTerm(term: String)
-  case InvalidEntry(reason: String)
-  case InvalidEnclosure(reason: String)
-  case InvalidFeed(reason: String)
-  case InvalidSuggestion(reason: String)
-  case Offline
-  case NoForceApplied
+public enum FeedKitError : Error, Equatable {
+  case unknown
+  case niy
+  case notAString
+  case general(message: String)
+  case cancelledByUser
+  case notAFeed
+  case notAnEntry
+  case serviceUnavailable(error: Error)
+  case feedNotCached(urls: [String])
+  case unknownEnclosureType(type: String)
+  case multiple(errors: [Error])
+  case unexpectedJSON
+  case sqlFormatting
+  case cacheFailure(error: Error)
+  case invalidSearchTerm(term: String)
+  case invalidEntry(reason: String)
+  case invalidEnclosure(reason: String)
+  case invalidFeed(reason: String)
+  case invalidSuggestion(reason: String)
+  case offline
+  case noForceApplied
 }
 
 public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
@@ -61,7 +75,7 @@ public func ==(lhs: FeedImages, rhs: FeedImages) -> Bool {
 /// Cachable objects, currently feeds and entries, must adopt this protocol,
 /// which requires a globally unique resource locator (url) and a timestamp (ts).
 public protocol Cachable {
-  var ts: NSDate? { get }
+  var ts: Date? { get }
   var url: String { get }
 }
 
@@ -71,18 +85,22 @@ public protocol Cachable {
 /// directly**. Instead users are expected to obtain their feeds from the
 /// repositories provided by this framework.
 ///
-/// A feed is required to, at least, have a `title` and a `url`.
-public struct Feed : Equatable, Cachable {
+/// A feed is required to, at least, have a `title` and an `url`.
+public struct Feed : Hashable, Cachable {
   public let author: String?
   public let iTunesGuid: Int?
   public let images: FeedImages?
   public let link: String?
   public let summary: String?
   public let title: String
-  public let ts: NSDate?
+  public let ts: Date?
   public let uid: Int?
-  public let updated: NSDate?
+  public let updated: Date?
   public let url: String
+  
+  public var hashValue: Int {
+    get { return uid! }
+  }
 }
 
 extension Feed : CustomStringConvertible {
@@ -98,21 +116,21 @@ public func ==(lhs: Feed, rhs: Feed) -> Bool {
 
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
 public enum EnclosureType : Int {
-  case Unknown
-  case AudioMPEG
-  case AudioXMPEG
-  case VideoXM4V
-  case AudioMP4
-  case XM4A
+  case unknown
+  case audioMPEG
+  case audioXMPEG
+  case videoXM4V
+  case audioMP4
+  case xm4A
 
   public init (withString type: String) {
     switch type {
-    case "audio/mpeg": self = .AudioMPEG
-    case "audio/x-mpeg": self = .AudioXMPEG
-    case "video/x-m4v": self = .VideoXM4V
-    case "audio/mp4": self = .AudioMP4
-    case "audio/x-m4a": self = .XM4A
-    default: self = .Unknown
+    case "audio/mpeg": self = .audioMPEG
+    case "audio/x-mpeg": self = .audioXMPEG
+    case "video/x-m4v": self = .videoXM4V
+    case "audio/mp4": self = .audioMP4
+    case "audio/x-m4a": self = .xm4A
+    default: self = .unknown
     }
   }
 }
@@ -142,14 +160,17 @@ public struct Entry : Equatable {
   public let feed: String
   public let feedTitle: String? // convenience
   public let guid: String
+  
+  // TODO: Make id optional
   public let id: String
+  
   public let img: String?
   public let link: String?
   public let subtitle: String?
   public let summary: String?
   public let title: String
-  public let ts: NSDate?
-  public let updated: NSDate
+  public let ts: Date?
+  public let updated: Date
 }
 
 extension Entry : Cachable {
@@ -172,7 +193,7 @@ public func ==(lhs: Entry, rhs: Entry) -> Bool {
 /// of entries from a specific feed.
 public struct EntryLocator : Equatable {
   public let url: String
-  public let since: NSDate
+  public let since: Date
   public let guid: String?
   
   /// Initializes a newly created entry locator with the specified feed URL,
@@ -181,13 +202,13 @@ public struct EntryLocator : Equatable {
   /// This object might be used to locate multiple entries within an interval
   /// or to locate a single entry specifically using the guid.
   ///
-  /// - Parameter url: The URL of the feed.
-  /// - Parameter since: A date in the past when the interval begins.
-  /// - Parameter guid: An identifier to locate a specific entry.
-  /// - Returns: The newly created entry locator.
+  /// - parameter url: The URL of the feed.
+  /// - parameter since: A date in the past when the interval begins.
+  /// - parameter guid: An identifier to locate a specific entry.
+  /// - returns: The newly created entry locator.
   public init(
     url: String,
-    since: NSDate = NSDate(timeIntervalSince1970: 0),
+    since: Date = Date(timeIntervalSince1970: 0),
     guid: String? = nil
   ) {
     self.url = url
@@ -210,7 +231,7 @@ public func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
 /// (to the cache) or updated.
 public struct Suggestion : Equatable {
   public let term: String
-  public var ts: NSDate? // if cached
+  public var ts: Date? // if cached
 }
 
 extension Suggestion : CustomStringConvertible {
@@ -223,20 +244,21 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
-/// Enumerates findable things hiding their type.
+/// Enumerates findable things hiding their type. The word 'suggested' is used
+/// synonymously with 'found' here: a suggested feed is also a found feed, etc.
 public enum Find : Equatable {
-  case RecentSearch(Feed)
-  case SuggestedTerm(Suggestion)
-  case SuggestedEntry(Entry)
-  case SuggestedFeed(Feed)
+  case recentSearch(Feed)
+  case suggestedTerm(Suggestion)
+  case suggestedEntry(Entry)
+  case suggestedFeed(Feed)
 
   /// The timestamp applied by the database.
-  var ts: NSDate? {
+  var ts: Date? {
     switch self {
-    case .RecentSearch(let it): return it.ts
-    case .SuggestedTerm(let it): return it.ts
-    case .SuggestedEntry(let it): return it.ts
-    case .SuggestedFeed(let it): return it.ts
+    case .recentSearch(let it): return it.ts
+    case .suggestedTerm(let it): return it.ts
+    case .suggestedEntry(let it): return it.ts
+    case .suggestedFeed(let it): return it.ts
     }
   }
 }
@@ -247,13 +269,13 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
   var lhsFed: Feed?
 
   switch lhs {
-  case .SuggestedEntry(let res):
+  case .suggestedEntry(let res):
     lhsRes = res
-  case .SuggestedTerm(let sug):
+  case .suggestedTerm(let sug):
     lhsSug = sug
-  case .SuggestedFeed(let fed):
+  case .suggestedFeed(let fed):
     lhsFed = fed
-  case .RecentSearch(let fed):
+  case .recentSearch(let fed):
     lhsFed = fed
   }
 
@@ -262,13 +284,13 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
   var rhsFed: Feed?
 
   switch rhs {
-  case .SuggestedEntry(let res):
+  case .suggestedEntry(let res):
     rhsRes = res
-  case .SuggestedTerm(let sug):
+  case .suggestedTerm(let sug):
     rhsSug = sug
-  case .SuggestedFeed(let fed):
+  case .suggestedFeed(let fed):
     rhsFed = fed
-  case .RecentSearch(let fed):
+  case .recentSearch(let fed):
     rhsFed = fed
   }
 
@@ -282,7 +304,7 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
   return false
 }
 
-/// Enumerate reasonable time-to-live intervals.
+/// Enumerate default time-to-live intervals used for caching.
 ///
 /// - None: Zero seconds.
 /// - Short: One hour.
@@ -290,21 +312,21 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
 /// - Long: 24 hours.
 /// - Forever: Infinity.
 public enum CacheTTL {
-  case None
-  case Short
-  case Medium
-  case Long
-  case Forever
+  case none
+  case short
+  case medium
+  case long
+  case forever
   
   /// The time-to-live interval in seconds.
-  var seconds: NSTimeInterval {
+  var seconds: TimeInterval {
     get {
       switch self {
-      case .None: return 0
-      case .Short: return 3600
-      case .Medium: return 28800
-      case .Long: return 86400
-      case .Forever: return Double.infinity
+      case .none: return 0
+      case .short: return 3600
+      case .medium: return 28800
+      case .long: return 86400
+      case .forever: return Double.infinity
       }
     }
   }
@@ -314,70 +336,72 @@ public enum CacheTTL {
 
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
-  func updateFeeds(feeds: [Feed]) throws
-  func feeds(urls: [String]) throws -> [Feed]
+  func updateFeeds(_ feeds: [Feed]) throws
+  func feeds(_ urls: [String]) throws -> [Feed]
 
-  func updateEntries(entries:[Entry]) throws
-  func entries(locators: [EntryLocator]) throws -> [Entry]
-  func entries(guids: [String]) throws -> [Entry]
+  func updateEntries(_ entries:[Entry]) throws
+  func entries(_ locators: [EntryLocator]) throws -> [Entry]
+  func entries(_ guids: [String]) throws -> [Entry]
 
-  func remove(urls: [String]) throws
+  func remove(_ urls: [String]) throws
 }
 
 // MARK: SearchCaching
 
 /// A persistent cache of things related to searching feeds and entries.
 public protocol SearchCaching {
-  func updateSuggestions(suggestions: [Suggestion], forTerm: String) throws
-  func suggestionsForTerm(term: String, limit: Int) throws -> [Suggestion]?
+  func updateSuggestions(_ suggestions: [Suggestion], forTerm: String) throws
+  func suggestionsForTerm(_ term: String, limit: Int) throws -> [Suggestion]?
 
-  func updateFeeds(feeds: [Feed], forTerm: String) throws
-  func feedsForTerm(term: String, limit: Int) throws -> [Feed]?
-  func feedsMatchingTerm(term: String, limit: Int) throws -> [Feed]?
-  func entriesMatchingTerm(term: String, limit: Int) throws -> [Entry]?
+  func updateFeeds(_ feeds: [Feed], forTerm: String) throws
+  func feedsForTerm(_ term: String, limit: Int) throws -> [Feed]?
+  func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]?
+  func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]?
 }
 
 // MARK: Searching
 
 /// The search API of the FeedKit framework.
 public protocol Searching {
-  func search(
-    term: String,
-    perFindGroupBlock: (ErrorType?, [Find]) -> Void,
-    searchCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+  @discardableResult func search(
+    _ term: String,
+    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
+    searchCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
 
-  func suggest(
-    term: String,
-    perFindGroupBlock: (ErrorType?, [Find]) -> Void,
-    suggestCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+  @discardableResult func suggest(
+    _ term: String,
+    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
+    suggestCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
 }
 
 // MARK: Browsing
+
+// TODO: Introduce paging
 
 /// An asynchronous API for accessing feeds and entries. Designed with data
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
-  func feeds(
-    urls: [String],
-    feedsBlock: (ErrorType?, [Feed]) -> Void,
-    feedsCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+  @discardableResult func feeds(
+    _ urls: [String],
+    feedsBlock: @escaping (Error?, [Feed]) -> Void,
+    feedsCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
   
-  func entries(
-    locators: [EntryLocator],
-    entriesBlock: (ErrorType?, [Entry]) -> Void,
-    entriesCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+  @discardableResult func entries(
+    _ locators: [EntryLocator],
+    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
   
-  func entries(
-    locators: [EntryLocator],
+  @discardableResult func entries(
+    _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: (ErrorType?, [Entry]) -> Void,
-    entriesCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
 }
 
 // MARK: Queueing
@@ -387,73 +411,141 @@ public protocol Queueing {
   // var previous: Entry { get }
   // var entry: Entry { get }
 
-  func entries(
-    entriesBlock: (ErrorType?, [Entry]) -> Void,
-    entriesCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation
+  @discardableResult func entries(
+    _ entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
 
-  func push(entry: Entry) throws
-  func pop(entry: Entry) throws
+  func push(_ entry: Entry) throws
+  func pop(_ entry: Entry) throws
+  
+  // TODO: func insert(entry: Entry) throws
 }
 
 // MARK: Internal
 
-let FOREVER: NSTimeInterval = NSTimeInterval(Double.infinity)
+let FOREVER: TimeInterval = TimeInterval(Double.infinity)
 
 func nop(_: Any) -> Void {}
 
-/// Create and return dispatch source with a timer set up to fire on the
-/// specified queue, in an interval specified in seconds.
-///
-/// - Parameter queue: The dispatch queue to use.
-/// - Parameter seconds: The time for this timer to run in seconds.
-/// - Parameter timeoutBlock: The block getting dispatched to the provided queue
-/// after the given time.
-/// - Returns: A dispatch source with a timer.
-public func createTimer(
-  queue: dispatch_queue_t,
-  seconds: NSTimeInterval,
-  timeoutBlock: dispatch_block_t
-) -> dispatch_source_t {
-  let timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue)
-  let delta = seconds * NSTimeInterval(NSEC_PER_SEC)
-  let start = dispatch_time(DISPATCH_TIME_NOW, Int64(delta))
-  dispatch_source_set_timer(timer, start, 0, 0)
-  dispatch_source_set_event_handler(timer, timeoutBlock)
-  dispatch_resume(timer)
-  return timer
+/// The common super class of the search repository and the browse repository,
+/// which for some reason still is misleadingly called feed repository (TODO).
+/// This, of course, assumes one service host per repository.
+open class RemoteRepository {
+  let queue: OperationQueue
+  let probe: Reaching
+  
+  public init(queue: OperationQueue, probe: Reaching) {
+    self.queue = queue
+    self.probe = probe
+  }
+  
+  deinit {
+    queue.cancelAllOperations()
+  }
+  
+  func reachable() -> Bool {
+    let r = probe.reach()
+    return r == .reachable || r == .cellular
+  }
+  
+  private var forced = [String : Date]()
+  
+  private func forceable(_ uri: String) -> Bool {
+    if let prev = forced[uri] {
+      if prev.timeIntervalSinceNow < CacheTTL.short.seconds {
+        return false
+      }
+    }
+    forced[uri] = Date()
+    return true
+    
+  }
+  
+  /// Return the momentary maximal age for cached items of a specific resource
+  /// incorporating reachability and service status. This method's parameters
+  /// are all optional.
+  ///
+  /// - parameter uri: The unique resource identifier.
+  /// - parameter force: Force refreshing of cached items.
+  /// - parameter status: The current status of the service, a tuple containing
+  /// the latest error code and its timestamp.
+  /// - parameter ttl: Override the default, `CacheTTL.Long`, to return.
+  func timeToLive(
+    _ uri: String? = nil,
+    force: Bool = false,
+    reachable: Bool = true,
+    status: (Int, TimeInterval)? = nil,
+    ttl: CacheTTL = CacheTTL.long
+  ) -> CacheTTL {
+    guard reachable else {
+      return CacheTTL.forever
+    }
+    
+    if force, let k = uri {
+      if forceable(k) {
+        return CacheTTL.none
+      }
+    }
+    
+    if let (code, ts) = status {
+      let date = Date(timeIntervalSince1970: ts)
+      if code != 0 && !stale(date, ttl: CacheTTL.short.seconds) {
+        return CacheTTL.forever
+      }
+    }
+    
+    return ttl
+  }
 }
 
-/// A generic concurrent operation providing a URL session task and an error
-/// property. This abstract class exists to be extended.
-class SessionTaskOperation: NSOperation {
-  final var task: NSURLSessionTask?
+/// A generic concurrent operation providing a URL session task. This abstract
+/// class is to be extended.
+class SessionTaskOperation: Operation {
+  
+  // MARK: Properties
+  
+  /// If you know in advance that the remote service is currently not available,
+  /// you might set this to `false` to be more effective.
+  var reachable: Bool = true
+  
+  /// The maximal age, `CacheTTL.Long`,  of cached items.
+  var ttl: CacheTTL = CacheTTL.long
+  
+  final var task: URLSessionTask? {
+    didSet {
+      post(FeedKitRemoteRequestNotification)
+    }
+  }
 
-  private var _executing: Bool = false
+  fileprivate var _executing: Bool = false
+  
+  // MARK: NSOperation
 
-  override final var executing: Bool {
+  override final var isExecuting: Bool {
     get { return _executing }
     set {
       guard newValue != _executing else {
         fatalError("SessionTaskOperation: already executing")
       }
-      willChangeValueForKey("isExecuting")
+      willChangeValue(forKey: "isExecuting")
       _executing = newValue
-      didChangeValueForKey("isExecuting")
+      didChangeValue(forKey: "isExecuting")
     }
   }
 
-  private var _finished: Bool = false
+  fileprivate var _finished: Bool = false
 
-  override final var finished: Bool {
+  override final var isFinished: Bool {
     get { return _finished }
     set {
       guard newValue != _finished else {
-        return print("warning: SessionTaskOperation: already finished")
+        // Just to be extra annoying.
+        fatalError("SessionTaskOperation: already finished")
       }
-      willChangeValueForKey("isFinished")
+      willChangeValue(forKey: "isFinished")
       _finished = newValue
-      didChangeValueForKey("isFinished")
+      didChangeValue(forKey: "isFinished")
     }
   }
 

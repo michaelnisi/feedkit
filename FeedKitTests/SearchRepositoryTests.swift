@@ -8,30 +8,45 @@
 
 import XCTest
 import FanboyKit
+import Ola
+import Patron
+
 @testable import FeedKit
 
-private func freshFanboy(string: String = "http://localhost:8383") -> Fanboy {
-  let baseURL = NSURL(string: string)!
-  let label = "com.michaelnisi.fanboy.json"
-  let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
-  let conf = NSURLSessionConfiguration.defaultSessionConfiguration()
-  conf.HTTPShouldUsePipelining = true
-  conf.requestCachePolicy = .ReloadIgnoringLocalCacheData
-  let session = NSURLSession(configuration: conf)
-  return Fanboy(URL: baseURL, queue: queue, session: session)
+private func freshFanboy(url: URL, target: DispatchQueue) -> Fanboy {
+  let conf = URLSessionConfiguration.default
+  conf.httpShouldUsePipelining = true
+  conf.requestCachePolicy = .reloadIgnoringLocalCacheData
+  let session = URLSession(configuration: conf)
+
+  let client = Patron(URL: url, session: session, target: target)
+  
+  return Fanboy(client: client)
 }
 
 class SearchRepositoryTests: XCTestCase {
-  var repo: SearchRepository!
+  var repo: Searching!
   var cache: Cache!
   var svc: Fanboy!
   
+  // TODO: Mock remote service
+  
   override func setUp() {
     super.setUp()
+    
+    let url = URL(string: "http://localhost:8383")!
+    let target = DispatchQueue(
+      label: "ink.codes.fanboy.json",
+      attributes: DispatchQueue.Attributes.concurrent
+    )
+    svc = freshFanboy(url: url, target: target)
+    
     cache = freshCache(self.classForCoder)
-    svc = freshFanboy()
-    let queue = NSOperationQueue()
-    repo = SearchRepository(cache: cache, queue: queue, svc: svc)
+    let queue = OperationQueue()
+    // TODO: Determine optimal queue for Ola
+    let probe = Ola(host: "localhost", queue: target)!
+    
+    repo = SearchRepository(cache: cache, svc: svc, queue: queue, probe: probe)
   }
   
   override func tearDown() {
@@ -42,8 +57,8 @@ class SearchRepositoryTests: XCTestCase {
   // MARK: Search
   
   func testSearch() {
-    let exp = self.expectationWithDescription("search")
-    func go(done: Bool = false) {
+    let exp = self.expectation(description: "search")
+    func go(_ done: Bool = false) {
       repo.search("john   gruber", perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         XCTAssert(finds.count > 0)
@@ -55,27 +70,27 @@ class SearchRepositoryTests: XCTestCase {
       }) { error in
         XCTAssertNil(error)
         if done {
-          dispatch_async(dispatch_get_main_queue()) {
+          DispatchQueue.main.async() {
             exp.fulfill()
           }
         } else {
-          dispatch_async(dispatch_get_main_queue()) {
+          DispatchQueue.main.async() {
             go(true)
           }
         }
       }
     }
     go()
-    self.waitForExpectationsWithTimeout(61) { er in
+    self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }
   }
   
   func testSearchWithNoResult() {
-    let exp = self.expectationWithDescription("search")
-    func go(terms: [String]) {
+    let exp = self.expectation(description: "search")
+    func go(_ terms: [String]) {
       guard !terms.isEmpty else {
-        return dispatch_async(dispatch_get_main_queue()) {
+        return DispatchQueue.main.async {
           exp.fulfill()
         }
       }
@@ -86,33 +101,34 @@ class SearchRepositoryTests: XCTestCase {
         XCTAssertEqual(finds.count, 0)
       }) { error in
         XCTAssertNil(error)
-        dispatch_async(dispatch_get_main_queue()) {
+        DispatchQueue.main.async() {
           go(t)
         }
       }
     }
     // Mere speculation that these return no results from iTunes.
     go(["0", "0a", "0", "0a"])
-    self.waitForExpectationsWithTimeout(61) { er in
+    self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }
   }
   
   func testSearchConcurrently() {
-    let exp = self.expectationWithDescription("search")
-    let repo = self.repo
+    let exp = self.expectation(description: "search")
+    let repo = self.repo!
     let terms = ["apple", "gruber", "newyorker", "nyt", "literature"]
     var count = terms.count
-    let label = "com.michaelnisi.tmp"
-    let queue = dispatch_queue_create(label, DISPATCH_QUEUE_CONCURRENT)
+
+    let q = DispatchQueue.global(qos: .userInitiated)
+    
     for term in terms {
-      dispatch_async(queue) {
+      q.async {
         repo.search(term, perFindGroupBlock: { er, finds in
           XCTAssertNil(er)
           XCTAssertNotNil(finds)
         }) { error in
           XCTAssertNil(error)
-          dispatch_async(dispatch_get_main_queue()) {
+          DispatchQueue.main.async() {
             count -= 1
             if count == 0 {
               exp.fulfill()
@@ -121,38 +137,38 @@ class SearchRepositoryTests: XCTestCase {
         }
       }
     }
-    self.waitForExpectationsWithTimeout(61) { er in
+    self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }
   }
   
   func testSearchCancel() {
-    let exp = self.expectationWithDescription("search")
+    let exp = self.expectation(description: "search")
     let op = repo.search("apple", perFindGroupBlock: { er, finds in
       XCTFail("should not get dispatched")
     }) { error in
-      XCTAssertEqual(error as? FeedKitError , FeedKitError.CancelledByUser)
-      dispatch_async(dispatch_get_main_queue()) {
+      XCTAssertEqual(error as? FeedKitError , FeedKitError.cancelledByUser)
+      DispatchQueue.main.async() {
         exp.fulfill()
       }
     }
     op.cancel()
-    self.waitForExpectationsWithTimeout(10) { er in
+    self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
     }
   }
   
   // MARK: Suggest
   
-  func feedsFromFile(name: String = "feeds") throws -> [Feed] {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    let feedsURL = bundle.URLForResource(name, withExtension: "json")
+  func feedsFromFile(_ name: String = "feeds") throws -> [Feed] {
+    let bundle = Bundle(for: self.classForCoder)
+    let feedsURL = bundle.url(forResource: name, withExtension: "json")
     return try feedsFromFileAtURL(feedsURL!)
   }
   
   func entriesFromFile() throws -> [Entry] {
-    let bundle = NSBundle(forClass: self.classForCoder)
-    let entriesURL = bundle.URLForResource("entries", withExtension: "json")
+    let bundle = Bundle(for: self.classForCoder)
+    let entriesURL = bundle.url(forResource: "entries", withExtension: "json")
     return try entriesFromFileAtURL(entriesURL!)
   }
   
@@ -167,7 +183,7 @@ class SearchRepositoryTests: XCTestCase {
   }
   
   func testSuggest() {
-    let exp = self.expectationWithDescription("suggest")
+    let exp = self.expectation(description: "suggest")
     var op: SessionTaskOperation?
     func go() {
       var found:UInt = 4
@@ -177,13 +193,13 @@ class SearchRepositoryTests: XCTestCase {
         XCTAssertFalse(finds.isEmpty)
         for find in finds {
           switch find {
-          case .SuggestedTerm:
+          case .suggestedTerm:
             if found ==  4 { shift() }
-          case .RecentSearch:
+          case .recentSearch:
             if found ==  8 { shift() }
-          case .SuggestedFeed:
+          case .suggestedFeed:
             if found == 16 { shift() }
-          case .SuggestedEntry:
+          case .suggestedEntry:
             if found == 32 { shift() }
           }
         }
@@ -195,27 +211,27 @@ class SearchRepositoryTests: XCTestCase {
       }
     }
     
-    try! populate()
+    let _ = try! populate()
     
     let terms = ["apple", "automobile", "art"]
-    for (i, term) in terms.enumerate() {
+    for (i, term) in terms.enumerated() {
       repo.search(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         XCTAssert(finds.count > 0)
         guard i == terms.count - 1 else { return }
       }) { error in
-        dispatch_async(dispatch_get_main_queue()) {
+        DispatchQueue.main.async {
           go()
         }
       }
     }
-    self.waitForExpectationsWithTimeout(10) { er in
+    self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
     }
   }
   
   func testFirstSuggestion() {
-    let exp = self.expectationWithDescription("suggest")
+    let exp = self.expectation(description: "suggest")
     let term = "apple"
     var found: String?
     repo.suggest(term, perFindGroupBlock: { error, finds in
@@ -223,7 +239,7 @@ class SearchRepositoryTests: XCTestCase {
       XCTAssert(!finds.isEmpty, "should never be empty")
       guard found == nil else { return }
       switch finds.first! {
-      case .SuggestedTerm(let sug):
+      case .suggestedTerm(let sug):
         found = sug.term
       default:
         XCTFail("should suggest term")
@@ -233,25 +249,27 @@ class SearchRepositoryTests: XCTestCase {
       XCTAssertEqual(found, term)
       exp.fulfill()
     }
-    self.waitForExpectationsWithTimeout(10) { er in XCTAssertNil(er) }
+    self.waitForExpectations(timeout: 10) { er in XCTAssertNil(er) }
   }
+  
+  // TODO: Investigate why this test sometimes fails
   
   func testCancelledSuggest() {
     for _ in 0...100 {
-      let exp = self.expectationWithDescription("suggest")
+      let exp = self.expectation(description: "suggest")
       let op = repo.suggest("a", perFindGroupBlock: { _, _ in
         XCTFail("should not get dispatched")
         }) { er in
           do {
             throw er!
-          } catch FeedKitError.CancelledByUser {
+          } catch FeedKitError.cancelledByUser {
             exp.fulfill()
           } catch {
             XCTFail("should not pass unexpected error")
           }
       }
       op.cancel()
-      self.waitForExpectationsWithTimeout(10) { er in
+      self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
       }
     }

@@ -6,147 +6,160 @@
 //  Copyright (c) 2014 Michael Nisi. All rights reserved.
 //
 
-// TODO: Add ranking to improve top hits
-
 import Foundation
 import FanboyKit
+import Ola
 
 /// An abstract class to be extended by search repository operations.
 private class SearchRepoOperation: SessionTaskOperation {
-
+  
   let cache: SearchCaching
   let originalTerm: String
   let svc: FanboyService
   let term: String
-  let target: dispatch_queue_t
+  let target: DispatchQueue
 
   /// Returns an initialized search repo operation.
   ///
-  /// - Parameter cache: A persistent search cache.
-  /// - Parameter svc: The remote search service to use.
-  /// - Parameter term: The term to search—or get suggestions—for; it can be any
+  /// - parameter cache: A persistent search cache.
+  /// - parameter svc: The remote search service to use.
+  /// - parameter term: The term to search—or get suggestions—for; it can be any
   /// string.
-  /// - Parameter target: The target dispatch queue for callbacks.
+  /// - parameter target: The target queue on which to submit callbacks.
   init(
     cache: SearchCaching,
     svc: FanboyService,
     term: String,
-    target: dispatch_queue_t
+    target: DispatchQueue
   ) {
     self.cache = cache
     self.originalTerm = term
     self.svc = svc
-    self.term = trimString(term.lowercaseString, joinedByString: " ")
+    
+    // TODO: Review if this is the best place to trim the term string
+    
+    self.term = trimString(term.lowercased(), joinedByString: " ")
     self.target = target
   }
 }
 
-// Search feeds and entries.
+// An operation for searching feeds and entries.
 private final class SearchOperation: SearchRepoOperation {
 
   // MARK: Callbacks
 
-  var perFindGroupBlock: ((ErrorType?, [Find]) -> Void)?
+  var perFindGroupBlock: ((Error?, [Find]) -> Void)?
 
-  var searchCompletionBlock: ((ErrorType?) -> Void)?
+  var searchCompletionBlock: ((Error?) -> Void)?
 
-  // MARK: State
+  // MARK: Internals
 
-  /// Stale feeds from the cache.
-  var stock: [Feed]?
-
-  private func done( error: ErrorType? = nil) {
-    let er = cancelled ? FeedKitError.CancelledByUser : error
+  fileprivate func done(_ error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = searchCompletionBlock {
-      dispatch_async(target) {
+      target.sync {
         cb(er)
       }
     }
     perFindGroupBlock = nil
     searchCompletionBlock = nil
-    finished = true
+    isFinished = true
   }
-
-  // MARK: Internals
 
   /// Remotely request search and subsequently update the cache while falling
   /// back on stale feeds in stock. Finally end the operation after applying
-  /// the callback. Remember that stock must not be empty.
-  private func request() throws {
-    let cache = self.cache
-    let perFindGroupBlock = self.perFindGroupBlock
-    let stock = self.stock
-    let target = self.target
-    let term = self.term
-
-    task = try svc.search(term) { error, payload in
-      guard !self.cancelled else {
-        return self.done()
+  /// the callback. Passing empty stock makes no sense.
+  ///
+  /// - parameter stock: Stock of stale feeds to fall back on.
+  fileprivate func request(_ stock: [Feed]? = nil) throws {
+    
+    // Capturing self as unowned here to crash when we've mistakenly ended the
+    // operation, here or somewhere else, inducing the system to release it.
+    
+    task = try svc.search(term) { [unowned self] error, payload in
+      post(FeedKitRemoteResponseNotification)
+      
+      var er: Error?
+      defer {
+        self.done(er)
       }
+      
+      guard !self.isCancelled else {
+        return
+      }
+
       guard error == nil else {
-        defer {
-          let er = FeedKitError.ServiceUnavailable(error: error!)
-          self.done(er)
-        }
-        if let cb = perFindGroupBlock {
+        er = FeedKitError.serviceUnavailable(error: error!)
+        if let cb = self.perFindGroupBlock {
           if let feeds = stock {
             guard !feeds.isEmpty else { return }
-            // TODO: Consider to enumerate a found feed type
-            let finds = feeds.map { Find.SuggestedFeed($0) }
-            dispatch_async(target) {
+            let finds = feeds.map { Find.suggestedFeed($0) }
+            self.target.sync() {
               cb(nil, finds)
             }
           }
         }
         return
       }
+      
       guard payload != nil else {
-        return self.done()
+        return
       }
+      
       do {
         let (errors, feeds) = feedsFromPayload(payload!)
-        // TODO: Report errors
-        assert(errors.isEmpty)
-        try cache.updateFeeds(feeds, forTerm: term)
-        guard !feeds.isEmpty else { return self.done() }
-        guard let cb = perFindGroupBlock else { return self.done() }
-        let finds = feeds.map { Find.SuggestedFeed($0) }
-        dispatch_async(target) {
+        
+        assert(errors.isEmpty, "unhandled errors")
+        
+        try self.cache.updateFeeds(feeds, forTerm: self.term)
+        guard !feeds.isEmpty else {
+          return
+        }
+        guard let cb = self.perFindGroupBlock else {
+          return
+        }
+        let finds = feeds.map { Find.suggestedFeed($0) }
+        self.target.sync() {
           cb(nil, finds)
         }
-        self.done()
-      } catch let er {
-        self.done(er)
+      } catch let error {
+        er = error
       }
     }
   }
 
   override func start() {
-    guard !cancelled else { return done() }
-    guard !term.isEmpty else {
-      return done(FeedKitError.InvalidSearchTerm(term: term))
+    guard !isCancelled else {
+      return done()
     }
-    executing = true
+    guard !term.isEmpty else {
+      return done(FeedKitError.invalidSearchTerm(term: term))
+    }
+    isExecuting = true
+
     do {
       guard let cached = try cache.feedsForTerm(term, limit: 25) else {
         return try request()
       }
-      if cancelled { return done() }
-      // This is not the timestamp of the feed but of the search, hence all
-      // cached feeds carry the same timestamp here, and we just have to check
-      // the first one.
-      guard let ts = cached.first?.ts else { return done() }
-      if !stale(ts, ttl: CacheTTL.Long.seconds) {
+      
+      if isCancelled { return done() }
+      
+      // If we match instead of equal--to yield more interesting results--we
+      // cannot determine the age of a cached search because we might have 
+      // multiple differing timestamps. Using the median timestamp to determine
+      // age works for both: equaling and matching.
+      
+      guard let ts = medianTS(cached) else { return done() }
+      
+      if !stale(ts, ttl: ttl.seconds) {
         guard let cb = perFindGroupBlock else { return done() }
-        let finds = cached.map { Find.SuggestedFeed($0) }
-        dispatch_async(target) {
+        let finds = cached.map { Find.suggestedFeed($0) }
+        target.sync {
           cb(nil, finds)
         }
         return done()
-      } else {
-        stock = cached
       }
-      try request()
+      try request(cached)
     } catch let er {
       done(er)
     }
@@ -154,13 +167,13 @@ private final class SearchOperation: SearchRepoOperation {
 }
 
 private func recentSearchesForTerm(
-  term: String,
+  _ term: String,
   fromCache cache: SearchCaching,
   except exceptions: [Find]
 ) throws -> [Find]? {
   if let feeds = try cache.feedsForTerm(term, limit: 2) {
     return feeds.reduce([Find]()) { acc, feed in
-      let find = Find.RecentSearch(feed)
+      let find = Find.recentSearch(feed)
       if exceptions.contains(find) {
         return acc
       } else {
@@ -171,15 +184,15 @@ private func recentSearchesForTerm(
   return nil
 }
 
-func suggestedFeedsForTerm(
-  term: String,
+private func suggestedFeedsForTerm(
+  _ term: String,
   fromCache cache: SearchCaching,
   except exceptions: [Find]
 ) throws -> [Find]? {
   let limit = 5
   if let feeds = try cache.feedsMatchingTerm(term, limit: limit + 2) {
     return feeds.reduce([Find]()) { acc, feed in
-      let find = Find.SuggestedFeed(feed)
+      let find = Find.suggestedFeed(feed)
       if exceptions.contains(find) || acc.count == limit {
         return acc
       } else {
@@ -190,14 +203,14 @@ func suggestedFeedsForTerm(
   return nil
 }
 
-func suggestedEntriesForTerm(
-  term: String,
+private func suggestedEntriesForTerm(
+  _ term: String,
   fromCache cache: SearchCaching,
   except exceptions: [Find]
 ) throws -> [Find]? {
   if let entries = try cache.entriesMatchingTerm(term, limit: 5) {
     return entries.reduce([Find]()) { acc, entry in
-      let find = Find.SuggestedEntry(entry)
+      let find = Find.suggestedEntry(entry)
       if exceptions.contains(find) {
         return acc
       } else {
@@ -208,7 +221,7 @@ func suggestedEntriesForTerm(
   return nil
 }
 
-func suggestionsFromTerms(terms: [String]) -> [Suggestion] {
+func suggestionsFromTerms(_ terms: [String]) -> [Suggestion] {
   return terms.map { Suggestion(term: $0, ts: nil) }
 }
 
@@ -217,9 +230,9 @@ private final class SuggestOperation: SearchRepoOperation {
 
   // MARK: Callbacks
 
-  var perFindGroupBlock: ((ErrorType?, [Find]) -> Void)?
+  var perFindGroupBlock: ((Error?, [Find]) -> Void)?
 
-  var suggestCompletionBlock: ((ErrorType?) -> Void)?
+  var suggestCompletionBlock: ((Error?) -> Void)?
 
   // MARK: State
 
@@ -235,74 +248,88 @@ private final class SuggestOperation: SearchRepoOperation {
 
   // MARK: Internals
 
-  private func done(error: ErrorType? = nil) {
-    let er = cancelled ?  FeedKitError.CancelledByUser : error
+  fileprivate func done(_ error: Error? = nil) {
+    
+    // TODO: Remove guard
+    
+    guard !isFinished else {
+      return
+    }
+    
+    let er = isCancelled ?  FeedKitError.cancelledByUser : error
     if let cb = suggestCompletionBlock {
-      dispatch_async(target) {
+      target.sync {
         cb(er)
       }
     }
     perFindGroupBlock = nil
     suggestCompletionBlock = nil
-    finished = true
+    isFinished = true
+  }
+  
+  func dispatch(_ error: FeedKitError?, finds: [Find]) {
+    target.sync { [unowned self] in
+      guard !self.isCancelled else { return }
+      guard let cb = self.perFindGroupBlock else { return }
+      
+      self.dispatched += finds
+      cb(error as Error?, finds)
+    }
   }
 
-  private func request() throws {
-    let cache = self.cache
-    let dispatched = self.dispatched
-    let perFindGroupBlock = self.perFindGroupBlock
-    let stock = self.stock
-    let target = self.target
-    let term = self.term
-
+  fileprivate func request() throws {
+    guard reachable else {
+      return done(FeedKitError.offline)
+    }
+    
+    // TODO: Prove this callback doesn't leak
+    // ... was [weak self]
+    
     task = try svc.suggest(term) { error, payload in
-      guard !self.cancelled else {
-        return self.done()
+      post(FeedKitRemoteResponseNotification)
+      
+      var er: Error?
+      defer {
+        self.done(er)
       }
+      
+      guard !self.isCancelled else {
+        return
+      }
+      
       guard error == nil else {
-        defer {
-          let er = FeedKitError.ServiceUnavailable(error: error!)
-          self.done(er)
-        }
-        if let cb = perFindGroupBlock {
-          if let suggestions = stock {
-            guard !suggestions.isEmpty else { return }
-            let finds = suggestions.map { Find.SuggestedTerm($0) }
-            dispatch_async(target) {
-              cb(nil, finds)
-            }
-          }
+        er = FeedKitError.serviceUnavailable(error: error!)
+        if let suggestions = self.stock {
+          guard !suggestions.isEmpty else { return }
+          let finds = suggestions.map { Find.suggestedTerm($0) }
+          self.dispatch(nil, finds: finds)
         }
         return
       }
+      
       guard payload != nil else {
-        return self.done()
+        return
       }
+      
       do {
         let suggestions = suggestionsFromTerms(payload!)
-        try cache.updateSuggestions(suggestions, forTerm: term)
-        guard !suggestions.isEmpty else { return self.done() }
-        guard let cb = perFindGroupBlock else { return self.done() }
+        try self.cache.updateSuggestions(suggestions, forTerm: self.term)
+        guard !suggestions.isEmpty else { return }
         let finds = suggestions.reduce([Find]()) { acc, sug in
-          let find = Find.SuggestedTerm(sug)
-          if dispatched.contains(find) { return acc }
+          let find = Find.suggestedTerm(sug)
+          if self.dispatched.contains(find) { return acc }
           return acc + [find]
         }
-        guard !finds.isEmpty else { return self.done() }
-        dispatch_async(target) {
-          cb(nil, finds)
-        }
-        // At the moment it is unnecessary to append our finds to the
-        // dispatched list because we are done now.
-        self.done()
-      } catch let er {
-        self.done(er)
+        guard !finds.isEmpty else { return }
+        self.dispatch(nil, finds: finds)
+      } catch let error {
+        er = error
       }
     }
   }
 
-  private func resume() {
-    var error: ErrorType?
+  fileprivate func resume() {
+    var error: Error?
     defer {
       if requestRequired {
         do { try request() } catch let er { done(er) }
@@ -310,21 +337,17 @@ private final class SuggestOperation: SearchRepoOperation {
         done(error)
       }
     }
-    guard let perFindGroupBlock = self.perFindGroupBlock else { return }
     let funs = [
       recentSearchesForTerm,
       suggestedFeedsForTerm,
       suggestedEntriesForTerm
     ]
     for f in funs {
-      if cancelled { return done() }
+      if isCancelled { return done() }
       do {
-        if let finds = try f(term, fromCache: cache, except: dispatched) {
+        if let finds = try f(term, cache, dispatched) {
           guard !finds.isEmpty else { return }
-          dispatch_async(target) {
-            perFindGroupBlock(nil, finds)
-          }
-          dispatched += finds
+          dispatch(nil, finds: finds)
         }
       } catch let er {
         return error = er
@@ -333,46 +356,38 @@ private final class SuggestOperation: SearchRepoOperation {
   }
 
   override func start() {
-    guard !cancelled else { return done() }
+    guard !isCancelled else { return done() }
     guard !term.isEmpty else {
-      return done(FeedKitError.InvalidSearchTerm(term: term))
+      return done(FeedKitError.invalidSearchTerm(term: term))
     }
-    executing = true
+    isExecuting = true
+
     do {
       guard let cb = self.perFindGroupBlock else { return resume() }
 
       let sug = Suggestion(term: originalTerm, ts: nil)
-      let original = Find.SuggestedTerm(sug)
+      let original = Find.suggestedTerm(sug)
 
       func dispatchOriginal() {
         let finds = [original]
-        // TODO: Review über correct dispatch block
-        dispatch_async(target) { [weak self] in
-          guard let me = self else { return }
-          guard !me.cancelled else { return }
-          guard let cb = me.perFindGroupBlock else { return }
-          cb(nil, finds)
-        }
-        dispatched += finds
+        dispatch(nil, finds: finds)
       }
 
       guard let cached = try cache.suggestionsForTerm(term, limit: 4) else {
         dispatchOriginal()
         return resume()
       }
-      if cancelled { return done() }
+      if isCancelled { return done() }
       // See timestamp comment in SearchOperation.
       guard let ts = cached.first?.ts else {
         dispatchOriginal()
         requestRequired = false
         return resume()
       }
-      if !stale(ts, ttl: CacheTTL.Long.seconds) {
-        let finds = [original] + cached.map { Find.SuggestedTerm($0) }
-        dispatch_async(target) {
-          cb(nil, finds)
-        }
-        dispatched += finds
+      
+      if !stale(ts, ttl: ttl.seconds) {
+        let finds = [original] + cached.map { Find.suggestedTerm($0) }
+        dispatch(nil, finds: finds)
         requestRequired = false
       } else {
         stock = cached
@@ -386,61 +401,88 @@ private final class SuggestOperation: SearchRepoOperation {
 
 /// The search repository provides a search API orchestrating remote services
 /// and persistent caching.
-public final class SearchRepository: Searching {
-
+public final class SearchRepository: RemoteRepository, Searching {
   let cache: SearchCaching
   let svc: FanboyService
-  let queue: NSOperationQueue
 
-  /// Initializes and returns search repository object.
+  /// Initialize and return a new search repository object.
   ///
-  /// - Parameter cache: The search cache.
-  /// - Parameter queue: An operation queue to run the search operations.
-  /// - Parameter svc: The fanboy service to handle remote queries.
-  public init(cache: SearchCaching, queue: NSOperationQueue, svc: FanboyService) {
+  /// - parameter cache: The search cache.
+  /// - parameter queue: An operation queue to run the search operations.
+  /// - parameter svc: The fanboy service to handle remote queries.
+  /// - parameter probe: The probe object to probe reachability.
+  public init(
+    cache: SearchCaching,
+    svc: FanboyService,
+    queue: OperationQueue,
+    probe: Reaching
+  ) {
     self.cache = cache
-    self.queue = queue
     self.svc = svc
+    
+    super.init(queue: queue, probe: probe)
+  }
+  
+  fileprivate func addOperation(_ op: SearchRepoOperation) -> Operation {
+    let r = reachable()
+    let term = op.term
+    let status = svc.client.status
+    
+    op.reachable = r
+    op.ttl = timeToLive(term, force: false, reachable: r, status: status)
+    
+    queue.addOperation(op)
+    
+    return op
   }
 
-  /// Search for feeds by term using a locally cached data requested from a
-  /// remote service. This method falls back on cached data, if the remote call
-  /// fails, the failure is reported by passing an error in the completion block.
+  /// Search for feeds by term using locally cached data requested from a remote
+  /// service. This method falls back on cached data if the remote call fails;
+  /// the failure is reported by passing an error in the completion block.
   ///
-  /// - Parameter term: The term to search for.
-  /// - Parameter perFindGroupBlock: The block to receive finds.
-  /// - Parameter searchCompletionBlock: The block to execute after the
-  ///   search is complete.
+  /// - parameter term: The term to search for.
+  /// - parameter perFindGroupBlock: The block to receive finds.
+  /// - parameter searchCompletionBlock: The block to execute after the search
+  /// is complete.
   public func search(
-    term: String,
-    perFindGroupBlock: (ErrorType?, [Find]) -> Void,
-    searchCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation {
-    let target = dispatch_get_main_queue()
-    let op = SearchOperation(cache: cache, svc: svc, term: term, target: target)
+    _ term: String,
+    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
+    searchCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation {
+    let op = SearchOperation(
+      cache: cache,
+      svc: svc,
+      term: term,
+      target: DispatchQueue.main
+    )
     op.perFindGroupBlock = perFindGroupBlock
     op.searchCompletionBlock = searchCompletionBlock
-    queue.addOperation(op)
-    return op
+
+    return addOperation(op)
   }
 
   /// Get lexicographical suggestions for a search term combining locally cached
   /// and remote data.
   ///
-  /// - Parameter term: The search term.
-  /// - Parameter perFindGroupBlock: The block to receive finds - called once
+  /// - parameter term: The term to search for.
+  /// - parameter perFindGroupBlock: The block to receive finds, called once
   ///   per find group as enumerated in `Find`.
-  /// - Parameter completionBlock: A block called when the operation has finished.
+  /// - parameter completionBlock: A block called when the operation has finished.
   public func suggest(
-    term: String,
-    perFindGroupBlock: (ErrorType?, [Find]) -> Void,
-    suggestCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation {
-    let target = dispatch_get_main_queue()
-    let op = SuggestOperation(cache: cache, svc: svc, term: term, target: target)
+    _ term: String,
+    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
+    suggestCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation {
+    let op = SuggestOperation(
+      cache: cache,
+      svc: svc,
+      term: term,
+      target: DispatchQueue.main
+    )
+    
     op.perFindGroupBlock = perFindGroupBlock
     op.suggestCompletionBlock = suggestCompletionBlock
-    queue.addOperation(op)
-    return op
+
+    return addOperation(op)
   }
 }

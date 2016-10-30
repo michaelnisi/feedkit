@@ -14,13 +14,13 @@ class UserEvents: UIDocument {
   
 }
 
-public class User: Queueing {  
-  private let browser: Browsing
+open class User: Queueing {  
+  fileprivate let browser: Browsing
   
-  public func entries(
-    entriesBlock: (ErrorType?, [Entry]) -> Void,
-    entriesCompletionBlock: (ErrorType?) -> Void
-  ) -> NSOperation {
+  open func entries(
+    _ entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation {
     
     let locators = [
       EntryLocator(
@@ -58,15 +58,15 @@ public class User: Queueing {
   /// 
   /// - Parameter entry: The entry to add to the queue.
   /// - Throws: Throws if the provided entry is already in the queue.
-  public func push(entry: Entry) throws {
-    throw FeedKitError.NIY
+  open func push(_ entry: Entry) throws {
+    throw FeedKitError.niy
   }
   
   /// Remove specified entry from the queue and dispatch a notification.
   ///
   /// - Parameter entry: The entry to remove from the queue.
   /// - Throws: Throws if the provided entry is not in the queue.
-  public func pop(entry: Entry) throws {
-    throw FeedKitError.NIY
+  open func pop(_ entry: Entry) throws {
+    throw FeedKitError.niy
   }
 }

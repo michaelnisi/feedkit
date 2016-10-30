@@ -7,7 +7,9 @@
 //
 
 import XCTest
+
 @testable import FeedKit
+@testable import Skull
 
 class SQLTests: XCTestCase {
   var formatter: SQLFormatter!
@@ -22,8 +24,95 @@ class SQLTests: XCTestCase {
     let wanted = "'abc''d'"
     XCTAssertEqual(found, wanted)
   }
-
-  // MARK: Suggestions
+  
+  func skullColumn(_ name: String, value: Any) -> SkullColumn<Any> {
+    return SkullColumn(name: name, value: value)
+  }
+  
+  func skullRow(_ keys: [String]) -> SkullRow {
+    var row = SkullRow()
+    for key in keys {
+      let col = skullColumn(key, value: key)
+      row[col.name] = col.value
+    }
+    return row
+  }
+  
+  func testFeedImagesFromRow() {
+    let keys = ["img", "img100", "img30", "img60", "img600"]
+    let row = skullRow(keys)
+    
+    let images = formatter.feedImagesFromRow(row)
+    
+    XCTAssertEqual(images.img, "img")
+    XCTAssertEqual(images.img100, "img100")
+    XCTAssertEqual(images.img30, "img30")
+    XCTAssertEqual(images.img60, "img60")
+    XCTAssertEqual(images.img600, "img600")
+  }
+  
+  func testFeedFromRow() {
+    let keys = [
+      "img", "img100", "img30", "img60", "img600", "author", "link", "summary",
+      "title", "updated", "url"
+    ]
+    var row = skullRow(keys)
+    
+    row["guid"] = 0
+    row["uid"] = 0
+    row["ts"] = "2016-06-06 06:00:00"
+    
+    let found = try! formatter.feedFromRow(row)
+    
+    let images = FeedImages(
+      img: "img",
+      img100: "img100",
+      img30: "img30",
+      img60: "img60",
+      img600: "img600"
+    )
+    let wanted = Feed(
+      author: "author",
+      iTunesGuid: 0,
+      images: images,
+      link: "link",
+      summary: "summary",
+      title: "title",
+      ts: Date(timeIntervalSince1970: 1465192800),
+      uid: 0,
+      updated: nil,
+      url: "url"
+    )
+    
+    XCTAssertEqual(found, wanted)
+    
+    XCTAssertEqual(found.author, wanted.author)
+    XCTAssertEqual(found.iTunesGuid, wanted.iTunesGuid)
+    XCTAssertEqual(found.link, wanted.link)
+    XCTAssertEqual(found.summary, wanted.summary)
+    XCTAssertEqual(found.title, wanted.title)
+    XCTAssertEqual(found.ts, wanted.ts)
+    XCTAssertEqual(found.uid, wanted.uid)
+    XCTAssertEqual(found.updated, wanted.updated)
+    XCTAssertEqual(found.url, wanted.url)
+  }
+  
+  func testNow() {
+    let dateFormat = "yyyy-MM-dd HH:mm:ss"
+    let found = formatter.now()
+    let length = found.lengthOfBytes(using: String.Encoding.utf8)
+    XCTAssertEqual(length, dateFormat.lengthOfBytes(using: String.Encoding.utf8))
+  }
+  
+  func testDateFromString() {
+    XCTAssertNil(formatter.dateFromString(nil))
+    XCTAssertNil(formatter.dateFromString(""))
+    XCTAssertNil(formatter.dateFromString("hello"))
+    
+    let found = formatter.dateFromString("2016-06-06 06:00:00")
+    let wanted = Date(timeIntervalSince1970: 1465192800)
+    XCTAssertEqual(found, wanted)
+  }
 
   func testSQLToInsertSuggestionForTerm() {
     let found = SQLToInsertSuggestionForTerm("abc")
@@ -50,21 +139,25 @@ class SQLTests: XCTestCase {
     "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
     XCTAssertEqual(found, wanted)
   }
-
-  // MARK: Entries
+  
+  func testSQLToSelectEntryByGUID() {
+    let found = SQLToSelectEntryByGUID("abc")
+    let wanted = "SELECT * FROM entry_view WHERE guid = 'abc';"
+    XCTAssertEqual(found, wanted)
+  }
 
   func testSQLToSelectEntriesByIntervals() {
     let f = formatter.SQLToSelectEntriesByIntervals
     XCTAssertNil(f([]))
     let findings = [
-      f([(1, NSDate(timeIntervalSince1970: 0))]),
-      f([(1, NSDate(timeIntervalSince1970: 0)), (2, NSDate(timeIntervalSince1970: 3600))])
+      f([(1, Date(timeIntervalSince1970: 0))]),
+      f([(1, Date(timeIntervalSince1970: 0)), (2, Date(timeIntervalSince1970: 3600))])
     ]
     let wantings = [
       "SELECT * FROM entry_view WHERE feedid = 1 AND updated > '1970-01-01 00:00:00' ORDER BY feedid, updated;",
       "SELECT * FROM entry_view WHERE feedid = 1 AND updated > '1970-01-01 00:00:00' OR feedid = 2 AND updated > '1970-01-01 01:00:00' ORDER BY feedid, updated;"
     ]
-    for (i, wanted) in wantings.enumerate() {
+    for (i, wanted) in wantings.enumerated() {
       let found = findings[i]
       XCTAssertEqual(found, wanted)
     }
@@ -86,7 +179,7 @@ class SQLTests: XCTestCase {
         "SELECT * FROM \(table) WHERE uid = 1;",
         "SELECT * FROM \(table) WHERE uid = 1 OR uid = 2 OR uid = 3;"
       ]
-      for (i, wanted) in wantings.enumerate() {
+      for (i, wanted) in wantings.enumerated() {
         let found = findings[i]
         XCTAssertEqual(found, wanted)
       }
@@ -104,7 +197,7 @@ class SQLTests: XCTestCase {
       "DELETE FROM feed WHERE rowid IN(1);",
       "DELETE FROM feed WHERE rowid IN(1, 2, 3);"
     ]
-    for (i, wanted) in wantings.enumerate() {
+    for (i, wanted) in wantings.enumerated() {
       let found = findings[i]
       XCTAssertEqual(found, wanted)
     }
@@ -150,7 +243,7 @@ class SQLTests: XCTestCase {
       "SELECT * FROM entry_view WHERE uid IN (" +
       "SELECT rowid FROM entry_fts " +
       "WHERE entry_fts MATCH 'abc*') " +
-      "ORDER BY ts DESC " +
+      "ORDER BY updated DESC " +
       "LIMIT 3;"
     XCTAssertEqual(found, wanted)
   }
@@ -162,7 +255,8 @@ class SQLTests: XCTestCase {
   }
 
   func testSQLFormatter() {
-    let f = formatter.stringFromAnyObject
+    let f = formatter.stringFromAny
+    let other = NSObject()
     let found = [
       f(nil),
       f("hello"),
@@ -170,7 +264,9 @@ class SQLTests: XCTestCase {
       f(0),
       f(1),
       f(2.1),
-      f(NSDate.init(timeIntervalSince1970: 0))
+      f(Date.init(timeIntervalSince1970: 0)),
+      f(URL(string: "http://google.com")),
+      f(other)
     ]
     let wanted = [
       "NULL",
@@ -179,9 +275,11 @@ class SQLTests: XCTestCase {
       "0",
       "1",
       "2.1",
-      "'1970-01-01 00:00:00'"
+      "'1970-01-01 00:00:00'",
+      "'http://google.com'",
+      "NULL"
     ]
-    for (i, wantedString) in wanted.enumerate() {
+    for (i, wantedString) in wanted.enumerated() {
       let foundString = found[i]
       XCTAssertEqual(foundString, wantedString)
     }
