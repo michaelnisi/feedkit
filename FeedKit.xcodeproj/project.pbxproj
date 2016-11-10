@@ -28,11 +28,11 @@
 		4CE82D541D19D91D000B36FC /* FeedRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D302F1BCA3FCD00F5171F /* FeedRepositoryTests.swift */; };
 		4CE82D551D19D92A000B36FC /* SearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */; };
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
-		4CFCAEBB1DC09B2E004C975F /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD28D3F1DC096CD007687B5 /* FanboyKit.framework */; };
-		4CFCAEBD1DC09B46004C975F /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CFCAEBC1DC09B46004C975F /* MangerKit.framework */; };
-		4CFCAEBF1DC09B50004C975F /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CFCAEBE1DC09B50004C975F /* Ola.framework */; };
-		4CFCAEC21DC09B81004C975F /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CD28D421DC096CD007687B5 /* Skull.framework */; };
-		4CFCAEC91DC1AEC2004C975F /* Patron.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CFCAEC81DC1AEC2004C975F /* Patron.framework */; };
+		4E0CF69A1DCB3512005E01F9 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */; };
+		4E0CF69B1DCB3512005E01F9 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6961DCB3512005E01F9 /* MangerKit.framework */; };
+		4E0CF69C1DCB3512005E01F9 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6971DCB3512005E01F9 /* Ola.framework */; };
+		4E0CF69D1DCB3512005E01F9 /* Patron.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6981DCB3512005E01F9 /* Patron.framework */; };
+		4E0CF69E1DCB3512005E01F9 /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6991DCB3512005E01F9 /* Skull.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -87,6 +87,11 @@
 		4CFCAEC31DC13851004C975F /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		4CFCAEC51DC138EB004C975F /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		4CFCAEC81DC1AEC2004C975F /* Patron.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Patron.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Patron.framework"; sourceTree = "<group>"; };
+		4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/FanboyKit.framework"; sourceTree = "<group>"; };
+		4E0CF6961DCB3512005E01F9 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/MangerKit.framework"; sourceTree = "<group>"; };
+		4E0CF6971DCB3512005E01F9 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Ola.framework"; sourceTree = "<group>"; };
+		4E0CF6981DCB3512005E01F9 /* Patron.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Patron.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Patron.framework"; sourceTree = "<group>"; };
+		4E0CF6991DCB3512005E01F9 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Skull.framework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,11 +99,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4CFCAEC91DC1AEC2004C975F /* Patron.framework in Frameworks */,
-				4CFCAEC21DC09B81004C975F /* Skull.framework in Frameworks */,
-				4CFCAEBF1DC09B50004C975F /* Ola.framework in Frameworks */,
-				4CFCAEBD1DC09B46004C975F /* MangerKit.framework in Frameworks */,
-				4CFCAEBB1DC09B2E004C975F /* FanboyKit.framework in Frameworks */,
+				4E0CF69A1DCB3512005E01F9 /* FanboyKit.framework in Frameworks */,
+				4E0CF69B1DCB3512005E01F9 /* MangerKit.framework in Frameworks */,
+				4E0CF69C1DCB3512005E01F9 /* Ola.framework in Frameworks */,
+				4E0CF69D1DCB3512005E01F9 /* Patron.framework in Frameworks */,
+				4E0CF69E1DCB3512005E01F9 /* Skull.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -186,6 +191,11 @@
 		4CD28D3E1DC096CC007687B5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */,
+				4E0CF6961DCB3512005E01F9 /* MangerKit.framework */,
+				4E0CF6971DCB3512005E01F9 /* Ola.framework */,
+				4E0CF6981DCB3512005E01F9 /* Patron.framework */,
+				4E0CF6991DCB3512005E01F9 /* Skull.framework */,
 				4CFCAEC81DC1AEC2004C975F /* Patron.framework */,
 				4CFCAEC51DC138EB004C975F /* SystemConfiguration.framework */,
 				4CFCAEC31DC13851004C975F /* Security.framework */,
