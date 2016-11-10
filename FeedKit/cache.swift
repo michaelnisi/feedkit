@@ -14,7 +14,8 @@ import Skull
 ///
 /// - parameter ts: The timestamp to check if it's older than the specified ttl.
 /// - parameter ttl: The maximal age to allow.
-/// - Returns: True if the timestamp is older than the maximal age.
+///
+/// - returns: True if the timestamp is older than the maximal age.
 func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
   return ts.timeIntervalSinceNow + ttl < 0
 }
@@ -23,7 +24,8 @@ func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
 ///
 /// - parameter items: The cachable items of which to locate the median.
 /// - parameter sorting: To skip the sorting but lose warranty of correctness.
-/// - Returns: The median timestamp of these cachable items; or nil, if you pass
+///
+/// - returns: The median timestamp of these cachable items; or nil, if you pass
 /// an empty array.
 func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
   guard !items.isEmpty else { return nil }
@@ -61,22 +63,6 @@ public final class Cache {
   // TODO: Wrap access to feedIDsCache
   fileprivate var feedIDsCache = NSCache<AnyObject, AnyObject>()
 
-  fileprivate func remove() throws {
-    var error: Error?
-    let url = self.url
-    queue.sync {
-      do {
-        let fm = FileManager.default
-        try fm.removeItem(at: url!)
-      } catch let er {
-        error = er
-      }
-    }
-    if let er = error {
-      throw er
-    }
-  }
-
   fileprivate func open() throws {
     var error: Error?
 
@@ -100,9 +86,7 @@ public final class Cache {
   ///
   /// - parameter schema: The path of the database schema file.
   /// - parameter url: The file URL of the database to use—and create if necessary.
-  /// - parameter rm: An optional flag for development indicating you want to
-  ///   replace an eventually already existing database file.
-  public init(schema: String, url: URL?, rm: Bool? = false) throws {
+  public init(schema: String, url: URL?) throws {
     self.schema = schema
     self.url = url
 
@@ -110,8 +94,6 @@ public final class Cache {
     self.db = try Skull(url)
     self.queue = DispatchQueue(label: "ink.codes.feedkit.cache", attributes: [])
     self.sqlFormatter = SQLFormatter()
-
-    if url != nil && rm! { try remove() }
 
     try open()
   }
