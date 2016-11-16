@@ -202,7 +202,7 @@ func entryFromDictionary (
   let guid = entryGUID(feed, id: id, updated: updated)
 
   let author = dict["author"] as? String
-  let duration = dict["duration"] as? String
+  let duration = dict["duration"] as? Int
   let img = dict["image"] as? String
   let link = dict["link"] as? String
   let subtitle = dict["subtitle"] as? String

@@ -101,7 +101,7 @@ func entryWithName(_ name: String) throws -> Entry {
       return Entry(
         author: "Daring Fireball / John Gruber",
         enclosure: enclosure,
-        duration: "02:33:05",
+        duration: 9185,
         feed: feed,
         feedTitle: nil,
         guid: guid,

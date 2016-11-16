@@ -156,7 +156,7 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
 public struct Entry : Equatable {
   public let author: String?
   public let enclosure: Enclosure?
-  public let duration: String?
+  public let duration: Int?
   public let feed: String
   public let feedTitle: String? // convenience
   public let guid: String

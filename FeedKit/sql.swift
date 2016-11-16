@@ -326,7 +326,7 @@ final class SQLFormatter {
   func entryFromRow(_ row: SkullRow) throws -> Entry {
     let author = row["author"] as? String
     let enclosure = try enclosureFromRow(row)
-    let duration = row["duration"] as? String
+    let duration = row["duration"] as? Int
     let feed = row["feed"] as! String
     let feedTitle = row["feed_title"] as! String
     let guid = row["guid"] as! String

@@ -97,7 +97,7 @@ from feed f;
 
 create table if not exists entry(
   author text,
-  duration text,
+  duration int,
   feedid int not null,
   guid text not null unique,
   id text,
