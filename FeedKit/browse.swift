@@ -297,6 +297,11 @@ final class EntriesOperation: BrowseOperation {
         }
         self.done()
       } catch FeedKitError.feedNotCached {
+        
+        // TODO: Investigate fatal error
+        //
+        // Failing to load the queue, I ran into this.
+        
         fatalError("feedkit: cannot update entries of uncached feeds")
       } catch let er {
         self.done(er)

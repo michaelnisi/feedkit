@@ -10,6 +10,8 @@ import Foundation
 
 // TODO: Persist locators
 
+// TODO: Provide latest entry in user
+
 class UserEvents: UIDocument {
   
 }
