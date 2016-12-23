@@ -129,11 +129,13 @@ func feedsFromCache(
 /// segregated into cached entries, stale entries (an empty array apparently),
 /// and URLs of stale or not yet cached feeds, to the resulting tuple.
 ///
-/// - Parameter cache: The cache object to retrieve entries from.
-/// - Parameter locators: The selection of entries to fetch.
-/// - Parameter ttl: The maximum age of entries to use.
-/// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
-/// - Throws: Might throw database errors.
+/// - parameter cache: The cache object to retrieve entries from.
+/// - parameter locators: The selection of entries to fetch.
+/// - parameter ttl: The maximum age of entries to use.
+///
+/// - returns: A tuple of cached entries and URLs not satisfied by the cache.
+///
+/// - throws: Might throw database errors.
 func entriesFromCache(
   _ cache: FeedCaching,
   locators: [EntryLocator],
@@ -158,6 +160,11 @@ func entriesFromCache(
   let t = subtractItems(items, fromURLs: urls, withTTL: ttl)
   let (cached, stale, needed) = t
   assert(stale.isEmpty, "entries cannot be stale")
+  
+  // TODO: Investigate issue with getting specific entries
+  //
+  // After substraction, in some cases, all entries of a feed are included, 
+  // even if the user asked for a specific entry.
   
   return (cached, needed)
 }
@@ -286,7 +293,7 @@ final class EntriesOperation: BrowseOperation {
         // in the hopes that SQLite is fast enough.
         
         let (cached, urls) = try entriesFromCache(c, locators: l, ttl: FOREVER)
-        assert(urls == nil)
+        assert(urls == nil, "TODO: Handle URLs")
         
         let entries = cached.filter() { entry in
           !dispatched.contains(entry)
@@ -564,7 +571,7 @@ public final class FeedRepository: RemoteRepository, Browsing {
 
     return op
   }
-
+  
   /// Get entries for the given locators aggregating local and remote data.
   ///
   /// Locators provide a feed URL, a moment in the past, and an optional guid.
@@ -582,15 +589,16 @@ public final class FeedRepository: RemoteRepository, Browsing {
   /// and might end up skipping requested entries. This is made transparent by
   /// an error passed to the entries completion block.
   ///
-  /// - Parameter locators: The locators for the entries to request.
-  /// - Parameter force: Force remote request ignoring the cache. As this
+  /// - parameter locators: The locators for the entries to request.
+  /// - parameter force: Force remote request ignoring the cache. As this
   /// produces load on the server, it is limited to once per hour per feed. If 
   /// you pass multiple locators, the force parameter is ignored.
-  /// - Parameter entriesBlock: Applied zero, one, or two times passing fetched
+  /// - parameter entriesBlock: Applied zero, one, or two times passing fetched
   /// and/or cached entries. The error is currently not in use.
-  /// - Parameter entriesCompletionBlock: The completion block is applied when
+  /// - parameter entriesCompletionBlock: The completion block is applied when
   /// all entries have been dispatched.
-  /// - Returns: The executing operation.
+  ///
+  /// - returns: The executing operation.
   public func entries(
     _ locators: [EntryLocator],
     force: Bool,

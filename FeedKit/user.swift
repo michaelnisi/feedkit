@@ -34,8 +34,8 @@ open class User: Queueing {
         guid: "d99ae604b5233b5072d4411153b28736"
       ),
       EntryLocator(
-        url: "http://feeds.metaebene.me/cre/m4a",
-        guid: "90c6f7ec8226c2dc1190bf1509f9b8f8"
+        url: "https://feeds.metaebene.me/cre/m4a",
+        guid: "0289b89e6d29d2cb70d76686efb58cc5"
       ),
       EntryLocator(
         url: "http://nightvale.libsyn.com/rss",
