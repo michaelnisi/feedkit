@@ -161,10 +161,14 @@ func entriesFromCache(
   let (cached, stale, needed) = t
   assert(stale.isEmpty, "entries cannot be stale")
   
-  // TODO: Investigate issue with getting specific entries
+  // TODO: Handle unresolved entry guids
   //
-  // After substraction, in some cases, all entries of a feed are included, 
-  // even if the user asked for a specific entry.
+  // At the moment, if a guid isn’t found, it is just silently ignored. 
+  // However, we should communicate this to the user of this function.
+  
+  guard guids.isEmpty else {
+    return (cached.filter { guids.contains($0.guid) }, needed)
+  }
   
   return (cached, needed)
 }
