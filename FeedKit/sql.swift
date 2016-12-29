@@ -9,6 +9,8 @@
 import Foundation
 import Skull
 
+// TODO: Store enclosures in extra table
+
 // TODO: Complete last eight percent of test coverage
 
 // TODO: Review map functions regarding limits
@@ -203,8 +205,7 @@ final class SQLFormatter {
     let author = stringFromAny(entry.author as AnyObject?)
     let duration = stringFromAny(entry.duration as AnyObject?)
     let feedid = stringFromAny(feedID as AnyObject?)
-    let guid = SQLStringFromString(entry.guid)
-    let id = stringFromAny(entry.id as AnyObject?)
+    let guid = SQLStringFromString(entry.guid) // TODO: Review
     let img = stringFromAny(entry.img as AnyObject?)
     let length = stringFromAny(entry.enclosure?.length as AnyObject?)
     let link = stringFromAny(entry.link as AnyObject?)
@@ -218,9 +219,9 @@ final class SQLFormatter {
 
     let sql =
     "INSERT OR REPLACE INTO entry(" +
-    "author, duration, feedid, guid, id, img, length, " +
+    "author, duration, feedid, guid, img, length, " +
     "link, subtitle, summary, title, type, updated, url) VALUES(" +
-    "\(author), \(duration), \(feedid), \(guid), \(id), \(img), \(length), " +
+    "\(author), \(duration), \(feedid), \(guid), \(img), \(length), " +
     "\(link), \(subtitle), \(summary), \(title), \(type), \(updated), \(url)" +
     ");"
     return sql
@@ -330,7 +331,6 @@ final class SQLFormatter {
     let feed = row["feed"] as! String
     let feedTitle = row["feed_title"] as! String
     let guid = row["guid"] as! String
-    let id = row["id"] as! String
     let img = row["img"] as? String
     let link = row["link"] as? String
     let subtitle = row["subtitle"] as? String
@@ -349,7 +349,6 @@ final class SQLFormatter {
       feed: feed,
       feedTitle: feedTitle,
       guid: guid,
-      id: id,
       img: img,
       link: link,
       subtitle: subtitle,

@@ -100,7 +100,6 @@ create table if not exists entry(
   duration int,
   feedid int not null,
   guid text not null unique,
-  id text,
   img text,
   length int,
   link text,
@@ -112,6 +111,8 @@ create table if not exists entry(
   updated datetime,
   url text
 );
+
+create unique index if not exists entry_guid_idx on entry(guid);
 
 create virtual table if not exists entry_fts using fts4(
   content="entry",
@@ -155,7 +156,6 @@ as select
   e.author,
   e.duration,
   e.guid,
-  e.id,
   e.img,
   e.length,
   e.link,

@@ -76,6 +76,8 @@ func entriesFromFileAtURL(_ url: URL) throws -> [Entry] {
   return entries
 }
 
+// TODO: Use realistic guids in all tests
+
 /// A newly created entry specified by name.
 /// 
 /// - Parameter name: An arbitary name making sense in the test domain.
@@ -85,7 +87,6 @@ func entryWithName(_ name: String) throws -> Entry {
   switch name {
     case "thetalkshow":
       let feed = "http://daringfireball.net/thetalkshow/rss"
-      let id = "http://daringfireball.net/thetalkshow/2015/10/17/ep-133"
       let link = "http://daringfireball.net/thetalkshow/2015/10/17/ep-133"
       
       let enclosure = Enclosure(
@@ -96,7 +97,7 @@ func entryWithName(_ name: String) throws -> Entry {
       
       let updated = Date(timeIntervalSince1970: 1445110501000 / 1000)
       
-      let guid = entryGUID(feed, id: id, updated: updated)
+      let guid = "50bb10f55718dc056a4a3cab4e4af2e39e0e6745b8d52687c7f12ce04d7d60c1"
       
       return Entry(
         author: "Daring Fireball / John Gruber",
@@ -105,7 +106,6 @@ func entryWithName(_ name: String) throws -> Entry {
         feed: feed,
         feedTitle: nil,
         guid: guid,
-        id: id,
         img: "http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png,",
         link: link,
         subtitle: "Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.",

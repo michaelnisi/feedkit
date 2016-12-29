@@ -26,20 +26,8 @@ open class User: Queueing {
     
     let locators = [
       EntryLocator(
-        url: "http://rss.acast.com/anotherround",
-        guid: "ee535b0aace2c176982a7166cf08e659"
-      ),
-      EntryLocator(
         url: "http://daringfireball.net/thetalkshow/rss",
-        guid: "d99ae604b5233b5072d4411153b28736"
-      ),
-      EntryLocator(
-        url: "https://feeds.metaebene.me/cre/m4a",
-        guid: "0289b89e6d29d2cb70d76686efb58cc5"
-      ),
-      EntryLocator(
-        url: "http://nightvale.libsyn.com/rss",
-        guid: "b2136edf27854dd9e698107b7b1dcc2f"
+        guid: "7a87d59176a5564a86773410f90525eba60eaa32"
       )
     ]
     return browser.entries(

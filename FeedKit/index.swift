@@ -160,10 +160,6 @@ public struct Entry : Equatable {
   public let feed: String
   public let feedTitle: String? // convenience
   public let guid: String
-  
-  // TODO: Make id optional
-  public let id: String
-  
   public let img: String?
   public let link: String?
   public let subtitle: String?
@@ -192,6 +188,7 @@ public func ==(lhs: Entry, rhs: Entry) -> Bool {
 /// Entry locators identify a specific entry using the GUID, or skirt intervals
 /// of entries from a specific feed.
 public struct EntryLocator : Equatable {
+  
   public let url: String
   public let since: Date
   public let guid: String?

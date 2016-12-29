@@ -375,7 +375,7 @@ class FeedRepositoryTests: XCTestCase {
       XCTAssertNil(er)
       let url = entry!.feed
       let guid = entry!.guid
-      XCTAssertEqual(guid, entryGUID(url, id: entry!.id, updated: entry!.updated))
+      XCTAssertEqual(guid, "d603394f7083968191d8d2660871f9e80535e4fd")
       let since = Date(timeInterval: -1, since: entry!.updated)
       print(url)
       let locators = [

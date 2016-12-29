@@ -152,23 +152,7 @@ func enclosureFromDictionary (_ dict: [String : Any]) throws -> Enclosure? {
   )
 }
 
-// TODO: Identify entries without relying on their id property
-//
-// Not all entries have ids. How can we still identify them?
-
-/// An artifical string to globally identify an entry.
-///
-/// But remember that to restore an entry from thin air you'd additionally need
-/// its feed URL. And even then it cannot be guranteed that you'd get the entry,
-/// because the might not contain the specific entry you are looking for. Feeds
-/// commonly limit the number of items they contain. In such a case, if the
-/// entry cannot be found in the local or remote caches, we'd be out of luck.
-func entryGUID(_ feed: String, id: String, updated: Date) -> String {
-  // TODO: Remove meaningless separator
-  // or replace with @@
-  let str = "\(feed)%\(id)%\(updated.timeIntervalSince1970)"
-  return md5Digest(str)
-}
+// TODO: Update documentation
 
 /// Tries to create and return an entry from the specified dictionary.
 ///
@@ -192,14 +176,12 @@ func entryFromDictionary (
   guard let title = dict["title"] as? String else {
     throw FeedKitError.invalidEntry(reason: "missing title: \(feed)")
   }
-  guard let id = dict["id"] as? String else {
+  guard let guid = dict["id"] as? String else {
     throw FeedKitError.invalidEntry(reason: "missing id: \(feed)")
   }
 
   let updated = date(fromDictionary: dict, withKey: "updated") ??
     Date(timeIntervalSince1970: 0)
-
-  let guid = entryGUID(feed, id: id, updated: updated)
 
   let author = dict["author"] as? String
   let duration = dict["duration"] as? Int
@@ -226,7 +208,6 @@ func entryFromDictionary (
     feed: feed,
     feedTitle: nil,
     guid: guid,
-    id: id,
     img: img,
     link: link,
     subtitle: subtitle,

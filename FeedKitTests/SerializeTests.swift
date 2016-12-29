@@ -137,17 +137,16 @@ class SerializeTests: XCTestCase {
   fileprivate func dictAndEntry() -> ([String : Any], Entry) {
     let feed = "abc"
     let title = "Giant Robots"
-    let id = "abc:def"
     let updated = Date(timeIntervalSince1970: 3600)
     
     let dict = [
       "feed": feed,
+      "id": "50bb10f55718dc056a4a3cab4e4af2e39e0e6745b8d52687c7f12ce04d7d60c1",
       "title": title,
-      "id": id,
       "updated": NSNumber(value: 3600000 as Double) // ms
     ] as [String : Any]
     
-    let guid = entryGUID(feed, id: id, updated: updated)
+    let guid = "50bb10f55718dc056a4a3cab4e4af2e39e0e6745b8d52687c7f12ce04d7d60c1"
     
     let entry = Entry(
       author: nil,
@@ -156,7 +155,6 @@ class SerializeTests: XCTestCase {
       feed: feed,
       feedTitle: nil,
       guid: guid,
-      id: id,
       img: nil,
       link: nil,
       subtitle: nil,

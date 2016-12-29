@@ -168,7 +168,6 @@ class CacheTests: XCTestCase {
       XCTAssertEqual(foundEntry.enclosure, wantedEntry.enclosure)
       XCTAssertEqual(foundEntry.feed, wantedEntry.feed)
       XCTAssertNotNil(foundEntry.guid, "should have guid (from caching)")
-      XCTAssertEqual(foundEntry.id, wantedEntry.id)
       XCTAssertEqual(foundEntry.img, wantedEntry.img)
       XCTAssertEqual(foundEntry.link, wantedEntry.link)
       XCTAssertEqual(foundEntry.subtitle, wantedEntry.subtitle)
@@ -202,7 +201,6 @@ class CacheTests: XCTestCase {
   func testEntriesWithGUIDs() {
     let (_, entries) = try! populate()
     for entry in entries {
-      XCTAssertNotNil(entry.id)
       XCTAssertNotNil(entry.guid)
     }
     let guids = entries.map { $0.guid }
