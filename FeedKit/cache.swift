@@ -253,7 +253,8 @@ extension Cache: FeedCaching {
   /// Update entries in the cache inserting new ones.
   ///
   /// - parameter entries: An array of entries to be cached.
-  /// - Throws: You cannot update entries of feeds that are not cached yet,
+  ///
+  /// - throws: You cannot update entries of feeds that are not cached yet,
   /// if you do, this method will throw `FeedKitError.FeedNotCached`,
   /// containing the respective URLs.
   public func updateEntries(_ entries: [Entry]) throws {

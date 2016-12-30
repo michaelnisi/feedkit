@@ -97,7 +97,7 @@ func entryWithName(_ name: String) throws -> Entry {
       
       let updated = Date(timeIntervalSince1970: 1445110501000 / 1000)
       
-      let guid = "50bb10f55718dc056a4a3cab4e4af2e39e0e6745b8d52687c7f12ce04d7d60c1"
+      let guid = "c596b134310d499b13651fed64597de2c9931179"
       
       return Entry(
         author: "Daring Fireball / John Gruber",

@@ -307,13 +307,11 @@ final class EntriesOperation: BrowseOperation {
           cb(nil, entries)
         }
         self.done()
-      } catch FeedKitError.feedNotCached {
+      } catch FeedKitError.feedNotCached(let er) {
         
-        // TODO: Investigate fatal error
-        //
-        // Failing to load the queue, I ran into this.
+        // TODO: Handle case where search provides an invalid feed URL
         
-        fatalError("feedkit: cannot update entries of uncached feeds")
+        fatalError("\(er)")
       } catch let er {
         self.done(er)
       }

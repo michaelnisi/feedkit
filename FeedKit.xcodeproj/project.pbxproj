@@ -17,7 +17,6 @@
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CA3D3201A89EC4400CA58E9 /* SerializeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
-		4CD9A6D11C849B18001CC2AB /* crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD9A6D01C849B18001CC2AB /* crypto.swift */; };
 		4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594A1BDF4E8B00EA7780 /* sql.swift */; };
 		4CDA59541BE6931900EA7780 /* feed_query.json in Resources */ = {isa = PBXBuildFile; fileRef = 4CDA59531BE6931900EA7780 /* feed_query.json */; };
 		4CDA59581BE69AC200EA7780 /* entries.json in Resources */ = {isa = PBXBuildFile; fileRef = 4CDA59571BE69AC200EA7780 /* entries.json */; };
@@ -74,7 +73,6 @@
 		4CD28D401DC096CD007687B5 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/MangerKit.framework"; sourceTree = "<group>"; };
 		4CD28D411DC096CD007687B5 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Ola.framework"; sourceTree = "<group>"; };
 		4CD28D421DC096CD007687B5 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Skull.framework"; sourceTree = "<group>"; };
-		4CD9A6D01C849B18001CC2AB /* crypto.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = crypto.swift; sourceTree = "<group>"; };
 		4CDA594A1BDF4E8B00EA7780 /* sql.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = sql.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		4CDA594D1BE340AB00EA7780 /* SQLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SQLTests.swift; sourceTree = "<group>"; };
 		4CDA59531BE6931900EA7780 /* feed_query.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feed_query.json; sourceTree = "<group>"; };
@@ -147,7 +145,6 @@
 				4CCC8C981C0598F100120D07 /* search.swift */,
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
 				4CDA594A1BDF4E8B00EA7780 /* sql.swift */,
-				4CD9A6D01C849B18001CC2AB /* crypto.swift */,
 				4C3485981977C236008A6B53 /* Supporting Files */,
 			);
 			path = FeedKit;
@@ -347,7 +344,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4CD9A6D11C849B18001CC2AB /* crypto.swift in Sources */,
 				4C0549D51A8BDD5700104B3E /* browse.swift in Sources */,
 				4C372BF91A08133F00D22A9A /* cache.swift in Sources */,
 				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,

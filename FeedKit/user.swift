@@ -28,6 +28,14 @@ open class User: Queueing {
       EntryLocator(
         url: "http://daringfireball.net/thetalkshow/rss",
         guid: "7a87d59176a5564a86773410f90525eba60eaa32"
+      ),
+      EntryLocator(
+        url: "http://feeds.wnyc.org/newyorkerradiohour",
+        guid: "d603394f7083968191d8d2660871f9e80535e4fd"
+      ),
+      EntryLocator(
+        url: "http://feeds.gimletmedia.com/hearreplyal",
+        guid: "0282d828ba6c02cb5dda7bbb89a6558f22b4531d"
       )
     ]
     return browser.entries(
