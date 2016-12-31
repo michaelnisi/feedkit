@@ -34,7 +34,7 @@ open class User: Queueing {
         guid: "d603394f7083968191d8d2660871f9e80535e4fd"
       ),
       EntryLocator(
-        url: "http://feeds.gimletmedia.com/hearreplyal",
+        url: "http://feeds.gimletmedia.com/hearreplyall",
         guid: "0282d828ba6c02cb5dda7bbb89a6558f22b4531d"
       )
     ]

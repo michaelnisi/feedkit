@@ -216,7 +216,7 @@ public struct EntryLocator : Equatable {
 
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
-    return "EntryLocator: \(url) since: \(since) guid: \(guid)"
+    return "EntryLocator: { url: \(url), guid: \(guid), since: \(since) }"
   }
 }
 

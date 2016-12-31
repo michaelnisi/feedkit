@@ -311,7 +311,7 @@ final class EntriesOperation: BrowseOperation {
         
         // TODO: Handle case where search provides an invalid feed URL
         
-        fatalError("\(er)")
+        fatalError("feed not cached: \(er)")
       } catch let er {
         self.done(er)
       }
@@ -520,10 +520,10 @@ public final class FeedRepository: RemoteRepository, Browsing {
 
   /// Initialize and return a new feed repository.
   ///
-  /// - Parameter cache: The feed cache to use.
-  /// - Parameter svc: The remote service.
-  /// - Parameter queue: The queue to execute this repository's operations.
-  /// - Parameter probe: A reachability probe.
+  /// - parameter cache: The feed cache to use.
+  /// - parameter svc: The remote service.
+  /// - parameter queue: The queue to execute this repository's operations.
+  /// - parameter probe: A reachability probe to check this service.
   public init(
     cache: FeedCaching,
     svc: MangerService,
@@ -631,10 +631,12 @@ public final class FeedRepository: RemoteRepository, Browsing {
     op.ttl = ttl
     op.reachable = r
     
-    // We have to get the according feeds before we can request their entries,
+    // We have to get the according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds. Providing a place to 
     // composite operations, like this, is an advantage of interposing
     // repositories.
+    
+    // TODO: Handle redirects
 
     let urls = locators.map { $0.url }
 
