@@ -367,33 +367,21 @@ class FeedRepositoryTests: XCTestCase {
   func testEntriesWithGuid() {
     let exp = self.expectation(description: "entries")
     let repo = self.repo!
-    var entry: Entry?
-    let _ = repo.entries(locators, entriesBlock: { error, entries in
-      XCTAssertNil(error)
-      entry = entries.last // any should do
+    
+    let url = "http://feeds.wnyc.org/newyorkerradiohour"
+    let guid = "d603394f7083968191d8d2660871f9e80535e4fd"
+    let locators = [EntryLocator(url: url, guid: guid)]
+    
+    var found: Entry?
+    
+    let _ = repo.entries(locators, entriesBlock: { er, entries in
+      XCTAssertNil(er)
+      XCTAssertEqual(entries.count, 1)
+      found = entries.first!
     }) { er in
       XCTAssertNil(er)
-      let url = entry!.feed
-      let guid = entry!.guid
-      XCTAssertEqual(guid, "d603394f7083968191d8d2660871f9e80535e4fd")
-      let since = Date(timeInterval: -1, since: entry!.updated)
-      print(url)
-      let locators = [
-        EntryLocator(url: url, since: since, guid: guid)
-      ]
-      var found = [Entry]()
-      let _ = repo.entries(locators, entriesBlock: { error, entries in
-        XCTAssertNil(error)
-        XCTAssertFalse(entries.isEmpty)
-        found += entries
-      }) { er in
-        XCTAssertNil(er)
-        XCTAssertFalse(found.isEmpty)
-        let guids = found.map { $0.guid }
-        XCTAssertEqual(guids.count, 1)
-        XCTAssertEqual(guids.first!, guid)
-        exp.fulfill()
-      }
+      XCTAssertEqual(found!.guid, guid)
+      exp.fulfill()
     }
     self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
