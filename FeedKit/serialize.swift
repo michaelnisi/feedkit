@@ -78,7 +78,10 @@ func FeedImagesFromDictionary(_ dict: [String : Any]) -> FeedImages {
 /// - Throws: If the required properties `feed` and `title` are invalid, this
 /// function throws `FeedKitError.InvalidFeed`.
 func feedFromDictionary (_ dict: [String : Any]) throws -> Feed {
-  guard let url = dict["feed"] as? String else {
+  
+  // TODO: Replace feed with url in fanboy
+  
+  guard let url = dict["url"] as? String ?? dict["feed"] as? String else {
     throw FeedKitError.invalidFeed(reason: "feed missing")
   }
   guard let title = dict["title"] as? String else {
@@ -170,7 +173,7 @@ func entryFromDictionary (
   _ dict: [String : Any],
   podcast: Bool = true
 ) throws -> Entry {
-  guard let feed = dict["feed"] as? String else {
+  guard let feed = dict["url"] as? String else {
     throw FeedKitError.invalidEntry(reason: "missing feed")
   }
   guard let title = dict["title"] as? String else {

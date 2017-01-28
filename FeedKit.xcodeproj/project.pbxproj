@@ -27,11 +27,11 @@
 		4CE82D541D19D91D000B36FC /* FeedRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D302F1BCA3FCD00F5171F /* FeedRepositoryTests.swift */; };
 		4CE82D551D19D92A000B36FC /* SearchRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */; };
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
-		4E0CF69A1DCB3512005E01F9 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */; };
-		4E0CF69B1DCB3512005E01F9 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6961DCB3512005E01F9 /* MangerKit.framework */; };
-		4E0CF69C1DCB3512005E01F9 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6971DCB3512005E01F9 /* Ola.framework */; };
-		4E0CF69D1DCB3512005E01F9 /* Patron.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6981DCB3512005E01F9 /* Patron.framework */; };
-		4E0CF69E1DCB3512005E01F9 /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E0CF6991DCB3512005E01F9 /* Skull.framework */; };
+		4E34B5161E3CB579007517FB /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5151E3CB579007517FB /* Ola.framework */; };
+		4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5171E3CB58B007517FB /* Skull.framework */; };
+		4E34B51C1E3CB5A0007517FB /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5191E3CB5A0007517FB /* FanboyKit.framework */; };
+		4E34B51D1E3CB5A0007517FB /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B51A1E3CB5A0007517FB /* MangerKit.framework */; };
+		4E34B51E1E3CB5A0007517FB /* Patron.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B51B1E3CB5A0007517FB /* Patron.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,27 +69,18 @@
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
 		4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchRepositoryTests.swift; sourceTree = "<group>"; };
-		4CD28D3F1DC096CD007687B5 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/FanboyKit.framework"; sourceTree = "<group>"; };
-		4CD28D401DC096CD007687B5 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/MangerKit.framework"; sourceTree = "<group>"; };
-		4CD28D411DC096CD007687B5 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Ola.framework"; sourceTree = "<group>"; };
-		4CD28D421DC096CD007687B5 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Skull.framework"; sourceTree = "<group>"; };
 		4CDA594A1BDF4E8B00EA7780 /* sql.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = sql.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		4CDA594D1BE340AB00EA7780 /* SQLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SQLTests.swift; sourceTree = "<group>"; };
 		4CDA59531BE6931900EA7780 /* feed_query.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feed_query.json; sourceTree = "<group>"; };
 		4CDA59571BE69AC200EA7780 /* entries.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = entries.json; sourceTree = "<group>"; };
 		4CDA59591BE69D6700EA7780 /* feeds.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feeds.json; sourceTree = "<group>"; };
 		4CF53BB91C5DF35700B85CA1 /* user.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = user.swift; sourceTree = "<group>"; };
-		4CFCAEBC1DC09B46004C975F /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../manger-kit/build/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
-		4CFCAEBE1DC09B50004C975F /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../ola/build/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
-		4CFCAEC01DC09B5A004C975F /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
-		4CFCAEC31DC13851004C975F /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		4CFCAEC51DC138EB004C975F /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		4CFCAEC81DC1AEC2004C975F /* Patron.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Patron.framework; path = "../../Library/Developer/Xcode/DerivedData/feed-kit-ayhwosbtbvlatgbwugkmayolswvw/Build/Products/Debug-iphonesimulator/Patron.framework"; sourceTree = "<group>"; };
-		4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/FanboyKit.framework"; sourceTree = "<group>"; };
-		4E0CF6961DCB3512005E01F9 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/MangerKit.framework"; sourceTree = "<group>"; };
-		4E0CF6971DCB3512005E01F9 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Ola.framework"; sourceTree = "<group>"; };
-		4E0CF6981DCB3512005E01F9 /* Patron.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Patron.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Patron.framework"; sourceTree = "<group>"; };
-		4E0CF6991DCB3512005E01F9 /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Skull.framework"; sourceTree = "<group>"; };
+		4E34B5101E3CB443007517FB /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../manger-kit/build/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
+		4E34B5151E3CB579007517FB /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../ola/build/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
+		4E34B5171E3CB58B007517FB /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
+		4E34B5191E3CB5A0007517FB /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../fanboy-kit/build/Debug-iphoneos/FanboyKit.framework"; sourceTree = "<group>"; };
+		4E34B51A1E3CB5A0007517FB /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
+		4E34B51B1E3CB5A0007517FB /* Patron.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Patron.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/Patron.framework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,11 +88,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4E0CF69A1DCB3512005E01F9 /* FanboyKit.framework in Frameworks */,
-				4E0CF69B1DCB3512005E01F9 /* MangerKit.framework in Frameworks */,
-				4E0CF69C1DCB3512005E01F9 /* Ola.framework in Frameworks */,
-				4E0CF69D1DCB3512005E01F9 /* Patron.framework in Frameworks */,
-				4E0CF69E1DCB3512005E01F9 /* Skull.framework in Frameworks */,
+				4E34B51C1E3CB5A0007517FB /* FanboyKit.framework in Frameworks */,
+				4E34B51D1E3CB5A0007517FB /* MangerKit.framework in Frameworks */,
+				4E34B51E1E3CB5A0007517FB /* Patron.framework in Frameworks */,
+				4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */,
+				4E34B5161E3CB579007517FB /* Ola.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -188,21 +179,12 @@
 		4CD28D3E1DC096CC007687B5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				4E0CF6951DCB3512005E01F9 /* FanboyKit.framework */,
-				4E0CF6961DCB3512005E01F9 /* MangerKit.framework */,
-				4E0CF6971DCB3512005E01F9 /* Ola.framework */,
-				4E0CF6981DCB3512005E01F9 /* Patron.framework */,
-				4E0CF6991DCB3512005E01F9 /* Skull.framework */,
-				4CFCAEC81DC1AEC2004C975F /* Patron.framework */,
-				4CFCAEC51DC138EB004C975F /* SystemConfiguration.framework */,
-				4CFCAEC31DC13851004C975F /* Security.framework */,
-				4CFCAEC01DC09B5A004C975F /* Skull.framework */,
-				4CFCAEBE1DC09B50004C975F /* Ola.framework */,
-				4CFCAEBC1DC09B46004C975F /* MangerKit.framework */,
-				4CD28D3F1DC096CD007687B5 /* FanboyKit.framework */,
-				4CD28D401DC096CD007687B5 /* MangerKit.framework */,
-				4CD28D411DC096CD007687B5 /* Ola.framework */,
-				4CD28D421DC096CD007687B5 /* Skull.framework */,
+				4E34B5191E3CB5A0007517FB /* FanboyKit.framework */,
+				4E34B51A1E3CB5A0007517FB /* MangerKit.framework */,
+				4E34B51B1E3CB5A0007517FB /* Patron.framework */,
+				4E34B5171E3CB58B007517FB /* Skull.framework */,
+				4E34B5151E3CB579007517FB /* Ola.framework */,
+				4E34B5101E3CB443007517FB /* MangerKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
