@@ -96,14 +96,13 @@ class FeedRepositoryTests: XCTestCase {
   }
   
   func testSubtractStringsFromStrings() {
-    let f = subtractStrings
     let abc = ["a", "b", "c"]
     let found = [
-      f(abc, abc),
-      f(abc, abc + ["d"]),
-      f(abc, abc + ["d", "e", "f"]),
-      f(["a", "a"], abc),
-      f(["c", "c", "a", "a"], abc)
+      subtract(strings: abc, from: abc),
+      subtract(strings: abc, from: abc + ["d"]),
+      subtract(strings: abc, from: abc + ["d", "e", "f"]),
+      subtract(strings: ["a", "a"], from: abc),
+      subtract(strings: ["c", "c", "a", "a"], from: abc)
     ]
     let wanted = [
       [],
@@ -202,8 +201,8 @@ class FeedRepositoryTests: XCTestCase {
   }
   
   func testFeedsFromCache() {
-    let (cached, stale, notCached) = try! feedsFromCache(
-      cache, withURLs: urls, ttl: CacheTTL.long.seconds)
+    let (cached, stale, notCached) = try!
+      feeds(in: cache, with: urls, within: CacheTTL.long.seconds)
     
     XCTAssert(cached.isEmpty)
     XCTAssert(stale.isEmpty)

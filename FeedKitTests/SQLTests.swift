@@ -76,6 +76,7 @@ class SQLTests: XCTestCase {
       iTunesGuid: 0,
       images: images,
       link: "link",
+      originalURL: nil,
       summary: "summary",
       title: "title",
       ts: Date(timeIntervalSince1970: 1465192800),

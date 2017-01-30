@@ -16,7 +16,7 @@ import Ola
 /// - parameter a: An array of strings.
 /// - parameter b: The array of strings to subtract from.
 /// - returns: Strings from `a` that are not in `b`.
-func subtractStrings(_ a: [String], fromStrings b:[String]) -> [String] {
+func subtract(strings a: [String], from b: [String]) -> [String] {
   let setA = Set(a)
   let setB = Set(b)
   let diff = setB.subtracting(setA)
@@ -53,7 +53,7 @@ func latest<T: Cachable> (_ items: [T]) -> T {
 ///
 /// - parameter items: An array of items from the cache.
 /// - parameter urls: The originally requested URLs.
-/// - parameter ttl: The maximal age of cached items before they become stale.
+/// - parameter ttl: The maximal age of cached items before they’re stale.
 ///
 /// - returns: A tuple of cached items, stale items, and URLs still to consult.
 private func subtractItems<T: Cachable> (
@@ -96,9 +96,7 @@ private func subtractItems<T: Cachable> (
     }
   }
 
-  let notCachedURLs = subtractStrings(
-    cachedURLs + cachedEntryURLs, fromStrings: urls
-  )
+  let notCachedURLs = subtract(strings: cachedURLs + cachedEntryURLs, from: urls)
 
   if notCachedURLs.isEmpty {
     return (cachedItems, [], nil)
@@ -118,10 +116,7 @@ private func subtractItems<T: Cachable> (
 /// - throws: Might throw.
 ///
 /// - returns: A tuple of cached feeds, stale feeds, and uncached URLs.
-func feedsFromCache(
-  _ cache: FeedCaching,
-  withURLs urls: [String],
-  ttl: TimeInterval
+func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
 ) throws -> ([Feed], [Feed], [String]?) {
   let items = try cache.feeds(urls)
   let t = subtractItems(items, fromURLs: urls, withTTL: ttl)
@@ -482,8 +477,9 @@ final class FeedsOperation: BrowseOperation {
       let target = self.target
       let cache = self.cache
       let feedsBlock = self.feedsBlock
-      let t = try feedsFromCache(cache, withURLs: urls, ttl: ttl.seconds)
-      let (cached, stale, urlsToRequest) = t
+      
+      let (cached, stale, urlsToRequest) = try
+        feeds(in: cache, with: urls, within: ttl.seconds)
 
       guard !isCancelled else { return done() }
 

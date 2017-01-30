@@ -294,6 +294,7 @@ final class SQLFormatter {
       iTunesGuid: iTunesGuid,
       images: img,
       link: link,
+      originalURL: nil,
       summary: summary,
       title: title,
       ts: ts,
@@ -344,13 +345,14 @@ final class SQLFormatter {
 
     return Entry(
       author: author,
-      enclosure: enclosure,
       duration: duration,
+      enclosure: enclosure,
       feed: feed,
       feedTitle: feedTitle,
       guid: guid,
       img: img,
       link: link,
+      originalURL: nil,
       subtitle: subtitle,
       summary: summary,
       title: title,

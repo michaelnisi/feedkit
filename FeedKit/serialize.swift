@@ -73,33 +73,36 @@ func FeedImagesFromDictionary(_ dict: [String : Any]) -> FeedImages {
 
 /// Tries to create and return a feed from the specified dictionary.
 ///
-/// - Parameter dict: The JSON dictionary to use.
-/// - Returns: The newly create feed object.
-/// - Throws: If the required properties `feed` and `title` are invalid, this
+/// - parameter json: The JSON dictionary to use.
+/// - returns: The newly create feed object.
+/// - throws: If the required properties `feed` and `title` are invalid, this
 /// function throws `FeedKitError.InvalidFeed`.
-func feedFromDictionary (_ dict: [String : Any]) throws -> Feed {
+func feed(from json: [String : Any]) throws -> Feed {
   
   // TODO: Replace feed with url in fanboy
   
-  guard let url = dict["url"] as? String ?? dict["feed"] as? String else {
+  guard let url = json["url"] as? String ?? json["feed"] as? String else {
     throw FeedKitError.invalidFeed(reason: "feed missing")
   }
-  guard let title = dict["title"] as? String else {
+  
+  guard let title = json["title"] as? String else {
     throw FeedKitError.invalidFeed(reason: "title missing")
   }
 
-  let author = dict["author"] as? String
-  let iTunesGuid =  dict["guid"] as? Int
-  let link = dict["link"] as? String
-  let images: FeedImages = FeedImagesFromDictionary(dict)
-  let summary = dict["summary"] as? String
-  let updated = date(fromDictionary: dict, withKey: "updated")
+  let author = json["author"] as? String
+  let iTunesGuid =  json["guid"] as? Int
+  let link = json["link"] as? String
+  let images: FeedImages = FeedImagesFromDictionary(json)
+  let summary = json["summary"] as? String
+  let originalURL = json["originalURL"] as? String
+  let updated = date(fromDictionary: json, withKey: "updated")
 
   return Feed(
     author: author,
     iTunesGuid: iTunesGuid,
     images: images,
     link: link,
+    originalURL: originalURL,
     summary: summary,
     title: title,
     ts: nil,
@@ -123,8 +126,8 @@ func feedsFromPayload(_ dicts: [[String : Any]]) -> ([Error], [Feed]) {
   var errors = [Error]()
   let feeds = dicts.reduce([Feed]()) { acc, dict in
     do {
-      let feed = try feedFromDictionary(dict)
-      return acc + [feed]
+      let f = try feed(from: dict)
+      return acc + [f]
     } catch let er {
       errors.append(er)
       return acc
@@ -173,6 +176,7 @@ func entryFromDictionary (
   _ dict: [String : Any],
   podcast: Bool = true
 ) throws -> Entry {
+  
   guard let feed = dict["url"] as? String else {
     throw FeedKitError.invalidEntry(reason: "missing feed")
   }
@@ -190,9 +194,10 @@ func entryFromDictionary (
   let duration = dict["duration"] as? Int
   let img = dict["image"] as? String
   let link = dict["link"] as? String
+  let originalURL = dict["originalURL"] as? String
   let subtitle = dict["subtitle"] as? String
   let summary = dict["summary"] as? String
-
+  
   var enclosure: Enclosure?
   if let enc = dict["enclosure"] as? [String:AnyObject] {
     enclosure = try enclosureFromDictionary(enc)
@@ -206,13 +211,14 @@ func entryFromDictionary (
 
   return Entry(
     author: author,
-    enclosure: enclosure,
     duration: duration,
+    enclosure: enclosure,
     feed: feed,
     feedTitle: nil,
     guid: guid,
     img: img,
     link: link,
+    originalURL: originalURL,
     subtitle: subtitle,
     summary: summary,
     title: title,

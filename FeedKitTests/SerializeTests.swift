@@ -98,10 +98,10 @@ class SerializeTests: XCTestCase {
       (["feed":"abc"], "title missing")
     ]
     things.forEach {
-      let (dict, wanted) = $0
+      let (json, wanted) = $0
       var ok = false
       do {
-        let _ = try feedFromDictionary(dict as [String : AnyObject])
+        let _ = try feed(from: json as [String : AnyObject])
       } catch FeedKitError.invalidFeed(let reason) {
         XCTAssertEqual(reason, wanted)
         ok = true
@@ -114,19 +114,37 @@ class SerializeTests: XCTestCase {
 
   func testFeedFromDictionary() {
     let dict = ["feed": "abc", "title": "A title"]
-    let wanted = Feed(author: nil, iTunesGuid: nil, images: nil, link: nil,
-      summary: nil, title: "A title", ts: nil, uid: nil, updated: nil,
+    let wanted = Feed(
+      author: nil,
+      iTunesGuid: nil,
+      images: nil,
+      link: nil,
+      originalURL: nil,
+      summary: nil,
+      title: "A title",
+      ts: nil,
+      uid: nil,
+      updated: nil,
       url: "abc"
     )
-    let found = try! feedFromDictionary(dict)
+    let found = try! feed(from: dict)
     XCTAssertEqual(found, wanted)
   }
 
   // TODO: Replace alibi with proper test
   func testFeedsFromPayload() {
     let dict = ["feed": "abc", "title": "A title"]
-    let wanted = [Feed(author: nil, iTunesGuid: nil, images: nil, link: nil,
-      summary: nil, title: "A title", ts: nil, uid: nil, updated: nil,
+    let wanted = [Feed(
+      author: nil,
+      iTunesGuid: nil,
+      images: nil,
+      link: nil,
+      originalURL: nil,
+      summary: nil,
+      title: "A title",
+      ts: nil,
+      uid: nil,
+      updated: nil,
       url: "abc"
     )]
     let (errors, feeds) = feedsFromPayload([dict])
@@ -150,13 +168,14 @@ class SerializeTests: XCTestCase {
     
     let entry = Entry(
       author: nil,
-      enclosure: nil,
       duration: nil,
+      enclosure: nil,
       feed: feed,
       feedTitle: nil,
       guid: guid,
       img: nil,
       link: nil,
+      originalURL: nil,
       subtitle: nil,
       summary: nil,
       title: title,

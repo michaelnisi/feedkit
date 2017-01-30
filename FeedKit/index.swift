@@ -91,6 +91,7 @@ public struct Feed : Hashable, Cachable {
   public let iTunesGuid: Int?
   public let images: FeedImages?
   public let link: String?
+  public let originalURL: String?
   public let summary: String?
   public let title: String
   public let ts: Date?
@@ -155,13 +156,14 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
 /// RSS item or Atom entry. In this domain we speak of `entry`.
 public struct Entry : Equatable {
   public let author: String?
-  public let enclosure: Enclosure?
   public let duration: Int?
+  public let enclosure: Enclosure?
   public let feed: String
   public let feedTitle: String? // convenience
   public let guid: String
   public let img: String?
   public let link: String?
+  public let originalURL: String?
   public let subtitle: String?
   public let summary: String?
   public let title: String

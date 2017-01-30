@@ -101,19 +101,20 @@ func entryWithName(_ name: String) throws -> Entry {
       
       return Entry(
         author: "Daring Fireball / John Gruber",
-        enclosure: enclosure,
         duration: 9185,
+        enclosure: enclosure,
         feed: feed,
         feedTitle: nil,
         guid: guid,
         img: "http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png,",
         link: link,
+        originalURL: nil,
         subtitle: "Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.",
         summary: "Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.",
         title: "Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell",
         ts: nil,
         updated: updated
-    )
+      )
     default:
       throw FeedKitError.notAnEntry
   }
@@ -133,6 +134,7 @@ func feedWithName(_ name: String) throws -> Feed {
         img600: nil
       ),
       link: nil,
+      originalURL: nil,
       summary: "The director’s commentary track for Daring Fireball.",
       title: "The Talk Show With John Gruber",
       ts: Date(),
@@ -152,6 +154,7 @@ func feedWithName(_ name: String) throws -> Feed {
         img600: nil
       ),
       link: nil,
+      originalURL: nil,
       summary: nil,
       title: "Roderick on the Line",
       ts: nil,
