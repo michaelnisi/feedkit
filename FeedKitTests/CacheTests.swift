@@ -216,8 +216,12 @@ class CacheTests: XCTestCase {
       XCTAssert(found.isEmpty)
     }
     
+    guard let first = guids.first else {
+      return XCTFail("not found")
+    }
+    
     do {
-      let guids = ["abc", "def", guids.first!]
+      let guids = ["abc", "def", first]
       let found = try! cache.entries(guids)
       let wanted = [entries.first!]
       XCTAssertEqual(found, wanted)
@@ -362,9 +366,11 @@ class CacheTests: XCTestCase {
 
   func testEntriesMatchingTerm() {
     let _ = try! populate()
-    let found = try! cache.entriesMatchingTerm("supercomputer", limit: 3)
-    XCTAssertEqual(found!.count, 1)
-    XCTAssertEqual(found!.first?.title, "Seven Deadly Sins")
+    guard let found = try! cache.entriesMatchingTerm("supercomputer", limit: 3) else {
+      return XCTFail("not found")
+    }
+    XCTAssertEqual(found.count, 1)
+    XCTAssertEqual(found.first?.title, "Seven Deadly Sins")
   }
 
   func testSuggestions() {

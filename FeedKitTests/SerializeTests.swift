@@ -140,7 +140,7 @@ class SerializeTests: XCTestCase {
     let updated = Date(timeIntervalSince1970: 3600)
     
     let dict = [
-      "feed": feed,
+      "url": feed,
       "id": "c596b134310d499b13651fed64597de2c9931179",
       "title": title,
       "updated": NSNumber(value: 3600000 as Double) // ms
@@ -169,8 +169,12 @@ class SerializeTests: XCTestCase {
 
   func testEntryFromDictionary() {
     let (dict, wanted) = dictAndEntry()
-    let found = try! entryFromDictionary(dict, podcast: false)
-    XCTAssertEqual(found, wanted)
+    do {
+      let found = try entryFromDictionary(dict, podcast: false)
+      XCTAssertEqual(found, wanted)
+    } catch {
+      XCTFail("should not throw")
+    }
   }
   
   func testEntriesFromPayload() {

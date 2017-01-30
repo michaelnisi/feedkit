@@ -13,9 +13,9 @@ import Ola
 /// Subtract two arrays of strings. Note that the order of the resulting array
 /// is undefined.
 ///
-/// - Parameter a: An array of strings.
-/// - Parameter b: The array of strings to subtract from.
-/// - Returns: Strings from `a` that are not in `b`.
+/// - parameter a: An array of strings.
+/// - parameter b: The array of strings to subtract from.
+/// - returns: Strings from `a` that are not in `b`.
 func subtractStrings(_ a: [String], fromStrings b:[String]) -> [String] {
   let setA = Set(a)
   let setB = Set(b)
@@ -27,8 +27,8 @@ func subtractStrings(_ a: [String], fromStrings b:[String]) -> [String] {
 /// Attention: this intentionally crashes if you pass an empty items array or
 /// if one of the items doesn't bear a timestamp.
 ///
-/// - Parameter items: The cachable items to iterate and compare.
-/// - Returns: The item with the latest timestamp.
+/// - parameter items: The cachable items to iterate and compare.
+/// - returns: The item with the latest timestamp.
 func latest<T: Cachable> (_ items: [T]) -> T {
   return items.sorted {
     return $0.ts!.compare($1.ts! as Date) == .orderedDescending
@@ -36,11 +36,11 @@ func latest<T: Cachable> (_ items: [T]) -> T {
 }
 
 /// Find out which URLs still need to be consulted, after items have been
-/// received from the cache, also respecting a maximal time cached items stay
+/// received from the cache, while respecting a maximal time cached items stay
 /// valid (ttl) before they become stale.
 ///
 /// The stale items are also returned, because they might be used to fall back
-/// on, if something goes wrong further down the road.
+/// on, in case something goes wrong further down the road.
 ///
 /// Because **entries never become stale** this function collects and adds them 
 /// to the cached items array. Other item types, like feeds, are checked for 
@@ -51,10 +51,11 @@ func latest<T: Cachable> (_ items: [T]) -> T {
 /// array, are added to the URLs array. Finally the latest entry of each feed is 
 /// checked for its age and, if stale, its feed URL is added to the URLs.
 ///
-/// - Parameter items: An array of items from the cache.
-/// - Parameter urls: The originally requested URLs.
-/// - Parameter ttl: The maximal age of cached items before they become stale.
-/// - Returns: A tuple of cached items, stale items, and URLs still to consult.
+/// - parameter items: An array of items from the cache.
+/// - parameter urls: The originally requested URLs.
+/// - parameter ttl: The maximal age of cached items before they become stale.
+///
+/// - returns: A tuple of cached items, stale items, and URLs still to consult.
 private func subtractItems<T: Cachable> (
   _ items: [T], fromURLs urls: [String], withTTL ttl: TimeInterval
 ) -> ([T], [T], [String]?) {
@@ -109,6 +110,14 @@ private func subtractItems<T: Cachable> (
 /// Retrieve feeds with the provided URLs from the cache and return a tuple
 /// containing cached feeds, stale feeds, and URLs of feeds currently not in
 /// the cache.
+/// 
+/// - parameter cache: The cache to query.
+/// - parameter urls: An array of feed URLs.
+/// - parameter ttl: The limiting time stamp, a moment in the past.
+///
+/// - throws: Might throw.
+///
+/// - returns: A tuple of cached feeds, stale feeds, and uncached URLs.
 func feedsFromCache(
   _ cache: FeedCaching,
   withURLs urls: [String],
@@ -187,9 +196,9 @@ class BrowseOperation: SessionTaskOperation {
 
   /// Initialize and return a new feed repo operation.
   ///
-  /// - Parameter cache: The persistent feed cache.
-  /// - Parameter svc: The remote service to fetch feeds and entries.
-  /// - Parameter queue: The target queue for callback blocks.
+  /// - parameter cache: The persistent feed cache.
+  /// - parameter svc: The remote service to fetch feeds and entries.
+  /// - parameter queue: The target queue for callback blocks.
   init(
     cache: FeedCaching,
     svc: MangerService,
@@ -228,7 +237,7 @@ final class EntriesOperation: BrowseOperation {
   ///
   /// Refer to `BrowseOperation` for more information.
   ///
-  /// - Parameter locators: The selection of entries to fetch.
+  /// - parameter locators: The selection of entries to fetch.
   init(
     cache: FeedCaching,
     svc: MangerService,
@@ -253,8 +262,8 @@ final class EntriesOperation: BrowseOperation {
 
   /// Request all entries of listed feed URLs remotely.
   ///
-  /// - Parameter locators: The locators of entries to request.
-  /// - Parameter dispatched: Entries that have already been dispatched.
+  /// - parameter locators: The locators of entries to request.
+  /// - parameter dispatched: Entries that have already been dispatched.
   func request(_ locators: [EntryLocator], dispatched: [Entry]) throws {
     let target = self.target
     let cache = self.cache
@@ -379,6 +388,7 @@ final class EntriesOperation: BrowseOperation {
 
 // MARK: - Feeds
 
+/// A concurrent `Operation` for getting hold of feeds.
 final class FeedsOperation: BrowseOperation {
 
   // MARK: Callbacks
@@ -391,11 +401,10 @@ final class FeedsOperation: BrowseOperation {
 
   let urls: [String]
 
-  /// Returns an intialized `FeedsOperation` object.
+  /// Returns an intialized `FeedsOperation` object. Refer to `BrowseOperation` 
+  /// for more.
   ///
-  /// Look at `BrowseOperation` for more.
-  ///
-  /// - Parameter urls: The feed URLs to retrieve.
+  /// - parameter urls: The feed URLs to retrieve.
   init(
     cache: FeedCaching,
     svc: MangerService,
@@ -420,8 +429,8 @@ final class FeedsOperation: BrowseOperation {
 
   /// Request feeds and update the cache.
   ///
-  /// - Parameter urls: The URLs of the feeds to request.
-  /// - Parameter stale: The stale feeds to eventually fall back on if the
+  /// - parameter urls: The URLs of the feeds to request.
+  /// - parameter stale: The stale feeds to eventually fall back on if the
   /// remote request fails.
   fileprivate func request(_ urls: [String], stale: [Feed]) throws {
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
@@ -574,10 +583,10 @@ public final class FeedRepository: RemoteRepository, Browsing {
     return op
   }
   
-  /// Get entries for the given locators aggregating local and remote data.
+  /// Returns entries for the given locators, aggregating local and remote data.
   ///
   /// Locators provide a feed URL, a moment in the past, and an optional guid.
-  /// This way you can limit the requested entries to specific time ranges,
+  /// This way, you can limit the requested entries to specific time ranges,
   /// skipping entries you already have.
   ///
   /// The GUID is used to get specific entries already in the cache. If there is
@@ -587,25 +596,32 @@ public final class FeedRepository: RemoteRepository, Browsing {
   /// in the meantime.
   ///
   /// This method uses a local cache and a remote service to fulfill the request.
-  /// If the remote service is unavavailable it tries to fall back on the cache
+  /// If the remote service is unavavailable, it tries to fall back on the cache
   /// and might end up skipping requested entries. This is made transparent by
   /// an error passed to the entries completion block.
   ///
+  /// Callbacks are dispatched on the main queue: `DispatchQueue.main`.
+  ///
   /// - parameter locators: The locators for the entries to request.
   /// - parameter force: Force remote request ignoring the cache. As this
-  /// produces load on the server, it is limited to once per hour per feed. If 
+  /// produces load on the server, it is limited to once per hour per feed. If
   /// you pass multiple locators, the force parameter is ignored.
+  ///
   /// - parameter entriesBlock: Applied zero, one, or two times passing fetched
   /// and/or cached entries. The error is currently not in use.
+  /// - parameter error: An optional error, specific to these entries.
+  /// - parameter entries: All or some of the requested entries.
+  ///
   /// - parameter entriesCompletionBlock: The completion block is applied when
   /// all entries have been dispatched.
+  /// - parameter error: An optional error regarding the whole operation.
   ///
   /// - returns: The executing operation.
   public func entries(
     _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+    entriesBlock: @escaping (_ error: Error?, _ entries: [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
     let target = DispatchQueue.main
     

@@ -9,7 +9,7 @@
     "summary": "This American Life is a weekly public radio show, heard by 2.2 million people on more than 500 stations. Another 1.5 million people download the weekly podcast. It is hosted by Ira Glass, produced in collaboration with Chicago Public Media, delivered to stations by PRX The Public Radio Exchange, and has won all of the major broadcasting awards.",
     "title": "This American Life",
     "updated": 0,
-    "feed": "http://feed.thisamericanlife.org/talpodcast"
+    "url": "http://feed.thisamericanlife.org/talpodcast"
   },
   {
     "author": "NPR",
@@ -21,7 +21,7 @@
     "summary": "The TED Radio Hour is a journey through fascinating ideas: astonishing inventions, fresh approaches to old problems, new ways to think and create. Based on Talks given by riveting speakers on the world-renowned TED stage, each show is centered on a common theme – such as the source of happiness, crowd-sourcing innovation, power shifts, or inexplicable connections. The TED Radio Hour is hosted by Guy Raz, and is a co-production of NPR & TED. Follow the show @TEDRadioHour.",
     "title": "TED Radio Hour",
     "updated": 0,
-    "feed": "https://www.npr.org/rss/podcast.php?id=510298"
+    "url": "https://www.npr.org/rss/podcast.php?id=510298"
   },
   {
     "author": "HowStuffWorks.com",
@@ -34,7 +34,7 @@
     "title": "Stuff You Should Know",
     "ttl": "60",
     "updated": 0,
-    "feed": "http://www.howstuffworks.com/podcasts/stuff-you-should-know.rss"
+    "url": "http://www.howstuffworks.com/podcasts/stuff-you-should-know.rss"
   },
   {
     "author": "This American Life",
@@ -46,7 +46,7 @@
     "summary": "Serial is a new podcast from the creators of This American Life, hosted by Sarah Koenig. Serial unfolds one story - a true story - over the course of a whole season. The show follows the plot and characters wherever they lead, through many surprising twists and turns. Sarah won't know what happens at the end of the story until she gets there, not long before you get there with her. Each week she'll bring you the latest chapter, so it's important to listen in, starting with Episode 1. New episodes are released on Thursday mornings.",
     "title": "Serial",
     "updated": 0,
-    "feed": "http://feeds.serialpodcast.org/serialpodcast"
+    "url": "http://feeds.serialpodcast.org/serialpodcast"
   },
   {
     "author": "NPR",
@@ -58,7 +58,7 @@
     "summary": "Fresh Air from WHYY, the Peabody Award-winning weekday magazine of contemporary arts and issues, is one of public radio's most popular programs. Hosted by Terry Gross, the show features intimate conversations with today's biggest luminaries.",
     "title": "Fresh Air",
     "updated": 0,
-    "feed": "https://www.npr.org/rss/podcast.php?id=381444908"
+    "url": "https://www.npr.org/rss/podcast.php?id=381444908"
   },
   {
     "author": "WNYC Studios",
@@ -70,7 +70,7 @@
     "title": "Radiolab",
     "ttl": "600",
     "updated": 0,
-    "feed": "http://feeds.wnyc.org/radiolab"
+    "url": "http://feeds.wnyc.org/radiolab"
   },
   {
     "author": "Lena Dunham & BuzzFeed",
@@ -83,7 +83,7 @@
     "title": "Women Of The Hour",
     "ttl": "60",
     "updated": 1446091029000,
-    "feed": "http://feeds.soundcloud.com/users/soundcloud:users:180603351/sounds.rss"
+    "url": "http://feeds.soundcloud.com/users/soundcloud:users:180603351/sounds.rss"
   },
   {
     "author": "Aaron Mahnke",
@@ -95,7 +95,7 @@
     "summary": "Lore is a bi-weekly podcast about the history behind scary stories.\r\n\r\nThe people, places, and things of our darkest nightmares all have real facts at their core. Each episode of Lore looks into a uniquely scary tale and uncovers the truth of what's behind it.\r\n\r\nSometimes the truth is more frightening than fiction.Lore is a podcast about folklore. Monsters, myths, and creatures of our wildest nightmares. Every town has a ghost story, and every  story has a root. Lore looks into the past of monster stories, finds the truth, and tells the tale.",
     "title": "Lore",
     "updated": 1445832000000,
-    "feed": "http://lorepodcast.libsyn.com/rss"
+    "url": "http://lorepodcast.libsyn.com/rss"
   },
   {
     "author": "Dan Carlin",
@@ -107,7 +107,7 @@
     "summary": "Was Alexander the Great as bad a person as Hitler? What was the greatest army of all time? Which U.S. President was the worst? Hardcore History discusses the issues and questions history fans love.In \"Hardcore History\" the very unconventional Dan Carlin takes his \"Martian\", outside-the-box way of thinking and applies it to the past. Was Alexander the Great as bad a person as Adolf Hitler? What would Apaches with modern weapons be like? Will our modern civilization ever fall like civilizations from past eras? This is a difficult-to-classify show that has a rather sharp edge. It's not for everyone. But the innovative style and approach has made \"Dan Carlin's Hardcore History\" a New Media hit.",
     "title": "Dan Carlin's Hardcore History",
     "updated": 1446082508000,
-    "feed": "http://feeds.feedburner.com/dancarlin/history"
+    "url": "http://feeds.feedburner.com/dancarlin/history"
   },
   {
     "author": "WNYC Studios and The New Yorker",
@@ -119,6 +119,6 @@
     "title": "The New Yorker Radio Hour",
     "ttl": "600",
     "updated": 0,
-    "feed": "http://feeds.wnyc.org/newyorkerradiohour"
+    "url": "http://feeds.wnyc.org/newyorkerradiohour"
   }
 ]
