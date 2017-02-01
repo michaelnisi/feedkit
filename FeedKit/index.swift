@@ -10,9 +10,13 @@ import Foundation
 import Ola
 import Patron
 
+// TODO: Encapsulate TODOs into GitHub issues
+
 // TODO: Free tests from network dependencies
 
 // TODO: Rename probe parameter to probe
+
+// TODO: Move all protocols into this file
 
 // MARK: Notifications
 
@@ -79,14 +83,22 @@ public protocol Cachable {
   var url: String { get }
 }
 
+public protocol Redirectable {
+  var url: String { get }
+  var originalURL: String? { get }
+}
+
+// TODO: Split Feed and Entry classes into framework
+// Name suggestions: FeedFoundation, FeedCore
+
 /// Feeds are the central object of this framework.
 ///
 /// The initializer is inconvenient for a reason: **it shouldn't be used
 /// directly**. Instead users are expected to obtain their feeds from the
 /// repositories provided by this framework.
 ///
-/// A feed is required to, at least, have a `title` and an `url`.
-public struct Feed : Hashable, Cachable {
+/// A feed is required to, at least, have `title` and `url`.
+public struct Feed : Hashable, Cachable, Redirectable {
   public let author: String?
   public let iTunesGuid: Int?
   public let images: FeedImages?
@@ -154,7 +166,7 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
 }
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
-public struct Entry : Equatable {
+public struct Entry : Equatable, Redirectable {
   public let author: String?
   public let duration: Int?
   public let enclosure: Enclosure?
@@ -335,7 +347,7 @@ public enum CacheTTL {
 
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
-  func updateFeeds(_ feeds: [Feed]) throws
+  func update(feeds: [Feed]) throws
   func feeds(_ urls: [String]) throws -> [Feed]
 
   func updateEntries(_ entries:[Entry]) throws
@@ -421,7 +433,7 @@ public protocol Queueing {
   // TODO: func insert(entry: Entry) throws
 }
 
-// MARK: Internal
+// MARK: - Internal
 
 let FOREVER: TimeInterval = TimeInterval(Double.infinity)
 

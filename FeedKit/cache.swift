@@ -59,9 +59,7 @@ public final class Cache {
   fileprivate var noSuggestions = [String:Date]()
   fileprivate var noSearch = [String:Date]()
   
-  // TODO: Correct NSCache types
-  // TODO: Wrap access to feedIDsCache
-  fileprivate var feedIDsCache = NSCache<AnyObject, AnyObject>()
+  fileprivate var feedIDsCache = NSCache<NSString, NSNumber>()
 
   fileprivate func open() throws {
     var error: Error?
@@ -109,9 +107,22 @@ public final class Cache {
   public func flush() throws {
     try db.flush()
   }
-
+  
+  fileprivate func cachedFeedID(for url: String) -> Int? {
+    return feedIDsCache.object(forKey: url as NSString) as? Int
+  }
+  
+  fileprivate func cache(feedID: Int, for url: String) -> Int {
+    feedIDsCache.setObject(feedID as NSNumber, forKey: url as NSString)
+    return feedID
+  }
+  
+  fileprivate func removeFeedID(for url: String) {
+    feedIDsCache.removeObject(forKey: url as NSString)
+  }
+  
   func feedIDForURL(_ url: String) throws -> Int {
-    if let cachedFeedID = feedIDsCache.object(forKey: url as NSString) as? Int {
+    if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
     }
     var er: Error?
@@ -130,9 +141,7 @@ public final class Cache {
     guard er == nil else { throw er! }
     guard id != nil else { throw FeedKitError.feedNotCached(urls: [url]) }
 
-    let feedID = id!
-    feedIDsCache.setObject(feedID as AnyObject, forKey: url as NSString)
-    return feedID
+    return cache(feedID: id!, for: url)
   }
 
   // TODO: Write test for feedsForSQL method
@@ -178,10 +187,12 @@ extension Cache: FeedCaching {
   /// Update feeds in the cache. Feeds that are not cached yet are inserted.
   ///
   /// - parameter feeds: The feeds to insert or update.
-  public func updateFeeds(_ feeds: [Feed]) throws {
+  public func update(feeds: [Feed]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
+    
     var error: Error?
+    
     queue.sync {
       do {
         let sql = try feeds.reduce([String]()) { acc, feed in
@@ -197,6 +208,7 @@ extension Cache: FeedCaching {
         error = er
       }
     }
+    
     if let er = error {
       throw er
     }
@@ -205,8 +217,8 @@ extension Cache: FeedCaching {
   /// Retrieve feeds from the cache identified by their URLs.
   ///
   /// - parameter urls: An array of feed URL strings.
-  /// - Returns: An array of feeds currently in the cache.
-  func feedIDsForURLs(_ urls: [String]) throws -> [String:Int]? {
+  /// - returns: An array of feeds currently in the cache.
+  func feedIDsForURLs(_ urls: [String]) throws -> [String : Int]? {
     var result = [String:Int]()
     try urls.forEach { url in
       do {
@@ -402,7 +414,6 @@ extension Cache: FeedCaching {
   /// - parameter urls: The URL strings of the feeds to remove.
   public func remove(_ urls: [String]) throws {
     let db = self.db
-    let feedIDsCache = self.feedIDsCache
     var error: Error?
     queue.sync {
       do {
@@ -412,9 +423,7 @@ extension Cache: FeedCaching {
           throw FeedKitError.sqlFormatting
         }
         try db.exec(sql)
-        urls.forEach {
-          feedIDsCache.removeObject(forKey: $0 as AnyObject)
-        }
+        urls.forEach { self.removeFeedID(for: $0) }
       } catch let er {
         error = er
       }
@@ -466,7 +475,7 @@ extension Cache: SearchCaching {
     if feeds.isEmpty {
       noSearch[term] = Date()
     } else {
-      try updateFeeds(feeds)
+      try update(feeds: feeds)
       noSearch[term] = nil
       if let (predecessor, _) = subcached(term, dict: noSuggestions) {
         noSuggestions[predecessor] = nil

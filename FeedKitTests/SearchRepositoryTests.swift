@@ -174,7 +174,7 @@ class SearchRepositoryTests: XCTestCase {
   
   func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
-    try! cache.updateFeeds(feeds)
+    try! cache.update(feeds: feeds)
     
     let entries = try! entriesFromFile()
     try! cache.updateEntries(entries)

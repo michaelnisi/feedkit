@@ -8,7 +8,6 @@
 
 import Foundation
 import Skull
-import MangerKit
 
 /// Remove whitespace from specified string and replace it with `""` or the
 /// specified string. Consecutive spaces are reduced to single spaces.
@@ -258,9 +257,10 @@ func entriesFromPayload(
 /// We don't validate more, because the Search UI already restricts inputs by
 /// limiting the keyboard. Take care if you pass values programmatically.
 ///
-/// - Parameter term: Any string to be used as a search term.
-/// - Returns: The search query or nil.
-func queryFromString(_ term: String) -> String? {
-  let query = trimString(term, joinedByString: " ")
+/// - parameter string: Any string to be used as a search term.
+///
+/// - returns: The search query or nil.
+func query(from string: String) -> String? {
+  let query = trimString(string, joinedByString: " ")
   return query.isEmpty ? nil : query
 }

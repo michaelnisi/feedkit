@@ -86,10 +86,9 @@ class SerializeTests: XCTestCase {
   }
 
   func testQueryFromString() {
-    let f = queryFromString
-    XCTAssertNil(f(""))
-    XCTAssertNil(f(" "))
-    XCTAssertNil(f("   "))
+    XCTAssertNil(query(from: ""))
+    XCTAssertNil(query(from: " "))
+    XCTAssertNil(query(from: "   "))
   }
 
   func testFeedFromInvalidDictonaries() {

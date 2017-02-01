@@ -54,7 +54,7 @@ class CacheTests: XCTestCase {
 
     do {
       let feeds = try! feedsFromFile()
-      try! cache.updateFeeds(feeds)
+      try! cache.update(feeds: feeds)
       feed = feeds.first!
       url = feed!.url
       let found = try! cache.feedIDForURL(url!)
@@ -77,7 +77,7 @@ class CacheTests: XCTestCase {
     }
 
     do {
-      try! cache.updateFeeds([feed!])
+      try! cache.update(feeds: [feed!])
       let found = try! cache.feedIDForURL(url!)
       let wanted = 11
       XCTAssertEqual(found, wanted)
@@ -89,11 +89,11 @@ class CacheTests: XCTestCase {
   func testUpdateFeeds() {
     let feeds = try! feedsFromFile()
 
-    try! cache.updateFeeds(feeds)
+    try! cache.update(feeds: feeds)
 
     func testUpdate() {
       let feed = feeds.first!
-      try! cache.updateFeeds([feed])
+      try! cache.update(feeds: [feed])
     }
     testUpdate()
 
@@ -152,7 +152,7 @@ class CacheTests: XCTestCase {
 
   func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
-    try! cache.updateFeeds(feeds)
+    try! cache.update(feeds: feeds)
 
     let entries = try! entriesFromFile()
     try! cache.updateEntries(entries)
@@ -236,7 +236,7 @@ class CacheTests: XCTestCase {
       XCTAssertTrue(cache.hasURL(url))
     }
 
-    try! cache.updateFeeds(feeds) // to provoke dopplers
+    try! cache.update(feeds: feeds) // to provoke dopplers
     try! cache.remove(urls)
 
     urls.forEach { url in

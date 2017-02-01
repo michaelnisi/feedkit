@@ -15,6 +15,7 @@ import Ola
 ///
 /// - parameter a: An array of strings.
 /// - parameter b: The array of strings to subtract from.
+///
 /// - returns: Strings from `a` that are not in `b`.
 func subtract(strings a: [String], from b: [String]) -> [String] {
   let setA = Set(a)
@@ -177,7 +178,18 @@ func entriesFromCache(
   return (cached, needed)
 }
 
+private func redirects(in items: [Redirectable]) -> [Redirectable] {
+  return items.filter {
+    guard let originalURL = $0.originalURL, originalURL != $0.url else {
+      return false
+    }
+    return true
+  }
+}
+
 // TODO: Combine dispatch_sync and dispatch_async as in the search module
+//
+// What does this even mean?
 
 /// Although I despise inheritance, this is an abstract operation class to be
 /// extended by operations used in the feed repository. It provides common
@@ -202,6 +214,23 @@ class BrowseOperation: SessionTaskOperation {
     self.cache = cache
     self.svc = svc
     self.target = target
+  }
+  
+  // TODO: Consider updating instead of removing feeds and entries
+  
+  // TODO: Communicate redirects to participants
+  //
+  // For example, the queue would need to know about this, right?
+  
+  /// Remove redirected feeds or entries from the cache.
+  /// 
+  /// - parameter items: Redirectable items to remove.
+  fileprivate func remove(redirectable items: [Redirectable]) throws {
+    let r = redirects(in: items)
+    if !r.isEmpty {
+      let urls = r.map { $0.originalURL! }
+      try cache.remove(urls)
+    }
   }
 }
 
@@ -254,7 +283,7 @@ final class EntriesOperation: BrowseOperation {
     entriesCompletionBlock = nil
     isFinished = true
   }
-
+  
   /// Request all entries of listed feed URLs remotely.
   ///
   /// - parameter locators: The locators of entries to request.
@@ -285,12 +314,17 @@ final class EntriesOperation: BrowseOperation {
         if !errors.isEmpty {
           NSLog("\(#function): \(errors.first) of \(errors.count) invalid entries")
         }
-        try cache.updateEntries(receivedEntries) // empty ones too
         
-        guard let cb = entriesBlock else {
-          return self.done()
-        }
-        guard !receivedEntries.isEmpty else {
+        // TODO: Use unique URLs, instead of all entries
+        //
+        // Also, I don’t like how this remove method hides its reasoing here. 
+        // Make this clearer. What exactly is going on here?
+        
+        try self.remove(redirectable: receivedEntries)
+        
+        try cache.updateEntries(receivedEntries)
+        
+        guard let cb = entriesBlock, !receivedEntries.isEmpty else {
           return self.done()
         }
         
@@ -437,28 +471,52 @@ final class FeedsOperation: BrowseOperation {
     task = try svc.feeds(queries) { error, payload in
       post(FeedKitRemoteResponseNotification)
 
-      guard !self.isCancelled else { return self.done() }
+      guard !self.isCancelled else {
+        return self.done()
+      }
+      
       guard error == nil else {
         defer {
           let er = FeedKitError.serviceUnavailable(error: error!)
           self.done(er)
         }
-        guard !stale.isEmpty else { return }
-
-        guard let cb = feedsBlock else { return }
+        guard !stale.isEmpty, let cb = feedsBlock else {
+          return
+        }
         return target.async() {
           cb(nil, stale)
         }
       }
+      
       guard payload != nil else {
         return self.done()
       }
+      
       do {
         let (errors, feeds) = feedsFromPayload(payload!)
+        
+        // TODO: Handle errors
+        //
+        // Although, owning the remote service, we can be reasonably sure, these
+        // objects are O.K., we should probably still handle these errors.
+        
         assert(errors.isEmpty, "unhandled errors: \(errors)")
-        try cache.updateFeeds(feeds)
-        guard let cb = feedsBlock else { return self.done() }
-        guard !feeds.isEmpty else { return self.done() }
+        
+        try self.remove(redirectable: feeds)
+        
+        try cache.update(feeds: feeds)
+        
+        // TODO: Review
+        // 
+        // This is risky: What if the cache modifies objects during the process
+        // of storing them? Shouldn’t we better use those cached objects as our
+        // result? This way, we’d also be able to put all foreign keys right on 
+        // our objects. The extra round trip should be neglectable.
+        
+        guard let cb = feedsBlock, !feeds.isEmpty else {
+          return self.done()
+        }
+        
         target.async() {
           cb(nil, feeds)
         }
@@ -647,8 +705,6 @@ public final class FeedRepository: RemoteRepository, Browsing {
     // because we cannot update entries of uncached feeds. Providing a place to 
     // composite operations, like this, is an advantage of interposing
     // repositories.
-    
-    // TODO: Handle redirects
 
     let urls = locators.map { $0.url }
 
