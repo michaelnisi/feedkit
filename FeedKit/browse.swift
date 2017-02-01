@@ -178,15 +178,6 @@ func entriesFromCache(
   return (cached, needed)
 }
 
-private func redirects(in items: [Redirectable]) -> [Redirectable] {
-  return items.filter {
-    guard let originalURL = $0.originalURL, originalURL != $0.url else {
-      return false
-    }
-    return true
-  }
-}
-
 // TODO: Combine dispatch_sync and dispatch_async as in the search module
 //
 // What does this even mean?
@@ -215,22 +206,14 @@ class BrowseOperation: SessionTaskOperation {
     self.svc = svc
     self.target = target
   }
-  
-  // TODO: Consider updating instead of removing feeds and entries
-  
-  // TODO: Communicate redirects to participants
-  //
-  // For example, the queue would need to know about this, right?
-  
-  /// Remove redirected feeds or entries from the cache.
-  /// 
-  /// - parameter items: Redirectable items to remove.
-  fileprivate func remove(redirectable items: [Redirectable]) throws {
-    let r = redirects(in: items)
-    if !r.isEmpty {
-      let urls = r.map { $0.originalURL! }
-      try cache.remove(urls)
+}
+
+private func redirects(in items: [Redirectable]) -> [Redirectable] {
+  return items.filter {
+    guard let originalURL = $0.originalURL, originalURL != $0.url else {
+      return false
     }
+    return true
   }
 }
 
@@ -315,12 +298,16 @@ final class EntriesOperation: BrowseOperation {
           NSLog("\(#function): \(errors.first) of \(errors.count) invalid entries")
         }
         
-        // TODO: Use unique URLs, instead of all entries
-        //
-        // Also, I don’t like how this remove method hides its reasoing here. 
-        // Make this clearer. What exactly is going on here?
-        
-        try self.remove(redirectable: receivedEntries)
+        let r = redirects(in: receivedEntries)
+        if !r.isEmpty {
+          let urls = r.reduce([String]()) { acc, entry in
+            guard let url = entry.originalURL, !acc.contains(url) else {
+              return acc
+            }
+            return acc + [url]
+          }
+          try cache.remove(urls)
+        }
         
         try cache.updateEntries(receivedEntries)
         
@@ -502,7 +489,11 @@ final class FeedsOperation: BrowseOperation {
         
         assert(errors.isEmpty, "unhandled errors: \(errors)")
         
-        try self.remove(redirectable: feeds)
+        let r = redirects(in: feeds)
+        if !r.isEmpty {
+          let urls = r.map { $0.originalURL! }
+          try cache.remove(urls)
+        }
         
         try cache.update(feeds: feeds)
         
