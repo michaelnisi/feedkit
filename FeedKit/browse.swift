@@ -141,7 +141,7 @@ func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
 /// - returns: A tuple of cached entries and URLs not satisfied by the cache.
 ///
 /// - throws: Might throw database errors.
-func entriesFromCache(
+private func entriesFromCache(
   _ cache: FeedCaching,
   locators: [EntryLocator],
   ttl: TimeInterval
@@ -215,11 +215,6 @@ private func redirects(in items: [Redirectable]) -> [Redirectable] {
     }
     return true
   }
-}
-
-func post(_ name: String) {
-  let nc = NotificationCenter.default
-  nc.post(name: Notification.Name(rawValue: name), object: nil)
 }
 
 // MARK: - Entries
@@ -300,6 +295,7 @@ final class EntriesOperation: BrowseOperation {
         
         let r = redirects(in: receivedEntries)
         if !r.isEmpty {
+          NSLog("\(#function): yay, redirects: \(r)")
           let urls = r.reduce([String]()) { acc, entry in
             guard let url = entry.originalURL, !acc.contains(url) else {
               return acc
@@ -709,8 +705,22 @@ public final class FeedRepository: RemoteRepository, Browsing {
     dep.ttl = CacheTTL.forever
     dep.reachable = r
     
+    dep.feedsBlock = { error, feeds in
+      if let er = error {
+        // TODO: Pass error to entries operation
+        assert(false, "unhandled error: \(er)")
+      }
+    }
+    
+    dep.feedsCompletionBlock = { error in
+      if let er = error {
+        // TODO: Pass error to entries operation
+        //assert(false, "unhandled error: \(er)")
+      }
+    }
+    
     op.addDependency(dep)
-
+ 
     queue.addOperation(dep)
     queue.addOperation(op)
 

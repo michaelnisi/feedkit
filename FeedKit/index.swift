@@ -88,7 +88,8 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
-// TODO: Split Feed and Entry classes into framework
+// TODO: Split Feed and Entry classes off into separate framework
+//
 // Name suggestions: FeedFoundation, FeedCore
 
 /// Feeds are the central object of this framework.
@@ -255,6 +256,32 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
+public struct Message : Equatable {
+  public let message: String
+  
+  public init(message: String) {
+    self.message = message
+  }
+}
+
+extension Message : CustomStringConvertible {
+  public var description: String {
+    return "Message: \(message)"
+  }
+}
+
+public func ==(lhs: Message, rhs: Message) -> Bool {
+  return lhs.message == rhs.message
+}
+
+// TODO: Think about using a global PodestItem
+//
+// Supplied by a single UITableViewDataSource class. Or maybe two, like Find and
+// Item, but the question is: how different would they be, really? Considering
+// that with an holistic search, the kind we want to offer, a Find may be 
+// literally anything in the system. Doesn’t this make Find just an Item? To 
+// figure this out, create item lists of all expected combinations.
+
 /// Enumerates findable things hiding their type. The word 'suggested' is used
 /// synonymously with 'found' here: a suggested feed is also a found feed, etc.
 public enum Find : Equatable {
@@ -262,6 +289,9 @@ public enum Find : Equatable {
   case suggestedTerm(Suggestion)
   case suggestedEntry(Entry)
   case suggestedFeed(Feed)
+  case message(Message)
+  
+  // TODO: Add message
 
   /// The timestamp applied by the database.
   var ts: Date? {
@@ -270,39 +300,48 @@ public enum Find : Equatable {
     case .suggestedTerm(let it): return it.ts
     case .suggestedEntry(let it): return it.ts
     case .suggestedFeed(let it): return it.ts
+    case .message(let it): return nil
     }
   }
 }
+
+// TODO: Optimize this function
 
 public func ==(lhs: Find, rhs: Find) -> Bool {
   var lhsRes: Entry?
   var lhsSug: Suggestion?
   var lhsFed: Feed?
+  var lhsMsg: Message?
 
   switch lhs {
-  case .suggestedEntry(let res):
-    lhsRes = res
-  case .suggestedTerm(let sug):
-    lhsSug = sug
-  case .suggestedFeed(let fed):
-    lhsFed = fed
-  case .recentSearch(let fed):
-    lhsFed = fed
+  case .suggestedEntry(let it):
+    lhsRes = it
+  case .suggestedTerm(let it):
+    lhsSug = it
+  case .suggestedFeed(let it):
+    lhsFed = it
+  case .recentSearch(let it):
+    lhsFed = it
+  case .message(let it):
+    lhsMsg = it
   }
 
   var rhsRes: Entry?
   var rhsSug: Suggestion?
   var rhsFed: Feed?
+  var rhsMsg: Message?
 
   switch rhs {
-  case .suggestedEntry(let res):
-    rhsRes = res
-  case .suggestedTerm(let sug):
-    rhsSug = sug
-  case .suggestedFeed(let fed):
-    rhsFed = fed
-  case .recentSearch(let fed):
-    rhsFed = fed
+  case .suggestedEntry(let it):
+    rhsRes = it
+  case .suggestedTerm(let it):
+    rhsSug = it
+  case .suggestedFeed(let it):
+    rhsFed = it
+  case .recentSearch(let it):
+    rhsFed = it
+  case .message(let it):
+    rhsMsg = it
   }
 
   if lhsRes != nil && rhsRes != nil {
@@ -311,6 +350,8 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     return lhsSug == rhsSug
   } else if lhsFed != nil && rhsFed != nil {
     return lhsFed == rhsFed
+  } else if lhsMsg != nil && rhsMsg != nil {
+    return lhsMsg == rhsMsg
   }
   return false
 }
@@ -508,6 +549,11 @@ open class RemoteRepository {
     
     return ttl
   }
+}
+
+func post(_ name: String) {
+  let nc = NotificationCenter.default
+  nc.post(name: Notification.Name(rawValue: name), object: nil)
 }
 
 /// A generic concurrent operation providing a URL session task. This abstract
