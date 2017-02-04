@@ -144,7 +144,7 @@ private final class SearchOperation: SearchRepoOperation {
       
       if isCancelled { return done() }
       
-      // If we match instead of equal--to yield more interesting results--we
+      // If we match instead of equal, to yield more interesting results, we
       // cannot determine the age of a cached search because we might have 
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
@@ -193,11 +193,10 @@ private func suggestedFeedsForTerm(
   if let feeds = try cache.feedsMatchingTerm(term, limit: limit + 2) {
     return feeds.reduce([Find]()) { acc, feed in
       let find = Find.suggestedFeed(feed)
-      if exceptions.contains(find) || acc.count == limit {
+      guard !exceptions.contains(find), acc.count < limit else {
         return acc
-      } else {
-        return acc + [find]
       }
+      return acc + [find]
     }
   }
   return nil
@@ -211,11 +210,10 @@ private func suggestedEntriesForTerm(
   if let entries = try cache.entriesMatchingTerm(term, limit: 5) {
     return entries.reduce([Find]()) { acc, entry in
       let find = Find.suggestedEntry(entry)
-      if exceptions.contains(find) {
+      guard !exceptions.contains(find) else {
         return acc
-      } else {
-        return acc + [find]
       }
+      return acc + [find]
     }
   }
   return nil
