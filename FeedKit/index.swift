@@ -217,6 +217,7 @@ public struct EntryLocator : Equatable {
   /// - parameter url: The URL of the feed.
   /// - parameter since: A date in the past when the interval begins.
   /// - parameter guid: An identifier to locate a specific entry.
+  ///
   /// - returns: The newly created entry locator.
   public init(
     url: String,
@@ -256,22 +257,24 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
+// TOOD: Ever heard of Messages? Choose different name
+
 public struct Message : Equatable {
-  public let message: String
+  public let attributedString: NSAttributedString
   
-  public init(message: String) {
-    self.message = message
+  public init(attributedString: NSAttributedString) {
+    self.attributedString = attributedString
   }
 }
 
 extension Message : CustomStringConvertible {
   public var description: String {
-    return "Message: \(message)"
+    return "Message: \(attributedString.string)"
   }
 }
 
 public func ==(lhs: Message, rhs: Message) -> Bool {
-  return lhs.message == rhs.message
+  return lhs.attributedString == rhs.attributedString
 }
 
 // TODO: Think about using a global PodestItem
@@ -281,6 +284,10 @@ public func ==(lhs: Message, rhs: Message) -> Bool {
 // that with an holistic search, the kind we want to offer, a Find may be 
 // literally anything in the system. Doesn’t this make Find just an Item? To 
 // figure this out, create item lists of all expected combinations.
+//
+// A couple of days later, I’m not convinced about this—a global master thing
+// always ends in flames, not a good argument, I know, but all I muster to come
+// up with now. Keep enumerating for specific needs!
 
 /// Enumerates findable things hiding their type. The word 'suggested' is used
 /// synonymously with 'found' here: a suggested feed is also a found feed, etc.
@@ -540,6 +547,8 @@ open class RemoteRepository {
       }
     }
     
+    // TODO: Check if this catches timeouts too
+    
     if let (code, ts) = status {
       let date = Date(timeIntervalSince1970: ts)
       if code != 0 && !stale(date, ttl: CacheTTL.short.seconds) {
@@ -566,7 +575,7 @@ class SessionTaskOperation: Operation {
   /// you might set this to `false` to be more effective.
   var reachable: Bool = true
   
-  /// The maximal age, `CacheTTL.Long`,  of cached items.
+  /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
   
   final var task: URLSessionTask? {

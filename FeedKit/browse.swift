@@ -9,6 +9,10 @@
 import Foundation
 import MangerKit
 import Ola
+import os.log
+
+@available(iOS 10.0, *)
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "Browse")
 
 /// Subtract two arrays of strings. Note that the order of the resulting array
 /// is undefined.
@@ -43,13 +47,13 @@ func latest<T: Cachable> (_ items: [T]) -> T {
 /// The stale items are also returned, because they might be used to fall back
 /// on, in case something goes wrong further down the road.
 ///
-/// Because **entries never become stale** this function collects and adds them 
-/// to the cached items array. Other item types, like feeds, are checked for 
-/// their age and put in the cached items or, respectively, the stale items 
+/// Because **entries never become stale** this function collects and adds them
+/// to the cached items array. Other item types, like feeds, are checked for
+/// their age and put in the cached items or, respectively, the stale items
 /// array.
 ///
-/// URLs of stale items, as well as URLs not present in the specified items 
-/// array, are added to the URLs array. Finally the latest entry of each feed is 
+/// URLs of stale items, as well as URLs not present in the specified items
+/// array, are added to the URLs array. Finally the latest entry of each feed is
 /// checked for its age and, if stale, its feed URL is added to the URLs.
 ///
 /// - parameter items: An array of items from the cache.
@@ -109,7 +113,7 @@ private func subtractItems<T: Cachable> (
 /// Retrieve feeds with the provided URLs from the cache and return a tuple
 /// containing cached feeds, stale feeds, and URLs of feeds currently not in
 /// the cache.
-/// 
+///
 /// - parameter cache: The cache to query.
 /// - parameter urls: An array of feed URLs.
 /// - parameter ttl: The limiting time stamp, a moment in the past.
@@ -165,16 +169,16 @@ private func entriesFromCache(
   let t = subtractItems(items, fromURLs: urls, withTTL: ttl)
   let (cached, stale, needed) = t
   assert(stale.isEmpty, "entries cannot be stale")
-  
+
   // TODO: Handle unresolved entry guids
   //
-  // At the moment, if a guid isn’t found, it is just silently ignored. 
+  // At the moment, if a guid isn’t found, it is just silently ignored.
   // However, we should communicate this to the user of this function.
-  
+
   guard guids.isEmpty else {
     return (cached.filter { guids.contains($0.guid) }, needed)
   }
-  
+
   return (cached, needed)
 }
 
@@ -187,7 +191,7 @@ private func entriesFromCache(
 /// properties for the—currently two: feed and entries—operations of the
 /// browsing API.
 class BrowseOperation: SessionTaskOperation {
-  
+
   let cache: FeedCaching
   let svc: MangerService
   let target: DispatchQueue
@@ -253,7 +257,7 @@ final class EntriesOperation: BrowseOperation {
   func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = self.entriesCompletionBlock {
-      target.async {
+      target.sync {
         cb(er)
       }
     }
@@ -261,7 +265,7 @@ final class EntriesOperation: BrowseOperation {
     entriesCompletionBlock = nil
     isFinished = true
   }
-  
+
   /// Request all entries of listed feed URLs remotely.
   ///
   /// - parameter locators: The locators of entries to request.
@@ -270,7 +274,7 @@ final class EntriesOperation: BrowseOperation {
     let target = self.target
     let cache = self.cache
     let entriesBlock = self.entriesBlock
-    
+
     let c = self.cache
     let l = self.locators
 
@@ -290,12 +294,13 @@ final class EntriesOperation: BrowseOperation {
       do {
         let (errors, receivedEntries) = entriesFromPayload(payload!)
         if !errors.isEmpty {
-          NSLog("\(#function): \(errors.first) of \(errors.count) invalid entries")
+          if #available(iOS 10.0, *) {
+            os_log("invalid entries", log: log,  type: .error)
+          }
         }
-        
+
         let r = redirects(in: receivedEntries)
         if !r.isEmpty {
-          NSLog("\(#function): yay, redirects: \(r)")
           let urls = r.reduce([String]()) { acc, entry in
             guard let url = entry.originalURL, !acc.contains(url) else {
               return acc
@@ -304,34 +309,34 @@ final class EntriesOperation: BrowseOperation {
           }
           try cache.remove(urls)
         }
-        
+
         try cache.updateEntries(receivedEntries)
-        
+
         guard let cb = entriesBlock, !receivedEntries.isEmpty else {
           return self.done()
         }
-        
+
         // The cached entries, contrary to the wired entries, contain the
         // feedTitle property. Also we should not dispatch more entries than
-        // those that actually have been requested. To match these requirements 
-        // centrally, we retrieve our, freshly updated, entries from the cache, 
+        // those that actually have been requested. To match these requirements
+        // centrally, we retrieve our, freshly updated, entries from the cache,
         // in the hopes that SQLite is fast enough.
-        
+
         let (cached, urls) = try entriesFromCache(c, locators: l, ttl: FOREVER)
         assert(urls == nil, "TODO: Handle URLs")
-        
+
         let entries = cached.filter() { entry in
           !dispatched.contains(entry)
         }
-        
+
         target.async() {
           cb(nil, entries)
         }
         self.done()
       } catch FeedKitError.feedNotCached(let er) {
-        
+
         // TODO: Handle case where search provides an invalid feed URL
-        
+
         fatalError("feed not cached: \(er)")
       } catch let er {
         self.done(er)
@@ -346,7 +351,7 @@ final class EntriesOperation: BrowseOperation {
     do {
       let target = self.target
       let entriesBlock = self.entriesBlock
-      
+
       // TODO: Return unresolved locators instead of URLs
       //
       // I guess, the reason why these are URLs, not locators, is that
@@ -355,11 +360,11 @@ final class EntriesOperation: BrowseOperation {
       let (cached, urls) = try entriesFromCache(cache, locators: locators, ttl: ttl.seconds)
 
       // Returning URLs requires us to perform an extra work reducing URLs
-      // back to the initial locators. A first step to improve this might be to 
-      // move the reduce into entriesFromCache and actually return locators, 
+      // back to the initial locators. A first step to improve this might be to
+      // move the reduce into entriesFromCache and actually return locators,
       // which would fix the API, and give a us space to remove this step later
       // requiring only internals changes.
-      
+
       let unresolved = urls?.reduce([EntryLocator]()) { acc, url in
         for locator in locators {
           if locator.url == url {
@@ -413,7 +418,7 @@ final class FeedsOperation: BrowseOperation {
 
   let urls: [String]
 
-  /// Returns an intialized `FeedsOperation` object. Refer to `BrowseOperation` 
+  /// Returns an intialized `FeedsOperation` object. Refer to `BrowseOperation`
   /// for more.
   ///
   /// - parameter urls: The feed URLs to retrieve.
@@ -430,7 +435,7 @@ final class FeedsOperation: BrowseOperation {
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = feedsCompletionBlock {
-      target.async {
+      target.sync {
         cb(er)
       }
     }
@@ -457,7 +462,7 @@ final class FeedsOperation: BrowseOperation {
       guard !self.isCancelled else {
         return self.done()
       }
-      
+
       guard error == nil else {
         defer {
           let er = FeedKitError.serviceUnavailable(error: error!)
@@ -470,40 +475,40 @@ final class FeedsOperation: BrowseOperation {
           cb(nil, stale)
         }
       }
-      
+
       guard payload != nil else {
         return self.done()
       }
-      
+
       do {
         let (errors, feeds) = feedsFromPayload(payload!)
-        
+
         // TODO: Handle errors
         //
         // Although, owning the remote service, we can be reasonably sure, these
         // objects are O.K., we should probably still handle these errors.
-        
+
         assert(errors.isEmpty, "unhandled errors: \(errors)")
-        
+
         let r = redirects(in: feeds)
         if !r.isEmpty {
           let urls = r.map { $0.originalURL! }
           try cache.remove(urls)
         }
-        
+
         try cache.update(feeds: feeds)
-        
+
         // TODO: Review
-        // 
+        //
         // This is risky: What if the cache modifies objects during the process
         // of storing them? Shouldn’t we better use those cached objects as our
-        // result? This way, we’d also be able to put all foreign keys right on 
+        // result? This way, we’d also be able to put all foreign keys right on
         // our objects. The extra round trip should be neglectable.
-        
+
         guard let cb = feedsBlock, !feeds.isEmpty else {
           return self.done()
         }
-        
+
         target.async() {
           cb(nil, feeds)
         }
@@ -514,6 +519,8 @@ final class FeedsOperation: BrowseOperation {
     }
   }
 
+  // TODO: Figure out why timeouts aren’t handled expectedly
+
   override func start() {
     guard !isCancelled else { return done() }
     isExecuting = true
@@ -522,7 +529,7 @@ final class FeedsOperation: BrowseOperation {
       let target = self.target
       let cache = self.cache
       let feedsBlock = self.feedsBlock
-      
+
       let (cached, stale, urlsToRequest) = try
         feeds(in: cache, with: urls, within: ttl.seconds)
 
@@ -582,10 +589,10 @@ public final class FeedRepository: RemoteRepository, Browsing {
   ) {
     self.cache = cache
     self.svc = svc
-    
+
     super.init(queue: queue, probe: probe)
   }
-  
+
   // TODO: Add force parameter
 
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
@@ -613,17 +620,27 @@ public final class FeedRepository: RemoteRepository, Browsing {
       target: target,
       urls: urls
     )
-    
+
+    let r = reachable()
+    let uri = urls.count == 1 ? urls.first : nil
+    let ttl = timeToLive(
+      uri,
+      force: false,
+      reachable: r,
+      status: svc.client.status,
+      ttl: CacheTTL.short
+    )
+
     op.feedsBlock = feedsBlock
     op.feedsCompletionBlock = feedsCompletionBlock
-    op.reachable = reachable()
-    op.ttl = timeToLive()
+    op.reachable = r
+    op.ttl = ttl
 
     queue.addOperation(op)
 
     return op
   }
-  
+
   /// Returns entries for the given locators, aggregating local and remote data.
   ///
   /// Locators provide a feed URL, a moment in the past, and an optional guid.
@@ -665,14 +682,14 @@ public final class FeedRepository: RemoteRepository, Browsing {
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
     let target = DispatchQueue.main
-    
+
     let op = EntriesOperation(
       cache: cache,
       svc: svc,
       target: target,
       locators: locators
     )
-    
+
     let r = reachable()
     let uri = locators.count == 1 ? locators.first?.url : nil
     let ttl = timeToLive(
@@ -682,14 +699,14 @@ public final class FeedRepository: RemoteRepository, Browsing {
       status: svc.client.status,
       ttl: CacheTTL.short
     )
-    
+
     op.entriesBlock = entriesBlock
     op.entriesCompletionBlock = entriesCompletionBlock
-    op.ttl = ttl
     op.reachable = r
-    
+    op.ttl = ttl
+
     // We have to get the according feeds, before we can request their entries,
-    // because we cannot update entries of uncached feeds. Providing a place to 
+    // because we cannot update entries of uncached feeds. Providing a place to
     // composite operations, like this, is an advantage of interposing
     // repositories.
 
@@ -701,32 +718,34 @@ public final class FeedRepository: RemoteRepository, Browsing {
       target: target,
       urls: urls
     )
-    
+
     dep.ttl = CacheTTL.forever
     dep.reachable = r
-    
+
     dep.feedsBlock = { error, feeds in
       if let er = error {
         // TODO: Pass error to entries operation
         assert(false, "unhandled error: \(er)")
       }
     }
-    
+
     dep.feedsCompletionBlock = { error in
       if let er = error {
         // TODO: Pass error to entries operation
-        //assert(false, "unhandled error: \(er)")
+        assert(false, "unhandled error: \(er)")
       }
     }
-    
+
+    assert(dep.ttl == CacheTTL.forever)
+
     op.addDependency(dep)
- 
+
     queue.addOperation(dep)
     queue.addOperation(op)
 
     return op
   }
-  
+
   public func entries(
     _ locators: [EntryLocator],
     entriesBlock: @escaping (Error?, [Entry]) -> Void,

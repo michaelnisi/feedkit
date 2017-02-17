@@ -442,6 +442,8 @@ public final class SearchRepository: RemoteRepository, Searching {
   /// - parameter perFindGroupBlock: The block to receive finds.
   /// - parameter searchCompletionBlock: The block to execute after the search
   /// is complete.
+  ///
+  /// - returns: The, already executing, operation.
   public func search(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
@@ -466,11 +468,27 @@ public final class SearchRepository: RemoteRepository, Searching {
   /// - parameter perFindGroupBlock: The block to receive finds, called once
   ///   per find group as enumerated in `Find`.
   /// - parameter completionBlock: A block called when the operation has finished.
+  ///
+  /// - returns: The, already executing, operation.
   public func suggest(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     suggestCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
+    
+    // TODO: Check connectivity
+
+    if let (code, ts) = svc.client.status {
+      // TODO: Remember recent timeout and back off (somehow)
+    }
+    
+    // Same tasks apply for search, of course. 
+    //
+    // Oh! I just realized, it’s already there, via probe—read this code. It
+    // looks, to me, at the moment at least, as if the searching implementation 
+    // is superior to browsing. This would explain the comment, I’ve stumbled
+    // upon recently, demanding to combine sync and async like in search.
+    
     let op = SuggestOperation(
       cache: cache,
       svc: svc,
