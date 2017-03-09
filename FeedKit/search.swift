@@ -12,7 +12,7 @@ import Ola
 
 /// An abstract class to be extended by search repository operations.
 private class SearchRepoOperation: SessionTaskOperation {
-  
+
   let cache: SearchCaching
   let originalTerm: String
   let svc: FanboyService
@@ -35,9 +35,7 @@ private class SearchRepoOperation: SessionTaskOperation {
     self.cache = cache
     self.originalTerm = term
     self.svc = svc
-    
-    // TODO: Review if this is the best place to trim the term string
-    
+
     self.term = trimString(term.lowercased(), joinedByString: " ")
     self.target = target
   }
@@ -72,18 +70,18 @@ private final class SearchOperation: SearchRepoOperation {
   ///
   /// - parameter stock: Stock of stale feeds to fall back on.
   fileprivate func request(_ stock: [Feed]? = nil) throws {
-    
+
     // Capturing self as unowned here to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
-    
-    task = try svc.search(term) { [unowned self] error, payload in
+
+    task = try svc.search(term: term) { [unowned self] payload, error in
       post(FeedKitRemoteResponseNotification)
-      
+
       var er: Error?
       defer {
         self.done(er)
       }
-      
+
       guard !self.isCancelled else {
         return
       }
@@ -101,16 +99,16 @@ private final class SearchOperation: SearchRepoOperation {
         }
         return
       }
-      
+
       guard payload != nil else {
         return
       }
-      
+
       do {
         let (errors, feeds) = feedsFromPayload(payload!)
-        
+
         assert(errors.isEmpty, "unhandled errors")
-        
+
         try self.cache.updateFeeds(feeds, forTerm: self.term)
         guard !feeds.isEmpty else {
           return
@@ -141,16 +139,16 @@ private final class SearchOperation: SearchRepoOperation {
       guard let cached = try cache.feedsForTerm(term, limit: 25) else {
         return try request()
       }
-      
+
       if isCancelled { return done() }
-      
+
       // If we match instead of equal, to yield more interesting results, we
-      // cannot determine the age of a cached search because we might have 
+      // cannot determine the age of a cached search because we might have
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
-      
+
       guard let ts = medianTS(cached) else { return done() }
-      
+
       if !stale(ts, ttl: ttl.seconds) {
         guard let cb = perFindGroupBlock else { return done() }
         let finds = cached.map { Find.suggestedFeed($0) }
@@ -247,13 +245,13 @@ private final class SuggestOperation: SearchRepoOperation {
   // MARK: Internals
 
   fileprivate func done(_ error: Error? = nil) {
-    
+
     // TODO: Remove guard
-    
+
     guard !isFinished else {
       return
     }
-    
+
     let er = isCancelled ?  FeedKitError.cancelledByUser : error
     if let cb = suggestCompletionBlock {
       target.sync {
@@ -264,12 +262,12 @@ private final class SuggestOperation: SearchRepoOperation {
     suggestCompletionBlock = nil
     isFinished = true
   }
-  
+
   func dispatch(_ error: FeedKitError?, finds: [Find]) {
     target.sync { [unowned self] in
       guard !self.isCancelled else { return }
       guard let cb = self.perFindGroupBlock else { return }
-      
+
       self.dispatched += finds
       cb(error as Error?, finds)
     }
@@ -279,22 +277,19 @@ private final class SuggestOperation: SearchRepoOperation {
     guard reachable else {
       return done(FeedKitError.offline)
     }
-    
-    // TODO: Prove this callback doesn't leak
-    // ... was [weak self]
-    
-    task = try svc.suggest(term) { error, payload in
+
+    task = try svc.suggestions(matching: term, limit: 10) { payload, error in
       post(FeedKitRemoteResponseNotification)
-      
+
       var er: Error?
       defer {
         self.done(er)
       }
-      
+
       guard !self.isCancelled else {
         return
       }
-      
+
       guard error == nil else {
         er = FeedKitError.serviceUnavailable(error: error!)
         if let suggestions = self.stock {
@@ -304,11 +299,11 @@ private final class SuggestOperation: SearchRepoOperation {
         }
         return
       }
-      
+
       guard payload != nil else {
         return
       }
-      
+
       do {
         let suggestions = suggestionsFromTerms(payload!)
         try self.cache.updateSuggestions(suggestions, forTerm: self.term)
@@ -382,7 +377,7 @@ private final class SuggestOperation: SearchRepoOperation {
         requestRequired = false
         return resume()
       }
-      
+
       if !stale(ts, ttl: ttl.seconds) {
         let finds = [original] + cached.map { Find.suggestedTerm($0) }
         dispatch(nil, finds: finds)
@@ -417,20 +412,20 @@ public final class SearchRepository: RemoteRepository, Searching {
   ) {
     self.cache = cache
     self.svc = svc
-    
+
     super.init(queue: queue, probe: probe)
   }
-  
+
   fileprivate func addOperation(_ op: SearchRepoOperation) -> Operation {
     let r = reachable()
     let term = op.term
     let status = svc.client.status
-    
+
     op.reachable = r
     op.ttl = timeToLive(term, force: false, reachable: r, status: status)
-    
+
     queue.addOperation(op)
-    
+
     return op
   }
 
@@ -475,27 +470,27 @@ public final class SearchRepository: RemoteRepository, Searching {
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     suggestCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
-    
+
     // TODO: Check connectivity
 
     if let (code, ts) = svc.client.status {
       // TODO: Remember recent timeout and back off (somehow)
     }
-    
-    // Same tasks apply for search, of course. 
+
+    // Same tasks apply for search, of course.
     //
     // Oh! I just realized, it’s already there, via probe—read this code. It
-    // looks, to me, at the moment at least, as if the searching implementation 
+    // looks, to me, at the moment at least, as if the searching implementation
     // is superior to browsing. This would explain the comment, I’ve stumbled
     // upon recently, demanding to combine sync and async like in search.
-    
+
     let op = SuggestOperation(
       cache: cache,
       svc: svc,
       term: term,
       target: DispatchQueue.main
     )
-    
+
     op.perFindGroupBlock = perFindGroupBlock
     op.suggestCompletionBlock = suggestCompletionBlock
 
