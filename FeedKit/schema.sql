@@ -167,6 +167,11 @@ as select
   e.type,
   e.updated,
   e.url,
+  f.img feedImg,
+  f.img100,
+  f.img30,
+  f.img60,
+  f.img600,
   f.rowid feedid,
   f.title feed_title,
   f.url feed

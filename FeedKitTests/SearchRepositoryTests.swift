@@ -201,6 +201,8 @@ class SearchRepositoryTests: XCTestCase {
             if found == 16 { shift() }
           case .suggestedEntry:
             if found == 32 { shift() }
+          default:
+            break // TODO: Remove default case
           }
         }
       }) { er in

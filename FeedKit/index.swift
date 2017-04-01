@@ -57,6 +57,8 @@ public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
   return lhs._code == rhs._code
 }
 
+// TODO: Move FeedImages.img to Feed.img
+
 /// A set of images associated with a feed.
 public struct FeedImages : Equatable {
   public let img: String?
@@ -88,9 +90,13 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
-// TODO: Split Feed and Entry classes off into separate framework
-//
-// Name suggestions: FeedFoundation, FeedCore
+public struct ITunesItem {
+  public let guid: String
+  public let img100: String?
+  public let img30: String?
+  public let img60: String?
+  public let img600: String?
+}
 
 /// Feeds are the central object of this framework.
 ///
@@ -111,7 +117,7 @@ public struct Feed : Hashable, Cachable, Redirectable {
   public let uid: Int?
   public let updated: Date?
   public let url: String
-  
+
   public var hashValue: Int {
     get { return uid! }
   }
@@ -172,7 +178,8 @@ public struct Entry : Equatable, Redirectable {
   public let duration: Int?
   public let enclosure: Enclosure?
   public let feed: String
-  public let feedTitle: String? // convenience
+  public let feedImages: FeedImages?
+  public let feedTitle: String?
   public let guid: String
   public let img: String?
   public let link: String?
@@ -203,11 +210,11 @@ public func ==(lhs: Entry, rhs: Entry) -> Bool {
 /// Entry locators identify a specific entry using the GUID, or skirt intervals
 /// of entries from a specific feed.
 public struct EntryLocator : Equatable {
-  
+
   public let url: String
   public let since: Date
   public let guid: String?
-  
+
   /// Initializes a newly created entry locator with the specified feed URL,
   /// time interval, and optional guid.
   ///
@@ -232,7 +239,7 @@ public struct EntryLocator : Equatable {
 
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
-    return "EntryLocator: { url: \(url), guid: \(guid), since: \(since) }"
+    return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
   }
 }
 
@@ -249,7 +256,7 @@ public struct Suggestion : Equatable {
 
 extension Suggestion : CustomStringConvertible {
   public var description: String {
-    return "Suggestion: \(term) \(ts)"
+    return "Suggestion: \(term) \(String(describing: ts))"
   }
 }
 
@@ -261,7 +268,7 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
 
 public struct Message : Equatable {
   public let attributedString: NSAttributedString
-  
+
   public init(attributedString: NSAttributedString) {
     self.attributedString = attributedString
   }
@@ -281,8 +288,8 @@ public func ==(lhs: Message, rhs: Message) -> Bool {
 //
 // Supplied by a single UITableViewDataSource class. Or maybe two, like Find and
 // Item, but the question is: how different would they be, really? Considering
-// that with an holistic search, the kind we want to offer, a Find may be 
-// literally anything in the system. Doesn’t this make Find just an Item? To 
+// that with an holistic search, the kind we want to offer, a Find may be
+// literally anything in the system. Doesn’t this make Find just an Item? To
 // figure this out, create item lists of all expected combinations.
 //
 // A couple of days later, I’m not convinced about this—a global master thing
@@ -297,7 +304,7 @@ public enum Find : Equatable {
   case suggestedEntry(Entry)
   case suggestedFeed(Feed)
   case message(Message)
-  
+
   // TODO: Add message
 
   /// The timestamp applied by the database.
@@ -307,7 +314,7 @@ public enum Find : Equatable {
     case .suggestedTerm(let it): return it.ts
     case .suggestedEntry(let it): return it.ts
     case .suggestedFeed(let it): return it.ts
-    case .message(let it): return nil
+    case .message(_): return nil
     }
   }
 }
@@ -376,7 +383,7 @@ public enum CacheTTL {
   case medium
   case long
   case forever
-  
+
   /// The time-to-live interval in seconds.
   var seconds: TimeInterval {
     get {
@@ -448,13 +455,13 @@ public protocol Browsing {
     feedsBlock: @escaping (Error?, [Feed]) -> Void,
     feedsCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   @discardableResult func entries(
     _ locators: [EntryLocator],
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   @discardableResult func entries(
     _ locators: [EntryLocator],
     force: Bool,
@@ -477,7 +484,7 @@ public protocol Queueing {
 
   func push(_ entry: Entry) throws
   func pop(_ entry: Entry) throws
-  
+
   // TODO: func insert(entry: Entry) throws
 }
 
@@ -493,23 +500,23 @@ func nop(_: Any) -> Void {}
 open class RemoteRepository {
   let queue: OperationQueue
   let probe: Reaching
-  
+
   public init(queue: OperationQueue, probe: Reaching) {
     self.queue = queue
     self.probe = probe
   }
-  
+
   deinit {
     queue.cancelAllOperations()
   }
-  
+
   func reachable() -> Bool {
     let r = probe.reach()
     return r == .reachable || r == .cellular
   }
-  
+
   private var forced = [String : Date]()
-  
+
   private func forceable(_ uri: String) -> Bool {
     if let prev = forced[uri] {
       if prev.timeIntervalSinceNow < CacheTTL.short.seconds {
@@ -518,9 +525,9 @@ open class RemoteRepository {
     }
     forced[uri] = Date()
     return true
-    
+
   }
-  
+
   /// Return the momentary maximal age for cached items of a specific resource
   /// incorporating reachability and service status. This method's parameters
   /// are all optional.
@@ -540,22 +547,22 @@ open class RemoteRepository {
     guard reachable else {
       return CacheTTL.forever
     }
-    
+
     if force, let k = uri {
       if forceable(k) {
         return CacheTTL.none
       }
     }
-    
+
     // TODO: Check if this catches timeouts too
-    
+
     if let (code, ts) = status {
       let date = Date(timeIntervalSince1970: ts)
       if code != 0 && !stale(date, ttl: CacheTTL.short.seconds) {
         return CacheTTL.forever
       }
     }
-    
+
     return ttl
   }
 }
@@ -568,16 +575,16 @@ func post(_ name: String) {
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: Operation {
-  
+
   // MARK: Properties
-  
+
   /// If you know in advance that the remote service is currently not available,
   /// you might set this to `false` to be more effective.
   var reachable: Bool = true
-  
+
   /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
-  
+
   final var task: URLSessionTask? {
     didSet {
       post(FeedKitRemoteRequestNotification)
@@ -585,7 +592,7 @@ class SessionTaskOperation: Operation {
   }
 
   fileprivate var _executing: Bool = false
-  
+
   // MARK: NSOperation
 
   override final var isExecuting: Bool {

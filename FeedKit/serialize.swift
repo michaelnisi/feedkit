@@ -213,6 +213,7 @@ func entryFromDictionary (
     duration: duration,
     enclosure: enclosure,
     feed: feed,
+    feedImages: nil,
     feedTitle: nil,
     guid: guid,
     img: img,

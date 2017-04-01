@@ -192,7 +192,7 @@ extension Cache: FeedCaching {
     let db = self.db
     
     var error: Error?
-    
+
     queue.sync {
       do {
         let sql = try feeds.reduce([String]()) { acc, feed in

@@ -473,7 +473,7 @@ public final class SearchRepository: RemoteRepository, Searching {
 
     // TODO: Check connectivity
 
-    if let (code, ts) = svc.client.status {
+    if let (_, _) = svc.client.status {
       // TODO: Remember recent timeout and back off (somehow)
     }
 

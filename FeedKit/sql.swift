@@ -175,10 +175,17 @@ final class SQLFormatter {
     ");"
     return sql
   }
+  
+  private func column(name: String, value: String, keep: Bool = false) -> String? {
+    guard keep else {
+      return "\(name) = \(value)"
+    }
+    return value != "NULL" ? "\(name) = \(value)" : nil
+  }
 
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAny(feed.author as AnyObject?)
-    let guid = stringFromAny(feed.iTunesGuid as AnyObject?)
+    let iTunesGuid = stringFromAny(feed.iTunesGuid as AnyObject?)
     let img = stringFromAny(feed.images?.img as AnyObject?)
     let img100 = stringFromAny(feed.images?.img100 as AnyObject?)
     let img30 = stringFromAny(feed.images?.img30 as AnyObject?)
@@ -189,15 +196,29 @@ final class SQLFormatter {
     let title = stringFromAny(feed.title as AnyObject?)
     let updated = stringFromAny(feed.updated as AnyObject?)
     let url = stringFromAny(feed.url as AnyObject?)
-
-    let sql =
-    "UPDATE feed " +
-    "SET author = \(author), guid = \(guid), " +
-    "img = \(img), img100 = \(img100), img30 = \(img30), " +
-    "img60 = \(img60), img600 = \(img600), link = \(link), " +
-    "summary = \(summary), title = \(title), updated = \(updated), " +
-    "url = \(url) " +
-    "WHERE rowid = \(rowid);"
+    
+    let props = [
+      ("author", author), ("guid", iTunesGuid), ("img", img), ("img100", img100),
+      ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
+      ("summary", summary), ("title", title), ("updated", updated), ("url", url)
+    ]
+    
+    // If the doesn’t come from iTunes, it doesn’t contain the prescaled images
+    // and we don’t want to nullify them.
+    let kept = ["img100", "img30", "img60", "img600"]
+    
+    let vars = props.reduce([String]()) { acc, prop in
+      let (name, value) = prop
+      let keep = kept.contains(name)
+      guard let col = column(name: name, value: value, keep: keep) else {
+        return acc
+      }
+      return acc + [col]
+      
+    }.joined(separator: ", ")
+    
+    let sql = "UPDATE feed SET \(vars) WHERE rowid = \(rowid);"
+    
     return sql
   }
 
@@ -258,7 +279,7 @@ final class SQLFormatter {
   }
 
   func feedImagesFromRow(_ row: SkullRow) -> FeedImages {
-    let img = row["img"] as? String
+    let img = row["feedImg"] as? String ?? row["img"] as? String
     let img30 = row["img30"] as? String
     let img60 = row["img60"] as? String
     let img100 = row["img100"] as? String
@@ -330,6 +351,7 @@ final class SQLFormatter {
     let enclosure = try enclosureFromRow(row)
     let duration = row["duration"] as? Int
     let feed = row["feed"] as! String
+    let feedImages = feedImagesFromRow(row)
     let feedTitle = row["feed_title"] as! String
     let guid = row["guid"] as! String
     let img = row["img"] as? String
@@ -348,6 +370,7 @@ final class SQLFormatter {
       duration: duration,
       enclosure: enclosure,
       feed: feed,
+      feedImages: feedImages,
       feedTitle: feedTitle,
       guid: guid,
       img: img,
