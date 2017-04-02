@@ -167,7 +167,7 @@ as select
   e.type,
   e.updated,
   e.url,
-  f.img feedImg,
+  f.img feed_image,
   f.img100,
   f.img30,
   f.img60,

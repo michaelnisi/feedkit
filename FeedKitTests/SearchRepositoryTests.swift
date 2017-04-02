@@ -182,7 +182,10 @@ class SearchRepositoryTests: XCTestCase {
     return (feeds, entries)
   }
   
+  // TODO: Prevent multiple fullfill calls
+  
   func testSuggest() {
+    var fullfilled = false
     let exp = self.expectation(description: "suggest")
     var op: SessionTaskOperation?
     func go() {
@@ -209,7 +212,11 @@ class SearchRepositoryTests: XCTestCase {
         XCTAssertNil(er)
         let wanted = UInt(64)
         XCTAssertEqual(found, wanted, "should apply callback sequentially")
+        guard !fullfilled else {
+          return
+        }
         exp.fulfill()
+        fullfilled = true
       }
     }
     

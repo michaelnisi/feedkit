@@ -9,6 +9,8 @@
 import Foundation
 import Skull
 
+// TODO: Review, document, and test
+
 // TODO: Store enclosures in extra table
 
 // TODO: Complete last eight percent of test coverage
@@ -152,12 +154,12 @@ final class SQLFormatter {
 
   func SQLToInsertFeed(_ feed: Feed) -> String {
     let author = stringFromAny(feed.author as AnyObject?)
-    let guid = stringFromAny(feed.iTunesGuid as AnyObject?)
-    let img = stringFromAny(feed.images?.img as AnyObject?)
-    let img100 = stringFromAny(feed.images?.img100 as AnyObject?)
-    let img30 = stringFromAny(feed.images?.img30 as AnyObject?)
-    let img60 = stringFromAny(feed.images?.img60 as AnyObject?)
-    let img600 = stringFromAny(feed.images?.img600 as AnyObject?)
+    let guid = stringFromAny(feed.iTunes?.guid as AnyObject?)
+    let img = stringFromAny(feed.image as AnyObject?)
+    let img100 = stringFromAny(feed.iTunes?.img100 as AnyObject?)
+    let img30 = stringFromAny(feed.iTunes?.img30 as AnyObject?)
+    let img60 = stringFromAny(feed.iTunes?.img60 as AnyObject?)
+    let img600 = stringFromAny(feed.iTunes?.img600 as AnyObject?)
     let link = stringFromAny(feed.link as AnyObject?)
     let summary = stringFromAny(feed.summary as AnyObject?)
     let title = stringFromAny(feed.title as AnyObject?)
@@ -185,12 +187,12 @@ final class SQLFormatter {
 
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAny(feed.author as AnyObject?)
-    let iTunesGuid = stringFromAny(feed.iTunesGuid as AnyObject?)
-    let img = stringFromAny(feed.images?.img as AnyObject?)
-    let img100 = stringFromAny(feed.images?.img100 as AnyObject?)
-    let img30 = stringFromAny(feed.images?.img30 as AnyObject?)
-    let img60 = stringFromAny(feed.images?.img60 as AnyObject?)
-    let img600 = stringFromAny(feed.images?.img600 as AnyObject?)
+    let guid = stringFromAny(feed.iTunes?.guid as AnyObject?)
+    let img = stringFromAny(feed.image as AnyObject?)
+    let img100 = stringFromAny(feed.iTunes?.img100 as AnyObject?)
+    let img30 = stringFromAny(feed.iTunes?.img30 as AnyObject?)
+    let img60 = stringFromAny(feed.iTunes?.img60 as AnyObject?)
+    let img600 = stringFromAny(feed.iTunes?.img600 as AnyObject?)
     let link = stringFromAny(feed.link as AnyObject?)
     let summary = stringFromAny(feed.summary as AnyObject?)
     let title = stringFromAny(feed.title as AnyObject?)
@@ -198,7 +200,7 @@ final class SQLFormatter {
     let url = stringFromAny(feed.url as AnyObject?)
     
     let props = [
-      ("author", author), ("guid", iTunesGuid), ("img", img), ("img100", img100),
+      ("author", author), ("guid", guid), ("img", img), ("img100", img100),
       ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
       ("summary", summary), ("title", title), ("updated", updated), ("url", url)
     ]
@@ -227,7 +229,7 @@ final class SQLFormatter {
     let duration = stringFromAny(entry.duration as AnyObject?)
     let feedid = stringFromAny(feedID as AnyObject?)
     let guid = SQLStringFromString(entry.guid) // TODO: Review
-    let img = stringFromAny(entry.img as AnyObject?)
+    let img = stringFromAny(entry.image as AnyObject?)
     let length = stringFromAny(entry.enclosure?.length as AnyObject?)
     let link = stringFromAny(entry.link as AnyObject?)
     let subtitle = stringFromAny(entry.subtitle as AnyObject?)
@@ -278,15 +280,15 @@ final class SQLFormatter {
     }.joined(separator: " OR") + " ORDER BY feedid, updated;"
   }
 
-  func feedImagesFromRow(_ row: SkullRow) -> FeedImages {
-    let img = row["feedImg"] as? String ?? row["img"] as? String
+  func iTunesItem(from row: SkullRow) -> ITunesItem? {
+    let guid = row["guid"] as? Int
     let img30 = row["img30"] as? String
     let img60 = row["img60"] as? String
     let img100 = row["img100"] as? String
     let img600 = row["img600"] as? String
 
-    return FeedImages(
-      img: img,
+    return ITunesItem(
+      guid: guid,
       img100: img100,
       img30: img30,
       img60: img60,
@@ -296,24 +298,27 @@ final class SQLFormatter {
 
   func feedFromRow(_ row: SkullRow) throws -> Feed {
     let author = row["author"] as? String
-    let iTunesGuid = row["guid"] as? Int
+    let iTunes = iTunesItem(from: row)
+    let image = row["img"] as? String
     let link = row["link"] as? String
-    let img = feedImagesFromRow(row)
     let summary = row["summary"] as? String
+    
     guard let title = row["title"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
+    
     let ts = dateFromString(row["ts"] as? String)
     let uid = row["uid"] as? Int
     let updated = dateFromString(row["updated"] as? String)
+    
     guard let url = row["url"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing url")
     }
 
     return Feed(
       author: author,
-      iTunesGuid: iTunesGuid,
-      images: img,
+      iTunes: iTunes,
+      image: image,
       link: link,
       originalURL: nil,
       summary: summary,
@@ -348,13 +353,14 @@ final class SQLFormatter {
   /// crashing directly from here is debugging during development.
   func entryFromRow(_ row: SkullRow) throws -> Entry {
     let author = row["author"] as? String
-    let enclosure = try enclosureFromRow(row)
     let duration = row["duration"] as? Int
+    let enclosure = try enclosureFromRow(row)
     let feed = row["feed"] as! String
-    let feedImages = feedImagesFromRow(row)
+    let feedImage = row["feed_image"] as? String
     let feedTitle = row["feed_title"] as! String
     let guid = row["guid"] as! String
-    let img = row["img"] as? String
+    let iTunes = iTunesItem(from: row)
+    let image = row["img"] as? String
     let link = row["link"] as? String
     let subtitle = row["subtitle"] as? String
     let summary = row["summary"] as? String
@@ -370,10 +376,11 @@ final class SQLFormatter {
       duration: duration,
       enclosure: enclosure,
       feed: feed,
-      feedImages: feedImages,
+      feedImage: feedImage,
       feedTitle: feedTitle,
       guid: guid,
-      img: img,
+      iTunes: iTunes,
+      image: image,
       link: link,
       originalURL: nil,
       subtitle: subtitle,

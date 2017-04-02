@@ -57,27 +57,6 @@ public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
   return lhs._code == rhs._code
 }
 
-// TODO: Move FeedImages.img to Feed.img
-
-/// A set of images associated with a feed.
-public struct FeedImages : Equatable {
-  public let img: String?
-  public let img100: String?
-  public let img30: String?
-  public let img60: String?
-  public let img600: String?
-}
-
-public func ==(lhs: FeedImages, rhs: FeedImages) -> Bool {
-  return (
-    lhs.img == rhs.img &&
-    lhs.img100 == rhs.img100 &&
-    lhs.img30 == rhs.img30 &&
-    lhs.img60 == rhs.img60 &&
-    lhs.img600 == rhs.img600
-  )
-}
-
 /// Cachable objects, currently feeds and entries, must adopt this protocol,
 /// which requires a globally unique resource locator (url) and a timestamp (ts).
 public protocol Cachable {
@@ -90,12 +69,33 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
-public struct ITunesItem {
-  public let guid: String
+// Additional per podcast information aquired via iTunes search.
+public struct ITunesItem: Equatable {
+  public let guid: Int?
   public let img100: String?
   public let img30: String?
   public let img60: String?
   public let img600: String?
+  
+  public init?(guid: Int?, img100: String?, img30: String?, img60: String?,
+               img600: String?) {
+    if guid == nil, img100 == nil, img30 == nil, img60 == nil, img600 == nil {
+      return nil
+    }
+    self.guid = guid
+    self.img100 = img100
+    self.img30 = img30
+    self.img60 = img60
+    self.img600 = img600
+  }
+}
+
+public func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
+  guard let a = lhs.guid, let b = rhs.guid else {
+    return lhs.img100 == rhs.img100 && lhs.img600 == rhs.img600 &&
+      lhs.img60 == rhs.img60 && lhs.img30 == rhs.img30
+  }
+  return a == b
 }
 
 /// Feeds are the central object of this framework.
@@ -107,8 +107,8 @@ public struct ITunesItem {
 /// A feed is required to, at least, have `title` and `url`.
 public struct Feed : Hashable, Cachable, Redirectable {
   public let author: String?
-  public let iTunesGuid: Int?
-  public let images: FeedImages?
+  public let iTunes: ITunesItem?
+  public let image: String?
   public let link: String?
   public let originalURL: String?
   public let summary: String?
@@ -178,10 +178,11 @@ public struct Entry : Equatable, Redirectable {
   public let duration: Int?
   public let enclosure: Enclosure?
   public let feed: String
-  public let feedImages: FeedImages?
+  public let feedImage: String?
   public let feedTitle: String?
   public let guid: String
-  public let img: String?
+  public let iTunes: ITunesItem?
+  public let image: String?
   public let link: String?
   public let originalURL: String?
   public let subtitle: String?

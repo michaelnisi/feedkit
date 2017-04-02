@@ -106,8 +106,7 @@ class CacheTests: XCTestCase {
       let foundFeed = found[i]
 
       XCTAssertEqual(foundFeed.author, wantedFeed.author)
-      XCTAssertEqual(foundFeed.iTunesGuid, wantedFeed.iTunesGuid)
-      XCTAssertEqual(foundFeed.images, wantedFeed.images)
+      XCTAssertEqual(foundFeed.iTunes, wantedFeed.iTunes)
       XCTAssertEqual(foundFeed.link, wantedFeed.link)
       XCTAssertEqual(foundFeed.summary, wantedFeed.summary)
       XCTAssertEqual(foundFeed.title, wantedFeed.title)
@@ -168,7 +167,7 @@ class CacheTests: XCTestCase {
       XCTAssertEqual(foundEntry.enclosure, wantedEntry.enclosure)
       XCTAssertEqual(foundEntry.feed, wantedEntry.feed)
       XCTAssertNotNil(foundEntry.guid, "should have guid (from caching)")
-      XCTAssertEqual(foundEntry.img, wantedEntry.img)
+      XCTAssertEqual(foundEntry.image, wantedEntry.image)
       XCTAssertEqual(foundEntry.link, wantedEntry.link)
       XCTAssertEqual(foundEntry.subtitle, wantedEntry.subtitle)
       XCTAssertEqual(foundEntry.summary, wantedEntry.summary)
@@ -324,14 +323,14 @@ class CacheTests: XCTestCase {
         let foundFeed = found[i]
 
         XCTAssertEqual(foundFeed.author, wantedFeed.author)
-        XCTAssertEqual(foundFeed.iTunesGuid, wantedFeed.iTunesGuid)
-        XCTAssertEqual(foundFeed.images, wantedFeed.images)
+        XCTAssertEqual(foundFeed.iTunes, wantedFeed.iTunes)
+        XCTAssertEqual(foundFeed.image, wantedFeed.image)
         XCTAssertEqual(foundFeed.link, wantedFeed.link)
         XCTAssertEqual(foundFeed.summary, wantedFeed.summary)
         XCTAssertEqual(foundFeed.title, wantedFeed.title)
-        XCTAssertNotNil(foundFeed.ts, "should bear timestamp")
         XCTAssertEqual(foundFeed.updated, wantedFeed.updated)
         XCTAssertEqual(foundFeed.url, wantedFeed.url)
+        XCTAssertNotNil(foundFeed.ts, "should bear timestamp")
 
         let url = foundFeed.url
         XCTAssertTrue(cache.hasURL(url))
@@ -360,7 +359,7 @@ class CacheTests: XCTestCase {
       let this = found[i]
       XCTAssertEqual(this.title, that.title)
       XCTAssertEqual(this.url, that.url)
-      XCTAssertEqual(this.iTunesGuid, that.iTunesGuid)
+      XCTAssertEqual(this.iTunes, that.iTunes)
     }
   }
 

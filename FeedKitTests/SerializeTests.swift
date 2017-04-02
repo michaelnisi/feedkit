@@ -13,7 +13,7 @@ class SerializeTests: XCTestCase {
 
   func testTrimString() {
     func f(_ s: String) -> String {
-      return trimString(s.lowercased(), joinedByString: " ")
+      return replaceWhitespaces(in: s.lowercased(), with: " ")
     }
     let input = [
       "apple",
@@ -71,24 +71,19 @@ class SerializeTests: XCTestCase {
   }
 
   func testFeedImagesFromDictionary() {
-    let keys = ["image", "img100", "img30", "img60", "img600"]
-    let dict = keys.reduce([String:AnyObject]()) { acc, key in
-      var images = acc
-      images[key] = key as AnyObject?
-      return images
+    let wanted = ITunesItem(guid: 123, img100: nil, img30: nil, img60: nil, img600: nil)!
+    let dict = Mirror(reflecting: wanted).children.reduce([String : AnyObject]()) { acc, prop in
+      var d = acc
+      d[prop.label!] = prop.value as AnyObject
+      return d
     }
-    let images = FeedImagesFromDictionary(dict)
-    XCTAssertEqual(images.img, "image")
-    XCTAssertEqual(images.img100, "img100")
-    XCTAssertEqual(images.img30, "img30")
-    XCTAssertEqual(images.img60, "img60")
-    XCTAssertEqual(images.img600, "img600")
-  }
-
-  func testQueryFromString() {
-    XCTAssertNil(query(from: ""))
-    XCTAssertNil(query(from: " "))
-    XCTAssertNil(query(from: "   "))
+    let found = iTunesItem(from: dict)!
+    XCTAssertEqual(found, wanted)
+    XCTAssertEqual(found.guid, wanted.guid)
+    XCTAssertEqual(found.img100, wanted.img100)
+    XCTAssertEqual(found.img30, wanted.img30)
+    XCTAssertEqual(found.img60, wanted.img60)
+    XCTAssertEqual(found.img600, wanted.img600)
   }
 
   func testFeedFromInvalidDictonaries() {
@@ -115,8 +110,8 @@ class SerializeTests: XCTestCase {
     let dict = ["feed": "abc", "title": "A title"]
     let wanted = Feed(
       author: nil,
-      iTunesGuid: nil,
-      images: nil,
+      iTunes: nil,
+      image: nil,
       link: nil,
       originalURL: nil,
       summary: nil,
@@ -129,14 +124,13 @@ class SerializeTests: XCTestCase {
     let found = try! feed(from: dict)
     XCTAssertEqual(found, wanted)
   }
-
-  // TODO: Replace alibi with proper test
+  
   func testFeedsFromPayload() {
     let dict = ["feed": "abc", "title": "A title"]
     let wanted = [Feed(
       author: nil,
-      iTunesGuid: nil,
-      images: nil,
+      iTunes: nil,
+      image: nil,
       link: nil,
       originalURL: nil,
       summary: nil,
@@ -145,7 +139,7 @@ class SerializeTests: XCTestCase {
       uid: nil,
       updated: nil,
       url: "abc"
-    )]
+      )]
     let (errors, feeds) = feedsFromPayload([dict])
     XCTAssert(errors.isEmpty)
     XCTAssertEqual(feeds, wanted)
@@ -170,9 +164,11 @@ class SerializeTests: XCTestCase {
       duration: nil,
       enclosure: nil,
       feed: feed,
+      feedImage: nil,
       feedTitle: nil,
       guid: guid,
-      img: nil,
+      iTunes: nil,
+      image: nil,
       link: nil,
       originalURL: nil,
       subtitle: nil,

@@ -33,7 +33,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "4C34859F1977C237008A6B53"
+               BlueprintIdentifier = "4EF5E0F01E91389F00A95D3D"
                BuildableName = "FeedKitTests.xctest"
                BlueprintName = "FeedKitTests"
                ReferencedContainer = "container:FeedKit.xcodeproj">

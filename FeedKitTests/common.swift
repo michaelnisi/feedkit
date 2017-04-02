@@ -9,6 +9,7 @@
 import Foundation
 import XCTest
 import Skull
+
 @testable import FeedKit
 
 func schemaForClass(_ aClass: AnyClass!) -> String {
@@ -104,9 +105,11 @@ func entryWithName(_ name: String) throws -> Entry {
         duration: 9185,
         enclosure: enclosure,
         feed: feed,
+        feedImage: nil,
         feedTitle: nil,
         guid: guid,
-        img: "http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png,",
+        iTunes: nil,
+        image: "http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png",
         link: link,
         originalURL: nil,
         subtitle: "Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.",
@@ -125,14 +128,14 @@ func feedWithName(_ name: String) throws -> Feed {
   case "thetalkshow":
     return Feed(
       author: "Daring Fireball / John Gruber",
-      iTunesGuid: 528458508,
-      images: FeedImages(
-        img: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
+      iTunes: ITunesItem(
+        guid: 528458508,
         img100: nil,
         img30: nil,
         img60: nil,
         img600: nil
       ),
+      image: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
       link: nil,
       originalURL: nil,
       summary: "The director’s commentary track for Daring Fireball.",
@@ -145,14 +148,14 @@ func feedWithName(_ name: String) throws -> Feed {
   case "roderickontheline":
     return Feed(
       author: "Merlin Mann",
-      iTunesGuid: 471418144,
-      images: FeedImages(
-        img: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
+      iTunes: ITunesItem(
+        guid: 471418144,
         img100: nil,
         img30: nil,
         img60: nil,
         img600: nil
       ),
+      image: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
       link: nil,
       originalURL: nil,
       summary: nil,

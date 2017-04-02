@@ -257,7 +257,7 @@ final class EntriesOperation: BrowseOperation {
   func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = self.entriesCompletionBlock {
-      target.sync {
+      target.async {
         cb(er)
       }
     }
@@ -435,7 +435,7 @@ final class FeedsOperation: BrowseOperation {
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = feedsCompletionBlock {
-      target.sync {
+      target.async {
         cb(er)
       }
     }

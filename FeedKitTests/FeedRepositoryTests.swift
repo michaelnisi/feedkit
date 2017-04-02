@@ -40,9 +40,13 @@ class FeedRepositoryTests: XCTestCase {
     
     svc = freshManger(string: "http://localhost:8384")
     
-    let queue = OperationQueue()
+     let dpq = DispatchQueue(label: "xxx")
     
-    let probe = Ola(host: "http://localhost:8384", queue: DispatchQueue.main)!
+    let queue = OperationQueue()
+    queue.underlyingQueue = dpq
+    
+   
+    let probe = Ola(host: "http://localhost:8384", queue: dpq)!
     
     repo = FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
   }
@@ -354,7 +358,7 @@ class FeedRepositoryTests: XCTestCase {
       XCTAssertFalse(entries.isEmpty)
       found += entries
     }) { er in
-      XCTAssertNil(er, "should succeed without error: \(er)")
+      XCTAssertNil(er, "should succeed without error: \(String(describing: er))")
       exp.fulfill()
     }
     self.waitForExpectations(timeout: 10) { er in

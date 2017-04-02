@@ -9,22 +9,24 @@
 import Foundation
 import Skull
 
+// TODO: Review, document, and test
+
 /// Remove whitespace from specified string and replace it with `""` or the
-/// specified string. Consecutive spaces are reduced to single spaces.
+/// specified string. Consecutive spaces are reduced to a single space.
 ///
-/// - parameter String: The string to trim..
-/// - parameter joinedByString: The string to replace whitespace with.
+/// - parameter string: The string to trim..
+/// - parameter replacement: The string to replace whitespace with.
 ///
 /// - returns: The trimmed string.
-public func trimString(_ s: String, joinedByString j: String = "") -> String {
+public func replaceWhitespaces(in string: String, with replacement: String = "") -> String {
   let ws = CharacterSet.whitespaces
-  let ts = s.trimmingCharacters(in: ws)
+  let ts = string.trimmingCharacters(in: ws)
   let cmps = ts.components(separatedBy: " ") as [String]
   return cmps.reduce("") { a, b in
     if a.isEmpty { return b }
     let tb = b.trimmingCharacters(in: ws)
     if tb.isEmpty { return a }
-    return "\(a)\(j)\(tb)"
+    return "\(a)\(replacement)\(tb)"
   }
 }
 
@@ -53,16 +55,19 @@ func date(fromDictionary dict: [String : Any], withKey key: String) -> Date? {
   return Date(timeIntervalSince1970: s)
 }
 
-/// Create a feed image set from a JSON payload.
-func FeedImagesFromDictionary(_ dict: [String : Any]) -> FeedImages {
-  let img = dict["image"] as? String
+/// Create an iTunes item from a JSON payload.
+func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
+  guard let guid = dict["guid"] as? Int else {
+    return nil
+  }
+  
   let img100 = dict["img100"] as? String
   let img30 = dict["img30"] as? String
   let img60 = dict["img60"] as? String
   let img600 = dict["img600"] as? String
 
-  return FeedImages(
-    img: img,
+  return ITunesItem(
+    guid: guid,
     img100: img100,
     img30: img30,
     img60: img60,
@@ -89,17 +94,17 @@ func feed(from json: [String : Any]) throws -> Feed {
   }
 
   let author = json["author"] as? String
-  let iTunesGuid =  json["guid"] as? Int
+  let iTunes = iTunesItem(from: json)
+  let image = json["image"] as? String
   let link = json["link"] as? String
-  let images: FeedImages = FeedImagesFromDictionary(json)
   let summary = json["summary"] as? String
   let originalURL = json["originalURL"] as? String
   let updated = date(fromDictionary: json, withKey: "updated")
 
   return Feed(
     author: author,
-    iTunesGuid: iTunesGuid,
-    images: images,
+    iTunes: iTunes,
+    image: image,
     link: link,
     originalURL: originalURL,
     summary: summary,
@@ -165,12 +170,15 @@ func enclosureFromDictionary (_ dict: [String : Any]) throws -> Enclosure? {
 /// timestamp is relevant, but if this isn't present, its value will be set to
 /// zero (1970-01-01 00:00:00 UTC).
 ///
-/// - Parameter dict: The JSON dictonary to serialize.
-/// - Parameter podcast: Flag that having an enclosure is required.
+/// - Parameters:
+///   - dict: The JSON dictonary to serialize.
+///   - podcast: Flag that having an enclosure is required.
+///
 /// - Returns: The valid entry.
-/// - Throws: Throws `FeedKitError.InvalidEntry` if `"feed"`, `"title"`, or
-/// `"id"` are missing from the dictionary. If enclosure is required and not
-/// present, also invalid entry is thrown.
+///
+/// - Throws: Might throw `FeedKitError.InvalidEntry` if `"feed"`, `"title"`, or
+/// `"id"` are missing from the dictionary. If enclosure is required, `podcast` 
+/// is `true`, and not present, also invalid entry is thrown.
 func entryFromDictionary (
   _ dict: [String : Any],
   podcast: Bool = true
@@ -191,7 +199,7 @@ func entryFromDictionary (
 
   let author = dict["author"] as? String
   let duration = dict["duration"] as? Int
-  let img = dict["image"] as? String
+  let image = dict["image"] as? String
   let link = dict["link"] as? String
   let originalURL = dict["originalURL"] as? String
   let subtitle = dict["subtitle"] as? String
@@ -213,10 +221,11 @@ func entryFromDictionary (
     duration: duration,
     enclosure: enclosure,
     feed: feed,
-    feedImages: nil,
+    feedImage: nil,
     feedTitle: nil,
     guid: guid,
-    img: img,
+    iTunes: nil,
+    image: image,
     link: link,
     originalURL: originalURL,
     subtitle: subtitle,
@@ -250,18 +259,4 @@ func entriesFromPayload(
     }
   }
   return (errors, entries)
-}
-
-/// Return a search query, actually just a trimmed string, from a string. Empty
-/// strings result in `nil`.
-///
-/// We don't validate more, because the Search UI already restricts inputs by
-/// limiting the keyboard. Take care if you pass values programmatically.
-///
-/// - parameter string: Any string to be used as a search term.
-///
-/// - returns: The search query or nil.
-func query(from string: String) -> String? {
-  let query = trimString(string, joinedByString: " ")
-  return query.isEmpty ? nil : query
 }

@@ -36,7 +36,7 @@ private class SearchRepoOperation: SessionTaskOperation {
     self.originalTerm = term
     self.svc = svc
 
-    self.term = trimString(term.lowercased(), joinedByString: " ")
+    self.term = replaceWhitespaces(in: term.lowercased(), with: " ")
     self.target = target
   }
 }
@@ -65,7 +65,7 @@ private final class SearchOperation: SearchRepoOperation {
   }
 
   /// Remotely request search and subsequently update the cache while falling
-  /// back on stale feeds in stock. Finally end the operation after applying
+  /// back on stale feeds in stock. Finally, end the operation after applying
   /// the callback. Passing empty stock makes no sense.
   ///
   /// - parameter stock: Stock of stale feeds to fall back on.

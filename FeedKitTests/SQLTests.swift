@@ -29,26 +29,33 @@ class SQLTests: XCTestCase {
     return SkullColumn(name: name, value: value)
   }
   
-  func skullRow(_ keys: [String]) -> SkullRow {
+  func testITunesItemFromRow() {
+    let wanted = ITunesItem(guid: 123, img100: "img100", img30: "img30",
+                            img60: "img60", img600: "img600")!
+    
+    let row = Mirror(reflecting: wanted).children.reduce(SkullRow()) { acc, prop in
+      var r = acc
+      let col = skullColumn(prop.label!, value: prop.value)
+      r[col.name] = col.value
+      return r
+    }
+
+    let iTunes = formatter.iTunesItem(from: row)!
+    
+    XCTAssertEqual(iTunes.guid, 123)
+    XCTAssertEqual(iTunes.img100, "img100")
+    XCTAssertEqual(iTunes.img30, "img30")
+    XCTAssertEqual(iTunes.img60, "img60")
+    XCTAssertEqual(iTunes.img600, "img600")
+  }
+  
+  private func skullRow(_ keys: [String]) -> SkullRow {
     var row = SkullRow()
     for key in keys {
       let col = skullColumn(key, value: key)
       row[col.name] = col.value
     }
     return row
-  }
-  
-  func testFeedImagesFromRow() {
-    let keys = ["img", "img100", "img30", "img60", "img600"]
-    let row = skullRow(keys)
-    
-    let images = formatter.feedImagesFromRow(row)
-    
-    XCTAssertEqual(images.img, "img")
-    XCTAssertEqual(images.img100, "img100")
-    XCTAssertEqual(images.img30, "img30")
-    XCTAssertEqual(images.img60, "img60")
-    XCTAssertEqual(images.img600, "img600")
   }
   
   func testFeedFromRow() {
@@ -58,14 +65,14 @@ class SQLTests: XCTestCase {
     ]
     var row = skullRow(keys)
     
-    row["guid"] = 0
+    row["guid"] = 123
     row["uid"] = 0
     row["ts"] = "2016-06-06 06:00:00"
     
     let found = try! formatter.feedFromRow(row)
     
-    let images = FeedImages(
-      img: "img",
+    let iTunes = ITunesItem(
+      guid: 123,
       img100: "img100",
       img30: "img30",
       img60: "img60",
@@ -73,8 +80,8 @@ class SQLTests: XCTestCase {
     )
     let wanted = Feed(
       author: "author",
-      iTunesGuid: 0,
-      images: images,
+      iTunes: iTunes,
+      image: "img",
       link: "link",
       originalURL: nil,
       summary: "summary",
@@ -88,7 +95,8 @@ class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
     
     XCTAssertEqual(found.author, wanted.author)
-    XCTAssertEqual(found.iTunesGuid, wanted.iTunesGuid)
+    XCTAssertEqual(found.iTunes, wanted.iTunes)
+    XCTAssertEqual(found.image, wanted.image)
     XCTAssertEqual(found.link, wanted.link)
     XCTAssertEqual(found.summary, wanted.summary)
     XCTAssertEqual(found.title, wanted.title)
@@ -296,14 +304,14 @@ class SQLTests: XCTestCase {
   func testSQLToUpdateFeed() {
     let feed = try! feedWithName("thetalkshow")
     let found = formatter.SQLToUpdateFeed(feed, withID: 1)
-    let wanted = "UPDATE feed SET author = 'Daring Fireball / John Gruber', guid = 528458508, img = 'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg', img100 = NULL, img30 = NULL, img60 = NULL, img600 = NULL, link = NULL, summary = 'The director’s commentary track for Daring Fireball.', title = 'The Talk Show With John Gruber', updated = '2015-10-17 19:35:01', url = 'http://daringfireball.net/thetalkshow/rss' WHERE rowid = 1;"
+    let wanted = "UPDATE feed SET author = 'Daring Fireball / John Gruber', guid = 528458508, img = 'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg', link = NULL, summary = 'The director’s commentary track for Daring Fireball.', title = 'The Talk Show With John Gruber', updated = '2015-10-17 19:35:01', url = 'http://daringfireball.net/thetalkshow/rss' WHERE rowid = 1;"
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLToInsertEntry() {
     let entry = try! entryWithName("thetalkshow")
     let found = formatter.SQLToInsertEntry(entry, forFeedID: 1)
-    let wanted = "INSERT OR REPLACE INTO entry(author, duration, feedid, guid, img, length, link, subtitle, summary, title, type, updated, url) VALUES('Daring Fireball / John Gruber', 9185, 1, 'c596b134310d499b13651fed64597de2c9931179', 'http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png,', 110282964, 'http://daringfireball.net/thetalkshow/2015/10/17/ep-133', 'Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.', 'Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.', 'Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell', 1, '2015-10-17 19:35:01', 'http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3');"
+    let wanted = "INSERT OR REPLACE INTO entry(author, duration, feedid, guid, img, length, link, subtitle, summary, title, type, updated, url) VALUES('Daring Fireball / John Gruber', 9185, 1, 'c596b134310d499b13651fed64597de2c9931179', 'http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png', 110282964, 'http://daringfireball.net/thetalkshow/2015/10/17/ep-133', 'Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.', 'Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.', 'Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell', 1, '2015-10-17 19:35:01', 'http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3');"
     XCTAssertEqual(found, wanted)
   }
 }
