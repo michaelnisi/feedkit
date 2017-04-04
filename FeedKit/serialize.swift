@@ -66,13 +66,15 @@ func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
   let img60 = dict["img60"] as? String
   let img600 = dict["img600"] as? String
 
-  return ITunesItem(
+  let it = ITunesItem(
     guid: guid,
     img100: img100,
     img30: img30,
     img60: img60,
     img600: img600
   )
+  
+  return it
 }
 
 /// Tries to create and return a feed from the specified dictionary.

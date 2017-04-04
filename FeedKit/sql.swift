@@ -175,6 +175,7 @@ final class SQLFormatter {
     "\(img), \(img100), \(img30), \(img60), \(img600), " +
     "\(link), \(summary), \(title), \(updated), \(url)" +
     ");"
+    
     return sql
   }
   
@@ -204,10 +205,10 @@ final class SQLFormatter {
       ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
       ("summary", summary), ("title", title), ("updated", updated), ("url", url)
     ]
-    
-    // If the doesn’t come from iTunes, it doesn’t contain the prescaled images
-    // and we don’t want to nullify them.
-    let kept = ["img100", "img30", "img60", "img600"]
+
+    // If the feed doesn’t come from iTunes, it doesn’t contain the URLs of the 
+    // prescaled and we don’t want to nullify them.
+    let kept = ["guid", "img100", "img30", "img60", "img600"]
     
     let vars = props.reduce([String]()) { acc, prop in
       let (name, value) = prop
@@ -287,13 +288,15 @@ final class SQLFormatter {
     let img100 = row["img100"] as? String
     let img600 = row["img600"] as? String
 
-    return ITunesItem(
+    let it = ITunesItem(
       guid: guid,
       img100: img100,
       img30: img30,
       img60: img60,
       img600: img600
     )
+    
+    return it
   }
 
   func feedFromRow(_ row: SkullRow) throws -> Feed {

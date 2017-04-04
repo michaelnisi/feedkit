@@ -69,7 +69,9 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
-// Additional per podcast information aquired via iTunes search.
+// Additional per podcast information aquired via iTunes search, entirely 
+// optional. Especially the guid isn’t used in this framework. We identify 
+// feeds by URLs.
 public struct ITunesItem: Equatable {
   public let guid: Int?
   public let img100: String?

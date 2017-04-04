@@ -1,18 +1,16 @@
--- FeedKit database schema
+-- A schema for browsing and searching feeds and entries.
+
+-- TODO: Rename this file to cache.sql
 
 pragma journal_mode = WAL;
 pragma user_version = 1;
 
 begin immediate transaction;
 
--- TODO: Use underscores, for example, feed_id instead of feedid
-
 -- Feeds
 
--- TODO: Rename guid to itunes_guid
-
 create table if not exists feed(
-  author text not null,
+  author text,
   guid int,
   img text,
   img100 text,

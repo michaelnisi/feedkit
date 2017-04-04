@@ -182,13 +182,10 @@ class SearchRepositoryTests: XCTestCase {
     return (feeds, entries)
   }
   
-  // TODO: Prevent multiple fullfill calls
-  
   func testSuggest() {
-    var fullfilled = false
     let exp = self.expectation(description: "suggest")
     var op: SessionTaskOperation?
-    func go() {
+    func go(until: Bool = false) {
       var found:UInt = 4
       func shift () { found = found << 1 }
       repo.suggest("a", perFindGroupBlock: { er, finds in
@@ -212,25 +209,23 @@ class SearchRepositoryTests: XCTestCase {
         XCTAssertNil(er)
         let wanted = UInt(64)
         XCTAssertEqual(found, wanted, "should apply callback sequentially")
-        guard !fullfilled else {
+        guard until else {
           return
         }
         exp.fulfill()
-        fullfilled = true
       }
     }
     
     let _ = try! populate()
     
     let terms = ["apple", "automobile", "art"]
-    for (i, term) in terms.enumerated() {
+    terms.forEach { term in
       repo.search(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         XCTAssert(finds.count > 0)
-        guard i == terms.count - 1 else { return }
       }) { error in
         DispatchQueue.main.async {
-          go()
+          go(until: term == "art")
         }
       }
     }
@@ -260,9 +255,7 @@ class SearchRepositoryTests: XCTestCase {
     }
     self.waitForExpectations(timeout: 10) { er in XCTAssertNil(er) }
   }
-  
-  // TODO: Investigate why this test sometimes fails
-  
+    
   func testCancelledSuggest() {
     for _ in 0...100 {
       let exp = self.expectation(description: "suggest")
