@@ -198,7 +198,12 @@ class CacheTests: XCTestCase {
   func checkEntries(_ found: [Entry], wanted: [Entry]) {
     for (i, wantedEntry) in wanted.enumerated() {
       let foundEntry = found[i]
-      XCTAssertEqual(foundEntry.author, wantedEntry.author)
+      if wantedEntry.author != nil {
+        // If the entry doesn’t provide an author, 
+        // `entryFromRow(_ row: SkullRow) throws -> Entry`
+        // falls back on the feed’s author.
+        XCTAssertEqual(foundEntry.author, wantedEntry.author)
+      }
       XCTAssertEqual(foundEntry.duration, wantedEntry.duration)
       XCTAssertEqual(foundEntry.enclosure, wantedEntry.enclosure)
       XCTAssertEqual(foundEntry.feed, wantedEntry.feed)

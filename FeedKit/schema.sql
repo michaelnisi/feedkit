@@ -172,7 +172,8 @@ as select
   f.img600,
   f.rowid feedid,
   f.title feed_title,
-  f.url feed
+  f.url feed,
+  f.author feed_author
 from feed f inner join entry e on f.rowid=e.feedid;
 
 -- Suggestions

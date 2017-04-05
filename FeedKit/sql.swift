@@ -205,6 +205,10 @@ final class SQLFormatter {
       ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
       ("summary", summary), ("title", title), ("updated", updated), ("url", url)
     ]
+    
+    // TODO: Find more effective way to do this
+    //
+    // There must be a better way using flatMap.
 
     // If the feed doesn’t come from iTunes, it doesn’t contain the URLs of the 
     // prescaled and we don’t want to nullify them.
@@ -349,13 +353,15 @@ final class SQLFormatter {
 
   /// Create an entry from a database row.
   ///
-  /// - Parameter row: The database row to use.
+  /// - Parameter row: The database row to retrieve values from.
+  ///
   /// - Returns: The resulting entry.
-  /// - Throws: If this throws our database got corrupted, thus, int that case,
+  ///
+  /// - Throws: If this throws our database got corrupted, thus, in this case,
   /// users of this function are well advised to crash. The only reason for not
   /// crashing directly from here is debugging during development.
   func entryFromRow(_ row: SkullRow) throws -> Entry {
-    let author = row["author"] as? String
+    let author = row["author"] as? String ?? row["feed_author"] as? String
     let duration = row["duration"] as? Int
     let enclosure = try enclosureFromRow(row)
     let feed = row["feed"] as! String
