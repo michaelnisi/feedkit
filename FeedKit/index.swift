@@ -267,26 +267,6 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
   return lhs.term == rhs.term
 }
 
-// TOOD: Ever heard of Messages? Choose different name
-
-public struct Message : Equatable {
-  public let attributedString: NSAttributedString
-
-  public init(attributedString: NSAttributedString) {
-    self.attributedString = attributedString
-  }
-}
-
-extension Message : CustomStringConvertible {
-  public var description: String {
-    return "Message: \(attributedString.string)"
-  }
-}
-
-public func ==(lhs: Message, rhs: Message) -> Bool {
-  return lhs.attributedString == rhs.attributedString
-}
-
 // TODO: Think about using a global PodestItem
 //
 // Supplied by a single UITableViewDataSource class. Or maybe two, like Find and
@@ -306,9 +286,6 @@ public enum Find : Equatable {
   case suggestedTerm(Suggestion)
   case suggestedEntry(Entry)
   case suggestedFeed(Feed)
-  case message(Message)
-
-  // TODO: Add message
 
   /// The timestamp applied by the database.
   var ts: Date? {
@@ -317,7 +294,6 @@ public enum Find : Equatable {
     case .suggestedTerm(let it): return it.ts
     case .suggestedEntry(let it): return it.ts
     case .suggestedFeed(let it): return it.ts
-    case .message(_): return nil
     }
   }
 }
@@ -328,7 +304,6 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
   var lhsRes: Entry?
   var lhsSug: Suggestion?
   var lhsFed: Feed?
-  var lhsMsg: Message?
 
   switch lhs {
   case .suggestedEntry(let it):
@@ -339,14 +314,11 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     lhsFed = it
   case .recentSearch(let it):
     lhsFed = it
-  case .message(let it):
-    lhsMsg = it
   }
 
   var rhsRes: Entry?
   var rhsSug: Suggestion?
   var rhsFed: Feed?
-  var rhsMsg: Message?
 
   switch rhs {
   case .suggestedEntry(let it):
@@ -357,8 +329,6 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     rhsFed = it
   case .recentSearch(let it):
     rhsFed = it
-  case .message(let it):
-    rhsMsg = it
   }
 
   if lhsRes != nil && rhsRes != nil {
@@ -367,9 +337,7 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     return lhsSug == rhsSug
   } else if lhsFed != nil && rhsFed != nil {
     return lhsFed == rhsFed
-  } else if lhsMsg != nil && rhsMsg != nil {
-    return lhsMsg == rhsMsg
-  }
+  } 
   return false
 }
 
