@@ -100,6 +100,11 @@ public func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
   return a == b
 }
 
+public protocol Imaginable {
+  var iTunes: ITunesItem? { get }
+  var image: String? { get }
+}
+
 /// Feeds are the central object of this framework.
 ///
 /// The initializer is inconvenient for a reason: **it shouldn't be used
@@ -107,7 +112,7 @@ public func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
 /// repositories provided by this framework.
 ///
 /// A feed is required to, at least, have `title` and `url`.
-public struct Feed : Hashable, Cachable, Redirectable {
+public struct Feed : Hashable, Cachable, Redirectable, Imaginable {
   public let author: String?
   public let iTunes: ITunesItem?
   public let image: String?
@@ -175,7 +180,7 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
 }
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
-public struct Entry : Equatable, Redirectable {
+public struct Entry : Equatable, Redirectable, Imaginable {
   public let author: String?
   public let duration: Int?
   public let enclosure: Enclosure?
@@ -286,6 +291,7 @@ public enum Find : Equatable {
   case suggestedTerm(Suggestion)
   case suggestedEntry(Entry)
   case suggestedFeed(Feed)
+  case foundFeed(Feed)
 
   /// The timestamp applied by the database.
   var ts: Date? {
@@ -294,6 +300,7 @@ public enum Find : Equatable {
     case .suggestedTerm(let it): return it.ts
     case .suggestedEntry(let it): return it.ts
     case .suggestedFeed(let it): return it.ts
+    case .foundFeed(let it): return it.ts
     }
   }
 }
@@ -314,6 +321,8 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     lhsFed = it
   case .recentSearch(let it):
     lhsFed = it
+  case .foundFeed(let it):
+    lhsFed = it
   }
 
   var rhsRes: Entry?
@@ -329,6 +338,8 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     rhsFed = it
   case .recentSearch(let it):
     rhsFed = it
+  case .foundFeed(let it):
+    rhsFed = it
   }
 
   if lhsRes != nil && rhsRes != nil {
@@ -337,7 +348,8 @@ public func ==(lhs: Find, rhs: Find) -> Bool {
     return lhsSug == rhsSug
   } else if lhsFed != nil && rhsFed != nil {
     return lhsFed == rhsFed
-  } 
+  }
+  
   return false
 }
 

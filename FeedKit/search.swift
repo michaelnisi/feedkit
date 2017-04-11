@@ -91,7 +91,7 @@ private final class SearchOperation: SearchRepoOperation {
         if let cb = self.perFindGroupBlock {
           if let feeds = stock {
             guard !feeds.isEmpty else { return }
-            let finds = feeds.map { Find.suggestedFeed($0) }
+            let finds = feeds.map { Find.foundFeed($0) }
             self.target.sync() {
               cb(nil, finds)
             }
@@ -116,7 +116,7 @@ private final class SearchOperation: SearchRepoOperation {
         guard let cb = self.perFindGroupBlock else {
           return
         }
-        let finds = feeds.map { Find.suggestedFeed($0) }
+        let finds = feeds.map { Find.foundFeed($0) }
         self.target.sync() {
           cb(nil, finds)
         }
@@ -151,7 +151,7 @@ private final class SearchOperation: SearchRepoOperation {
 
       if !stale(ts, ttl: ttl.seconds) {
         guard let cb = perFindGroupBlock else { return done() }
-        let finds = cached.map { Find.suggestedFeed($0) }
+        let finds = cached.map { Find.foundFeed($0) }
         target.sync {
           cb(nil, finds)
         }
