@@ -337,7 +337,7 @@ final class EntriesOperation: BrowseOperation {
 
         // TODO: Handle case where search provides an invalid feed URL
 
-        fatalError("feed not cached: \(er)")
+        fatalError("\(self.locators): feed not cached: \(er)")
       } catch let er {
         self.done(er)
       }

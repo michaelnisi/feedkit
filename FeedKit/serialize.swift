@@ -102,6 +102,9 @@ func feed(from json: [String : Any]) throws -> Feed {
   let summary = json["summary"] as? String
   let originalURL = json["originalURL"] as? String
   let updated = date(fromDictionary: json, withKey: "updated")
+  
+  // Dealing with a case, the Montauk Podcast, where iTunes returned a mixed 
+  // case feed URL, we lowercase the URL.
 
   return Feed(
     author: author,
@@ -114,7 +117,7 @@ func feed(from json: [String : Any]) throws -> Feed {
     ts: nil,
     uid: nil,
     updated: updated,
-    url: url
+    url: url.lowercased()
   )
 }
 

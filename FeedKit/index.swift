@@ -179,6 +179,8 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
   return lhs.url == rhs.url
 }
 
+// TODO: Resolve image/feedImage confusion
+
 /// RSS item or Atom entry. In this domain we speak of `entry`.
 public struct Entry : Equatable, Redirectable, Imaginable {
   public let author: String?

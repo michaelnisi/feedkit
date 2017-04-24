@@ -9,8 +9,9 @@
 import Foundation
 
 // TODO: Persist locators
-
+// TODO: Update queue after redirects
 // TODO: Provide latest entry in user
+// TODO: Make sure to log if a guid couldn’t be found
 
 class UserEvents: UIDocument {
   
@@ -26,8 +27,8 @@ open class User: Queueing {
     
     let locators = [
       EntryLocator(
-        url: "http://daringfireball.net/thetalkshow/rss",
-        guid: "7a87d59176a5564a86773410f90525eba60eaa32"
+        url: "https://daringfireball.net/thetalkshow/rss",
+        guid: "82fb2da2ac4bca88a68e8913ae12cb7346268bed"
       ),
       EntryLocator(
         url: "http://feeds.wnyc.org/newyorkerradiohour",
