@@ -78,7 +78,7 @@ func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
   let sql =
   "SELECT * FROM search_view WHERE uid IN (" +
   "SELECT feedid FROM search_fts " +
-  "WHERE term MATCH '\(term)*') " +
+  "WHERE term = '\(term)') " +
   "ORDER BY ts DESC " +
   "LIMIT \(limit);"
   return sql
