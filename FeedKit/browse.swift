@@ -335,7 +335,11 @@ final class EntriesOperation: BrowseOperation {
         self.done()
       } catch FeedKitError.feedNotCached(let er) {
 
-        // TODO: Handle case where search provides an invalid feed URL
+        // TODO: Handle invalid feed URLs
+        //
+        // For example: Montauk Podcast, http://montauk.podOmatic.com/rss2.xml, 
+        // instead of http://montauk.podomatic.com/rss2.xml. We could try 
+        // lowercased, then give up.
 
         fatalError("\(self.locators): feed not cached: \(er)")
       } catch let er {
