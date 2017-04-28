@@ -164,9 +164,9 @@ public enum EnclosureType : Int {
 
 /// The infamous RSS enclosure tag is mapped to this structure.
 public struct Enclosure : Equatable {
-  let url: String
-  let length: Int?
-  let type: EnclosureType
+  public let url: String
+  public let length: Int?
+  public let type: EnclosureType
 }
 
 extension Enclosure : CustomStringConvertible {
