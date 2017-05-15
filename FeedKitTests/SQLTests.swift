@@ -229,7 +229,7 @@ class SQLTests: XCTestCase {
     let wanted =
       "SELECT * FROM search_view WHERE uid IN (" +
       "SELECT feedid FROM search_fts " +
-      "WHERE term MATCH 'abc*') " +
+      "WHERE term = 'abc') " +
       "ORDER BY ts DESC " +
       "LIMIT 50;"
     XCTAssertEqual(found, wanted)

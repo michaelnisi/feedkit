@@ -251,6 +251,7 @@ final class EntriesOperation: BrowseOperation {
     locators: [EntryLocator]
   ) {
     self.locators = locators
+    
     super.init(cache: cache, svc: svc, target: target)
   }
 
@@ -279,8 +280,9 @@ final class EntriesOperation: BrowseOperation {
     let l = self.locators
 
     let queries: [MangerQuery] = locators.map { $0 }
+    let reload = ttl == .none
 
-    task = try svc.entries(queries) { error, payload in
+    task = try svc.entries(queries, reload: reload) { error, payload in
       post(FeedKitRemoteResponseNotification)
 
       guard !self.isCancelled else { return self.done() }
@@ -359,9 +361,10 @@ final class EntriesOperation: BrowseOperation {
       // TODO: Return unresolved locators instead of URLs
       //
       // I guess, the reason why these are URLs, not locators, is that
-      // subtractItems was intitially built for feeds, not for entries.
+      // subtractItems intitially was built for feeds, not for entries.
 
-      let (cached, urls) = try entriesFromCache(cache, locators: locators, ttl: ttl.seconds)
+      let (cached, urls) = try entriesFromCache(
+        cache, locators: locators, ttl: ttl.seconds)
 
       // Returning URLs requires us to perform an extra work reducing URLs
       // back to the initial locators. A first step to improve this might be to
@@ -712,7 +715,7 @@ public final class FeedRepository: RemoteRepository, Browsing {
     // We have to get the according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds. Providing a place to
     // composite operations, like this, is an advantage of interposing
-    // repositories.
+    // repositories, compared to exposing operations directly.
 
     let urls = locators.map { $0.url }
 

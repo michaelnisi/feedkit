@@ -18,6 +18,8 @@ import Patron
 
 // TODO: Move all protocols into this file
 
+// TODO: All core objects should be Hashable
+
 // MARK: Notifications
 
 /// Posted when a remote request has been started.
