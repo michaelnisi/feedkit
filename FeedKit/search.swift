@@ -312,8 +312,13 @@ private final class SuggestOperation: SearchRepoOperation {
         try self.cache.updateSuggestions(suggestions, forTerm: self.term)
         guard !suggestions.isEmpty else { return }
         let finds = suggestions.reduce([Find]()) { acc, sug in
+          guard acc.count < 4 else {
+            return acc
+          }
           let find = Find.suggestedTerm(sug)
-          if self.dispatched.contains(find) { return acc }
+          guard !self.dispatched.contains(find) else {
+            return acc
+          }
           return acc + [find]
         }
         guard !finds.isEmpty else { return }
