@@ -342,6 +342,8 @@ final class EntriesOperation: BrowseOperation {
         // For example: Montauk Podcast, http://montauk.podOmatic.com/rss2.xml, 
         // instead of http://montauk.podomatic.com/rss2.xml. We could try 
         // lowercased, then give up.
+        //
+        // Here’s another: http://DontSweattheSmallStuff.podbean.com/feed/
 
         fatalError("\(self.locators): feed not cached: \(er)")
       } catch let er {

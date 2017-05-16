@@ -10,6 +10,20 @@ import XCTest
 @testable import FeedKit
 
 class SerializeTests: XCTestCase {
+  
+  func testLowercasedURL() {
+    let found = [
+      lowercasedURL(string: "http://ABC.DE/hello"),
+      lowercasedURL(string: "http://ABC.DE/HELLO")
+    ]
+    let wanted = [
+      "http://abc.de/hello",
+      "http://abc.de/HELLO"
+    ]
+    for (i, str) in wanted.enumerated() {
+      XCTAssertEqual(found[i], str)
+    }
+  }
 
   func testTrimString() {
     func f(_ s: String) -> String {
@@ -89,7 +103,7 @@ class SerializeTests: XCTestCase {
   func testFeedFromInvalidDictonaries() {
     let things: [([String : Any], String)] = [
       ([String : Any](), "feed missing"),
-      (["feed":"abc"], "title missing")
+      (["feed": "http://abc.de"], "title missing")
     ]
     things.forEach {
       let (json, wanted) = $0
@@ -107,7 +121,7 @@ class SerializeTests: XCTestCase {
   }
 
   func testFeedFromDictionary() {
-    let dict = ["feed": "abc", "title": "A title"]
+    let dict = ["feed": "http://abc.DE/hellO", "title": "A title"]
     let wanted = Feed(
       author: nil,
       iTunes: nil,
@@ -119,14 +133,14 @@ class SerializeTests: XCTestCase {
       ts: nil,
       uid: nil,
       updated: nil,
-      url: "abc"
+      url: "http://abc.de/hellO"
     )
     let found = try! feed(from: dict)
     XCTAssertEqual(found, wanted)
   }
   
   func testFeedsFromPayload() {
-    let dict = ["feed": "abc", "title": "A title"]
+    let dict = ["feed": "http://abc.de", "title": "A title"]
     let wanted = [Feed(
       author: nil,
       iTunes: nil,
@@ -138,8 +152,8 @@ class SerializeTests: XCTestCase {
       ts: nil,
       uid: nil,
       updated: nil,
-      url: "abc"
-      )]
+      url: "http://abc.de"
+    )]
     let (errors, feeds) = feedsFromPayload([dict])
     XCTAssert(errors.isEmpty)
     XCTAssertEqual(feeds, wanted)

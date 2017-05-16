@@ -114,7 +114,7 @@ public protocol Imaginable {
 /// repositories provided by this framework.
 ///
 /// A feed is required to, at least, have `title` and `url`.
-public struct Feed : Hashable, Cachable, Redirectable, Imaginable {
+public struct Feed : Cachable, Redirectable, Imaginable {
   public let author: String?
   public let iTunes: ITunesItem?
   public let image: String?
@@ -126,9 +126,11 @@ public struct Feed : Hashable, Cachable, Redirectable, Imaginable {
   public let uid: Int?
   public let updated: Date?
   public let url: String
+}
 
+extension Feed: Hashable {
   public var hashValue: Int {
-    get { return uid! }
+    get { return url.hashValue }
   }
 }
 

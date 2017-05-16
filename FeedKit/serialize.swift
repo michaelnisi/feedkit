@@ -77,6 +77,29 @@ func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
   return it
 }
 
+/// Returns a new URL string with lowercased scheme and host, the path remains 
+/// as it is. Here‘s the spec: https://tools.ietf.org/html/rfc3986
+///
+/// - parameter string: The URL string to use.
+///
+/// - returns: RFC 3986 compliant URL or `nil`.
+func lowercasedURL(string: String) -> String? {
+  guard var c = URLComponents(string: string), let host = c.host else {
+    return nil
+  }
+  c.host = host.lowercased()
+  return c.string
+}
+
+fileprivate func feedURL(from json: [String : Any]) -> String? {
+  // TODO: Replace feed with url in fanboy
+  guard let rawURL = json["url"] as? String ?? json["feed"] as? String,
+    let url = lowercasedURL(string: rawURL) else {
+    return nil
+  }
+  return url
+}
+
 /// Tries to create and return a feed from the specified dictionary.
 ///
 /// - parameter json: The JSON dictionary to use.
@@ -85,9 +108,7 @@ func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
 /// function throws `FeedKitError.InvalidFeed`.
 func feed(from json: [String : Any]) throws -> Feed {
   
-  // TODO: Replace feed with url in fanboy
-  
-  guard let url = json["url"] as? String ?? json["feed"] as? String else {
+  guard let url = feedURL(from: json) else {
     throw FeedKitError.invalidFeed(reason: "feed missing")
   }
   
