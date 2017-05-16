@@ -308,9 +308,8 @@ class CacheTests: XCTestCase {
 
     do {
       let found = try cache.feedsForTerm(term, limit: 50)
-      let wanted = feeds.sorted {
-        $0.updated!.timeIntervalSince1970 > $1.updated!.timeIntervalSince1970
-      }
+      let wanted = feeds
+      
       XCTAssertEqual(found!, wanted)
     } catch let er {
       XCTFail("should not throw \(er)")
@@ -355,9 +354,8 @@ class CacheTests: XCTestCase {
       try! cache.updateFeeds(feeds, forTerm: term)
 
       let found = try! cache.feedsForTerm(term, limit: 50)!
-      let wanted = feeds.sorted {
-        $0.updated!.timeIntervalSince1970 > $1.updated!.timeIntervalSince1970
-      }
+      let wanted = feeds
+      
       XCTAssertEqual(found, wanted)
 
       for (i, wantedFeed) in wanted.enumerated() {

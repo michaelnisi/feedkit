@@ -260,9 +260,10 @@ as select
   f.rowid uid,
   f.summary,
   f.title,
-  s.ts,
   f.updated,
-  f.url
+  f.url,
+  s.rowid rank,
+  s.ts
 from feed f left join search s on f.rowid=s.feedid;
 
 commit transaction;

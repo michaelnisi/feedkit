@@ -58,29 +58,43 @@ class SearchRepositoryTests: XCTestCase {
 
   func testSearch() {
     let exp = self.expectation(description: "search")
-    func go(_ done: Bool = false) {
-      repo.search("john   gruber", perFindGroupBlock: { error, finds in
+    
+    func go(prev: [Find]?, cb: @escaping ([Find]) -> Void) {
+      
+      var acc = [Find]()
+      
+      repo.search("monocle", perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         XCTAssert(finds.count > 0)
-        if !done {
-          for find in finds {
-            XCTAssertNil(find.ts)
+        
+        acc = acc + finds
+        
+        if let prevFinds = prev {
+          
+          for (i, find) in finds.enumerated() {
+            XCTAssertNotNil(find.ts, "cached should have timestamp")
+            
+            let prevFind = prevFinds[i]
+            XCTAssertEqual(
+              find, prevFind, "fresh and cached should be in the same order")
           }
         }
       }) { error in
         XCTAssertNil(error)
-        if done {
-          DispatchQueue.main.async() {
-            exp.fulfill()
-          }
-        } else {
-          DispatchQueue.main.async() {
-            go(true)
-          }
+        DispatchQueue.main.async() {
+          cb(acc)
         }
       }
     }
-    go()
+    
+    go(prev: nil) { finds in
+      go(prev: finds) { _ in
+        DispatchQueue.main.async {
+          exp.fulfill()
+        }
+      }
+    }
+    
     self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }

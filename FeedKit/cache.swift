@@ -467,9 +467,11 @@ extension Cache: SearchCaching {
   /// term, therefore we need to update the subcached dictionary accordingly, to
   /// make sure this term is not skipped the next time a user is requesting
   /// suggestions for this term or its predecessors.
+  /// 
+  /// - Parameters:
+  ///   - feeds: The feeds to cache.
+  ///   - term: The term to associate the specified feeds with.
   ///
-  /// - parameter feeds: The feeds to cache.
-  /// - parameter term: The term to associate the specified feeds with.
   /// - Throws: May throw database errors: various `SkullError` types.
   public func updateFeeds(_ feeds: [Feed], forTerm term: String) throws {
     if feeds.isEmpty {
@@ -516,7 +518,9 @@ extension Cache: SearchCaching {
   ///
   /// - parameter term: The search term.
   /// - parameter limit: The maximal number of feeds to return.
-  /// - Returns: An array of feeds that can be empty or nil.
+  ///
+  /// - returns: An array of feeds that can be empty or nil.
+  ///
   public func feedsForTerm(_ term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: Error?
@@ -544,15 +548,17 @@ extension Cache: SearchCaching {
     
     guard let f = feeds else { return feeds }
     
+    return f
+    
     // TODO: Optimize SQL query for this application
     
-    let s = Set(f) // uniquify
-    let u = Array(s)
-    return u.sorted {
-      guard let a = $0.updated else { return false }
-      guard let b = $1.updated else { return true }
-      return a.compare(b as Date) == ComparisonResult.orderedDescending
-    }
+//    let s = Set(f) // uniquify
+//    let u = Array(s)
+//    return u.sorted {
+//      guard let a = $0.updated else { return false }
+//      guard let b = $1.updated else { return true }
+//      return a.compare(b as Date) == ComparisonResult.orderedDescending
+//    }
   }
   
   public func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]? {

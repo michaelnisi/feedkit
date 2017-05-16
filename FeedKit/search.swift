@@ -11,7 +11,6 @@ import FanboyKit
 import Ola
 
 // TODO: Persist order of returned results
-// TODO: Limit number of freshly, cached ones are fine, suggested terms
 
 /// An abstract class to be extended by search repository operations.
 private class SearchRepoOperation: SessionTaskOperation {

@@ -230,7 +230,7 @@ class SQLTests: XCTestCase {
       "SELECT * FROM search_view WHERE uid IN (" +
       "SELECT feedid FROM search_fts " +
       "WHERE term = 'abc') " +
-      "ORDER BY ts DESC " +
+      "ORDER BY rank ASC " +
       "LIMIT 50;"
     XCTAssertEqual(found, wanted)
   }
