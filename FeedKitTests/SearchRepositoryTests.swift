@@ -67,6 +67,9 @@ class SearchRepositoryTests: XCTestCase {
         XCTAssertNil(error)
         XCTAssert(finds.count > 0)
         
+        let wanted = Array(Set(finds))
+        XCTAssertEqual(finds.count, wanted.count, "should be unique")
+        
         acc = acc + finds
         
         if let prevFinds = prev {

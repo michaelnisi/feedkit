@@ -114,7 +114,7 @@ public protocol Imaginable {
 /// repositories provided by this framework.
 ///
 /// A feed is required to, at least, have `title` and `url`.
-public struct Feed : Cachable, Redirectable, Imaginable {
+public struct Feed: Cachable, Redirectable, Imaginable {
   public let author: String?
   public let iTunes: ITunesItem?
   public let image: String?
@@ -140,9 +140,10 @@ extension Feed : CustomStringConvertible {
   }
 }
 
-/// Feeds are identified, thus compared, by their feed URLs.
-public func ==(lhs: Feed, rhs: Feed) -> Bool {
-  return lhs.url == rhs.url
+extension Feed: Equatable {
+  static public func ==(lhs: Feed, rhs: Feed) -> Bool {
+    return lhs.url == rhs.url
+  }
 }
 
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
@@ -186,7 +187,7 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
 // TODO: Resolve image/feedImage confusion
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
-public struct Entry : Equatable, Redirectable, Imaginable {
+public struct Entry: Redirectable, Imaginable {
   public let author: String?
   public let duration: Int?
   public let enclosure: Enclosure?
@@ -217,8 +218,16 @@ extension Entry : CustomStringConvertible {
   }
 }
 
-public func ==(lhs: Entry, rhs: Entry) -> Bool {
-  return lhs.guid == rhs.guid
+extension Entry: Equatable {
+  static public func ==(lhs: Entry, rhs: Entry) -> Bool {
+    return lhs.guid == rhs.guid
+  }
+}
+
+extension Entry: Hashable {
+  public var hashValue: Int {
+    get { return guid.hashValue }
+  }
 }
 
 /// Entry locators identify a specific entry using the GUID, or skirt intervals
@@ -263,7 +272,7 @@ public func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
 
 /// A suggested search term, bearing the timestamp of when it was added
 /// (to the cache) or updated.
-public struct Suggestion : Equatable {
+public struct Suggestion {
   public let term: String
   public var ts: Date? // if cached
 }
@@ -274,12 +283,18 @@ extension Suggestion : CustomStringConvertible {
   }
 }
 
-public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
-  return lhs.term == rhs.term
+extension Suggestion: Equatable {
+  static public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
+    return lhs.term == rhs.term
+  }
 }
 
-// TODO: Think about using a global PodestItem
-//
+extension Suggestion: Hashable {
+  public var hashValue: Int {
+    get { return term.hashValue }
+  }
+}
+
 // Supplied by a single UITableViewDataSource class. Or maybe two, like Find and
 // Item, but the question is: how different would they be, really? Considering
 // that with an holistic search, the kind we want to offer, a Find may be
@@ -292,7 +307,7 @@ public func ==(lhs: Suggestion, rhs: Suggestion) -> Bool {
 
 /// Enumerates findable things hiding their type. The word 'suggested' is used
 /// synonymously with 'found' here: a suggested feed is also a found feed, etc.
-public enum Find : Equatable {
+public enum Find {
   case recentSearch(Feed)
   case suggestedTerm(Suggestion)
   case suggestedEntry(Entry)
@@ -311,52 +326,69 @@ public enum Find : Equatable {
   }
 }
 
-// TODO: Optimize this function
-
-public func ==(lhs: Find, rhs: Find) -> Bool {
-  var lhsRes: Entry?
-  var lhsSug: Suggestion?
-  var lhsFed: Feed?
-
-  switch lhs {
-  case .suggestedEntry(let it):
-    lhsRes = it
-  case .suggestedTerm(let it):
-    lhsSug = it
-  case .suggestedFeed(let it):
-    lhsFed = it
-  case .recentSearch(let it):
-    lhsFed = it
-  case .foundFeed(let it):
-    lhsFed = it
+extension Find: Equatable {
+  static public func ==(lhs: Find, rhs: Find) -> Bool {
+    var lhsRes: Entry?
+    var lhsSug: Suggestion?
+    var lhsFed: Feed?
+    
+    switch lhs {
+    case .suggestedEntry(let it):
+      lhsRes = it
+    case .suggestedTerm(let it):
+      lhsSug = it
+    case .suggestedFeed(let it):
+      lhsFed = it
+    case .recentSearch(let it):
+      lhsFed = it
+    case .foundFeed(let it):
+      lhsFed = it
+    }
+    
+    var rhsRes: Entry?
+    var rhsSug: Suggestion?
+    var rhsFed: Feed?
+    
+    switch rhs {
+    case .suggestedEntry(let it):
+      rhsRes = it
+    case .suggestedTerm(let it):
+      rhsSug = it
+    case .suggestedFeed(let it):
+      rhsFed = it
+    case .recentSearch(let it):
+      rhsFed = it
+    case .foundFeed(let it):
+      rhsFed = it
+    }
+    
+    if lhsRes != nil && rhsRes != nil {
+      return lhsRes == rhsRes
+    } else if lhsSug != nil && rhsSug != nil {
+      return lhsSug == rhsSug
+    } else if lhsFed != nil && rhsFed != nil {
+      return lhsFed == rhsFed
+    }
+    
+    return false
   }
+}
 
-  var rhsRes: Entry?
-  var rhsSug: Suggestion?
-  var rhsFed: Feed?
-
-  switch rhs {
-  case .suggestedEntry(let it):
-    rhsRes = it
-  case .suggestedTerm(let it):
-    rhsSug = it
-  case .suggestedFeed(let it):
-    rhsFed = it
-  case .recentSearch(let it):
-    rhsFed = it
-  case .foundFeed(let it):
-    rhsFed = it
+extension Find: Hashable {
+  public var hashValue: Int {
+    get {
+      switch self {
+      case .foundFeed(let feed),
+           .recentSearch(let feed),
+           .suggestedFeed(let feed):
+        return feed.hashValue
+      case .suggestedEntry(let entry):
+        return entry.hashValue
+      case .suggestedTerm(let suggestion):
+        return suggestion.hashValue
+      }
+    }
   }
-
-  if lhsRes != nil && rhsRes != nil {
-    return lhsRes == rhsRes
-  } else if lhsSug != nil && rhsSug != nil {
-    return lhsSug == rhsSug
-  } else if lhsFed != nil && rhsFed != nil {
-    return lhsFed == rhsFed
-  }
-  
-  return false
 }
 
 /// Enumerate default time-to-live intervals used for caching.
