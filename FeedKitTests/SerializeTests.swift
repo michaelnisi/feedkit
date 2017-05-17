@@ -67,21 +67,16 @@ class SerializeTests: XCTestCase {
   }
 
   func testDateFromDictionary() {
-    XCTAssertNil(date(fromDictionary: [String:AnyObject](), withKey: "date"))
-
-    let found = [
-      Date(timeIntervalSince1970: -1),
-      Date(timeIntervalSince1970: 0),
-      Date(timeIntervalSince1970: 1)
-    ]
-    let wanted: [Date] = [
-      date(fromDictionary: ["date": -1000], withKey: "date")!,
-      date(fromDictionary: ["date": 0], withKey: "date")!,
-      date(fromDictionary: ["date": 1000], withKey: "date")!
-    ]
-    for (n, it) in wanted.enumerated() {
-      XCTAssertEqual(it, found[n])
-    }
+    let k = "key"
+    
+    XCTAssertNil(date(fromDictionary: [k: -1], withKey: k))
+    XCTAssertNil(date(fromDictionary: [k: -0], withKey: k))
+    XCTAssertNotNil(date(fromDictionary: [k: 1], withKey: k))
+    
+    XCTAssertNil(date(fromDictionary: [String : AnyObject](), withKey: k))
+    
+    XCTAssertEqual(Date(timeIntervalSince1970: 1),
+                   date(fromDictionary: [k: 1000], withKey: k)!)
   }
 
   func testFeedImagesFromDictionary() {

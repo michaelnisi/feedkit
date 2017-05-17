@@ -36,6 +36,7 @@ public func replaceWhitespaces(in string: String, with replacement: String = "")
 /// to be `NSNumber`, especially to ensure we are OK on 32 bit as well.
 ///
 /// - Parameter value: A timestamp from JSON in milliseconds.
+///
 /// - Returns: The respective time interval (in seconds):
 func timeIntervalFromJS(_ value: NSNumber) -> TimeInterval {
   return Double(value) / 1000 as TimeInterval
@@ -46,12 +47,19 @@ func timeIntervalFromJS(_ value: NSNumber) -> TimeInterval {
 /// dictionary does not contain a value for the key or the value cannot be used
 /// to create a date `nil` is returned.
 ///
-/// - Parameter dict: The dictionary to look at.
-/// - Parameter key: The key of a potential UTC timestamp in milliseconds.
+/// - Parameters:
+///   - dict: The dictionary to look at.
+///   - key: The key of a potential UTC timestamp in milliseconds.
+///
 /// - Returns: The date or `nil`.
 func date(fromDictionary dict: [String : Any], withKey key: String) -> Date? {
-  guard let ms = dict[key] as? NSNumber else { return nil }
+  guard let ms = dict[key] as? NSNumber else {
+    return nil
+  }
   let s = timeIntervalFromJS(ms)
+  guard s > 0 else {
+    return nil
+  }
   return Date(timeIntervalSince1970: s)
 }
 
