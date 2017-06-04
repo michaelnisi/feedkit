@@ -51,8 +51,6 @@ open class User: Queueing {
     self.browser = browser
   }
   
-  // TODO: Implement pushing and popping of entries
-  
   /// Add the specified entry to the end of the queue and dispatch a notification.
   /// 
   /// - Parameter entry: The entry to add to the queue.

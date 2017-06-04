@@ -227,10 +227,9 @@ class SQLTests: XCTestCase {
   func testSQLToSelectFeedsByTerm() {
     let found = SQLToSelectFeedsByTerm("abc", limit: 50)
     let wanted =
-      "SELECT * FROM search_view WHERE uid IN (" +
-      "SELECT feedid FROM search_fts " +
+      "SELECT * FROM search_view WHERE searchid IN (" +
+      "SELECT rowid FROM search_fts " +
       "WHERE term = 'abc') " +
-      "ORDER BY rank ASC " +
       "LIMIT 50;"
     XCTAssertEqual(found, wanted)
   }

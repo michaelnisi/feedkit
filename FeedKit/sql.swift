@@ -75,11 +75,11 @@ func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
 // MARK: Searching
 
 func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
+
   let sql =
-  "SELECT * FROM search_view WHERE uid IN (" +
-  "SELECT feedid FROM search_fts " +
+  "SELECT * FROM search_view WHERE searchid IN (" +
+  "SELECT rowid FROM search_fts " +
   "WHERE term = '\(term)') " +
-  "ORDER BY rank ASC " +
   "LIMIT \(limit);"
   return sql
 }
@@ -175,10 +175,10 @@ final class SQLFormatter {
     "\(img), \(img100), \(img30), \(img60), \(img600), " +
     "\(link), \(summary), \(title), \(updated), \(url)" +
     ");"
-    
+
     return sql
   }
-  
+
   private func column(name: String, value: String, keep: Bool = false) -> String? {
     guard keep else {
       return "\(name) = \(value)"
@@ -199,21 +199,21 @@ final class SQLFormatter {
     let title = stringFromAny(feed.title as AnyObject?)
     let updated = stringFromAny(feed.updated as AnyObject?)
     let url = stringFromAny(feed.url as AnyObject?)
-    
+
     let props = [
       ("author", author), ("guid", guid), ("img", img), ("img100", img100),
       ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
       ("summary", summary), ("title", title), ("updated", updated), ("url", url)
     ]
-    
+
     // TODO: Find more effective way to do this
     //
     // There must be a better way using flatMap.
 
-    // If the feed doesn’t come from iTunes, it doesn’t contain the URLs of the 
+    // If the feed doesn’t come from iTunes, it doesn’t contain the URLs of the
     // prescaled and we don’t want to nullify them.
     let kept = ["guid", "img100", "img30", "img60", "img600"]
-    
+
     let vars = props.reduce([String]()) { acc, prop in
       let (name, value) = prop
       let keep = kept.contains(name)
@@ -221,11 +221,11 @@ final class SQLFormatter {
         return acc
       }
       return acc + [col]
-      
+
     }.joined(separator: ", ")
-    
+
     let sql = "UPDATE feed SET \(vars) WHERE rowid = \(rowid);"
-    
+
     return sql
   }
 
@@ -256,7 +256,7 @@ final class SQLFormatter {
   }
 
   // TODO: Rename to stringFrom(Any:)
-  
+
   func stringFromAny(_ obj: Any?) -> String {
     switch obj {
     case nil:
@@ -299,7 +299,7 @@ final class SQLFormatter {
       img60: img60,
       img600: img600
     )
-    
+
     return it
   }
 
@@ -309,15 +309,15 @@ final class SQLFormatter {
     let image = row["img"] as? String
     let link = row["link"] as? String
     let summary = row["summary"] as? String
-    
+
     guard let title = row["title"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
-    
+
     let ts = dateFromString(row["ts"] as? String)
     let uid = row["uid"] as? Int
     let updated = dateFromString(row["updated"] as? String)
-    
+
     guard let url = row["url"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing url")
     }

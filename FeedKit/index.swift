@@ -149,11 +149,13 @@ extension Feed: Equatable {
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
 public enum EnclosureType : Int {
   case unknown
+  
   case audioMPEG
   case audioXMPEG
   case videoXM4V
   case audioMP4
   case xm4A
+  case videoMP4
 
   public init (withString type: String) {
     switch type {
@@ -162,7 +164,21 @@ public enum EnclosureType : Int {
     case "video/x-m4v": self = .videoXM4V
     case "audio/mp4": self = .audioMP4
     case "audio/x-m4a": self = .xm4A
+    case "video/mp4": self = .videoMP4
     default: self = .unknown
+    }
+  }
+  
+  // TODO: Correct enclosure types
+  
+  public var isVideo: Bool {
+    get {
+      switch self {
+      case .videoXM4V, .videoMP4, .unknown:
+        return true
+      default:
+        return false
+      }
     }
   }
 }
@@ -518,7 +534,7 @@ func nop(_: Any) -> Void {}
 /// The common super class of the search repository and the browse repository,
 /// which for some reason still is misleadingly called feed repository (TODO).
 /// This, of course, assumes one service host per repository.
-open class RemoteRepository {
+open class RemoteRepository: NSObject {
   let queue: OperationQueue
   let probe: Reaching
 

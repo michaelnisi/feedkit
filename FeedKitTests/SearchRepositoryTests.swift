@@ -210,9 +210,6 @@ class SearchRepositoryTests: XCTestCase {
         // XCTAssertEqual(finds.count, Set(finds).count, "should be unique")
 
         for find in finds {
-
-          print(find)
-
           switch find {
           case .suggestedTerm:
             if found ==  4 { shift() }
@@ -235,10 +232,9 @@ class SearchRepositoryTests: XCTestCase {
       }) { er in
         XCTAssertNil(er)
         let wanted = UInt(32)
-
-        print(found)
-
+        
         XCTAssertEqual(found, wanted, "should find things sequentially")
+        
         cb()
       }
     }

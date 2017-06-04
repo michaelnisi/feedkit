@@ -121,10 +121,20 @@ func feed(from json: [String : Any]) throws -> Feed {
   }
   
   guard let title = json["title"] as? String else {
-    throw FeedKitError.invalidFeed(reason: "title missing")
+    throw FeedKitError.invalidFeed(reason: "title missing: \(url)")
   }
 
   let author = json["author"] as? String
+  
+  // Apparantly, people spam the iTunes author property. To ignore them, we
+  // limit its length.
+  
+  if let a = author, a.characters.count > 32 {
+    throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
+  }
+  
+  // TODO: Filter shady stuff like this on the server 
+  
   let iTunes = iTunesItem(from: json)
   let image = json["image"] as? String
   let link = json["link"] as? String

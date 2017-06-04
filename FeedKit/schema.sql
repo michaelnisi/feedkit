@@ -1,6 +1,4 @@
--- A schema for browsing and searching feeds and entries.
-
--- TODO: Rename this file to cache.sql
+-- Find and browse feeds and entries
 
 pragma journal_mode = WAL;
 pragma user_version = 1;
@@ -11,7 +9,7 @@ begin immediate transaction;
 
 create table if not exists feed(
   author text,
-  guid int,
+  guid int unique,
   img text,
   img100 text,
   img30 text,
@@ -262,8 +260,8 @@ as select
   f.title,
   f.updated,
   f.url,
-  s.rowid rank,
+  s.rowid searchid,
   s.ts
-from feed f left join search s on f.rowid=s.feedid;
+from feed f inner join search s on f.rowid=s.feedid;
 
 commit transaction;

@@ -42,7 +42,7 @@ func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
 
   let index = sorted.count / 2
   let median = sorted[index].ts
-  
+
   return median as Date?
 }
 
@@ -58,7 +58,7 @@ public final class Cache {
 
   fileprivate var noSuggestions = [String:Date]()
   fileprivate var noSearch = [String:Date]()
-  
+
   fileprivate var feedIDsCache = NSCache<NSString, NSNumber>()
 
   fileprivate func open() throws {
@@ -107,20 +107,20 @@ public final class Cache {
   public func flush() throws {
     try db.flush()
   }
-  
+
   fileprivate func cachedFeedID(for url: String) -> Int? {
     return feedIDsCache.object(forKey: url as NSString) as? Int
   }
-  
+
   fileprivate func cache(feedID: Int, for url: String) -> Int {
     feedIDsCache.setObject(feedID as NSNumber, forKey: url as NSString)
     return feedID
   }
-  
+
   fileprivate func removeFeedID(for url: String) {
     feedIDsCache.removeObject(forKey: url as NSString)
   }
-  
+
   func feedIDForURL(_ url: String) throws -> Int {
     if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
@@ -190,7 +190,7 @@ extension Cache: FeedCaching {
   public func update(feeds: [Feed]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
-    
+
     var error: Error?
 
     queue.sync {
@@ -208,7 +208,7 @@ extension Cache: FeedCaching {
         error = er
       }
     }
-    
+
     if let er = error {
       throw er
     }
@@ -467,7 +467,7 @@ extension Cache: SearchCaching {
   /// term, therefore we need to update the subcached dictionary accordingly, to
   /// make sure this term is not skipped the next time a user is requesting
   /// suggestions for this term or its predecessors.
-  /// 
+  ///
   /// - Parameters:
   ///   - feeds: The feeds to cache.
   ///   - term: The term to associate the specified feeds with.
@@ -487,7 +487,7 @@ extension Cache: SearchCaching {
     let db = self.db
     var error: Error?
 
-    // To stay synchronized with the remote state, before inserting feed 
+    // To stay synchronized with the remote state, before inserting feed
     // identifiers, we firstly delete all searches for this term.
 
     queue.sync {
@@ -513,7 +513,7 @@ extension Cache: SearchCaching {
     }
   }
 
-  /// Return feeds matching the specified term, the number of feeds can be 
+  /// Return feeds matching the specified term, the number of feeds can be
   /// limited.
   ///
   /// - parameter term: The search term.
@@ -545,13 +545,11 @@ extension Cache: SearchCaching {
     if let er = error {
       throw er
     }
-    
+
     guard let f = feeds else { return feeds }
-    
+
     return f
-    
-    // TODO: Optimize SQL query for this application
-    
+
 //    let s = Set(f) // uniquify
 //    let u = Array(s)
 //    return u.sorted {
@@ -560,7 +558,7 @@ extension Cache: SearchCaching {
 //      return a.compare(b as Date) == ComparisonResult.orderedDescending
 //    }
   }
-  
+
   public func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
     var error: Error?
@@ -576,7 +574,7 @@ extension Cache: SearchCaching {
     if let er = error {
       throw er
     }
- 
+
     return feeds
   }
 

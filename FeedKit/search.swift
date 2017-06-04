@@ -10,7 +10,7 @@ import Foundation
 import FanboyKit
 import Ola
 
-// TODO: Persist order of returned results
+// TODO: Persist search result order
 
 /// An abstract class to be extended by search repository operations.
 private class SearchRepoOperation: SessionTaskOperation {
@@ -109,7 +109,10 @@ private final class SearchOperation: SearchRepoOperation {
       do {
         let (errors, feeds) = feedsFromPayload(payload!)
 
-        assert(errors.isEmpty, "unhandled errors")
+        if !errors.isEmpty {
+          // TODO: Properly log these errors
+          dump(errors)
+        }
 
         try self.cache.updateFeeds(feeds, forTerm: self.term)
         guard !feeds.isEmpty else {

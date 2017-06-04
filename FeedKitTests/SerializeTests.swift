@@ -98,7 +98,7 @@ class SerializeTests: XCTestCase {
   func testFeedFromInvalidDictonaries() {
     let things: [([String : Any], String)] = [
       ([String : Any](), "feed missing"),
-      (["feed": "http://abc.de"], "title missing")
+      (["feed": "http://abc.de"], "title missing: http://abc.de")
     ]
     things.forEach {
       let (json, wanted) = $0
