@@ -283,7 +283,7 @@ final class EntriesOperation: BrowseOperation {
     let reload = ttl == .none
 
     task = try svc.entries(queries, reload: reload) { error, payload in
-      post(FeedKitRemoteResponseNotification)
+      self.post(name: FeedKitRemoteResponseNotification)
 
       guard !self.isCancelled else { return self.done() }
 
@@ -466,7 +466,7 @@ final class FeedsOperation: BrowseOperation {
     let target = self.target
 
     task = try svc.feeds(queries) { error, payload in
-      post(FeedKitRemoteResponseNotification)
+      self.post(name: FeedKitRemoteResponseNotification)
 
       guard !self.isCancelled else {
         return self.done()

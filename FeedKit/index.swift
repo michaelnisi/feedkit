@@ -20,7 +20,7 @@ import Patron
 
 // TODO: All core objects should be Hashable
 
-// MARK: Notifications
+// MARK: - Notifications
 
 /// Posted when a remote request has been started.
 public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
@@ -28,7 +28,10 @@ public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
 /// Posted when a remote response has been received.
 public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
 
-// MARK: Types
+/// Posted when the queue has been changed.
+public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
+
+// MARK: - Types
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
 public enum FeedKitError : Error, Equatable {
@@ -53,6 +56,7 @@ public enum FeedKitError : Error, Equatable {
   case invalidSuggestion(reason: String)
   case offline
   case noForceApplied
+  case alreadyInQueue
 }
 
 public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
@@ -274,6 +278,13 @@ public struct EntryLocator : Equatable {
     self.since = since
     self.guid = guid
   }
+  
+  /// Creates a new locator from `entry`.
+  ///
+  /// - Parameter entry: The entry to locate.
+  public init(entry: Entry) {
+    self.init(url: entry.feed, since: entry.updated, guid: entry.guid)
+  }
 }
 
 extension EntryLocator : CustomStringConvertible {
@@ -435,7 +446,7 @@ public enum CacheTTL {
   }
 }
 
-// MARK: FeedCaching
+// MARK: - FeedCaching
 
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
@@ -449,7 +460,7 @@ public protocol FeedCaching {
   func remove(_ urls: [String]) throws
 }
 
-// MARK: SearchCaching
+// MARK: - SearchCaching
 
 /// A persistent cache of things related to searching feeds and entries.
 public protocol SearchCaching {
@@ -462,7 +473,7 @@ public protocol SearchCaching {
   func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]?
 }
 
-// MARK: Searching
+// MARK: - Searching
 
 /// The search API of the FeedKit framework.
 public protocol Searching {
@@ -479,7 +490,7 @@ public protocol Searching {
   ) -> Operation
 }
 
-// MARK: Browsing
+// MARK: - Browsing
 
 // TODO: Introduce paging
 
@@ -507,27 +518,53 @@ public protocol Browsing {
   ) -> Operation
 }
 
-// MARK: Queueing
+// MARK: - Queueing
+
+public protocol QueueDelegate {
+  func queue(_ queue: Queueing, enqueued: Entry)
+  func queue(_ queue: Queueing, removed: Entry)
+}
+
+/// A generic stack, straight from the book.
+struct Stack<Element> {
+  var items = [Element]()
+  mutating func push(_ item: Element) {
+    items.append(item)
+  }
+  mutating func pop() -> Element {
+    return items.removeLast()
+  }
+}
 
 public protocol Queueing {
-  // var next: Entry { get }
-  // var previous: Entry { get }
-  // var entry: Entry { get }
+  
+  var queueDelegate: QueueDelegate? { get set }
 
   @discardableResult func entries(
     _ entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
+  
+  func add(locators: [EntryLocator]) throws
+  func add(entry: Entry) throws
+  
+  @discardableResult func remove(entry: Entry) -> Bool
+  
+  func contains(entry: Entry) -> Bool
+  
+  func next(to entry: Entry) -> EntryLocator?
+  func previous(to entry: Entry) -> EntryLocator?
+}
 
-  func push(_ entry: Entry) throws
-  func pop(_ entry: Entry) throws
+// MARK: - Subscribing
 
-  // TODO: func insert(entry: Entry) throws
+public protocol Subscribing {
+
 }
 
 // MARK: - Internal
 
-let FOREVER: TimeInterval = TimeInterval(Double.infinity)
+let FOREVER = TimeInterval(Double.infinity)
 
 func nop(_: Any) -> Void {}
 
@@ -604,11 +641,6 @@ open class RemoteRepository: NSObject {
   }
 }
 
-func post(_ name: String) {
-  let nc = NotificationCenter.default
-  nc.post(name: Notification.Name(rawValue: name), object: nil)
-}
-
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: Operation {
@@ -621,10 +653,19 @@ class SessionTaskOperation: Operation {
 
   /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
+  
+  /// Posts a notification of `name` with the default notification center from
+  /// this operation.
+  func post(name: String) {
+    NotificationCenter.default.post(
+      name: Notification.Name(rawValue: name),
+      object: self
+    )
+  }
 
   final var task: URLSessionTask? {
     didSet {
-      post(FeedKitRemoteRequestNotification)
+      post(name: FeedKitRemoteRequestNotification)
     }
   }
 

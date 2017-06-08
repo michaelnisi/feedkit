@@ -14,11 +14,15 @@ import Skull
 /// Remove whitespace from specified string and replace it with `""` or the
 /// specified string. Consecutive spaces are reduced to a single space.
 ///
-/// - parameter string: The string to trim..
-/// - parameter replacement: The string to replace whitespace with.
+/// - Parameters:
+///   - string: The string to trim..
+///   - replacement: The string to replace whitespace with.
 ///
-/// - returns: The trimmed string.
-public func replaceWhitespaces(in string: String, with replacement: String = "") -> String {
+/// - Returns: The trimmed string.
+func replaceWhitespaces(
+  in string: String,
+  with replacement: String = ""
+) -> String {
   let ws = CharacterSet.whitespaces
   let ts = string.trimmingCharacters(in: ws)
   let cmps = ts.components(separatedBy: " ") as [String]
@@ -133,7 +137,7 @@ func feed(from json: [String : Any]) throws -> Feed {
     throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
   }
   
-  // TODO: Filter shady stuff like this on the server 
+  // TODO: Filter shady stuff like this earlier--in the remote service
   
   let iTunes = iTunesItem(from: json)
   let image = json["image"] as? String
