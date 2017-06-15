@@ -9,8 +9,24 @@
 import Foundation
 import XCTest
 import Skull
+import Patron
+import MangerKit
 
 @testable import FeedKit
+
+func freshManger(string: String = "http://localhost:8384") -> Manger {
+  let url = URL(string: string)!
+  
+  let conf = URLSessionConfiguration.default
+  conf.httpShouldUsePipelining = true
+  conf.requestCachePolicy = .reloadIgnoringLocalCacheData
+  let session = URLSession(configuration: conf)
+  let target = DispatchQueue.main
+  
+  let client = Patron(URL: url, session: session, target: target)
+  
+  return Manger(client: client)
+}
 
 func schemaForClass(_ aClass: AnyClass!) -> String {
   let bundle = Bundle(for: aClass)

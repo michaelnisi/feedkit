@@ -28,9 +28,6 @@ public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
 /// Posted when a remote response has been received.
 public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
 
-/// Posted when the queue has been changed.
-public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
-
 // MARK: - Types
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
@@ -56,7 +53,6 @@ public enum FeedKitError : Error, Equatable {
   case invalidSuggestion(reason: String)
   case offline
   case noForceApplied
-  case alreadyInQueue
 }
 
 public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
@@ -75,8 +71,8 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
-// Additional per podcast information aquired via iTunes search, entirely 
-// optional. Especially the guid isn’t used in this framework. We identify 
+// Additional per podcast information aquired via iTunes search, entirely
+// optional. Especially the guid isn’t used in this framework. We identify
 // feeds by URLs.
 public struct ITunesItem: Equatable {
   public let guid: Int?
@@ -84,7 +80,7 @@ public struct ITunesItem: Equatable {
   public let img30: String?
   public let img60: String?
   public let img600: String?
-  
+
   public init?(guid: Int?, img100: String?, img30: String?, img60: String?,
                img600: String?) {
     if guid == nil, img100 == nil, img30 == nil, img60 == nil, img600 == nil {
@@ -153,7 +149,7 @@ extension Feed: Equatable {
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
 public enum EnclosureType : Int {
   case unknown
-  
+
   case audioMPEG
   case audioXMPEG
   case videoXM4V
@@ -172,9 +168,9 @@ public enum EnclosureType : Int {
     default: self = .unknown
     }
   }
-  
+
   // TODO: Correct enclosure types
-  
+
   public var isVideo: Bool {
     get {
       switch self {
@@ -204,10 +200,14 @@ public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
   return lhs.url == rhs.url
 }
 
+public protocol Identifiable {
+  var guid: String { get }
+}
+
 // TODO: Resolve image/feedImage confusion
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
-public struct Entry: Redirectable, Imaginable {
+public struct Entry: Redirectable, Imaginable, Identifiable {
   public let author: String?
   public let duration: Int?
   public let enclosure: Enclosure?
@@ -264,11 +264,12 @@ public struct EntryLocator : Equatable {
   /// This object might be used to locate multiple entries within an interval
   /// or to locate a single entry specifically using the guid.
   ///
-  /// - parameter url: The URL of the feed.
-  /// - parameter since: A date in the past when the interval begins.
-  /// - parameter guid: An identifier to locate a specific entry.
+  /// - Parameters:
+  ///   - url: The URL of the feed.
+  ///   - since: A date in the past when the interval begins.
+  ///   - guid: An identifier to locate a specific entry.
   ///
-  /// - returns: The newly created entry locator.
+  /// - Returns: The newly created entry locator.
   public init(
     url: String,
     since: Date = Date(timeIntervalSince1970: 0),
@@ -278,7 +279,7 @@ public struct EntryLocator : Equatable {
     self.since = since
     self.guid = guid
   }
-  
+
   /// Creates a new locator from `entry`.
   ///
   /// - Parameter entry: The entry to locate.
@@ -358,7 +359,7 @@ extension Find: Equatable {
     var lhsRes: Entry?
     var lhsSug: Suggestion?
     var lhsFed: Feed?
-    
+
     switch lhs {
     case .suggestedEntry(let it):
       lhsRes = it
@@ -371,11 +372,11 @@ extension Find: Equatable {
     case .foundFeed(let it):
       lhsFed = it
     }
-    
+
     var rhsRes: Entry?
     var rhsSug: Suggestion?
     var rhsFed: Feed?
-    
+
     switch rhs {
     case .suggestedEntry(let it):
       rhsRes = it
@@ -388,7 +389,7 @@ extension Find: Equatable {
     case .foundFeed(let it):
       rhsFed = it
     }
-    
+
     if lhsRes != nil && rhsRes != nil {
       return lhsRes == rhsRes
     } else if lhsSug != nil && rhsSug != nil {
@@ -396,7 +397,7 @@ extension Find: Equatable {
     } else if lhsFed != nil && rhsFed != nil {
       return lhsFed == rhsFed
     }
-    
+
     return false
   }
 }
@@ -520,40 +521,44 @@ public protocol Browsing {
 
 // MARK: - Queueing
 
-public protocol QueueDelegate {
-  func queue(_ queue: Queueing, enqueued: Entry)
-  func queue(_ queue: Queueing, removed: Entry)
+/// Posted when the queue has been changed.
+public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
+
+public enum QueueError: Error {
+  case alreadyInQueue
+  case notInQueue
 }
 
-/// A generic stack, straight from the book.
-struct Stack<Element> {
-  var items = [Element]()
-  mutating func push(_ item: Element) {
-    items.append(item)
-  }
-  mutating func pop() -> Element {
-    return items.removeLast()
-  }
+public protocol QueueDelegate {
+  func queue(_ queue: Queueing, added: Entry)
+  func queue(_ queue: Queueing, removedGUID: String)
 }
 
 public protocol Queueing {
   
-  var queueDelegate: QueueDelegate? { get set }
+  // init(entries: [Entry])
 
-  @discardableResult func entries(
-    _ entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
-  ) -> Operation
-  
-  func add(locators: [EntryLocator]) throws
+  var delegate: QueueDelegate? { get set }
+
   func add(entry: Entry) throws
   
-  @discardableResult func remove(entry: Entry) -> Bool
+  func remove(guid: String) throws
+  func contains(guid: String) -> Bool
   
-  func contains(entry: Entry) -> Bool
+  // TODO: Should be relative, assuming less state
   
-  func next(to entry: Entry) -> EntryLocator?
-  func previous(to entry: Entry) -> EntryLocator?
+//  func next(to guid: String) -> Entry?
+//  func previous(to guid: String) -> Entry?
+  
+  func next() -> Entry?
+  func previous() -> Entry?
+
+  func integrate(locators: [EntryLocator])
+  
+  @discardableResult func entries(
+    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation
 }
 
 // MARK: - Subscribing
@@ -653,7 +658,7 @@ class SessionTaskOperation: Operation {
 
   /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
-  
+
   /// Posts a notification of `name` with the default notification center from
   /// this operation.
   func post(name: String) {

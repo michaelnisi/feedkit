@@ -8,59 +8,141 @@
 
 import Foundation
 
-// TODO: Persist locators
 // TODO: Update queue after redirects
 // TODO: Make sure to log if a guid couldn’t be found
 // TODO: Break up User into Queue, Library, Settings, etc.
 
-public final class User: Queueing {
-  public var queueDelegate: QueueDelegate?
-
-  fileprivate let browser: Browsing
+/// The queue is kept generic for easier testing.
+struct Queue {
+  private var itemsByGUIDs = [String : Identifiable]()
   
-  public var index: Int = 0 {
-    willSet {
-      guard newValue <= locators.count else {
-        fatalError("out of bounds")
-      }
+  private var fwd = [String]()
+  private var bwd = [String]()
+  
+  /// Returns next entry and moves index forward.
+  public mutating func forward() -> Identifiable? {
+    guard !fwd.isEmpty else {
+      return nil
     }
-    didSet {
-      guard oldValue != index else {
-        return
-      }
-      postDidChangeNotification()
+    
+    let guid = fwd.removeLast()
+    let entry = itemsByGUIDs[guid]!
+    
+    bwd.append(guid)
+
+    return entry
+  }
+  
+  public mutating func backward() -> Identifiable? {
+    guard !bwd.isEmpty else {
+      return nil
+    }
+    
+    let guid = bwd.removeLast()
+    let entry = itemsByGUIDs[guid]!
+    
+    fwd.append(guid)
+    
+    return entry
+  }
+  
+  public func contains(guid: String) -> Bool {
+    return itemsByGUIDs.contains { $0.key == guid }
+  }
+  
+  public mutating func add(_ item: Identifiable) throws {
+    let guid = item.guid
+    guard !contains(guid: guid) else {
+      throw QueueError.alreadyInQueue
+    }
+    itemsByGUIDs[guid] = item
+    fwd.append(guid)
+  }
+  
+  public mutating func add(items: [Identifiable]) throws {
+    try items.forEach { item in
+      try add(item)
     }
   }
   
-  public var count: Int { get {
-    return locators.count
-  }}
+  public mutating func remove(guid: String) throws {
+    guard itemsByGUIDs.removeValue(forKey: guid) != nil else {
+      throw QueueError.notInQueue
+    }
+    
+    if let index = fwd.index(of: guid) {
+      fwd.remove(at: index)
+    } else {
+      let index = bwd.index(of: guid)
+      bwd.remove(at: index!)
+    }
+  }
+}
+
+public final class EntryQueue: Queueing {
   
-  private var locators: [EntryLocator]
+  let browser: Browsing
+  
+  public init(browser: Browsing) {
+    self.browser = browser
+  }
+  
+  var locators: [EntryLocator]?
+  
+  /// A temporary method to enable persistance through app state preservation.
+  /// Sort order of locators matters here.
+  ///
+  /// - Parameter locators: Sorted list of entry locators.
+  public func integrate(locators: [EntryLocator]) {
+    self.locators = locators
+  }
   
   public func entries(
-    _ entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
-    return browser.entries(
-      locators,
-      force: false,
-      entriesBlock: entriesBlock,
-      entriesCompletionBlock: entriesCompletionBlock
-    )
+    
+    // TODO: Persist in database and wrap all this in a proper Operation
+    
+    guard let locators = self.locators else {
+      return Operation() // NOP
+    }
+    
+    let guids = locators.flatMap { $0.guid }
+    var acc = [Entry]()
+    
+    let op = browser.entries(locators, entriesBlock: { error, entries in
+      assert(error == nil)
+      
+      acc = acc + entries
+    }) { error in
+      assert(error == nil)
+      
+      DispatchQueue.global().async {
+        var entriesByGUID = [String : Entry]()
+        acc.forEach {
+          entriesByGUID[$0.guid] = $0
+        }
+        let sorted = guids.flatMap { entriesByGUID[$0] }
+        
+        try! self.queue.add(items: sorted)
+        
+        DispatchQueue.main.async {
+          // Obviously, we ought to use a single callback for this API.
+          entriesBlock(nil, sorted)
+          entriesCompletionBlock(nil)
+        }
+      }
+    }
+    
+    self.locators = nil // integrating just once
+    
+    return op
   }
   
-  private var guids: [String?] { get {
-    return locators.map { $0.guid }
-  }}
-  
-  private func index(of entry: Entry) -> Int? {
-    return guids.index { $0 == entry.guid }
-  }
-  
-  public func contains(entry: Entry) -> Bool {
-    return guids.contains { $0 == entry.guid }
-  }
+  private var queue = Queue()
+
+  public var delegate: QueueDelegate?
   
   private func postDidChangeNotification() {
     NotificationCenter.default.post(
@@ -69,71 +151,34 @@ public final class User: Queueing {
     )
   }
   
-  @discardableResult public func remove(entry: Entry) -> Bool {
-    guard contains(entry: entry) else {
-      return false
-    }
-    
-    guard let i = index(of: entry) else {
-      return false
-    }
-    
-    locators.remove(at: i)
-    
-    queueDelegate?.queue(self, removed: entry)
-    postDidChangeNotification()
-    
-    return true
-  }
-  
-  public func next(to entry: Entry) -> EntryLocator? {
-    guard let i = index(of: entry) else {
-      return nil
-    }
-    
-    let n = locators.index(after: i)
-    
-    guard n < locators.count else {
-      return nil
-    }
-
-    return locators[n]
-  }
-  
-  public func previous(to entry: Entry) -> EntryLocator? {
-    guard let i = index(of: entry) else {
-      return nil
-    }
-    
-    let n = locators.index(before: i)
-    
-    guard n < 0 else {
-      return nil
-    }
-    
-    return locators[n]
-  }
-  
-  public func add(locators: [EntryLocator]) throws {
-    let doublets = locators.filter {
-      self.locators.contains($0)
-    }
-    
-    guard doublets.isEmpty else {
-      throw FeedKitError.alreadyInQueue
-    }
-    
-    self.locators = locators + self.locators
-  }
-  
   public func add(entry: Entry) throws {
-    try add(locators: [EntryLocator(entry: entry)])
-    queueDelegate?.queue(self, enqueued: entry)
+    try queue.add(entry)
+    
+    delegate?.queue(self, added: entry)
     postDidChangeNotification()
   }
   
-  public init(browser: Browsing, locators: [EntryLocator] = [EntryLocator]()) {
-    self.browser = browser
-    self.locators = locators
+  public func add(entries: [Entry]) throws {
+    try queue.add(items: entries)
   }
+  
+  public func remove(guid: String) throws {
+    try queue.remove(guid: guid)
+    
+    delegate?.queue(self, removedGUID: guid)
+    postDidChangeNotification()
+  }
+  
+  public func contains(guid: String) -> Bool {
+    return queue.contains(guid: guid)
+  }
+  
+  public func next() -> Entry? {
+    return queue.forward() as? Entry
+  }
+  
+  public func previous() -> Entry? {
+    return queue.backward() as? Entry
+  }
+
 }

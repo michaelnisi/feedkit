@@ -16,6 +16,7 @@
 		4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594A1BDF4E8B00EA7780 /* sql.swift */; };
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
 		4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5171E3CB58B007517FB /* Skull.framework */; };
+		4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */; };
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
 		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
@@ -67,6 +68,7 @@
 		4CDA59591BE69D6700EA7780 /* feeds.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feeds.json; sourceTree = "<group>"; };
 		4CF53BB91C5DF35700B85CA1 /* user.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = user.swift; sourceTree = "<group>"; };
 		4E34B5171E3CB58B007517FB /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
+		4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QueueTests.swift; sourceTree = "<group>"; };
 		4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/FanboyKit.framework"; sourceTree = "<group>"; };
 		4E7B1D831E3D12D900B7F229 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
 		4E7B1D841E3D12D900B7F229 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
@@ -144,6 +146,7 @@
 		4C3485A41977C237008A6B53 /* FeedKitTests */ = {
 			isa = PBXGroup;
 			children = (
+				4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */,
 				4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */,
 				4C962EAF19E85CB100F33D9D /* common.swift */,
 				4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */,
@@ -333,6 +336,7 @@
 				4EF5E0FC1E91390800A95D3D /* CacheTests.swift in Sources */,
 				4EF5E1001E91390800A95D3D /* SearchRepositoryTests.swift in Sources */,
 				4EF5E0FE1E91390800A95D3D /* SerializeTests.swift in Sources */,
+				4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */,
 				4EF5E0FD1E91390800A95D3D /* common.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

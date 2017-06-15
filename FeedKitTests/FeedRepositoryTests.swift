@@ -19,20 +19,6 @@ class FeedRepositoryTests: XCTestCase {
   var cache: Cache!
   var svc: MangerService!
   
-  func freshManger(string: String = "http://localhost:8384") -> Manger {
-    let url = URL(string: string)!
-    
-    let conf = URLSessionConfiguration.default
-    conf.httpShouldUsePipelining = true
-    conf.requestCachePolicy = .reloadIgnoringLocalCacheData
-    let session = URLSession(configuration: conf)
-    let target = DispatchQueue.main
-  
-    let client = Patron(URL: url, session: session, target: target)
-    
-    return Manger(client: client)
-  }
-  
   override func setUp() {
     super.setUp()
     
