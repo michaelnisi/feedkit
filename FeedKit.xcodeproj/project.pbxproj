@@ -17,6 +17,9 @@
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
 		4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5171E3CB58B007517FB /* Skull.framework */; };
 		4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */; };
+		4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F091EF2C77600B090EF /* images.swift */; };
+		4E5C0F0C1EF2C80200B090EF /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E5C0F0B1EF2C80200B090EF /* Nuke.framework */; };
+		4E5C0F171EF39AA800B090EF /* hash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F161EF39AA800B090EF /* hash.swift */; };
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
 		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
@@ -69,6 +72,9 @@
 		4CF53BB91C5DF35700B85CA1 /* user.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = user.swift; sourceTree = "<group>"; };
 		4E34B5171E3CB58B007517FB /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
 		4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QueueTests.swift; sourceTree = "<group>"; };
+		4E5C0F091EF2C77600B090EF /* images.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = images.swift; sourceTree = "<group>"; };
+		4E5C0F0B1EF2C80200B090EF /* Nuke.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nuke.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Nuke.framework"; sourceTree = "<group>"; };
+		4E5C0F161EF39AA800B090EF /* hash.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = hash.swift; sourceTree = "<group>"; };
 		4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/FanboyKit.framework"; sourceTree = "<group>"; };
 		4E7B1D831E3D12D900B7F229 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
 		4E7B1D841E3D12D900B7F229 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
@@ -81,6 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4E5C0F0C1EF2C80200B090EF /* Nuke.framework in Frameworks */,
 				4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */,
 				4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */,
 				4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */,
@@ -129,6 +136,8 @@
 				4CCC8C981C0598F100120D07 /* search.swift */,
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
 				4CDA594A1BDF4E8B00EA7780 /* sql.swift */,
+				4E5C0F091EF2C77600B090EF /* images.swift */,
+				4E5C0F161EF39AA800B090EF /* hash.swift */,
 				4C3485981977C236008A6B53 /* Supporting Files */,
 			);
 			path = FeedKit;
@@ -173,6 +182,7 @@
 		4CD28D3E1DC096CC007687B5 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4E5C0F0B1EF2C80200B090EF /* Nuke.framework */,
 				4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */,
 				4E7B1D831E3D12D900B7F229 /* MangerKit.framework */,
 				4E7B1D841E3D12D900B7F229 /* Ola.framework */,
@@ -322,7 +332,9 @@
 				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,
 				4CCC8C991C0598F100120D07 /* search.swift in Sources */,
 				4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */,
+				4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */,
 				4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */,
+				4E5C0F171EF39AA800B090EF /* hash.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -11,8 +11,10 @@ import MangerKit
 import Ola
 import os.log
 
+// MARK: - Logging
+
 @available(iOS 10.0, *)
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "Browse")
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 
 /// Subtract two arrays of strings. Note that the order of the resulting array
 /// is undefined.

@@ -9,6 +9,7 @@
 import Foundation
 import Ola
 import Patron
+import os.log
 
 // TODO: Encapsulate TODOs into GitHub issues
 
