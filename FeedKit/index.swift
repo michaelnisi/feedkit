@@ -357,49 +357,24 @@ public enum Find {
 
 extension Find: Equatable {
   static public func ==(lhs: Find, rhs: Find) -> Bool {
-    var lhsRes: Entry?
-    var lhsSug: Suggestion?
-    var lhsFed: Feed?
-
-    switch lhs {
-    case .suggestedEntry(let it):
-      lhsRes = it
-    case .suggestedTerm(let it):
-      lhsSug = it
-    case .suggestedFeed(let it):
-      lhsFed = it
-    case .recentSearch(let it):
-      lhsFed = it
-    case .foundFeed(let it):
-      lhsFed = it
+    switch (lhs, rhs) {
+    case (.suggestedEntry(let a), .suggestedEntry(let b)):
+      return a == b
+    case (.suggestedTerm(let a), .suggestedTerm(let b)):
+      return a == b
+    case (.suggestedFeed(let a), .suggestedFeed(let b)):
+      return a == b
+    case (.recentSearch(let a), .recentSearch(let b)):
+      return a == b
+    case (.foundFeed(let a), .foundFeed(let b)):
+      return a == b
+    case (.suggestedEntry, _),
+         (.suggestedTerm, _),
+         (.suggestedFeed, _),
+         (.recentSearch, _),
+         (.foundFeed, _):
+      return false
     }
-
-    var rhsRes: Entry?
-    var rhsSug: Suggestion?
-    var rhsFed: Feed?
-
-    switch rhs {
-    case .suggestedEntry(let it):
-      rhsRes = it
-    case .suggestedTerm(let it):
-      rhsSug = it
-    case .suggestedFeed(let it):
-      rhsFed = it
-    case .recentSearch(let it):
-      rhsFed = it
-    case .foundFeed(let it):
-      rhsFed = it
-    }
-
-    if lhsRes != nil && rhsRes != nil {
-      return lhsRes == rhsRes
-    } else if lhsSug != nil && rhsSug != nil {
-      return lhsSug == rhsSug
-    } else if lhsFed != nil && rhsFed != nil {
-      return lhsFed == rhsFed
-    }
-
-    return false
   }
 }
 

@@ -10,7 +10,7 @@ import Foundation
 
 // TODO: Review hash function
 //
-// It currently seems to return negative values.
+// It currently seems to return negative values, at least sometimes.
 
 /// Hashes a `string` using [djb2](http://www.cse.yorku.ca/~oz/hash.html), one 
 /// of the best string hash functions, it has excellent distribution and speed 
