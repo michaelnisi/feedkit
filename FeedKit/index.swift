@@ -32,7 +32,7 @@ public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
 // MARK: - Types
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
-public enum FeedKitError : Error, Equatable {
+public enum FeedKitError : Error {
   case unknown
   case niy
   case notAString
@@ -56,8 +56,10 @@ public enum FeedKitError : Error, Equatable {
   case noForceApplied
 }
 
-public func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
-  return lhs._code == rhs._code
+extension FeedKitError: Equatable {
+  public static func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
+    return lhs._code == rhs._code
+  }
 }
 
 /// Cachable objects, currently feeds and entries, must adopt this protocol,
@@ -75,7 +77,7 @@ public protocol Redirectable {
 // Additional per podcast information aquired via iTunes search, entirely
 // optional. Especially the guid isn’t used in this framework. We identify
 // feeds by URLs.
-public struct ITunesItem: Equatable {
+public struct ITunesItem {
   public let guid: Int?
   public let img100: String?
   public let img30: String?
@@ -95,12 +97,14 @@ public struct ITunesItem: Equatable {
   }
 }
 
-public func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
-  guard let a = lhs.guid, let b = rhs.guid else {
-    return lhs.img100 == rhs.img100 && lhs.img600 == rhs.img600 &&
-      lhs.img60 == rhs.img60 && lhs.img30 == rhs.img30
+extension ITunesItem: Equatable {
+  public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
+    guard let a = lhs.guid, let b = rhs.guid else {
+      return lhs.img100 == rhs.img100 && lhs.img600 == rhs.img600 &&
+        lhs.img60 == rhs.img60 && lhs.img30 == rhs.img30
+    }
+    return a == b
   }
-  return a == b
 }
 
 public protocol Imaginable {
@@ -185,20 +189,22 @@ public enum EnclosureType : Int {
 }
 
 /// The infamous RSS enclosure tag is mapped to this structure.
-public struct Enclosure : Equatable {
+public struct Enclosure {
   public let url: String
   public let length: Int?
   public let type: EnclosureType
+}
+
+extension Enclosure: Equatable {
+  public static func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
+    return lhs.url == rhs.url
+  }
 }
 
 extension Enclosure : CustomStringConvertible {
   public var description: String {
     return "Enclosure: \(url)"
   }
-}
-
-public func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
-  return lhs.url == rhs.url
 }
 
 public protocol Identifiable {
@@ -253,7 +259,7 @@ extension Entry: Hashable {
 
 /// Entry locators identify a specific entry using the GUID, or skirt intervals
 /// of entries from a specific feed.
-public struct EntryLocator : Equatable {
+public struct EntryLocator {
 
   public let url: String
   public let since: Date
@@ -289,14 +295,16 @@ public struct EntryLocator : Equatable {
   }
 }
 
+extension EntryLocator: Equatable {
+  public static func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
+    return lhs.url == rhs.url && lhs.since == rhs.since && lhs.guid == rhs.guid
+  }
+}
+
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
     return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
   }
-}
-
-public func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
-  return lhs.url == rhs.url && lhs.since == rhs.since && lhs.guid == rhs.guid
 }
 
 /// A suggested search term, bearing the timestamp of when it was added
