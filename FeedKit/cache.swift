@@ -8,6 +8,12 @@
 
 import Foundation
 import Skull
+import os.log
+
+// MARK: - Logging
+
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 
 /// Return true if the specified timestamp is older than the specified time to
 /// live.
@@ -62,7 +68,7 @@ public final class Cache {
   fileprivate var feedIDsCache = NSCache<NSString, NSNumber>()
 
   fileprivate func open() throws {
-    var error: Error?
+    var er: Error?
 
     let db = self.db
     let schema = self.schema
@@ -71,12 +77,12 @@ public final class Cache {
       do {
         let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
         try db.exec(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    if let error = er {
+      throw error
     }
   }
 
@@ -170,7 +176,7 @@ public final class Cache {
         }
         return 0
       }
-    } catch let error {
+    } catch {
       er = error
     }
     if let error = er {
@@ -186,12 +192,14 @@ extension Cache: FeedCaching {
 
   /// Update feeds in the cache. Feeds that are not cached yet are inserted.
   ///
-  /// - parameter feeds: The feeds to insert or update.
+  /// - Parameter feeds: The feeds to insert or update.
+  ///
+  /// - Throws: Skull errors originating from SQLite.
   public func update(feeds: [Feed]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
 
-    var error: Error?
+    var er: Error?
 
     queue.sync {
       do {
@@ -200,17 +208,41 @@ extension Cache: FeedCaching {
             let feedID = try self.feedIDForURL(feed.url)
             return acc + [fmt.SQLToUpdateFeed(feed, withID: feedID)]
           } catch FeedKitError.feedNotCached {
-            return acc + [fmt.SQLToInsertFeed(feed)]
+            
+            guard let guid = feed.iTunes?.guid else {
+              return acc + [fmt.SQLToInsertFeed(feed)]
+            }
+            
+            // TODO: Write test for this scenario
+            
+            // Removing feed with this guid before inserting, to avoid doublets
+            // if the feed URL changed while the GUID stayed the same, leading
+            // to a unique constraint failure:
+            //
+            // unhandled error: Skull: 19: UNIQUE constraint failed: feed.guid
+            
+            if #available(iOS 10.0, *) {
+              os_log("removing feed with guid: %{public}@",
+                     log: log,
+                     type: .debug,
+                     String(describing: guid))
+            }
+            
+            return acc + [
+              SQLtoRemoveFeed(with: guid),
+              fmt.SQLToInsertFeed(feed)
+            ]
           }
         }.joined(separator: "\n")
+        
         try db.exec(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
 
-    if let er = error {
-      throw er
+    if let error = er {
+      throw error
     }
   }
 
@@ -472,7 +504,7 @@ extension Cache: SearchCaching {
   ///   - feeds: The feeds to cache.
   ///   - term: The term to associate the specified feeds with.
   ///
-  /// - Throws: May throw database errors: various `SkullError` types.
+  /// - Throws: Might throw database errors: various `SkullError` types.
   public func updateFeeds(_ feeds: [Feed], forTerm term: String) throws {
     if feeds.isEmpty {
       noSearch[term] = Date()
@@ -485,7 +517,7 @@ extension Cache: SearchCaching {
     }
 
     let db = self.db
-    var error: Error?
+    var er: Error?
 
     // To stay synchronized with the remote state, before inserting feed
     // identifiers, we firstly delete all searches for this term.
@@ -494,22 +526,38 @@ extension Cache: SearchCaching {
       do {
         let delete = SQLToDeleteSearchForTerm(term)
         let insert = try feeds.reduce([String]()) { acc, feed in
-          let feedID = try feed.uid ?? self.feedIDForURL(feed.url)
+          let feedID: Int
+          do {
+            feedID = try feed.uid ?? self.feedIDForURL(feed.url)
+          } catch {
+            switch error {
+            case FeedKitError.feedNotCached(let urls):
+              if #available(iOS 10.0, *) {
+                os_log("feed not cached: %{public}@", log: log,  type: .debug,
+                       String(describing: urls))
+              }
+              return acc
+            default: throw error
+            }
+          }
           return acc + [SQLToInsertFeedID(feedID, forTerm: term)]
         }.joined(separator: "\n")
+        
         let sql = [
           "BEGIN;",
           delete,
           insert,
           "COMMIT;"
         ].joined(separator: "\n")
+        
         try db.exec(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
   }
 

@@ -293,60 +293,66 @@ class CacheTests: XCTestCase {
   func testUpdateFeedsForTerm() {
     let feeds = try! feedsFromFile("search")
     let term = "newyorker"
+    
+    // Granular scoping.
 
     do {
       try cache.updateSuggestions([], forTerm: "new")
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       try cache.updateFeeds(feeds, forTerm: term)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       let found = try cache.feedsForTerm(term, limit: 50)
-      let wanted = feeds
+      let wanted = feeds.filter {
+        $0.url != "http://feeds.feedburner.com/doublet"
+      }
       
       XCTAssertEqual(found!, wanted)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       let found = try cache.suggestionsForTerm(term, limit: 5)
       let wanted = suggestionsFromTerms([term])
       XCTAssertEqual(found!, wanted)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       try cache.updateFeeds([], forTerm: term)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       let found = try cache.feedsForTerm(term, limit: 50)
       XCTAssert(found!.isEmpty)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
 
     do {
       let found = try cache.suggestionsForTerm(term, limit: 5)
       XCTAssertNil(found)
-    } catch let er {
-      XCTFail("should not throw \(er)")
+    } catch {
+      XCTFail("should not throw \(error)")
     }
   }
 
   func testFeedsForTerm() {
     let feeds = try! feedsFromFile("search")
     let term = "newyorker"
+    
+    XCTAssertEqual(feeds.count, 12)
 
     XCTAssertNil(try! cache.feedsForTerm(term, limit: 50))
 
@@ -354,9 +360,9 @@ class CacheTests: XCTestCase {
       try! cache.updateFeeds(feeds, forTerm: term)
 
       let found = try! cache.feedsForTerm(term, limit: 50)!
-      let wanted = feeds
-      
-      XCTAssertEqual(found, wanted)
+      let wanted = feeds.filter {
+        $0.url != "http://feeds.feedburner.com/doublet"
+      }
 
       for (i, wantedFeed) in wanted.enumerated() {
         let foundFeed = found[i]
@@ -376,6 +382,8 @@ class CacheTests: XCTestCase {
         let uid = try! cache.feedIDForURL(url)
         XCTAssertEqual(uid, foundFeed.uid)
       }
+      
+      XCTAssertEqual(found, wanted)
     }
   }
 

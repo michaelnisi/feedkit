@@ -9,6 +9,8 @@
 import Foundation
 import Skull
 
+// TDOO: Package all global SQL functions into SQL struct
+
 // TODO: Review, document, and test
 
 // TODO: Store enclosures in extra table
@@ -37,6 +39,10 @@ func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
 
 func SQLToSelectFeedsByFeedIDs(_ feedIDs: [Int]) -> String? {
   return selectRowsByUIDs("feed_view", ids: feedIDs)
+}
+
+func SQLtoRemoveFeed(with guid: Int) -> String {
+  return "DELETE FROM feed WHERE guid = \(guid);"
 }
 
 func SQLToSelectEntryByGUID(_ guid: String) -> String {

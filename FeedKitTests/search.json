@@ -121,6 +121,18 @@
   },
   {
     "author": "The Deej",
+    "feed": "http://feeds.feedburner.com/doublet",
+    "guid": 976475018,
+    "img100": "http://is1.mzstatic.com/image/thumb/Music3/v4/70/6f/4b/706f4bf2-f485-b7fa-00a7-ee73d7b3a0f5/source/100x100bb.jpg",
+    "img30": "http://is1.mzstatic.com/image/thumb/Music3/v4/70/6f/4b/706f4bf2-f485-b7fa-00a7-ee73d7b3a0f5/source/30x30bb.jpg",
+    "img60": "http://is1.mzstatic.com/image/thumb/Music3/v4/70/6f/4b/706f4bf2-f485-b7fa-00a7-ee73d7b3a0f5/source/60x60bb.jpg",
+    "img600": "http://is1.mzstatic.com/image/thumb/Music3/v4/70/6f/4b/706f4bf2-f485-b7fa-00a7-ee73d7b3a0f5/source/600x600bb.jpg",
+    "title": "The Ifficial New Yorker Cartoon Podcast",
+    "updated": 1449708600000,
+    "ts": 1450019360527
+  },
+  {
+    "author": "The Deej",
     "feed": "http://feeds.feedburner.com/TheOfficialNewYorkerCartoonPodcast",
     "guid": 976475018,
     "img100": "http://is1.mzstatic.com/image/thumb/Music3/v4/70/6f/4b/706f4bf2-f485-b7fa-00a7-ee73d7b3a0f5/source/100x100bb.jpg",

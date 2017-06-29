@@ -8,10 +8,6 @@
 
 import Foundation
 
-// TODO: Review hash function
-//
-// It currently seems to return negative values, at least sometimes.
-
 /// Hashes a `string` using [djb2](http://www.cse.yorku.ca/~oz/hash.html), one 
 /// of the best string hash functions, it has excellent distribution and speed 
 /// on many different sets of keys and table sizes. 
@@ -20,7 +16,7 @@ import Foundation
 ///
 /// - Parameter string: The string to hash.
 ///
-/// - Returns: The hash of the string.
+/// - Returns: The hash of the string. Note that this might a negative value.
 public func djb2Hash(string: String) -> Int {
   let unicodeScalars = string.unicodeScalars.map { $0.value }
   return unicodeScalars.reduce(5381) {

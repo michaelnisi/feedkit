@@ -22,12 +22,13 @@ private class SearchRepoOperation: SessionTaskOperation {
   let target: DispatchQueue
 
   /// Returns an initialized search repo operation.
-  ///
-  /// - parameter cache: A persistent search cache.
-  /// - parameter svc: The remote search service to use.
-  /// - parameter term: The term to search—or get suggestions—for; it can be any
-  /// string.
-  /// - parameter target: The target queue on which to submit callbacks.
+  /// 
+  /// - Parameters:
+  ///   - cache: A persistent search cache.
+  ///   - svc: The remote search service to use.
+  ///   - term: The term to search—or get suggestions—for; it can be any
+  ///   string.
+  ///   - target: The target queue on which to submit callbacks.
   init(
     cache: SearchCaching,
     svc: FanboyService,
