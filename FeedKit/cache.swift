@@ -15,27 +15,29 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 
-/// Return true if the specified timestamp is older than the specified time to
-/// live.
+/// Returns `true` if the specified timestamp is older than the specified time 
+/// to live.
 ///
-/// - parameter ts: The timestamp to check if it's older than the specified ttl.
-/// - parameter ttl: The maximal age to allow.
+/// - Parameters:
+///   - ts: The timestamp to check if it's older than the specified ttl.
+///   - ttl: The maximal age to allow.
 ///
-/// - returns: True if the timestamp is older than the maximal age.
+/// - Returns: `true` if the timestamp is older than the maximal age.
 func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
   return ts.timeIntervalSinceNow + ttl < 0
 }
 
-/// Return the median timestamp of the specified cachable items.
+/// Returns the median timestamp of the specified cachable items.
 ///
-/// - parameter items: The cachable items of which to locate the median.
-/// - parameter sorting: To skip the sorting but lose warranty of correctness.
+/// - Parameters:
+///   - items: The cachable items of which to locate the median.
+///   - sorting: To skip the sorting but lose warranty of correctness.
 ///
-/// - returns: The median timestamp of these cachable items; or nil, if you pass
+/// - Returns: The median timestamp of these cachable items; or nil, if you pass
 /// an empty array.
 func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
   guard !items.isEmpty else { return nil }
-  var sorted: [T]
+  let sorted: [T]
   if sorting {
     sorted = items.sorted {
       guard $0.ts != nil else { return false }
@@ -81,6 +83,7 @@ public final class Cache {
         er = error
       }
     }
+    
     if let error = er {
       throw error
     }
@@ -88,8 +91,9 @@ public final class Cache {
 
   /// Initializes a newly created cache.
   ///
-  /// - parameter schema: The path of the database schema file.
-  /// - parameter url: The file URL of the database to use—and create if necessary.
+  /// - Parameters:
+  ///   - schema: The path of the database schema file.
+  ///   - url: The file URL of the database to use—and create if necessary.
   public init(schema: String, url: URL?) throws {
     self.schema = schema
     self.url = url
@@ -131,9 +135,11 @@ public final class Cache {
     if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
     }
+    
     var er: Error?
     var id: Int?
     let sql = SQLToSelectFeedIDFromURLView(url)
+    
     try db.query(sql) { error, row in
       guard error == nil else {
         er = error!
@@ -144,6 +150,7 @@ public final class Cache {
       }
       return 0
     }
+    
     guard er == nil else { throw er! }
     guard id != nil else { throw FeedKitError.feedNotCached(urls: [url]) }
 
@@ -179,9 +186,11 @@ public final class Cache {
     } catch {
       er = error
     }
+    
     if let error = er {
       throw error
     }
+    
     return feeds.isEmpty ? nil : feeds
   }
 }
@@ -212,8 +221,6 @@ extension Cache: FeedCaching {
             guard let guid = feed.iTunes?.guid else {
               return acc + [fmt.SQLToInsertFeed(feed)]
             }
-            
-            // TODO: Write test for this scenario
             
             // Removing feed with this guid before inserting, to avoid doublets
             // if the feed URL changed while the GUID stayed the same, leading
@@ -248,8 +255,9 @@ extension Cache: FeedCaching {
 
   /// Retrieve feeds from the cache identified by their URLs.
   ///
-  /// - parameter urls: An array of feed URL strings.
-  /// - returns: An array of feeds currently in the cache.
+  /// - Parameter urls: An array of feed URL strings.
+  ///
+  /// - Returns: An array of feeds currently in the cache.
   func feedIDsForURLs(_ urls: [String]) throws -> [String : Int]? {
     var result = [String:Int]()
     try urls.forEach { url in
@@ -268,20 +276,23 @@ extension Cache: FeedCaching {
 
   public func feeds(_ urls: [String]) throws -> [Feed] {
     var feeds: [Feed]?
-    var error: Error?
+    var er: Error?
+    
     queue.sync {
       do {
         guard let dicts = try self.feedIDsForURLs(urls) else { return }
         let feedIDs = dicts.map { $0.1 }
         guard let sql = SQLToSelectFeedsByFeedIDs(feedIDs) else { return }
         feeds = try self.feedsForSQL(sql)
-      } catch let er {
-        return error = er
+      } catch {
+        return er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
+    
     return feeds ?? [Feed]()
   }
 
@@ -296,15 +307,15 @@ extension Cache: FeedCaching {
 
   /// Update entries in the cache inserting new ones.
   ///
-  /// - parameter entries: An array of entries to be cached.
+  /// - Parameter entries: An array of entries to be cached.
   ///
-  /// - throws: You cannot update entries of feeds that are not cached yet,
+  /// - Throws: You cannot update entries of feeds that are not cached yet,
   /// if you do, this method will throw `FeedKitError.FeedNotCached`,
   /// containing the respective URLs.
   public func updateEntries(_ entries: [Entry]) throws {
     let fmt = self.sqlFormatter
     let db = self.db
-    var error: Error?
+    var er: Error?
 
     queue.sync {
       var unidentified = [String]()
@@ -328,12 +339,13 @@ extension Cache: FeedCaching {
         if !unidentified.isEmpty {
           throw FeedKitError.feedNotCached(urls: unidentified)
         }
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
   }
 
@@ -361,22 +373,25 @@ extension Cache: FeedCaching {
         }
         return 0
       }
-    } catch let error {
+    } catch {
       er = error
     }
+    
     if let error = er {
       throw error
     }
+    
     return entries.isEmpty ? nil : entries
   }
 
   /// Retrieve entries within the specified locators.
   ///
-  /// - parameter locators: An array of time intervals between now and the past.
+  /// - Parameter locators: An array of time intervals between now and the past.
+  ///
   /// - Returns: The matching array of entries currently cached.
   public func entries(_ locators: [EntryLocator]) throws -> [Entry] {
     var entries: [Entry]?
-    var error: Error?
+    var er: Error?
     let fmt = self.sqlFormatter
 
     queue.sync {
@@ -398,13 +413,15 @@ extension Cache: FeedCaching {
           return
         }
         entries = try self.entriesForSQL(sql)
-      } catch let er {
-        return error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
+    
     return entries ?? [Entry]()
   }
 
@@ -412,14 +429,16 @@ extension Cache: FeedCaching {
 
   /// Entries with matching guids.
   ///
-  /// - parameter guids: An array of entry identifiers.
+  /// - Parameter guids: An array of entry identifiers.
+  /// 
   /// - Returns: An array of matching the specified guids entries.
+  ///
   /// - Throws: Might throw database errors.
   public func entries(_ guids: [String]) throws -> [Entry] {
     let db = self.db
 
     var entries = [Entry]()
-    var error: Error?
+    var er: Error?
 
     queue.sync {
       do {
@@ -431,22 +450,25 @@ extension Cache: FeedCaching {
           }
         }
         try db.exec("commit;")
-      } catch let er {
-        return error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
+    
     return entries
   }
 
   /// Remove feeds and, respectively, their associated entries.
   ///
-  /// - parameter urls: The URL strings of the feeds to remove.
+  /// - Parameter urls: The URL strings of the feeds to remove.
   public func remove(_ urls: [String]) throws {
     let db = self.db
-    var error: Error?
+    var er: Error?
+    
     queue.sync {
       do {
         guard let dicts = try self.feedIDsForURLs(urls) else { return }
@@ -456,12 +478,13 @@ extension Cache: FeedCaching {
         }
         try db.exec(sql)
         urls.forEach { self.removeFeedID(for: $0) }
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
   }
 }
@@ -474,8 +497,10 @@ extension Cache: FeedCaching {
 /// backwards for a term or its predecessing substrings. If a matching term is
 /// found, it is returned in a tuple with its timestamp.
 ///
-/// - parameter term: The term to look for.
-/// - parameter dict: A dictionary of timestamps by terms.
+/// - Parameters:
+///   - term: The term to look for.
+///   - dict: A dictionary of timestamps by terms.
+///
 /// - Returns: A tuple containing the matching term and a timestamp, or, if no
 /// matches were found, `nil` is returned.
 func subcached(_ term: String, dict: [String:Date]) -> (String, Date)? {
@@ -564,14 +589,14 @@ extension Cache: SearchCaching {
   /// Return feeds matching the specified term, the number of feeds can be
   /// limited.
   ///
-  /// - parameter term: The search term.
-  /// - parameter limit: The maximal number of feeds to return.
+  /// - Parameters:
+  ///   - term: The search term.
+  ///   - limit: The maximal number of feeds to return.
   ///
-  /// - returns: An array of feeds that can be empty or nil.
-  ///
+  /// - Returns: An array of feeds that can be empty or nil.
   public func feedsForTerm(_ term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
-    var error: Error?
+    var er: Error?
     let noSearch = self.noSearch
 
     queue.sync { [unowned self] in
@@ -586,18 +611,21 @@ extension Cache: SearchCaching {
       let sql = SQLToSelectFeedsByTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
 
     guard let f = feeds else { return feeds }
 
     return f
-
+    
+    // Commented out, because uniqueness should be intrinsic.
+    
 //    let s = Set(f) // uniquify
 //    let u = Array(s)
 //    return u.sorted {
@@ -609,18 +637,19 @@ extension Cache: SearchCaching {
 
   public func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]? {
     var feeds: [Feed]?
-    var error: Error?
+    var er: Error?
 
     queue.sync {
       let sql = SQLToSelectFeedsMatchingTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
 
     return feeds
@@ -628,25 +657,30 @@ extension Cache: SearchCaching {
 
   /// Run a full text search on all cached entries for the specified term.
   ///
-  /// - parameter term: The search term to use.
-  /// - parameter limit: The maximum number of entries to return.
+  /// - Parameters:
+  ///   - term: The search term to use.
+  ///   - limit: The maximum number of entries to return.
+  ///
   /// - Returns: Entries with matching author, summary, subtitle, or title.
+  ///
   /// - Throws: Might throw SQL errors via Skull.
   public func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]? {
     var entries: [Entry]?
-    var error: Error?
+    var er: Error?
 
     queue.sync {
       let sql = SQLToSelectEntriesMatchingTerm(term, limit: limit)
       do {
         entries = try self.entriesForSQL(sql)
-      } catch let er {
-        error = er
+      } catch {
+        er = error
       }
     }
-    if let er = error {
-      throw er
+    
+    if let error = er {
+      throw error
     }
+    
     return entries
   }
 
@@ -656,17 +690,20 @@ extension Cache: SearchCaching {
     guard !suggestions.isEmpty else {
       noSuggestions[term] = Date()
       var er: Error?
+      
       queue.sync {
         let sql = SQLToDeleteSuggestionsMatchingTerm(term)
         do {
           try db.exec(sql)
-        } catch let error {
+        } catch {
           er = error
         }
       }
+      
       if let error = er {
         throw error
       }
+      
       return
     }
 
@@ -675,7 +712,8 @@ extension Cache: SearchCaching {
     }
 
     var er: Error?
-    queue.sync(execute: {
+    
+    queue.sync {
       do {
         let sql = [
           "BEGIN;",
@@ -685,10 +723,11 @@ extension Cache: SearchCaching {
           "COMMIT;"
         ].joined(separator: "\n")
         try db.exec(sql)
-      } catch let error {
+      } catch {
         er = error
       }
-    })
+    }
+    
     if let error = er {
       throw error
     }
@@ -697,35 +736,42 @@ extension Cache: SearchCaching {
   func suggestionsForSQL(_ sql: String) throws -> [Suggestion]? {
     let db = self.db
     let df = self.sqlFormatter
-    var optErr: Error?
+    var er: Error?
     var sugs = [Suggestion]()
-    queue.sync(execute: {
+    
+    queue.sync {
       do {
-        try db.query(sql) { er, row -> Int in
+        try db.query(sql) { skullError, row -> Int in
+          assert(skullError == nil, "unhandled skull error")
+          
           if let r = row {
             do {
               let sug = try df.suggestionFromRow(r)
               sugs.append(sug)
-            } catch let error {
-              optErr = error
+            } catch {
+              er = error
             }
           }
           return 0
         }
-      } catch let error {
-        optErr = error
+      } catch {
+        er = error
       }
-    })
-    if let error = optErr {
+    }
+    
+    if let error = er {
       throw error
     }
+    
     return sugs.isEmpty ? nil : sugs
   }
 
   /// Retrieve cached suggestions matching a term from the database.
+  /// 
+  /// - Parameters:
+  ///   - term: The term to query the database for suggestions with.
+  ///   - limit: The maximum number of suggestions to return.
   ///
-  /// - parameter term: The term to query the database for suggestions with.
-  /// - parameter limit: The maximum number of suggestions to return.
   /// - Returns: An array of matching suggestions. If the term isn't cached yet
   /// `nil` is returned. Having no suggestions is cached too: it is expressed by
   /// returning an empty array.
