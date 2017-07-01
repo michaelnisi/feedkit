@@ -28,9 +28,9 @@ func freshManger(string: String = "http://localhost:8384") -> Manger {
   return Manger(client: client)
 }
 
-func schemaForClass(_ aClass: AnyClass!) -> String {
+func schema(for aClass: AnyClass!, forResource name: String) -> String {
   let bundle = Bundle(for: aClass)
-  return bundle.path(forResource: "schema", ofType: "sql")!
+  return bundle.path(forResource: name, ofType: "sql")!
 }
 
 private func cacheURL(_ name: String) -> URL {
@@ -45,7 +45,7 @@ private func cacheURL(_ name: String) -> URL {
 }
 
 func freshCache(_ aClass: AnyClass!) -> Cache {
-  let name = "feedkit.test.db"
+  let name = "ink.codes.feedkit.test.cache.db"
   let url = cacheURL(name)
 
   let fm = FileManager.default
@@ -53,14 +53,28 @@ func freshCache(_ aClass: AnyClass!) -> Cache {
   if exists {
     try! fm.removeItem(at: url)
   }
-  let schema = schemaForClass(aClass)
   return try! Cache(
-    schema: schema,
+    schema: schema(for: aClass, forResource: "schema"),
     url: nil
   )
 }
 
-func destroyCache(_ cache: Cache) throws {
+func freshUserCache(_ aClass: AnyClass!) -> UserCache {
+  let name = "ink.codes.feedkit.test.user.db"
+  let url = cacheURL(name)
+  
+  let fm = FileManager.default
+  let exists = fm.fileExists(atPath: url.path)
+  if exists {
+    try! fm.removeItem(at: url)
+  }
+  return try! UserCache(
+    schema: schema(for: aClass, forResource: "user"),
+    url: nil
+  )
+}
+
+func destroyCache(_ cache: LocalCache) throws {
   if let url = cache.url {
     let fm = FileManager.default
     try fm.removeItem(at: url)

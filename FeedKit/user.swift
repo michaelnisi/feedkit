@@ -8,8 +8,14 @@
 
 import Foundation
 import Skull
+import os.log
 
-class UserCache: NSObject {
+// MARK: - Logging
+
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+
+class UserCache: LocalCache {
   
   
 }

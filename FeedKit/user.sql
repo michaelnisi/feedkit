@@ -43,7 +43,7 @@ as select *
 from queued_entry;
 
 create view if not exists time_view
-as select *
+as select id, seconds
 from played_entry;
 
 commit transaction;

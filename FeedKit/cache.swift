@@ -54,69 +54,12 @@ func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
   return median as Date?
 }
 
-public final class Cache {
-
-  fileprivate let schema: String
-
-  var url: URL?
-
-  fileprivate let db: Skull
-  fileprivate let queue: DispatchQueue
-  fileprivate let sqlFormatter: SQLFormatter
+public final class Cache: LocalCache {
 
   fileprivate var noSuggestions = [String:Date]()
   fileprivate var noSearch = [String:Date]()
 
   fileprivate var feedIDsCache = NSCache<NSString, NSNumber>()
-
-  fileprivate func open() throws {
-    var er: Error?
-
-    let db = self.db
-    let schema = self.schema
-
-    queue.sync {
-      do {
-        let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
-    }
-  }
-
-  /// Initializes a newly created cache.
-  ///
-  /// - Parameters:
-  ///   - schema: The path of the database schema file.
-  ///   - url: The file URL of the database to use—and create if necessary.
-  public init(schema: String, url: URL?) throws {
-    self.schema = schema
-    self.url = url
-
-    // If we'd pass these, we could disjoint the cache into separate objects.
-    self.db = try Skull(url)
-    self.queue = DispatchQueue(label: "ink.codes.feedkit.cache", attributes: [])
-    self.sqlFormatter = SQLFormatter()
-
-    try open()
-  }
-
-  fileprivate func close() throws {
-    try db.close()
-  }
-
-  deinit {
-    try! db.close()
-  }
-
-  public func flush() throws {
-    try db.flush()
-  }
 
   fileprivate func cachedFeedID(for url: String) -> Int? {
     return feedIDsCache.object(forKey: url as NSString) as? Int

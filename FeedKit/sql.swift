@@ -416,3 +416,64 @@ final class SQLFormatter {
     return Suggestion(term: term, ts: dateFromString(ts))
   }
 }
+
+/// Abstract super class for embedded (SQLite) databases.
+public class LocalCache {
+  
+  fileprivate let schema: String
+  
+  var url: URL?
+  
+  let db: Skull
+  let queue: DispatchQueue
+  let sqlFormatter: SQLFormatter
+  
+  fileprivate func open() throws {
+    var er: Error?
+    
+    let db = self.db
+    let schema = self.schema
+    
+    queue.sync {
+      do {
+        let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
+        try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
+  }
+  
+  /// Initializes a newly created cache.
+  ///
+  /// - Parameters:
+  ///   - schema: The path of the database schema file.
+  ///   - url: The file URL of the database to use—and create if necessary.
+  public init(schema: String, url: URL?) throws {
+    self.schema = schema
+    self.url = url
+    
+    // If we'd pass these, we could disjoint the cache into separate objects.
+    self.db = try Skull(url)
+    self.queue = DispatchQueue(label: "ink.codes.feedkit.cache", attributes: [])
+    self.sqlFormatter = SQLFormatter()
+    
+    try open()
+  }
+  
+  fileprivate func close() throws {
+    try db.close()
+  }
+  
+  deinit {
+    try! db.close()
+  }
+  
+  public func flush() throws {
+    try db.flush()
+  }
+}

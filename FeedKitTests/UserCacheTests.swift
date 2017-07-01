@@ -15,11 +15,14 @@ class UserCacheTests: XCTestCase {
   
   override func setUp() {
     super.setUp()
-    cache = UserCache()
+    cache = freshUserCache(self.classForCoder)
+    if let url = cache.url {
+      XCTAssert(FileManager.default.fileExists(atPath: url.path))
+    }
   }
   
   override func tearDown() {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
+    try! destroyCache(cache)
     super.tearDown()
   }
   
