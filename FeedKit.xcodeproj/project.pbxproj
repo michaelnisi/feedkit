@@ -10,6 +10,8 @@
 		4C0549D51A8BDD5700104B3E /* browse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0549D41A8BDD5700104B3E /* browse.swift */; };
 		4C3485B21977C2BD008A6B53 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
+		4C74A6E41F06BC6500951796 /* queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E31F06BC6500951796 /* queue.swift */; };
+		4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E51F07953300951796 /* UserCacheTests.swift */; };
 		4CA3B2C01A068D8E0072E0C4 /* schema.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BF1A068D8E0072E0C4 /* schema.sql */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
@@ -56,6 +58,8 @@
 		4C3485A61977C237008A6B53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4C3485B11977C2BD008A6B53 /* index.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = index.swift; sourceTree = "<group>"; };
 		4C372BF81A08133F00D22A9A /* cache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = cache.swift; sourceTree = "<group>"; };
+		4C74A6E31F06BC6500951796 /* queue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = queue.swift; sourceTree = "<group>"; };
+		4C74A6E51F07953300951796 /* UserCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserCacheTests.swift; sourceTree = "<group>"; };
 		4C7B0F971C1DC20E0085A88B /* search.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = search.json; sourceTree = "<group>"; };
 		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
 		4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
@@ -135,6 +139,7 @@
 				4CA3D31D1A89E78900CA58E9 /* serialize.swift */,
 				4CCC8C981C0598F100120D07 /* search.swift */,
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
+				4C74A6E31F06BC6500951796 /* queue.swift */,
 				4CDA594A1BDF4E8B00EA7780 /* sql.swift */,
 				4E5C0F091EF2C77600B090EF /* images.swift */,
 				4E5C0F161EF39AA800B090EF /* hash.swift */,
@@ -156,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */,
+				4C74A6E51F07953300951796 /* UserCacheTests.swift */,
 				4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */,
 				4C962EAF19E85CB100F33D9D /* common.swift */,
 				4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */,
@@ -332,6 +338,7 @@
 				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,
 				4CCC8C991C0598F100120D07 /* search.swift in Sources */,
 				4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */,
+				4C74A6E41F06BC6500951796 /* queue.swift in Sources */,
 				4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */,
 				4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */,
 				4E5C0F171EF39AA800B090EF /* hash.swift in Sources */,
@@ -347,6 +354,7 @@
 				4EF5E0FF1E91390800A95D3D /* FeedRepositoryTests.swift in Sources */,
 				4EF5E0FC1E91390800A95D3D /* CacheTests.swift in Sources */,
 				4EF5E1001E91390800A95D3D /* SearchRepositoryTests.swift in Sources */,
+				4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */,
 				4EF5E0FE1E91390800A95D3D /* SerializeTests.swift in Sources */,
 				4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */,
 				4EF5E0FD1E91390800A95D3D /* common.swift in Sources */,

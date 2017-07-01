@@ -14,46 +14,36 @@ begin immediate transaction;
 -- Queue
 
 create table if not exists queued_entry(
-  guid text not null unique,
   ts datetime default current_timestamp,
-  url text not null
+  guid text not null unique,
+  url text not null,
+  updated datetime
 );
 
--- TODO: Subscriptions
+-- Subscriptions
 
 create table if not exists subscribed_feed(
-  guid int not null unique,
   ts datetime default current_timestamp,
+  guid int unique,
   url text not null unique
 );
 
--- Log
+-- Episodes
 
-create table if not exists event_type(
-  name text not null unique
-);
-
-insert into event_type(name) values("1-queue");
-insert into event_type(name) values("2-unqueue");
-insert into event_type(name) values("3-subscribe");
-insert into event_type(name) values("4-unsubscribe");
-insert into event_type(name) values("sync");
-
-create table if not exists log(
-  event_type int not null,
-  guid text,
+create table if not exists played_entry(
   ts datetime default current_timestamp,
-  url text
+  id int primary key,
+  seconds int not null
 );
 
-create trigger if not exists queued_entry_ai after insert on queued_entry begin
-  insert into log(event_type, guid, url) values(1, new.guid, new.url);
-end;
+-- Views
 
-create trigger if not exists queued_entry_ad after delete on queued_entry begin
-  insert into log(event_type, guid, url) values(2, old.guid, old.url);
-end;
+create view if not exists queue_view
+as select *
+from queued_entry;
 
--- TODO: Add subscription triggers
+create view if not exists time_view
+as select *
+from played_entry;
 
 commit transaction;

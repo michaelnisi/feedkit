@@ -1,4 +1,10 @@
--- Find and browse feeds and entries
+--
+-- schema.sql
+-- FeedKit
+--
+-- Created by Michael Nisi on 17.07.14.
+-- Copyright (c) 2017 Michael Nisi. All rights reserved.
+--
 
 pragma journal_mode = WAL;
 pragma user_version = 1;
@@ -22,6 +28,9 @@ create table if not exists feed(
   updated datetime,
   url text not null unique
 );
+
+-- TODO: Consider feed index
+-- create unique index if not exists feed_url_idx on feed(url);
 
 create trigger if not exists feed_ts after update on feed for each row begin
   update feed set ts = current_timestamp where rowid = old.rowid;
