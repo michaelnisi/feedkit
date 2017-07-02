@@ -10,16 +10,16 @@ import Foundation
 
 // TODO: Update queue after redirects
 // TODO: Make sure to log if a guid couldn’t be found
+// TODO: Initialize with items
 
-/// The queue is kept generic for easier testing.
-struct Queue {
-  private var itemsByGUIDs = [String : Identifiable]()
+struct Queue<Item: Identifiable> {
+  private var itemsByGUIDs = [String : Item]()
   
   private var fwd = [String]()
   private var bwd = [String]()
   
   /// Returns next entry and moves index forward.
-  public mutating func forward() -> Identifiable? {
+  public mutating func forward() -> Item? {
     guard !fwd.isEmpty else {
       return nil
     }
@@ -32,7 +32,7 @@ struct Queue {
     return entry
   }
   
-  public mutating func backward() -> Identifiable? {
+  public mutating func backward() -> Item? {
     guard !bwd.isEmpty else {
       return nil
     }
@@ -49,7 +49,7 @@ struct Queue {
     return itemsByGUIDs.contains { $0.key == guid }
   }
   
-  public mutating func add(_ item: Identifiable) throws {
+  public mutating func add(_ item: Item) throws {
     let guid = item.guid
     guard !contains(guid: guid) else {
       throw QueueError.alreadyInQueue
@@ -58,7 +58,7 @@ struct Queue {
     fwd.append(guid)
   }
   
-  public mutating func add(items: [Identifiable]) throws {
+  public mutating func add(items: [Item]) throws {
     try items.forEach { item in
       try add(item)
     }
@@ -139,7 +139,7 @@ public final class EntryQueue: Queueing {
     return op
   }
   
-  private var queue = Queue()
+  private var queue = Queue<Entry>()
   
   public var delegate: QueueDelegate?
   
@@ -173,11 +173,11 @@ public final class EntryQueue: Queueing {
   }
   
   public func next() -> Entry? {
-    return queue.forward() as? Entry
+    return queue.forward()
   }
   
   public func previous() -> Entry? {
-    return queue.backward() as? Entry
+    return queue.backward()
   }
   
 }

@@ -11,17 +11,17 @@ import Ola
 
 @testable import FeedKit
 
-struct Item: Identifiable, Equatable {
+fileprivate struct Mock: Identifiable, Equatable {
   let guid: String
   
-  static func ==(lhs: Item, rhs: Item) -> Bool {
+  static func ==(lhs: Mock, rhs: Mock) -> Bool {
     return lhs.guid == rhs.guid
   }
 }
 
 class QueueTests: XCTestCase {
   
-  var queue: Queue!
+  fileprivate var queue: Queue<Mock>!
   
   private func freshBrowser() -> Browsing {
     let cache = freshCache(self.classForCoder)
@@ -49,7 +49,7 @@ class QueueTests: XCTestCase {
   private func populate() {
     for i in 1...8 {
       let guid = String(i)
-      let item = Item(guid: guid)
+      let item = Mock(guid: guid)
       
       try! self.queue.add(item)
     }
@@ -62,7 +62,7 @@ class QueueTests: XCTestCase {
     
     var i = 8
     repeat {
-      XCTAssertEqual(queue.forward() as! Item, Item(guid: String(i)))
+      XCTAssertEqual(queue.forward(), Mock(guid: String(i)))
       i = i - 1
     } while i > 0
   }
@@ -77,7 +77,7 @@ class QueueTests: XCTestCase {
     }
     
     for i in 1...8 {
-      XCTAssertEqual(queue.backward() as! Item, Item(guid: String(i)))
+      XCTAssertEqual(queue.backward(), Mock(guid: String(i)))
     }
   }
   
@@ -93,15 +93,15 @@ class QueueTests: XCTestCase {
   }
   
   func testAdd() {
-    let item = Item(guid: "11")
+    let item = Mock(guid: "11")
     try! queue.add(item)
     
     XCTAssert(queue.contains(guid: "11"))
     
     let wanted = item
     for _ in 1...8 {
-      XCTAssertEqual(queue.forward() as! Item, wanted)
-      XCTAssertEqual(queue.backward() as! Item, wanted)
+      XCTAssertEqual(queue.forward(), wanted)
+      XCTAssertEqual(queue.backward(), wanted)
     }
     
     XCTAssertThrowsError(try queue.add(item), "should throw") { er in
