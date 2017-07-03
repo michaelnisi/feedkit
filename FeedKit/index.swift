@@ -528,8 +528,8 @@ public protocol Queueing {
 
   func add(entry: Entry) throws
   
-  func remove(guid: String) throws
-  func contains(guid: String) -> Bool
+  func remove(_ entry: Entry) throws
+  func contains(_ entry: Entry) -> Bool
   
   // TODO: Should be relative, assuming less state
   

@@ -440,7 +440,7 @@ final class SQLFormatter {
     return EntryLocator(url: url, since: since, guid: guid)
   }
   
-  lazy var SQLToSelectQueue = "SELECT * from queried_entry;"
+  let SQLToSelectQueue = "SELECT * from queried_entry;"
 }
 
 // MARK: - SQLite Database Super Class

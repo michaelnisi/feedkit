@@ -11,11 +11,11 @@ import Foundation
 // TODO: Update queue after redirects
 // TODO: Make sure to log if a guid couldn’t be found
 
-struct Queue<Item: Identifiable> {
-  private var itemsByGUIDs = [String : Item]()
+struct Queue<Item: Hashable> {
+  private var itemsByGUIDs = [Int : Item]()
   
-  private var fwd = [String]()
-  private var bwd = [String]()
+  private var fwd = [Int]()
+  private var bwd = [Int]()
   
   public init() {}
   
@@ -24,27 +24,27 @@ struct Queue<Item: Identifiable> {
     
     try add(items: items)
     
-    guard let i = guid else {
+    guard let i = guid?.hashValue else {
       return
     }
  
-    var found: String
+    var found: Int
     repeat {
-      found = forward()!.guid
+      found = forward()!.hashValue
     } while found != i
     
     let _ = backward() // forward() to get item with next guid
   }
   
-  private mutating func castling(a: inout [String], b: inout [String]) -> Item? {
+  private mutating func castling(a: inout [Int], b: inout [Int]) -> Item? {
     guard !a.isEmpty else {
       return nil
     }
     
-    let guid = a.removeFirst()
-    let entry = itemsByGUIDs[guid]!
+    let key = a.removeFirst()
+    let entry = itemsByGUIDs[key]!
     
-    b.append(guid)
+    b.append(key)
     
     return entry
   }
@@ -57,17 +57,19 @@ struct Queue<Item: Identifiable> {
     return castling(a: &bwd, b: &fwd)
   }
   
-  public func contains(guid: String) -> Bool {
-    return itemsByGUIDs.contains { $0.key == guid }
+  public func contains(_ item: Item) -> Bool {
+    return itemsByGUIDs.contains { $0.key == item.hashValue }
   }
   
   public mutating func add(_ item: Item) throws {
-    let guid = item.guid
-    guard !contains(guid: guid) else {
+    guard !contains(item) else {
       throw QueueError.alreadyInQueue
     }
-    itemsByGUIDs[guid] = item
-    fwd.append(guid)
+    
+    let key = item.hashValue
+    
+    itemsByGUIDs[key] = item
+    fwd.append(key)
   }
   
   public mutating func add(items: [Item]) throws {
@@ -76,15 +78,17 @@ struct Queue<Item: Identifiable> {
     }
   }
   
-  public mutating func remove(guid: String) throws {
-    guard itemsByGUIDs.removeValue(forKey: guid) != nil else {
+  public mutating func remove(_ item: Item) throws {
+    let key = item.hashValue
+    
+    guard itemsByGUIDs.removeValue(forKey: key) != nil else {
       throw QueueError.notInQueue
     }
     
-    if let index = fwd.index(of: guid) {
+    if let index = fwd.index(of: key) {
       fwd.remove(at: index)
     } else {
-      let index = bwd.index(of: guid)
+      let index = bwd.index(of: key)
       bwd.remove(at: index!)
     }
   }
@@ -173,15 +177,15 @@ public final class EntryQueue: Queueing {
     try queue.add(items: entries)
   }
   
-  public func remove(guid: String) throws {
-    try queue.remove(guid: guid)
+  public func remove(_ entry: Entry) throws {
+    try queue.remove(entry)
     
-    delegate?.queue(self, removedGUID: guid)
+    delegate?.queue(self, removedGUID: entry.guid)
     postDidChangeNotification()
   }
   
-  public func contains(guid: String) -> Bool {
-    return queue.contains(guid: guid)
+  public func contains(_ entry: Entry) -> Bool {
+    return queue.contains(entry)
   }
   
   public func next() -> Entry? {

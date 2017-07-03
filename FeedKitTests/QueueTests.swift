@@ -11,17 +11,9 @@ import Ola
 
 @testable import FeedKit
 
-fileprivate struct Mock: Identifiable, Equatable {
-  let guid: String
-  
-  static func ==(lhs: Mock, rhs: Mock) -> Bool {
-    return lhs.guid == rhs.guid
-  }
-}
-
 class QueueTests: XCTestCase {
   
-  fileprivate var queue: Queue<Mock>!
+  fileprivate var queue: Queue<String>!
   
   private func freshBrowser() -> Browsing {
     let cache = freshCache(self.classForCoder)
@@ -46,13 +38,11 @@ class QueueTests: XCTestCase {
     super.tearDown()
   }
   
-  lazy fileprivate var items: [Mock] = {
-    var items = [Mock]()
+  lazy fileprivate var items: [String] = {
+    var items = [String]()
     
     for i in 1...8 {
-      let guid = String(i)
-      let item = Mock(guid: guid)
-      items.append(item)
+      items.append(String(i))
     }
     
     return items
@@ -65,9 +55,9 @@ class QueueTests: XCTestCase {
   func testInit() {
     queue = try! Queue(items: items, next: "4")
     for i in 4..<8 {
-      let found = queue.forward()!.guid
+      let found = queue.forward()
       let wanted = String(i + 1)
-      print("found: \(found), wanted: \(wanted)")
+      print("found: \(found!), wanted: \(wanted)")
       // XCTAssertEqual(found, wanted)
     }
   }
@@ -78,7 +68,7 @@ class QueueTests: XCTestCase {
     populate()
 
     for i in 1...8 {
-      XCTAssertEqual(queue.forward(), Mock(guid: String(i)))
+      XCTAssertEqual(queue.forward(), String(i))
     }
   }
   
@@ -90,16 +80,16 @@ class QueueTests: XCTestCase {
     XCTAssertNil(queue.backward())
     
     for i in 1...8 {
-      XCTAssertEqual(queue.forward(), Mock(guid: String(i)))
+      XCTAssertEqual(queue.forward(), String(i))
     }
     
     for i in 1...8 {
-      XCTAssertEqual(queue.backward(), Mock(guid: String(i)))
+      XCTAssertEqual(queue.backward(), String(i))
     }
   }
   
   func testRemove() {
-    XCTAssertThrowsError(try queue.remove(guid: "11"), "should throw") { er in
+    XCTAssertThrowsError(try queue.remove("11"), "should throw") { er in
       switch er {
       case QueueError.notInQueue:
         break
@@ -110,10 +100,10 @@ class QueueTests: XCTestCase {
   }
   
   func testAdd() {
-    let item = Mock(guid: "11")
+    let item = "11"
     try! queue.add(item)
     
-    XCTAssert(queue.contains(guid: "11"))
+    XCTAssert(queue.contains("11"))
     
     let wanted = item
     for _ in 1...8 {
