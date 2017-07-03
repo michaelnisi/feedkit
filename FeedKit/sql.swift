@@ -17,13 +17,15 @@ import Skull
 
 // TODO: Complete last eight percent of test coverage
 
+// TODO: Remove casts
+
+// MARK: Browsing
+
 // TODO: Review map functions regarding limits
 //
 // Maximum Depth Of An Expression Tree https://www.sqlite.org/limits.html
 // Here's the deal, basically every time an array of identifiers is longer than
 // 1000, these will break.
-
-// MARK: Browsing
 
 private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
   guard !ids.isEmpty else { return nil }
@@ -159,18 +161,18 @@ final class SQLFormatter {
   }
 
   func SQLToInsertFeed(_ feed: Feed) -> String {
-    let author = stringFromAny(feed.author as AnyObject?)
-    let guid = stringFromAny(feed.iTunes?.guid as AnyObject?)
-    let img = stringFromAny(feed.image as AnyObject?)
-    let img100 = stringFromAny(feed.iTunes?.img100 as AnyObject?)
-    let img30 = stringFromAny(feed.iTunes?.img30 as AnyObject?)
-    let img60 = stringFromAny(feed.iTunes?.img60 as AnyObject?)
-    let img600 = stringFromAny(feed.iTunes?.img600 as AnyObject?)
-    let link = stringFromAny(feed.link as AnyObject?)
-    let summary = stringFromAny(feed.summary as AnyObject?)
-    let title = stringFromAny(feed.title as AnyObject?)
-    let updated = stringFromAny(feed.updated as AnyObject?)
-    let url = stringFromAny(feed.url as AnyObject?)
+    let author = stringFromAny(feed.author)
+    let guid = stringFromAny(feed.iTunes?.guid)
+    let img = stringFromAny(feed.image)
+    let img100 = stringFromAny(feed.iTunes?.img100)
+    let img30 = stringFromAny(feed.iTunes?.img30)
+    let img60 = stringFromAny(feed.iTunes?.img60)
+    let img600 = stringFromAny(feed.iTunes?.img600)
+    let link = stringFromAny(feed.link)
+    let summary = stringFromAny(feed.summary)
+    let title = stringFromAny(feed.title)
+    let updated = stringFromAny(feed.updated)
+    let url = stringFromAny(feed.url)
 
     let sql =
     "INSERT INTO feed(" +
@@ -193,18 +195,18 @@ final class SQLFormatter {
   }
 
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
-    let author = stringFromAny(feed.author as AnyObject?)
-    let guid = stringFromAny(feed.iTunes?.guid as AnyObject?)
-    let img = stringFromAny(feed.image as AnyObject?)
-    let img100 = stringFromAny(feed.iTunes?.img100 as AnyObject?)
-    let img30 = stringFromAny(feed.iTunes?.img30 as AnyObject?)
-    let img60 = stringFromAny(feed.iTunes?.img60 as AnyObject?)
-    let img600 = stringFromAny(feed.iTunes?.img600 as AnyObject?)
-    let link = stringFromAny(feed.link as AnyObject?)
-    let summary = stringFromAny(feed.summary as AnyObject?)
-    let title = stringFromAny(feed.title as AnyObject?)
-    let updated = stringFromAny(feed.updated as AnyObject?)
-    let url = stringFromAny(feed.url as AnyObject?)
+    let author = stringFromAny(feed.author)
+    let guid = stringFromAny(feed.iTunes?.guid)
+    let img = stringFromAny(feed.image)
+    let img100 = stringFromAny(feed.iTunes?.img100)
+    let img30 = stringFromAny(feed.iTunes?.img30)
+    let img60 = stringFromAny(feed.iTunes?.img60)
+    let img600 = stringFromAny(feed.iTunes?.img600)
+    let link = stringFromAny(feed.link)
+    let summary = stringFromAny(feed.summary)
+    let title = stringFromAny(feed.title)
+    let updated = stringFromAny(feed.updated)
+    let url = stringFromAny(feed.url)
 
     let props = [
       ("author", author), ("guid", guid), ("img", img), ("img100", img100),
@@ -236,20 +238,20 @@ final class SQLFormatter {
   }
 
   func SQLToInsertEntry(_ entry: Entry, forFeedID feedID: Int) -> String {
-    let author = stringFromAny(entry.author as AnyObject?)
-    let duration = stringFromAny(entry.duration as AnyObject?)
-    let feedid = stringFromAny(feedID as AnyObject?)
+    let author = stringFromAny(entry.author)
+    let duration = stringFromAny(entry.duration)
+    let feedid = stringFromAny(feedID)
     let guid = SQLStringFromString(entry.guid) // TODO: Review
-    let img = stringFromAny(entry.image as AnyObject?)
-    let length = stringFromAny(entry.enclosure?.length as AnyObject?)
-    let link = stringFromAny(entry.link as AnyObject?)
-    let subtitle = stringFromAny(entry.subtitle as AnyObject?)
-    let summary = stringFromAny(entry.summary as AnyObject?)
-    let title = stringFromAny(entry.title as AnyObject?)
+    let img = stringFromAny(entry.image)
+    let length = stringFromAny(entry.enclosure?.length)
+    let link = stringFromAny(entry.link)
+    let subtitle = stringFromAny(entry.subtitle)
+    let summary = stringFromAny(entry.summary)
+    let title = stringFromAny(entry.title)
 
-    let type = stringFromAny(entry.enclosure?.type.rawValue as AnyObject?)
-    let updated = stringFromAny(entry.updated as AnyObject?)
-    let url = stringFromAny(entry.enclosure?.url as AnyObject?)
+    let type = stringFromAny(entry.enclosure?.type.rawValue)
+    let updated = stringFromAny(entry.updated)
+    let url = stringFromAny(entry.enclosure?.url)
 
     let sql =
     "INSERT OR REPLACE INTO entry(" +
@@ -415,7 +417,33 @@ final class SQLFormatter {
     }
     return Suggestion(term: term, ts: dateFromString(ts))
   }
+  
+  // TODO: Group these methods
+  
+  // MARK: - Queueing
+  
+  func SQLToQueue(entry: EntryLocator) -> String {
+    let guid = stringFromAny(entry.guid)
+    let url = stringFromAny(entry.url)
+    let since = stringFromAny(entry.since)
+    
+    return "INSERT INTO queued_entry(guid, url, updated) VALUES(" +
+    "\(guid), \(url), \(since));"
+  }
+  
+  func entryLocator(from row: SkullRow) -> EntryLocator {
+    let url = row["url"] as! String
+    let since = dateFromString(row["since"] as? String)!
+    
+    let guid = row["guid"] as? String
+    
+    return EntryLocator(url: url, since: since, guid: guid)
+  }
+  
+  lazy var SQLToSelectQueue = "SELECT * from queried_entry;"
 }
+
+// MARK: - SQLite Database Super Class
 
 /// Abstract super class for embedded (SQLite) databases.
 public class LocalCache {

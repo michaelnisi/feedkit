@@ -10,7 +10,6 @@ import Foundation
 
 // TODO: Update queue after redirects
 // TODO: Make sure to log if a guid couldn’t be found
-// TODO: Initialize with items
 
 struct Queue<Item: Identifiable> {
   private var itemsByGUIDs = [String : Item]()
@@ -18,31 +17,44 @@ struct Queue<Item: Identifiable> {
   private var fwd = [String]()
   private var bwd = [String]()
   
-  /// Returns next entry and moves index forward.
-  public mutating func forward() -> Item? {
-    guard !fwd.isEmpty else {
+  public init() {}
+  
+  public init(items: [Item], next guid: String? = nil) throws {
+    assert(!items.isEmpty)
+    
+    try add(items: items)
+    
+    guard let i = guid else {
+      return
+    }
+ 
+    var found: String
+    repeat {
+      found = forward()!.guid
+    } while found != i
+    
+    let _ = backward() // forward() to get item with next guid
+  }
+  
+  private mutating func castling(a: inout [String], b: inout [String]) -> Item? {
+    guard !a.isEmpty else {
       return nil
     }
     
-    let guid = fwd.removeLast()
+    let guid = a.removeFirst()
     let entry = itemsByGUIDs[guid]!
     
-    bwd.append(guid)
+    b.append(guid)
     
     return entry
   }
   
+  public mutating func forward() -> Item? {
+    return castling(a: &fwd, b: &bwd)
+  }
+  
   public mutating func backward() -> Item? {
-    guard !bwd.isEmpty else {
-      return nil
-    }
-    
-    let guid = bwd.removeLast()
-    let entry = itemsByGUIDs[guid]!
-    
-    fwd.append(guid)
-    
-    return entry
+    return castling(a: &bwd, b: &fwd)
   }
   
   public func contains(guid: String) -> Bool {

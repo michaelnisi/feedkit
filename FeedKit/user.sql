@@ -15,35 +15,9 @@ begin immediate transaction;
 
 create table if not exists queued_entry(
   ts datetime default current_timestamp,
-  guid text not null unique,
+  guid text primary key,
   url text not null,
-  updated datetime
-);
-
--- Subscriptions
-
-create table if not exists subscribed_feed(
-  ts datetime default current_timestamp,
-  guid int unique,
-  url text not null unique
-);
-
--- Episodes
-
-create table if not exists played_entry(
-  ts datetime default current_timestamp,
-  id int primary key,
-  seconds int not null
-);
-
--- Views
-
-create view if not exists queue_view
-as select *
-from queued_entry;
-
-create view if not exists time_view
-as select id, seconds
-from played_entry;
+  since datetime
+) without rowid;
 
 commit transaction;

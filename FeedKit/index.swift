@@ -207,6 +207,8 @@ extension Enclosure : CustomStringConvertible {
   }
 }
 
+// TODO: Consider replacing Identifiable with Hashable
+
 public protocol Identifiable {
   var guid: String { get }
 }

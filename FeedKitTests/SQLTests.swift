@@ -313,4 +313,41 @@ class SQLTests: XCTestCase {
     let wanted = "INSERT OR REPLACE INTO entry(author, duration, feedid, guid, img, length, link, subtitle, summary, title, type, updated, url) VALUES('Daring Fireball / John Gruber', 9185, 1, 'c596b134310d499b13651fed64597de2c9931179', 'http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png', 110282964, 'http://daringfireball.net/thetalkshow/2015/10/17/ep-133', 'Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.', 'Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.', 'Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell', 1, '2015-10-17 19:35:01', 'http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3');"
     XCTAssertEqual(found, wanted)
   }
+  
+  func testSQLToQueueEntry() {
+    do {
+      let found = formatter.SQLToQueue(entry: EntryLocator(url: "abc.de"))
+      let wanted = "INSERT INTO queued_entry(guid, url, updated) VALUES(NULL, 'abc.de', '1970-01-01 00:00:00');"
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let guid = "12three"
+      let url = "abc.de"
+      let since = Date(timeIntervalSince1970: 1465192800)
+      let entry = EntryLocator(url: url, since: since, guid: guid)
+      let found = formatter.SQLToQueue(entry: entry)
+      let wanted = "INSERT INTO queued_entry(guid, url, updated) VALUES('12three', 'abc.de', '2016-06-06 06:00:00');"
+      XCTAssertEqual(found, wanted)
+    }
+  }
+  
+  func testEntryLocatorFromRow() {
+    let keys = ["guid", "url", "since"]
+    var row = skullRow(keys)
+    
+    let guid = "12three"
+    let url = "abc.de"
+    
+    row["guid"] = guid
+    row["url"] = url
+    row["since"] = "2016-06-06 06:00:00" // UTC
+
+    let found = formatter.entryLocator(from: row)
+    
+    let since = Date(timeIntervalSince1970: 1465192800)
+    let wanted = EntryLocator(url: url, since: since, guid: guid)
+    
+    XCTAssertEqual(found, wanted)
+  }
 }

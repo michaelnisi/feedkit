@@ -46,12 +46,29 @@ class QueueTests: XCTestCase {
     super.tearDown()
   }
   
-  private func populate() {
+  lazy fileprivate var items: [Mock] = {
+    var items = [Mock]()
+    
     for i in 1...8 {
       let guid = String(i)
       let item = Mock(guid: guid)
-      
-      try! self.queue.add(item)
+      items.append(item)
+    }
+    
+    return items
+  }()
+  
+  private func populate() {
+    try! self.queue.add(items: items)
+  }
+  
+  func testInit() {
+    queue = try! Queue(items: items, next: "4")
+    for i in 4..<8 {
+      let found = queue.forward()!.guid
+      let wanted = String(i + 1)
+      print("found: \(found), wanted: \(wanted)")
+      // XCTAssertEqual(found, wanted)
     }
   }
   
@@ -59,12 +76,10 @@ class QueueTests: XCTestCase {
     XCTAssertNil(queue.forward())
     
     populate()
-    
-    var i = 8
-    repeat {
+
+    for i in 1...8 {
       XCTAssertEqual(queue.forward(), Mock(guid: String(i)))
-      i = i - 1
-    } while i > 0
+    }
   }
   
   func testBackward() {
@@ -72,8 +87,10 @@ class QueueTests: XCTestCase {
     
     populate()
     
-    for _ in 1...8 {
-      XCTAssertNotNil(queue.forward())
+    XCTAssertNil(queue.backward())
+    
+    for i in 1...8 {
+      XCTAssertEqual(queue.forward(), Mock(guid: String(i)))
     }
     
     for i in 1...8 {
