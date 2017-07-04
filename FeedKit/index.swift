@@ -517,16 +517,18 @@ public protocol QueueDelegate {
 
 public protocol Queueing {
   
-  // init(entries: [Entry])
-
   var delegate: QueueDelegate? { get set }
 
   func add(_ entry: Entry) throws
   func remove(_ entry: Entry) throws
+  
   func contains(_ entry: Entry) -> Bool
   
   func next() -> Entry?
   func previous() -> Entry?
+  
+  // TODO: Remove
+  func integrate(locators: [EntryLocator])
   
   @discardableResult func entries(
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
@@ -537,7 +539,7 @@ public protocol Queueing {
 // MARK: - Subscribing
 
 public protocol Subscribing {
-  // TODO: Design Subscribing API
+
 }
 
 // MARK: - Internal
