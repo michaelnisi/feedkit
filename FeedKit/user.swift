@@ -15,6 +15,14 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
+/// Provides all user related data: queue, subscriptions, etc.
+final class UserRepository {
+  
+}
+
+extension UserRepository {
+}
+
 protocol UserCaching {
   func queue(entries: [EntryLocator]) throws
 }
@@ -24,8 +32,7 @@ struct QueuedLocator {
   let ts: Date
 }
 
-class UserCache: LocalCache {
-}
+class UserCache: LocalCache {}
 
 extension UserCache: UserCaching {
   

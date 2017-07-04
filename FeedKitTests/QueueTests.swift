@@ -53,12 +53,11 @@ class QueueTests: XCTestCase {
   }
   
   func testInit() {
-    queue = try! Queue(items: items, next: "4")
+    queue = try! Queue(items: items, next: 3)
     for i in 4..<8 {
       let found = queue.forward()
-      let wanted = String(i + 1)
-      print("found: \(found!), wanted: \(wanted)")
-      // XCTAssertEqual(found, wanted)
+      let wanted = String(i)
+      XCTAssertEqual(found, wanted)
     }
   }
   
@@ -87,6 +86,8 @@ class QueueTests: XCTestCase {
       XCTAssertEqual(queue.backward(), String(i))
     }
   }
+  
+  // TODO: Test moving back and forth through the queue (testBackAndForth)
   
   func testRemove() {
     XCTAssertThrowsError(try queue.remove("11"), "should throw") { er in

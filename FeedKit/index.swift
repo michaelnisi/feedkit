@@ -510,11 +510,6 @@ public protocol Browsing {
 /// Posted when the queue has been changed.
 public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
 
-public enum QueueError: Error {
-  case alreadyInQueue
-  case notInQueue
-}
-
 public protocol QueueDelegate {
   func queue(_ queue: Queueing, added: Entry)
   func queue(_ queue: Queueing, removedGUID: String)
@@ -526,20 +521,12 @@ public protocol Queueing {
 
   var delegate: QueueDelegate? { get set }
 
-  func add(entry: Entry) throws
-  
+  func add(_ entry: Entry) throws
   func remove(_ entry: Entry) throws
   func contains(_ entry: Entry) -> Bool
   
-  // TODO: Should be relative, assuming less state
-  
-//  func next(to guid: String) -> Entry?
-//  func previous(to guid: String) -> Entry?
-  
   func next() -> Entry?
   func previous() -> Entry?
-
-  func integrate(locators: [EntryLocator])
   
   @discardableResult func entries(
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
@@ -550,7 +537,7 @@ public protocol Queueing {
 // MARK: - Subscribing
 
 public protocol Subscribing {
-
+  // TODO: Design Subscribing API
 }
 
 // MARK: - Internal

@@ -582,16 +582,18 @@ final class FeedsOperation: BrowseOperation {
 }
 
 /// The `FeedRepository` provides feeds and entries.
-public final class FeedRepository: RemoteRepository, Browsing {
+public final class FeedRepository: RemoteRepository {
+  
   let cache: FeedCaching
   let svc: MangerService
 
-  /// Initialize and return a new feed repository.
-  ///
-  /// - parameter cache: The feed cache to use.
-  /// - parameter svc: The remote service.
-  /// - parameter queue: The queue to execute this repository's operations.
-  /// - parameter probe: A reachability probe to check this service.
+  /// Initializes and returns a new feed repository.
+  /// 
+  /// - Parameters:
+  ///   - cache: The feed cache to use.
+  ///   - svc: The remote service.
+  ///   - queue: The queue to execute this repository's operations.
+  ///   - probe: A reachability probe to check this service.
   public init(
     cache: FeedCaching,
     svc: MangerService,
@@ -604,24 +606,34 @@ public final class FeedRepository: RemoteRepository, Browsing {
     super.init(queue: queue, probe: probe)
   }
 
-  // TODO: Add force parameter
+}
+
+extension FeedRepository: Browsing {
+
+  // TODO: Make all callbacks optional
+  // TODO: Add force parameter to feeds()
 
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
-  /// callback block might get called multiple times. The second callback block
-  /// `feedsCompletionBlock` is called at the end, but before the standard
-  /// `completionBlock`.
+  /// callback block might get called multiple times. Each iteration providing
+  /// groups of feeds as they become available. The order of these feeds and
+  /// groups is not specified. The second callback block `feedsCompletionBlock` 
+  /// is called at the end, but before the standard `completionBlock`.
   ///
-  /// - parameter urls: An array of feed URLs.
-  /// - parameter feedsBlock: Applied zero, one, or two times with the requested
+  /// - Parameters:
+  ///   - urls: An array of feed URLs.
+  ///   - feedsBlock: Applied zero, one, or two times with the requested
   /// feeds. The error defined in this callback is not being used at the moment.
-  /// - parameter feedsCompletionBlock: Applied when no more `feedBlock` is to
+  ///   - feedsError: The group error of this iteration.
+  ///   - feeds: The resulting feeds of this iteration.
+  ///   - feedsCompletionBlock: Applied when no more `feedBlock` is to
   /// be expected.
+  ///   - error: The final error of this operation.
   ///
-  /// - returns: The executing operation.
+  /// - Returns: The executing operation.
   public func feeds(
     _ urls: [String],
-    feedsBlock: @escaping (Error?, [Feed]) -> Void,
-    feedsCompletionBlock: @escaping (Error?) -> Void
+    feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
+    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
     let target = DispatchQueue.main
 
@@ -652,7 +664,7 @@ public final class FeedRepository: RemoteRepository, Browsing {
     return op
   }
 
-  /// Returns entries for the given locators, aggregating local and remote data.
+  /// Fetches entries for the given locators, aggregating local and remote data.
   ///
   /// Locators provide a feed URL, a moment in the past, and an optional guid.
   /// This way, you can limit the requested entries to specific time ranges,
@@ -670,26 +682,27 @@ public final class FeedRepository: RemoteRepository, Browsing {
   /// an error passed to the entries completion block.
   ///
   /// Callbacks are dispatched on the main queue: `DispatchQueue.main`.
-  ///
-  /// - parameter locators: The locators for the entries to request.
-  /// - parameter force: Force remote request ignoring the cache. As this
+  /// 
+  /// - Parameters:
+  ///   - locators: The locators for the entries to request.
+  ///   - force: Force remote request ignoring the cache. As this
   /// produces load on the server, it is limited to once per hour per feed. If
   /// you pass multiple locators, the force parameter is ignored.
   ///
-  /// - parameter entriesBlock: Applied zero, one, or two times passing fetched
+  ///   - entriesBlock: Applied zero, one, or two times passing fetched
   /// and/or cached entries. The error is currently not in use.
-  /// - parameter error: An optional error, specific to these entries.
-  /// - parameter entries: All or some of the requested entries.
+  ///   - entriesError: An optional error, specific to these entries.
+  ///   - entries: All or some of the requested entries.
   ///
-  /// - parameter entriesCompletionBlock: The completion block is applied when
+  ///   - entriesCompletionBlock: The completion block is applied when
   /// all entries have been dispatched.
-  /// - parameter error: An optional error regarding the whole operation.
+  ///   - error: The, optional, final error of this operation, as a whole.
   ///
-  /// - returns: The executing operation.
+  /// - Returns: The executing operation.
   public func entries(
     _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: @escaping (_ error: Error?, _ entries: [Entry]) -> Void,
+    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
     let target = DispatchQueue.main

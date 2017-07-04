@@ -9,31 +9,41 @@
 import Foundation
 
 // TODO: Update queue after redirects
-// TODO: Make sure to log if a guid couldn’t be found
+
+public enum QueueError: Error {
+  case alreadyInQueue
+  case notInQueue
+}
 
 struct Queue<Item: Hashable> {
-  private var itemsByGUIDs = [Int : Item]()
+  private var itemsByHashValues = [Int : Item]()
   
   private var fwd = [Int]()
   private var bwd = [Int]()
   
   public init() {}
   
-  public init(items: [Item], next guid: String? = nil) throws {
+  /// Returns a new queue, populated with `items`, while the next `forward()` 
+  /// will return the item at `index` if specified.
+  ///
+  /// - Parameters:
+  ///   - items: An items to add to the queue, in this order.
+  ///   - next: The index, in items, of the next item in queue.
+  /// 
+  /// - Throws: Might throw `QueueError` if internal state is inconsistent.
+  public init(items: [Item], next index: Int? = nil) throws {
     assert(!items.isEmpty)
     
     try add(items: items)
     
-    guard let i = guid?.hashValue else {
+    guard let nextIndex = index,
+      nextIndex < items.count else {
       return
     }
- 
-    var found: Int
-    repeat {
-      found = forward()!.hashValue
-    } while found != i
     
-    let _ = backward() // forward() to get item with next guid
+    let nextItem = items[nextIndex - 1]
+    
+    while forward() != nextItem {}
   }
   
   private mutating func castling(a: inout [Int], b: inout [Int]) -> Item? {
@@ -42,11 +52,11 @@ struct Queue<Item: Hashable> {
     }
     
     let key = a.removeFirst()
-    let entry = itemsByGUIDs[key]!
+    let item = itemsByHashValues[key]!
     
     b.append(key)
     
-    return entry
+    return item
   }
   
   public mutating func forward() -> Item? {
@@ -58,7 +68,7 @@ struct Queue<Item: Hashable> {
   }
   
   public func contains(_ item: Item) -> Bool {
-    return itemsByGUIDs.contains { $0.key == item.hashValue }
+    return itemsByHashValues.contains { $0.key == item.hashValue }
   }
   
   public mutating func add(_ item: Item) throws {
@@ -68,7 +78,7 @@ struct Queue<Item: Hashable> {
     
     let key = item.hashValue
     
-    itemsByGUIDs[key] = item
+    itemsByHashValues[key] = item
     fwd.append(key)
   }
   
@@ -81,7 +91,7 @@ struct Queue<Item: Hashable> {
   public mutating func remove(_ item: Item) throws {
     let key = item.hashValue
     
-    guard itemsByGUIDs.removeValue(forKey: key) != nil else {
+    guard itemsByHashValues.removeValue(forKey: key) != nil else {
       throw QueueError.notInQueue
     }
     
@@ -166,7 +176,7 @@ public final class EntryQueue: Queueing {
     )
   }
   
-  public func add(entry: Entry) throws {
+  public func add(_ entry: Entry) throws {
     try queue.add(entry)
     
     delegate?.queue(self, added: entry)
