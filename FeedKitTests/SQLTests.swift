@@ -317,7 +317,7 @@ class SQLTests: XCTestCase {
   func testSQLToQueueEntry() {
     do {
       let found = formatter.SQLToQueue(entry: EntryLocator(url: "abc.de"))
-      let wanted = "INSERT INTO queued_entry(guid, url, updated) VALUES(NULL, 'abc.de', '1970-01-01 00:00:00');"
+      let wanted = "INSERT INTO queued_entry(guid, url, since) VALUES(NULL, 'abc.de', '1970-01-01 00:00:00');"
       XCTAssertEqual(found, wanted)
     }
     
@@ -327,13 +327,13 @@ class SQLTests: XCTestCase {
       let since = Date(timeIntervalSince1970: 1465192800)
       let entry = EntryLocator(url: url, since: since, guid: guid)
       let found = formatter.SQLToQueue(entry: entry)
-      let wanted = "INSERT INTO queued_entry(guid, url, updated) VALUES('12three', 'abc.de', '2016-06-06 06:00:00');"
+      let wanted = "INSERT INTO queued_entry(guid, url, since) VALUES('12three', 'abc.de', '2016-06-06 06:00:00');"
       XCTAssertEqual(found, wanted)
     }
   }
   
-  func testEntryLocatorFromRow() {
-    let keys = ["guid", "url", "since"]
+  func testQueuedLocatorFromRow() {
+    let keys = ["guid", "url", "since", "ts"]
     var row = skullRow(keys)
     
     let guid = "12three"
@@ -343,10 +343,15 @@ class SQLTests: XCTestCase {
     row["url"] = url
     row["since"] = "2016-06-06 06:00:00" // UTC
 
+    let ts = Date()
+    row["ts"] = formatter.df.string(from: ts)
+
     let found = formatter.entryLocator(from: row)
     
     let since = Date(timeIntervalSince1970: 1465192800)
-    let wanted = EntryLocator(url: url, since: since, guid: guid)
+    let locator = EntryLocator(url: url, since: since, guid: guid)
+    
+    let wanted = QueuedLocator(locator: locator, ts: ts)
     
     XCTAssertEqual(found, wanted)
   }

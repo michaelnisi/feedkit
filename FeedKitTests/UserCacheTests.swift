@@ -26,16 +26,40 @@ class UserCacheTests: XCTestCase {
     super.tearDown()
   }
   
-  func testExample() {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+  lazy var locators: [EntryLocator] = {
+    let now = TimeInterval(Int(Date().timeIntervalSince1970)) // rounded
+    let since = Date(timeIntervalSince1970: now)
+    let locators = [
+      EntryLocator(url: "https://abc.de", since: since, guid: "123")
+    ]
+    return locators
+  }()
+  
+  func testAddEntries() {
+    try! cache.add(locators)
+    
+    let wanted = locators.map {
+      QueuedLocator(locator: $0, ts: Date())
+    }
+    let found = try! cache.entries()
+    XCTAssertEqual(found, wanted)
   }
   
-  func testPerformanceExample() {
-    // This is an example of a performance test case.
-    self.measure {
-      // Put the code you want to measure the time of here.
+  func testRemoveEntries() {
+    try! cache.add(locators)
+    
+    do { // check if they‘ve actually been added
+      let wanted = locators.map {
+        QueuedLocator(locator: $0, ts: Date())
+      }
+      let found = try! cache.entries()
+      XCTAssertEqual(found, wanted)
     }
+    
+    try! cache.remove(guids: ["123"])
+    
+    let found = try! cache.entries()
+    XCTAssert(found.isEmpty)
   }
   
 }

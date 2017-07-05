@@ -10,60 +10,37 @@ import Foundation
 import Skull
 import os.log
 
-// MARK: - Logging
-
-@available(iOS 10.0, *)
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
-
-/// Provides all user related data: queue, subscriptions, etc.
-final class UserRepository {
-  
-}
-
-extension UserRepository {
-}
-
-protocol UserCaching {
-  func queue(entries: [EntryLocator]) throws
-}
-
+/// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
+/// by timestamp.
 struct QueuedLocator {
   let locator: EntryLocator
   let ts: Date
 }
 
+extension QueuedLocator: Equatable {
+  static func ==(lhs: QueuedLocator, rhs: QueuedLocator) -> Bool {
+    return lhs.locator == rhs.locator
+  }
+}
+
+protocol QueueCaching {
+  func add(_ entries: [EntryLocator]) throws
+  func remove(guids: [String]) throws
+  func entries() throws -> [QueuedLocator]
+}
+
+// MARK: - Internals
+
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+
 class UserCache: LocalCache {}
 
-extension UserCache: UserCaching {
+extension UserCache: QueueCaching {
   
-  func queue(entries: [EntryLocator]) throws {
+  func entries() throws -> [QueuedLocator] {
     var er: Error?
-    
-    let fmt = self.sqlFormatter
-    
-    queue.sync {
-      do {
-        let sql = entries.reduce([String]()) { acc, loc in
-          let sql = fmt.SQLToQueue(entry: loc)
-          return acc + [sql]
-        }.joined(separator: "\n")
-        
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
-    }
-  }
-  
-  // TODO: Return QueuedLocators instead, because we need the timestamp
-  
-  func queuedEntryLocators() throws -> [EntryLocator] {
-    var er: Error?
-    var locators = [EntryLocator]()
+    var locators = [QueuedLocator]()
     
     let fmt = self.sqlFormatter
     
@@ -91,6 +68,50 @@ extension UserCache: UserCaching {
     }
     
     return locators
+  }
+  
+  func remove(guids: [String]) throws {
+    var er: Error?
+    
+    let fmt = self.sqlFormatter
+    
+    queue.sync {
+      guard let sql = fmt.SQLToUnqueue(guids: guids) else {
+        return
+      }
+      do {
+        try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
+  }
+  
+  func add(_ entries: [EntryLocator]) throws {
+    var er: Error?
+    
+    let fmt = self.sqlFormatter
+    
+    queue.sync {
+      do {
+        let sql = entries.reduce([String]()) { acc, loc in
+          let sql = fmt.SQLToQueue(entry: loc)
+          return acc + [sql]
+        }.joined(separator: "\n")
+        
+        try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
   }
   
 }

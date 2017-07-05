@@ -104,6 +104,8 @@ struct Queue<Item: Hashable> {
   }
 }
 
+// TODO: Save to SQLite and move to user.swift
+
 public final class EntryQueue: Queueing {
   
   let browser: Browsing

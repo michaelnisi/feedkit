@@ -132,6 +132,8 @@ func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
   return sql
 }
 
+// TODO: Repackage global functions to SQL.toDeleteSuggestionsMatchingTerm, etc.
+
 func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
   let sql =
   "DELETE FROM sug " +
@@ -142,6 +144,11 @@ func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
 
 // MARK: SQLFormatter
 
+// TODO: Repackage SQLFormatter to SQL.Translator
+
+/// The `SQLFormatter` formats to and from SQL statements. The only reason for
+/// this being a class is to share the date formatter. Couldn’t it live in
+/// strings or somewhere else?
 final class SQLFormatter {
 
   lazy var df: DateFormatter = {
@@ -422,25 +429,36 @@ final class SQLFormatter {
   
   // MARK: - Queueing
   
+  func SQLToUnqueue(guids: [String]) -> String? {
+    guard !guids.isEmpty else {
+      return nil
+    }
+    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
+      "\($0)"
+    }.joined(separator: ", ") + ");"
+  }
+  
   func SQLToQueue(entry: EntryLocator) -> String {
     let guid = stringFromAny(entry.guid)
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     
-    return "INSERT INTO queued_entry(guid, url, updated) VALUES(" +
+    return "INSERT INTO queued_entry(guid, url, since) VALUES(" +
     "\(guid), \(url), \(since));"
   }
   
-  func entryLocator(from row: SkullRow) -> EntryLocator {
+  func entryLocator(from row: SkullRow) -> QueuedLocator {
     let url = row["url"] as! String
     let since = dateFromString(row["since"] as? String)!
-    
     let guid = row["guid"] as? String
+    let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    return EntryLocator(url: url, since: since, guid: guid)
+    let ts = dateFromString(row["ts"] as? String)!
+    
+    return QueuedLocator(locator: locator, ts: ts)
   }
   
-  let SQLToSelectQueue = "SELECT * from queried_entry;"
+  let SQLToSelectQueue = "SELECT * from queued_entry;"
 }
 
 // MARK: - SQLite Database Super Class
