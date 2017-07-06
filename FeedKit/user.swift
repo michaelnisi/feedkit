@@ -12,18 +12,18 @@ import os.log
 
 /// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
 /// by timestamp.
-struct QueuedLocator {
+public struct QueuedLocator {
   let locator: EntryLocator
   let ts: Date
 }
 
 extension QueuedLocator: Equatable {
-  static func ==(lhs: QueuedLocator, rhs: QueuedLocator) -> Bool {
+  public static func ==(lhs: QueuedLocator, rhs: QueuedLocator) -> Bool {
     return lhs.locator == rhs.locator
   }
 }
 
-protocol QueueCaching {
+public protocol QueueCaching {
   func add(_ entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
   func entries() throws -> [QueuedLocator]
@@ -34,11 +34,11 @@ protocol QueueCaching {
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
-class UserCache: LocalCache {}
+public class UserCache: LocalCache {}
 
 extension UserCache: QueueCaching {
   
-  func entries() throws -> [QueuedLocator] {
+  public func entries() throws -> [QueuedLocator] {
     var er: Error?
     var locators = [QueuedLocator]()
     
@@ -70,7 +70,7 @@ extension UserCache: QueueCaching {
     return locators
   }
   
-  func remove(guids: [String]) throws {
+  public func remove(guids: [String]) throws {
     var er: Error?
     
     let fmt = self.sqlFormatter
@@ -91,7 +91,7 @@ extension UserCache: QueueCaching {
     }
   }
   
-  func add(_ entries: [EntryLocator]) throws {
+  public func add(_ entries: [EntryLocator]) throws {
     var er: Error?
     
     let fmt = self.sqlFormatter
@@ -112,6 +112,99 @@ extension UserCache: QueueCaching {
     if let error = er {
       throw error
     }
+  }
+  
+}
+
+class FetchQueueOperation: Operation {
+  
+}
+
+// TODO: Update queue after redirects
+// TODO: Produce actual entries from thin air
+// TODO: Sync with iCloud
+
+/// EntryQueue persists our user’s queued up entries to consume.
+public final class EntryQueue {
+  
+  public var delegate: QueueDelegate?
+  
+  let feedCache: FeedCaching
+  let queueCache: QueueCaching
+  
+  /// Creates a fresh EntryQueue object.
+  public init(feedCache: FeedCaching, queueCache: QueueCaching) {
+    self.feedCache = feedCache
+    self.queueCache = queueCache
+  }
+  
+  fileprivate var queue = Queue<Entry>()
+}
+
+extension EntryQueue: Queueing {
+  
+  public func entries(
+    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (Error?) -> Void
+  ) -> Operation {
+    DispatchQueue.global(qos: .default).async {
+      let locators = try! self.queueCache.entries().map { $0.locator }
+      let entries = try! self.feedCache.entries(locators)
+      DispatchQueue.main.async {
+        entriesBlock(nil, entries)
+        entriesCompletionBlock(nil)
+      }
+    }
+    return Operation() // TODO: Wrap into FetchQueueOperation and return
+  }
+  
+  private func postDidChangeNotification() {
+    NotificationCenter.default.post(
+      name: Notification.Name(rawValue: FeedKitQueueDidChangeNotification),
+      object: self
+    )
+  }
+  
+  public func add(_ entry: Entry) throws {
+    try queue.add(entry)
+    
+    delegate?.queue(self, added: entry)
+    postDidChangeNotification()
+    
+    DispatchQueue.global(qos: .default).async {
+      let entries = self.queue.enumerated()
+      let locators = entries.map { EntryLocator(entry:  $0.element.value) }
+      try! self.queueCache.add(locators)
+    }
+  }
+  
+  public func add(entries: [Entry]) throws {
+    try queue.add(items: entries)
+  }
+  
+  public func remove(_ entry: Entry) throws {
+    try queue.remove(entry)
+    
+    delegate?.queue(self, removedGUID: entry.guid)
+    postDidChangeNotification()
+    
+    DispatchQueue.global(qos: .default).async {
+      let entries = self.queue.enumerated()
+      let guids = entries.map { $0.element.value.guid }
+      try! self.queueCache.remove(guids: guids)
+    }
+  }
+  
+  public func contains(_ entry: Entry) -> Bool {
+    return queue.contains(entry)
+  }
+  
+  public func next() -> Entry? {
+    return queue.forward()
+  }
+  
+  public func previous() -> Entry? {
+    return queue.backward()
   }
   
 }

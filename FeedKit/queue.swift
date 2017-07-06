@@ -8,15 +8,18 @@
 
 import Foundation
 
-// TODO: Update queue after redirects
-
 public enum QueueError: Error {
   case alreadyInQueue
   case notInQueue
 }
 
 struct Queue<Item: Hashable> {
+  
   private var itemsByHashValues = [Int : Item]()
+  
+  public func enumerated() -> EnumeratedSequence<Dictionary<Int, Item>> {
+    return itemsByHashValues.enumerated()
+  }
   
   private var fwd = [Int]()
   private var bwd = [Int]()
@@ -102,110 +105,4 @@ struct Queue<Item: Hashable> {
       bwd.remove(at: index!)
     }
   }
-}
-
-// TODO: Save to SQLite and move to user.swift
-
-public final class EntryQueue: Queueing {
-  
-  let browser: Browsing
-  
-  public init(browser: Browsing) {
-    self.browser = browser
-  }
-  
-  var locators: [EntryLocator]?
-  
-  /// A temporary method to enable persistance through app state preservation.
-  /// Sort order of locators matters here.
-  ///
-  /// - Parameter locators: Sorted list of entry locators.
-  public func integrate(locators: [EntryLocator]) {
-    self.locators = locators
-  }
-  
-  public func entries(
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
-    ) -> Operation {
-    
-    // TODO: Persist in database and wrap all this in a proper Operation
-    
-    guard let locators = self.locators else {
-      return Operation() // NOP
-    }
-    
-    let guids = locators.flatMap { $0.guid }
-    var acc = [Entry]()
-    
-    let op = browser.entries(locators, entriesBlock: { error, entries in
-      assert(error == nil)
-      
-      acc = acc + entries
-    }) { error in
-      assert(error == nil)
-      
-      DispatchQueue.global().async {
-        var entriesByGUID = [String : Entry]()
-        acc.forEach {
-          entriesByGUID[$0.guid] = $0
-        }
-        let sorted = guids.flatMap { entriesByGUID[$0] }
-        
-        try! self.queue.add(items: sorted)
-        
-        DispatchQueue.main.async {
-          // Obviously, we ought to use a single callback for this API.
-          entriesBlock(nil, sorted)
-          entriesCompletionBlock(nil)
-        }
-      }
-    }
-    
-    self.locators = nil // integrating just once
-    
-    return op
-  }
-  
-  private var queue = Queue<Entry>()
-  
-  public var delegate: QueueDelegate?
-  
-  private func postDidChangeNotification() {
-    NotificationCenter.default.post(
-      name: Notification.Name(rawValue: FeedKitQueueDidChangeNotification),
-      object: self
-    )
-  }
-  
-  public func add(_ entry: Entry) throws {
-    try queue.add(entry)
-    
-    delegate?.queue(self, added: entry)
-    postDidChangeNotification()
-  }
-  
-  public func add(entries: [Entry]) throws {
-    try queue.add(items: entries)
-  }
-  
-  public func remove(_ entry: Entry) throws {
-    try queue.remove(entry)
-    
-    delegate?.queue(self, removedGUID: entry.guid)
-    postDidChangeNotification()
-  }
-  
-  public func contains(_ entry: Entry) -> Bool {
-    return queue.contains(entry)
-  }
-  
-  public func next() -> Entry? {
-    return queue.forward()
-  }
-  
-  public func previous() -> Entry? {
-    return queue.backward()
-  }
-  
 }

@@ -150,6 +150,8 @@ func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
 /// this being a class is to share the date formatter. Couldn’t it live in
 /// strings or somewhere else?
 final class SQLFormatter {
+  
+  public static var shared = SQLFormatter()
 
   lazy var df: DateFormatter = {
     let df = DateFormatter()
@@ -443,7 +445,7 @@ final class SQLFormatter {
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     
-    return "INSERT INTO queued_entry(guid, url, since) VALUES(" +
+    return "INSERT OR REPLACE INTO queued_entry(guid, url, since) VALUES(" +
     "\(guid), \(url), \(since));"
   }
   

@@ -527,8 +527,7 @@ public protocol Queueing {
   func next() -> Entry?
   func previous() -> Entry?
   
-  // TODO: Remove
-  func integrate(locators: [EntryLocator])
+  // TODO: Shape API after CloudKit: error last, etc.
   
   @discardableResult func entries(
     entriesBlock: @escaping (Error?, [Entry]) -> Void,

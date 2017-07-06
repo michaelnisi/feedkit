@@ -202,18 +202,23 @@ extension Cache: FeedCaching {
   ///
   /// - Returns: An array of feeds currently in the cache.
   func feedIDsForURLs(_ urls: [String]) throws -> [String : Int]? {
-    var result = [String:Int]()
+    assert(!urls.isEmpty)
+    
+    var result = [String : Int]()
     try urls.forEach { url in
       do {
         let feedID = try self.feedIDForURL(url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
+        print("feed not cached: \(url)")
         // No need to throw this, our user can ascertain uncached feeds from result.
       }
     }
-    if result.isEmpty {
+    
+    guard !result.isEmpty else  {
       return nil
     }
+    
     return result
   }
 
@@ -333,13 +338,34 @@ extension Cache: FeedCaching {
   ///
   /// - Returns: The matching array of entries currently cached.
   public func entries(_ locators: [EntryLocator]) throws -> [Entry] {
+    guard !locators.isEmpty else {
+      return []
+    }
+    
     var entries: [Entry]?
     var er: Error?
     let fmt = self.sqlFormatter
 
     queue.sync {
       do {
+        
+        assert(!locators.isEmpty)
+        
+        // TODO: - Remove hack
+
+        let guids = locators.flatMap { $0.guid }
+        if guids.count == locators.count {
+          let sql = "SELECT * FROM entry_view WHERE" + guids.map {
+            return " guid = '\($0)'"
+          }.joined(separator: " OR") + ";"
+          entries = try! entriesForSQL(sql)
+          return
+        }
+        
+        // MARK: -
+        
         let urls = locators.map { $0.url }
+   
         guard let feedIDsByURLs = try self.feedIDsForURLs(urls) else {
           return
         }
