@@ -11,10 +11,22 @@ import Skull
 import os.log
 
 /// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
-/// by timestamp.
+/// by timestamp. The timestamp is added here, in the application level, not in
+/// the database, so we can receive these objects from anywhere: from iCloud,
+/// say.
 public struct QueuedLocator {
   let locator: EntryLocator
   let ts: Date
+  
+  /// Creates a new queued locator adding a timestamp, for storage.
+  ///
+  /// - Parameters:
+  ///   - locator: The entry locator to store.
+  ///   - ts: Optionally, the timestamp, defaulting to now.
+  init(locator: EntryLocator, ts: Date? = nil) {
+    self.locator = locator
+    self.ts = ts ?? Date()
+  }
 }
 
 extension QueuedLocator: Equatable {
@@ -46,7 +58,7 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        try db.query(fmt.SQLToSelectQueue) { skullError, row -> Int in
+        try db.query(SQL.toSelectQueue) { skullError, row -> Int in
           guard skullError == nil else {
             er = skullError
             return 1
@@ -73,10 +85,8 @@ extension UserCache: QueueCaching {
   public func remove(guids: [String]) throws {
     var er: Error?
     
-    let fmt = self.sqlFormatter
-    
     queue.sync {
-      guard let sql = fmt.SQLToUnqueue(guids: guids) else {
+      guard let sql = SQL.toUnqueue(guids: guids) else {
         return
       }
       do {
@@ -99,7 +109,7 @@ extension UserCache: QueueCaching {
     queue.sync {
       do {
         let sql = entries.reduce([String]()) { acc, loc in
-          let sql = fmt.SQLToQueue(entry: loc)
+          let sql = fmt.SQLToQueue(entry: QueuedLocator(locator: loc, ts: Date()))
           return acc + [sql]
         }.joined(separator: "\n")
         

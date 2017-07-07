@@ -179,7 +179,7 @@ extension Cache: FeedCaching {
             }
             
             return acc + [
-              SQLtoRemoveFeed(with: guid),
+              SQL.toRemoveFeed(with: guid),
               fmt.SQLToInsertFeed(feed)
             ]
           }
