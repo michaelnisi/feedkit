@@ -348,22 +348,6 @@ extension Cache: FeedCaching {
 
     queue.sync {
       do {
-        
-        assert(!locators.isEmpty)
-        
-        // TODO: - Remove hack
-
-        let guids = locators.flatMap { $0.guid }
-        if guids.count == locators.count {
-          let sql = "SELECT * FROM entry_view WHERE" + guids.map {
-            return " guid = '\($0)'"
-          }.joined(separator: " OR") + ";"
-          entries = try! entriesForSQL(sql)
-          return
-        }
-        
-        // MARK: -
-        
         let urls = locators.map { $0.url }
    
         guard let feedIDsByURLs = try self.feedIDsForURLs(urls) else {
@@ -394,9 +378,7 @@ extension Cache: FeedCaching {
     return entries ?? [Entry]()
   }
 
-  // TODO: Conflate multiple selects into transactions (like here)
-
-  /// Entries with matching guids.
+  /// Selects entries with matching guids.
   ///
   /// - Parameter guids: An array of entry identifiers.
   /// 
@@ -411,6 +393,8 @@ extension Cache: FeedCaching {
 
     queue.sync {
       do {
+        // TODO: Conflate multiple selects into transactions (like here)
+        
         try db.exec("begin transaction;")
         for guid in guids {
           let sql = SQLToSelectEntryByGUID(guid)

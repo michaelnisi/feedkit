@@ -133,35 +133,40 @@ func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
 /// Query the cache for persisted entries to return a tuple containing cached
 /// entries and URLs of stale or feeds not cached yet.
 ///
-/// This function firstly finds all entries matching any GUIDs passed in the
+/// This function, firstly, finds all entries matching any GUIDs passed in the
 /// locators. It then merges all locators without GUIDs and those not matching
 /// any entry by GUID in the cache. With these, not yet satisfied, locators,
 /// the cache is queried again. Both results are combined to one and subtracted,
 /// segregated into cached entries, stale entries (an empty array apparently),
 /// and URLs of stale or not yet cached feeds, to the resulting tuple.
 ///
-/// - parameter cache: The cache object to retrieve entries from.
-/// - parameter locators: The selection of entries to fetch.
-/// - parameter ttl: The maximum age of entries to use.
+/// - Parameters:
+///   - cache: The cache object to retrieve entries from.
+///   - locators: The selection of entries to fetch.
+///   - ttl: The maximum age of entries to use.
 ///
-/// - returns: A tuple of cached entries and URLs not satisfied by the cache.
+/// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
 ///
-/// - throws: Might throw database errors.
+/// - Throws: Might throw database errors.
 private func entriesFromCache(
   _ cache: FeedCaching,
   locators: [EntryLocator],
   ttl: TimeInterval
 ) throws -> ([Entry], [String]?) {
-  let guids = locators.reduce([String]()) { acc, loc in
-    guard let guid = loc.guid else {
-      return acc
-    }
-    return acc + [guid]
-  }
+  
+  let guids = locators.flatMap { $0.guid }
+  
   let resolved = try cache.entries(guids)
+  
+  guard resolved.count < locators.count else {
+    return (resolved, nil)
+  }
+  
   let resguids = resolved.map { $0.guid }
   let unresolved = locators.filter {
-    guard let guid = $0.guid else { return true }
+    guard let guid = $0.guid else {
+      return true
+    }
     return !resguids.contains(guid)
   }
 
@@ -172,13 +177,20 @@ private func entriesFromCache(
   let (cached, stale, needed) = t
   assert(stale.isEmpty, "entries cannot be stale")
 
-  // TODO: Handle unresolved entry guids
-  //
-  // At the moment, if a guid isn’t found, it is just silently ignored.
-  // However, we should communicate this to the user of this function.
-
   guard guids.isEmpty else {
-    return (cached.filter { guids.contains($0.guid) }, needed)
+    // TODO: Optimize unresolved guids code path
+    
+    let a = cached.filter { guids.contains($0.guid) }
+    let cachedGUIDs = a.map { $0.guid }
+    
+    let b = locators.filter {
+      guard let guid = $0.guid else {
+        return false
+      }
+      return !cachedGUIDs.contains(guid)
+    }
+    
+    return (a, b.isEmpty ? nil : b.map { $0.url })
   }
 
   return (cached, needed)
@@ -271,8 +283,9 @@ final class EntriesOperation: BrowseOperation {
 
   /// Request all entries of listed feed URLs remotely.
   ///
-  /// - parameter locators: The locators of entries to request.
-  /// - parameter dispatched: Entries that have already been dispatched.
+  /// - Parameters:
+  ///   - locators: The locators of entries to request.
+  ///   - dispatched: Entries that have already been dispatched.
   func request(_ locators: [EntryLocator], dispatched: [Entry]) throws {
     let target = self.target
     let cache = self.cache
@@ -332,10 +345,13 @@ final class EntriesOperation: BrowseOperation {
         let entries = cached.filter() { entry in
           !dispatched.contains(entry)
         }
-
+        
+        // Is it correct not to guard against empty entries before dispatching?
+        
         target.async() {
           cb(nil, entries)
         }
+        
         self.done()
       } catch FeedKitError.feedNotCached(let er) {
 
@@ -362,11 +378,6 @@ final class EntriesOperation: BrowseOperation {
       let target = self.target
       let entriesBlock = self.entriesBlock
 
-      // TODO: Return unresolved locators instead of URLs
-      //
-      // I guess, the reason why these are URLs, not locators, is that
-      // subtractItems intitially was built for feeds, not for entries.
-
       let (cached, urls) = try entriesFromCache(
         cache, locators: locators, ttl: ttl.seconds)
 
@@ -374,7 +385,9 @@ final class EntriesOperation: BrowseOperation {
       // back to the initial locators. A first step to improve this might be to
       // move the reduce into entriesFromCache and actually return locators,
       // which would fix the API, and give a us space to remove this step later
-      // requiring only internals changes.
+      // requiring only internal changes.
+      
+      // TODO: Remove extra reduce
 
       let unresolved = urls?.reduce([EntryLocator]()) { acc, url in
         for locator in locators {
@@ -388,6 +401,7 @@ final class EntriesOperation: BrowseOperation {
       guard !isCancelled else { return done() }
 
       var dispatched = [Entry]()
+      
       if let cb = entriesBlock {
         if !cached.isEmpty {
           dispatched += cached

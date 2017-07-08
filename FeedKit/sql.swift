@@ -468,7 +468,7 @@ extension SQL {
 // MARK: - Queueing
 
 extension SQL {
-  static var toSelectQueue = "SELECT * from queued_entry;"
+  static var toSelectQueue = "SELECT * FROM queued_entry ORDER BY ts DESC;"
   
   static func toUnqueue(guids: [String]) -> String? {
     guard !guids.isEmpty else {

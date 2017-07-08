@@ -10,13 +10,18 @@ import Foundation
 import Skull
 import os.log
 
+public struct QueuedEntry {
+  public let entry: Entry
+  public let ts: TimeInterval
+}
+
 /// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
 /// by timestamp. The timestamp is added here, in the application level, not in
 /// the database, so we can receive these objects from anywhere: from iCloud,
 /// say.
 public struct QueuedLocator {
-  let locator: EntryLocator
-  let ts: Date
+  public let locator: EntryLocator
+  public let ts: Date // TODO: Change ts from Date to TimeInterval
   
   /// Creates a new queued locator adding a timestamp, for storage.
   ///
@@ -131,10 +136,8 @@ class FetchQueueOperation: Operation {
 }
 
 // TODO: Update queue after redirects
-// TODO: Produce actual entries from thin air
 // TODO: Sync with iCloud
 
-/// EntryQueue persists our user’s queued up entries to consume.
 public final class EntryQueue {
   
   public var delegate: QueueDelegate?
@@ -154,18 +157,21 @@ public final class EntryQueue {
 extension EntryQueue: Queueing {
   
   public func entries(
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+    entriesBlock: @escaping ([QueuedLocator], Error?) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
-    DispatchQueue.global(qos: .default).async {
-      let locators = try! self.queueCache.entries().map { $0.locator }
-      let entries = try! self.feedCache.entries(locators)
+    
+    DispatchQueue.global(qos: .userInitiated).async {
+      let locators = try! self.queueCache.entries()
       DispatchQueue.main.async {
-        entriesBlock(nil, entries)
+        entriesBlock(locators, nil)
         entriesCompletionBlock(nil)
       }
     }
-    return Operation() // TODO: Wrap into FetchQueueOperation and return
+    
+    // TODO: Return FetchQueueOperation depending on CKFetchRecordsOperation
+    
+    return FetchQueueOperation()
   }
   
   private func postDidChangeNotification() {
