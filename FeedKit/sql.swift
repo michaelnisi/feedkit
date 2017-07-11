@@ -475,7 +475,7 @@ extension SQL {
       return nil
     }
     return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
-      "\($0)"
+      "'\($0)'"
     }.joined(separator: ", ") + ");"
   }
 }

@@ -519,6 +519,7 @@ public protocol Queueing {
   
   var delegate: QueueDelegate? { get set }
 
+  func add(entries: [Entry]) throws
   func add(_ entry: Entry) throws
   func remove(_ entry: Entry) throws
   
