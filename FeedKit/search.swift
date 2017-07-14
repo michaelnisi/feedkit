@@ -251,13 +251,6 @@ private final class SuggestOperation: SearchRepoOperation {
   // MARK: Internals
 
   fileprivate func done(_ error: Error? = nil) {
-
-    // TODO: Remove guard
-
-    guard !isFinished else {
-      return
-    }
-
     let er = isCancelled ?  FeedKitError.cancelledByUser : error
     if let cb = suggestCompletionBlock {
       target.sync {
@@ -289,7 +282,10 @@ private final class SuggestOperation: SearchRepoOperation {
 
       var er: Error?
       defer {
-        self.done(er)
+        // If we’ve been cancelled mid-flight, we’re already done.
+        if !self.isCancelled {
+          self.done(er)
+        }
       }
 
       guard !self.isCancelled else {
@@ -470,12 +466,13 @@ public final class SearchRepository: RemoteRepository, Searching {
   /// Get lexicographical suggestions for a search term combining locally cached
   /// and remote data.
   ///
-  /// - parameter term: The term to search for.
-  /// - parameter perFindGroupBlock: The block to receive finds, called once
+  /// - Parameters:
+  ///   - term: The term to search for.
+  ///   - perFindGroupBlock: The block to receive finds, called once
   ///   per find group as enumerated in `Find`.
-  /// - parameter completionBlock: A block called when the operation has finished.
+  ///   - completionBlock: A block called when the operation has finished.
   ///
-  /// - returns: The, already executing, operation.
+  /// - Returns: The executing operation.
   public func suggest(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,

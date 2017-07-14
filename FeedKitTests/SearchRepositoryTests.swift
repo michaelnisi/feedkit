@@ -291,7 +291,8 @@ class SearchRepositoryTests: XCTestCase {
   func testCancelledSuggest() {
     for _ in 0...100 {
       let exp = self.expectation(description: "suggest")
-      let op = repo.suggest("a", perFindGroupBlock: { _, _ in
+      let term = randomString(length: max(Int(arc4random_uniform(8)), 1))
+      let op = repo.suggest(term, perFindGroupBlock: { _, _ in
         XCTFail("should not get dispatched")
         }) { er in
           do {

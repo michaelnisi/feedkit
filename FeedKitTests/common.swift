@@ -14,6 +14,20 @@ import MangerKit
 
 @testable import FeedKit
 
+func randomString(length: Int) -> String {
+  let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  let max = UInt32(chars.characters.count)
+  var str = ""
+  
+  for _ in 0..<length {
+    let offset = Int(arc4random_uniform(max))
+    let index = chars.index(chars.startIndex, offsetBy: offset)
+    str += String(chars[index])
+  }
+  
+  return str
+}
+
 func freshManger(string: String = "http://localhost:8384") -> Manger {
   let url = URL(string: string)!
   
