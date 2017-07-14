@@ -10,6 +10,25 @@ import Foundation
 import Skull
 import os.log
 
+/// Same as QueuedLocator, just adds properties for syncing.
+public struct SyncedLocator {
+  public let locator: EntryLocator
+  public let ts: Date
+  public let recordName: String
+  public let recordChangeTag: String
+  
+  public init(locator: EntryLocator, ts: Date, recordName: String, recordChangeTag: String) {
+    self.locator = locator
+    self.ts = ts
+    self.recordName = recordName
+    self.recordChangeTag = recordChangeTag
+  }
+}
+
+public protocol UserSyncing {
+  func synchronize()
+}
+
 public struct QueuedEntry {
   public let entry: Entry
   public let ts: TimeInterval
@@ -28,7 +47,7 @@ public struct QueuedLocator {
   /// - Parameters:
   ///   - locator: The entry locator to store.
   ///   - ts: Optionally, the timestamp, defaulting to now.
-  init(locator: EntryLocator, ts: Date? = nil) {
+  public init(locator: EntryLocator, ts: Date? = nil) {
     self.locator = locator
     self.ts = ts ?? Date()
   }
@@ -136,7 +155,6 @@ class FetchQueueOperation: Operation {
 }
 
 // TODO: Update queue after redirects
-// TODO: Sync with iCloud
 
 public final class EntryQueue {
   

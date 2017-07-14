@@ -14,10 +14,38 @@ begin immediate transaction;
 -- Queue
 
 create table if not exists queued_entry(
-  ts datetime default current_timestamp,
   guid text primary key,
+  ts datetime default current_timestamp,
   url text not null,
-  since datetime
+  since datetime,
+  record_name text
 ) without rowid;
+
+create unique index if not exists queued_entry_idx on queued_entry(record_name);
+
+create table if not exists record(
+  record_name text primary key,
+  change_tag text
+) without rowid;
+
+create trigger if not exists record_bd before delete on record begin
+  delete from queued_entry where record_name=old.record_name;
+end;
+
+create trigger if not exists queued_entry_bd before delete on queued_entry begin
+  delete from record where record_name=old.record_name;
+end;
+
+-- Queue View
+
+create view if not exists queued_entry_view
+as select
+  r.record_name,
+  r.change_tag,
+  e.guid,
+  e.ts,
+  e.url,
+  e.since
+from record r inner join queued_entry e on r.record_name=e.record_name;
 
 commit transaction;

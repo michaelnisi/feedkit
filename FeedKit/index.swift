@@ -259,12 +259,66 @@ extension Entry: Hashable {
   }
 }
 
+// TODO: Replace EntryLocator and EpisoodeID with FKLocator
+// 
+// Steps to achieve this:
+//
+// - Branch
+// - Replace EpisodeID with EntryLocator
+// - Make guid required
+// - Finally, replace struct with enum
+
+public enum FKLocator {
+  case interval(url: String, since: Date)
+  case local(url: String, since: Date, guid: String)
+  case iCloud(url: String, since: Date, guid: String, ts: Date,
+    recordName: String, recordChangeTag: String)
+}
+
+extension FKLocator: Equatable {
+  static public func ==(lhs: FKLocator, rhs: FKLocator) -> Bool {
+    switch (lhs, rhs) {
+    case (.interval(let lurl, let lsince), .interval(let rurl, let rsince)):
+      return lurl == rurl && lsince == rsince
+      
+    case (.local(let lurl, let lsince, let lguid),
+          .local(let rurl, let rsince, let rguid)):
+      return lurl == rurl && lsince == rsince && lguid == rguid
+      
+    case (.iCloud(let lurl,
+                  let lsince,
+                  let lguid,
+                  let lts,
+                  let lrecordName,
+                  let lrecordChangeTag),
+          .iCloud(let rurl,
+                  let rsince,
+                  let rguid,
+                  let rts,
+                  let rrecordName,
+                  let rrecordChangeTag)):
+      return lurl == rurl && lsince == rsince && lguid == rguid &&
+        lts == rts && lrecordName == rrecordName &&
+        lrecordChangeTag == rrecordChangeTag
+      
+    case (.interval, _),
+         (.local, _),
+         (.iCloud, _):
+      return false
+    }
+  }
+}
+
 /// Entry locators identify a specific entry using the GUID, or skirt intervals
 /// of entries from a specific feed.
 public struct EntryLocator {
 
   public let url: String
+  
+  // TODO: Consider changing since from Date to TimeInterval
+  
   public let since: Date
+  
   public let guid: String?
 
   /// Initializes a newly created entry locator with the specified feed URL,
