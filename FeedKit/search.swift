@@ -277,15 +277,14 @@ private final class SuggestOperation: SearchRepoOperation {
       return done(FeedKitError.offline)
     }
 
-    task = try svc.suggestions(matching: term, limit: 10) { payload, error in
+    task = try svc.suggestions(matching: term, limit: 10) {
+      [unowned self] payload, error in
+      
       self.post(name: FeedKitRemoteResponseNotification)
 
       var er: Error?
       defer {
-        // If we’ve been cancelled mid-flight, we’re already done.
-        if !self.isCancelled {
-          self.done(er)
-        }
+        self.done(er)
       }
 
       guard !self.isCancelled else {
@@ -343,7 +342,9 @@ private final class SuggestOperation: SearchRepoOperation {
       suggestedEntriesForTerm
     ]
     for f in funs {
-      if isCancelled { return done() }
+      if isCancelled {
+        return requestRequired = false
+      }
       do {
         if let finds = try f(term, cache, dispatched) {
           guard !finds.isEmpty else { return }
@@ -356,14 +357,18 @@ private final class SuggestOperation: SearchRepoOperation {
   }
 
   override func start() {
-    guard !isCancelled else { return done() }
+    guard !isCancelled else {
+      return done()
+    }
     guard !term.isEmpty else {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
     isExecuting = true
 
     do {
-      guard let cb = self.perFindGroupBlock else { return resume() }
+      guard let cb = self.perFindGroupBlock else {
+        return resume()
+      }
 
       let sug = Suggestion(term: originalTerm, ts: nil)
       let original = Find.suggestedTerm(sug)
@@ -377,7 +382,11 @@ private final class SuggestOperation: SearchRepoOperation {
         dispatchOriginal()
         return resume()
       }
-      if isCancelled { return done() }
+      
+      if isCancelled {
+        return done()
+      }
+      
       // See timestamp comment in SearchOperation.
       guard let ts = cached.first?.ts else {
         dispatchOriginal()

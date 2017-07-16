@@ -172,7 +172,7 @@ extension Cache: FeedCaching {
             // unhandled error: Skull: 19: UNIQUE constraint failed: feed.guid
             
             if #available(iOS 10.0, *) {
-              os_log("removing feed with guid: %{public}@",
+              os_log("replacing feed with guid: %{public}@",
                      log: log,
                      type: .debug,
                      String(describing: guid))
@@ -511,8 +511,7 @@ extension Cache: SearchCaching {
             switch error {
             case FeedKitError.feedNotCached(let urls):
               if #available(iOS 10.0, *) {
-                os_log("feed not cached: %{public}@", log: log,  type: .debug,
-                       String(describing: urls))
+                os_log("feed not cached: %{public}@", log: log,  type: .error, urls)
               }
               return acc
             default: throw error

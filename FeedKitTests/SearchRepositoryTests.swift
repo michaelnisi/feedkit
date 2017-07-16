@@ -160,18 +160,24 @@ class SearchRepositoryTests: XCTestCase {
   }
 
   func testSearchCancel() {
-    let exp = self.expectation(description: "search")
-    let op = repo.search("apple", perFindGroupBlock: { er, finds in
-      XCTFail("should not get dispatched")
-    }) { error in
-      XCTAssertEqual(error as? FeedKitError , FeedKitError.cancelledByUser)
-      DispatchQueue.main.async() {
-        exp.fulfill()
+    for _ in 0...100 {
+      let exp = self.expectation(description: "search")
+      let term = randomString(length: max(Int(arc4random_uniform(8)), 1))
+      let op = repo.search(term, perFindGroupBlock: { _, _ in
+        XCTFail("should not get dispatched")
+      }) { er in
+        do {
+          throw er!
+        } catch FeedKitError.cancelledByUser {
+          exp.fulfill()
+        } catch {
+          XCTFail("should not pass unexpected error")
+        }
       }
-    }
-    op.cancel()
-    self.waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+      op.cancel()
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
 

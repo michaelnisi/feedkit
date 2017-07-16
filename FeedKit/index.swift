@@ -54,6 +54,7 @@ public enum FeedKitError : Error {
   case invalidSuggestion(reason: String)
   case offline
   case noForceApplied
+  case missingEntries(urls: [String])
 }
 
 extension FeedKitError: Equatable {
@@ -259,67 +260,19 @@ extension Entry: Hashable {
   }
 }
 
-// TODO: Replace EntryLocator and EpisoodeID with FKLocator
-// 
-// Steps to achieve this:
-//
-// - Branch
-// - Replace EpisodeID with EntryLocator
-// - Make guid required
-// - Finally, replace struct with enum
-
-public enum FKLocator {
-  case interval(url: String, since: Date)
-  case local(url: String, since: Date, guid: String)
-  case iCloud(url: String, since: Date, guid: String, ts: Date,
-    recordName: String, recordChangeTag: String)
-}
-
-extension FKLocator: Equatable {
-  static public func ==(lhs: FKLocator, rhs: FKLocator) -> Bool {
-    switch (lhs, rhs) {
-    case (.interval(let lurl, let lsince), .interval(let rurl, let rsince)):
-      return lurl == rurl && lsince == rsince
-      
-    case (.local(let lurl, let lsince, let lguid),
-          .local(let rurl, let rsince, let rguid)):
-      return lurl == rurl && lsince == rsince && lguid == rguid
-      
-    case (.iCloud(let lurl,
-                  let lsince,
-                  let lguid,
-                  let lts,
-                  let lrecordName,
-                  let lrecordChangeTag),
-          .iCloud(let rurl,
-                  let rsince,
-                  let rguid,
-                  let rts,
-                  let rrecordName,
-                  let rrecordChangeTag)):
-      return lurl == rurl && lsince == rsince && lguid == rguid &&
-        lts == rts && lrecordName == rrecordName &&
-        lrecordChangeTag == rrecordChangeTag
-      
-    case (.interval, _),
-         (.local, _),
-         (.iCloud, _):
-      return false
-    }
-  }
-}
-
-/// Entry locators identify a specific entry using the GUID, or skirt intervals
-/// of entries from a specific feed.
+/// Entry locators identify a specific entry by `guid`, or skirt intervals
+/// of entries from a specific feed, between now and `since`.
 public struct EntryLocator {
 
   public let url: String
   
-  // TODO: Consider changing since from Date to TimeInterval
+  // TODO: Type EntryLocator.since as TimeInterval to make it all value typed
   
   public let since: Date
   
   public let guid: String?
+  
+  public let title: String?
 
   /// Initializes a newly created entry locator with the specified feed URL,
   /// time interval, and optional guid.
@@ -331,16 +284,19 @@ public struct EntryLocator {
   ///   - url: The URL of the feed.
   ///   - since: A date in the past when the interval begins.
   ///   - guid: An identifier to locate a specific entry.
+  ///   - title: An optional title for eventually resulting error messages.
   ///
   /// - Returns: The newly created entry locator.
   public init(
     url: String,
-    since: Date = Date(timeIntervalSince1970: 0),
-    guid: String? = nil
+    since: Date? = nil,
+    guid: String? = nil,
+    title: String? = nil
   ) {
     self.url = url
-    self.since = since
+    self.since = since ?? Date(timeIntervalSince1970: 0)
     self.guid = guid
+    self.title = title
   }
 
   /// Creates a new locator from `entry`.
@@ -348,6 +304,22 @@ public struct EntryLocator {
   /// - Parameter entry: The entry to locate.
   public init(entry: Entry) {
     self.init(url: entry.feed, since: entry.updated, guid: entry.guid)
+  }
+  
+  /// A new `EntryLocator` with a modified *inclusive* `since`.
+  public var including: EntryLocator { get {
+    return EntryLocator(url: url, since: since.addingTimeInterval(-1), guid: guid)
+  }}
+}
+
+extension EntryLocator: Hashable {
+  public var hashValue: Int {
+    get {
+      guard let guid = self.guid else {
+        return url.hashValue ^ since.hashValue
+      }
+      return guid.hashValue
+    }
   }
 }
 
@@ -494,7 +466,7 @@ public protocol FeedCaching {
   func update(feeds: [Feed]) throws
   func feeds(_ urls: [String]) throws -> [Feed]
 
-  func updateEntries(_ entries:[Entry]) throws
+  func updateEntries(_ entries: [Entry]) throws
   func entries(_ locators: [EntryLocator]) throws -> [Entry]
   func entries(_ guids: [String]) throws -> [Entry]
 

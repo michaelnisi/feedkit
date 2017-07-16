@@ -294,10 +294,9 @@ final class EntriesOperation: BrowseOperation {
     let c = self.cache
     let l = self.locators
 
-    let queries: [MangerQuery] = locators.map { $0 }
     let reload = ttl == .none
 
-    task = try svc.entries(queries, reload: reload) { error, payload in
+    task = try svc.entries(locators, reload: reload) { error, payload in
       self.post(name: FeedKitRemoteResponseNotification)
 
       guard !self.isCancelled else { return self.done() }
@@ -339,31 +338,28 @@ final class EntriesOperation: BrowseOperation {
         // centrally, we retrieve our, freshly updated, entries from the cache,
         // in the hopes that SQLite is fast enough.
 
-        let (cached, urls) = try entriesFromCache(c, locators: l, ttl: FOREVER)
-        assert(urls == nil, "TODO: Handle URLs")
+        let (cached, missing) = try entriesFromCache(c, locators: l, ttl: FOREVER)
+        
+        let error: FeedKitError? = {
+          guard let urls = missing else {
+            return nil
+          }
+          return FeedKitError.missingEntries(urls: urls)
+        }()
 
         let entries = cached.filter() { entry in
           !dispatched.contains(entry)
         }
         
-        // Is it correct not to guard against empty entries before dispatching?
-        
         target.async() {
-          cb(nil, entries)
+          cb(error, entries)
         }
-        
         self.done()
-      } catch FeedKitError.feedNotCached(let er) {
-
-        // TODO: Handle invalid feed URLs
-        //
-        // For example: Montauk Podcast, http://montauk.podOmatic.com/rss2.xml, 
-        // instead of http://montauk.podomatic.com/rss2.xml. We could try 
-        // lowercased, then give up.
-        //
-        // Here’s another: http://DontSweattheSmallStuff.podbean.com/feed/
-
-        fatalError("\(self.locators): feed not cached: \(er)")
+      } catch FeedKitError.feedNotCached(let urls) {
+        if #available(iOS 10.0, *) {
+          os_log("feed not cached: %{public}@", log: log,  type: .error, urls)
+        }
+        self.done()
       } catch let er {
         self.done(er)
       }

@@ -10,7 +10,8 @@ import Foundation
 import Skull
 import os.log
 
-/// Same as QueuedLocator, just adds properties for syncing.
+/// Same as QueuedLocator, but with additional properties resulting from
+/// syncing with iCloud.
 public struct SyncedLocator {
   public let locator: EntryLocator
   public let ts: Date
