@@ -284,7 +284,7 @@ public struct EntryLocator {
   ///   - url: The URL of the feed.
   ///   - since: A date in the past when the interval begins.
   ///   - guid: An identifier to locate a specific entry.
-  ///   - title: An optional title for eventually resulting error messages.
+  ///   - title: Arbitrary title for user-facing error messages.
   ///
   /// - Returns: The newly created entry locator.
   public init(
@@ -325,7 +325,10 @@ extension EntryLocator: Hashable {
 
 extension EntryLocator: Equatable {
   public static func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
-    return lhs.url == rhs.url && lhs.since == rhs.since && lhs.guid == rhs.guid
+    guard let a = lhs.guid, let b = rhs.guid else {
+      return lhs.url == rhs.url && lhs.since == rhs.since
+    }
+    return a == b
   }
 }
 
@@ -333,6 +336,12 @@ extension EntryLocator : CustomStringConvertible {
   public var description: String {
     return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
   }
+}
+
+struct QueueEntryLocator {
+  let url: String
+  let guid: String
+  let since: Date?
 }
 
 /// A suggested search term, bearing the timestamp of when it was added

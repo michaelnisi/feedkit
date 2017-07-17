@@ -10,6 +10,16 @@ import Foundation
 import Skull
 import os.log
 
+// TODO: Replace QueuedLocator and SyncedLocator with these two enums
+
+enum Synced {
+  case entry(EntryLocator, Date, String, String)
+}
+
+enum Queued {
+  case entry(EntryLocator, Date)
+}
+
 /// Same as QueuedLocator, but with additional properties resulting from
 /// syncing with iCloud.
 public struct SyncedLocator {
@@ -28,11 +38,6 @@ public struct SyncedLocator {
 
 public protocol UserSyncing {
   func synchronize()
-}
-
-public struct QueuedEntry {
-  public let entry: Entry
-  public let ts: TimeInterval
 }
 
 /// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
@@ -83,7 +88,7 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        try db.query(SQL.toSelectQueue) { skullError, row -> Int in
+        try db.query(SQLFormatter.SQLToSelectAllQueued) { skullError, row -> Int in
           guard skullError == nil else {
             er = skullError
             return 1
@@ -91,7 +96,7 @@ extension UserCache: QueueCaching {
           guard let r = row else {
             return 0
           }
-          let locator = fmt.entryLocator(from: r)
+          let locator = fmt.queuedLocator(from: r)
           locators.append(locator)
           return 0
         }
@@ -111,7 +116,7 @@ extension UserCache: QueueCaching {
     var er: Error?
     
     queue.sync {
-      guard let sql = SQL.toUnqueue(guids: guids) else {
+      guard let sql = SQLFormatter.SQLToUnqueue(guids: guids) else {
         return
       }
       do {
@@ -134,7 +139,9 @@ extension UserCache: QueueCaching {
     queue.sync {
       do {
         let sql = entries.reduce([String]()) { acc, loc in
-          let sql = fmt.SQLToQueue(entry: QueuedLocator(locator: loc, ts: Date()))
+          // TODO: Move up
+          let ql = QueueEntryLocator(url: loc.url, guid: loc.guid!, since: loc.since)
+          let sql = fmt.SQLToQueueEntry(locator: ql)
           return acc + [sql]
         }.joined(separator: "\n")
         

@@ -179,7 +179,7 @@ extension Cache: FeedCaching {
             }
             
             return acc + [
-              SQL.toRemoveFeed(with: guid),
+              SQLFormatter.toRemoveFeed(with: guid),
               fmt.SQLToInsertFeed(feed)
             ]
           }
@@ -210,8 +210,9 @@ extension Cache: FeedCaching {
         let feedID = try self.feedIDForURL(url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
-        print("feed not cached: \(url)")
-        // No need to throw this, our user can ascertain uncached feeds from result.
+        if #available(iOS 10.0, *) {
+          os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
+        }
       }
     }
     

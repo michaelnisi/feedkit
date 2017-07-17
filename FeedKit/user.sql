@@ -11,7 +11,7 @@ pragma user_version = 1;
 
 begin immediate transaction;
 
--- Queue
+-- Queue Core
 
 create table if not exists queued_entry(
   guid text primary key,
@@ -46,6 +46,6 @@ as select
   e.ts,
   e.url,
   e.since
-from record r inner join queued_entry e on r.record_name=e.record_name;
+from queued_entry e left join record r on e.record_name=r.record_name;
 
 commit transaction;

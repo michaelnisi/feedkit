@@ -27,8 +27,6 @@ import Skull
 // Here's the deal, basically every time an array of identifiers is longer than
 // 1000, these will break.
 
-
-
 private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
   guard !ids.isEmpty else { return nil }
   let sql = "SELECT * FROM \(table) WHERE" + ids.map {
@@ -425,23 +423,56 @@ final class SQLFormatter {
     return Suggestion(term: term, ts: dateFromString(ts))
   }
   
-  // TODO: Group these methods
+}
+
+// MARK: - Browsing
+
+extension SQLFormatter {
+  static func toRemoveFeed(with guid: Int) -> String {
+    return "DELETE FROM feed WHERE guid = \(guid);"
+  }
+}
+
+// MARK: - Queueing
+
+extension SQLFormatter {
+
+  static let SQLToSelectAllQueued = "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
   
-  // MARK: - Queueing
+  static func SQLToUnqueue(guids: [String]) -> String? {
+    guard !guids.isEmpty else {
+      return nil
+    }
+    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
+      "'\($0)'"
+      }.joined(separator: ", ") + ");"
+  }
   
-  func SQLToQueue(entry: QueuedLocator) -> String {
-    let locator = entry.locator
+  func SQLToQueueSynced(locator synced: SyncedLocator) -> String {
+    let locator = synced.locator
+    
     let guid = stringFromAny(locator.guid)
     let url = stringFromAny(locator.url)
     let since = stringFromAny(locator.since)
     
-    let ts = stringFromAny(entry.ts)
-    
-    return "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts) VALUES(" +
-    "\(guid), \(url), \(since), \(ts));"
+    let ts = stringFromAny(synced.ts)
+    let name = stringFromAny(synced.recordName)
+    let tag = stringFromAny(synced.recordChangeTag)
+
+    return "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, name, tag) VALUES(" +
+    "\(guid), \(url), \(since), \(ts), \(name), \(tag));"
   }
   
-  func entryLocator(from row: SkullRow) -> QueuedLocator {
+  func SQLToQueueEntry(locator entry: QueueEntryLocator) -> String {
+    let guid = stringFromAny(entry.guid)
+    let url = stringFromAny(entry.url)
+    let since = stringFromAny(entry.since)
+    
+    return "INSERT OR REPLACE INTO queued_entry(guid, url, since) VALUES(" +
+    "\(guid), \(url), \(since));"
+  }
+  
+  func queuedLocator(from row: SkullRow) -> QueuedLocator {
     let url = row["url"] as! String
     let since = dateFromString(row["since"] as? String)!
     let guid = row["guid"] as? String
@@ -452,35 +483,6 @@ final class SQLFormatter {
     return QueuedLocator(locator: locator, ts: ts)
   }
 }
-
-// TODO: Repackage SQLFormatter grouped in extensions
-
-typealias SQL = SQLFormatter
-
-// MARK: - Browsing
-
-extension SQL {
-  static func toRemoveFeed(with guid: Int) -> String {
-    return "DELETE FROM feed WHERE guid = \(guid);"
-  }
-}
-
-// MARK: - Queueing
-
-extension SQL {
-  static var toSelectQueue = "SELECT * FROM queued_entry ORDER BY ts DESC;"
-  
-  static func toUnqueue(guids: [String]) -> String? {
-    guard !guids.isEmpty else {
-      return nil
-    }
-    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
-      "'\($0)'"
-    }.joined(separator: ", ") + ");"
-  }
-}
-
-// etc.
 
 // MARK: - SQLite Database Super Class
 
