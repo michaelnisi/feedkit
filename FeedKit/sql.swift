@@ -448,6 +448,8 @@ extension SQLFormatter {
       }.joined(separator: ", ") + ");"
   }
   
+  // TODO: Write test
+  
   func SQLToQueueSynced(locator synced: Synced) -> String {
     switch synced {
     case .entry(let locator, let queuedAt, let name, let tag):
@@ -459,8 +461,11 @@ extension SQLFormatter {
       let name = stringFromAny(name)
       let tag = stringFromAny(tag)
       
-      return "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, name, tag) VALUES(" +
-      "\(guid), \(url), \(since), \(ts), \(name), \(tag));"
+      return [
+        "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\(name), \(tag));",
+        "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, record_name) VALUES(" +
+      "\(guid), \(url), \(since), \(ts), \(name));"
+      ].joined(separator: "\n");
     }
   }
   

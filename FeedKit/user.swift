@@ -68,6 +68,8 @@ extension UserCache: QueueCaching {
     }
   }
   
+  // TODO: Replace EntryLocator with QueueEntryLocator
+  
   public func add(_ entries: [EntryLocator]) throws {
     var er: Error?
     
@@ -92,6 +94,30 @@ extension UserCache: QueueCaching {
         }.joined(separator: "\n")
         
         try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
+  }
+  
+  public func add(synced: [Synced]) throws {
+    dump(synced)
+    var er: Error?
+    
+    let fmt = self.sqlFormatter
+    
+    queue.sync {
+      do {
+        let sql = synced.reduce([String]()) { acc, loc in
+          let sql = fmt.SQLToQueueSynced(locator: loc)
+          return acc + [sql]
+        }.joined(separator: "\n")
+        
+        try db.exec(["BEGIN TRANSACTION;", sql, "COMMIT;"].joined(separator: "\n"))
       } catch {
         er = error
       }

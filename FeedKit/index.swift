@@ -547,10 +547,6 @@ public enum Synced {
   case entry(EntryLocator, Date, String, String)
 }
 
-public protocol UserSyncing {
-  func synchronize()
-}
-
 // MARK: - Queueing
 
 /// Posted when the queue has been changed.
@@ -560,6 +556,8 @@ public protocol QueueCaching {
   func add(_ entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
   func entries() throws -> [Queued]
+  
+  func add(synced: [Synced]) throws
 }
 
 public enum Queued {
