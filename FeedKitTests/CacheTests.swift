@@ -11,7 +11,7 @@ import XCTest
 import Foundation
 @testable import FeedKit
 
-class CacheTests: XCTestCase {
+final class CacheTests: XCTestCase {
   var cache: Cache!
   let fm = FileManager.default
 

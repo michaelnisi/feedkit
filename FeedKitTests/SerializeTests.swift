@@ -9,7 +9,7 @@
 import XCTest
 @testable import FeedKit
 
-class SerializeTests: XCTestCase {
+final class SerializeTests: XCTestCase {
   
   func testLowercasedURL() {
     let found = [

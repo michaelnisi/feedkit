@@ -13,7 +13,7 @@ import XCTest
 
 // TODO: Group tests with extensions
 
-class SQLTests: XCTestCase {
+final class SQLTests: XCTestCase {
   var formatter: SQLFormatter!
 
   override func setUp() {
@@ -357,15 +357,18 @@ extension SQLTests {
     row["url"] = url
     row["since"] = "2016-06-06 06:00:00" // UTC
     
-    let ts = Date()
-    row["ts"] = formatter.df.string(from: ts)
+    // This hassle of producing a timestamp is unnecessary, really, because 
+    // Queued: Equatable only compares locator, not the timestamp.
+    
+    row["ts"] = formatter.df.string(from: Date())
+    let ts = formatter.df.date(from: row["ts"] as! String)!
     
     let found = formatter.queuedLocator(from: row)
     
     let since = Date(timeIntervalSince1970: 1465192800)
     let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    let wanted = QueuedLocator(locator: locator, ts: ts)
+    let wanted = Queued.entry(locator, ts)
     
     XCTAssertEqual(found, wanted)
   }

@@ -117,7 +117,7 @@ fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
   return urlToLoad(from: item, for: CGSize(width: wanted, height: wanted))
 }
 
-public class ImageRepository: Images {
+public final class ImageRepository: Images {
   
   public static var shared: Images = ImageRepository()
   

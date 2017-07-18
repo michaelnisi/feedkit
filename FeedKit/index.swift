@@ -338,7 +338,8 @@ extension EntryLocator : CustomStringConvertible {
   }
 }
 
-struct QueueEntryLocator {
+/// An `EntryLocator` with required `guid`.
+public struct QueueEntryLocator {
   let url: String
   let guid: String
   let since: Date?
@@ -540,10 +541,50 @@ public protocol Browsing {
   ) -> Operation
 }
 
+// MARK: - Syncing
+
+public enum Synced {
+  case entry(EntryLocator, Date, String, String)
+}
+
+public protocol UserSyncing {
+  func synchronize()
+}
+
 // MARK: - Queueing
 
 /// Posted when the queue has been changed.
 public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
+
+public protocol QueueCaching {
+  func add(_ entries: [EntryLocator]) throws
+  func remove(guids: [String]) throws
+  func entries() throws -> [Queued]
+}
+
+public enum Queued {
+  case entry(EntryLocator, Date)
+}
+
+extension Queued: Equatable {
+  static public func ==(lhs: Queued, rhs: Queued) -> Bool {
+    switch (lhs, rhs) {
+    case (.entry(let lLocator, _), .entry(let rLocator, _)):
+      return lLocator == rLocator
+    }
+  }
+}
+
+extension Queued: Hashable {
+  public var hashValue: Int {
+    get {
+      switch self {
+      case .entry(let locator, _):
+        return locator.hashValue
+      }
+    }
+  }
+}
 
 public protocol QueueDelegate {
   func queue(_ queue: Queueing, added: Entry)
@@ -564,7 +605,7 @@ public protocol Queueing {
   func previous() -> Entry?
   
   @discardableResult func entries(
-    entriesBlock: @escaping ([QueuedLocator], Error?) -> Void,
+    entriesBlock: @escaping ([Queued], Error?) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 }
@@ -584,7 +625,7 @@ func nop(_: Any) -> Void {}
 /// The common super class of the search repository and the browse repository,
 /// which for some reason still is misleadingly called feed repository (TODO).
 /// This, of course, assumes one service host per repository.
-open class RemoteRepository: NSObject {
+public class RemoteRepository: NSObject {
   let queue: OperationQueue
   let probe: Reaching
 

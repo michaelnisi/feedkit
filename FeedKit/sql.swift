@@ -268,7 +268,7 @@ final class SQLFormatter {
     return sql
   }
 
-  // TODO: Rename to stringFrom(Any:)
+  // TODO: Rename to string(from:)
 
   func stringFromAny(_ obj: Any?) -> String {
     switch obj {
@@ -448,19 +448,20 @@ extension SQLFormatter {
       }.joined(separator: ", ") + ");"
   }
   
-  func SQLToQueueSynced(locator synced: SyncedLocator) -> String {
-    let locator = synced.locator
-    
-    let guid = stringFromAny(locator.guid)
-    let url = stringFromAny(locator.url)
-    let since = stringFromAny(locator.since)
-    
-    let ts = stringFromAny(synced.ts)
-    let name = stringFromAny(synced.recordName)
-    let tag = stringFromAny(synced.recordChangeTag)
-
-    return "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, name, tag) VALUES(" +
-    "\(guid), \(url), \(since), \(ts), \(name), \(tag));"
+  func SQLToQueueSynced(locator synced: Synced) -> String {
+    switch synced {
+    case .entry(let locator, let queuedAt, let name, let tag):
+      let guid = stringFromAny(locator.guid)
+      let url = stringFromAny(locator.url)
+      let since = stringFromAny(locator.since)
+      
+      let ts = stringFromAny(queuedAt)
+      let name = stringFromAny(name)
+      let tag = stringFromAny(tag)
+      
+      return "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, name, tag) VALUES(" +
+      "\(guid), \(url), \(since), \(ts), \(name), \(tag));"
+    }
   }
   
   func SQLToQueueEntry(locator entry: QueueEntryLocator) -> String {
@@ -472,7 +473,7 @@ extension SQLFormatter {
     "\(guid), \(url), \(since));"
   }
   
-  func queuedLocator(from row: SkullRow) -> QueuedLocator {
+  func queuedLocator(from row: SkullRow) -> Queued {
     let url = row["url"] as! String
     let since = dateFromString(row["since"] as? String)!
     let guid = row["guid"] as? String
@@ -480,7 +481,7 @@ extension SQLFormatter {
     
     let ts = dateFromString(row["ts"] as? String)!
     
-    return QueuedLocator(locator: locator, ts: ts)
+    return Queued.entry(locator, ts)
   }
 }
 

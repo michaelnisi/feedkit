@@ -9,7 +9,7 @@
 import XCTest
 @testable import FeedKit
 
-class UserCacheTests: XCTestCase {
+final class UserCacheTests: XCTestCase {
   
   var cache: UserCache!
   
@@ -39,7 +39,7 @@ class UserCacheTests: XCTestCase {
     try! cache.add(locators)
     
     let wanted = locators.map {
-      QueuedLocator(locator: $0, ts: Date())
+      Queued.entry($0, Date())
     }
     let found = try! cache.entries()
     XCTAssertEqual(found, wanted)
@@ -50,7 +50,7 @@ class UserCacheTests: XCTestCase {
     
     do { // check if they‘ve actually been added
       let wanted = locators.map {
-        QueuedLocator(locator: $0, ts: Date())
+        Queued.entry($0, Date())
       }
       let found = try! cache.entries()
       XCTAssertEqual(found, wanted)

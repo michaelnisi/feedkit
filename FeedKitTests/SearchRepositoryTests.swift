@@ -24,7 +24,7 @@ private func freshFanboy(url: URL, target: DispatchQueue) -> Fanboy {
   return Fanboy(client: client)
 }
 
-class SearchRepositoryTests: XCTestCase {
+final class SearchRepositoryTests: XCTestCase {
   var repo: Searching!
   var cache: Cache!
   var svc: Fanboy!

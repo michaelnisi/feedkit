@@ -10,79 +10,16 @@ import Foundation
 import Skull
 import os.log
 
-// TODO: Replace QueuedLocator and SyncedLocator with these two enums
-
-enum Synced {
-  case entry(EntryLocator, Date, String, String)
-}
-
-enum Queued {
-  case entry(EntryLocator, Date)
-}
-
-/// Same as QueuedLocator, but with additional properties resulting from
-/// syncing with iCloud.
-public struct SyncedLocator {
-  public let locator: EntryLocator
-  public let ts: Date
-  public let recordName: String
-  public let recordChangeTag: String
-  
-  public init(locator: EntryLocator, ts: Date, recordName: String, recordChangeTag: String) {
-    self.locator = locator
-    self.ts = ts
-    self.recordName = recordName
-    self.recordChangeTag = recordChangeTag
-  }
-}
-
-public protocol UserSyncing {
-  func synchronize()
-}
-
-/// Wraps an entry locator, adding a timestamp for sorting. The queue is sorted
-/// by timestamp. The timestamp is added here, in the application level, not in
-/// the database, so we can receive these objects from anywhere: from iCloud,
-/// say.
-public struct QueuedLocator {
-  public let locator: EntryLocator
-  public let ts: Date // TODO: Change ts from Date to TimeInterval
-  
-  /// Creates a new queued locator adding a timestamp, for storage.
-  ///
-  /// - Parameters:
-  ///   - locator: The entry locator to store.
-  ///   - ts: Optionally, the timestamp, defaulting to now.
-  public init(locator: EntryLocator, ts: Date? = nil) {
-    self.locator = locator
-    self.ts = ts ?? Date()
-  }
-}
-
-extension QueuedLocator: Equatable {
-  public static func ==(lhs: QueuedLocator, rhs: QueuedLocator) -> Bool {
-    return lhs.locator == rhs.locator
-  }
-}
-
-public protocol QueueCaching {
-  func add(_ entries: [EntryLocator]) throws
-  func remove(guids: [String]) throws
-  func entries() throws -> [QueuedLocator]
-}
-
-// MARK: - Internals
+public class UserCache: LocalCache {}
 
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
-public class UserCache: LocalCache {}
-
 extension UserCache: QueueCaching {
   
-  public func entries() throws -> [QueuedLocator] {
+  public func entries() throws -> [Queued] {
     var er: Error?
-    var locators = [QueuedLocator]()
+    var locators = [Queued]()
     
     let fmt = self.sqlFormatter
     
@@ -139,9 +76,18 @@ extension UserCache: QueueCaching {
     queue.sync {
       do {
         let sql = entries.reduce([String]()) { acc, loc in
-          // TODO: Move up
-          let ql = QueueEntryLocator(url: loc.url, guid: loc.guid!, since: loc.since)
-          let sql = fmt.SQLToQueueEntry(locator: ql)
+          guard er == nil else {
+            return acc
+          }
+          guard let guid = loc.guid else {
+            // TODO: Remove fatalError
+            fatalError("not queueable: missing GUID")
+//            er = FeedKitError.invalidEntry(reason: "missing guid")
+//            return acc
+          }
+          let sql = fmt.SQLToQueueEntry(locator: QueueEntryLocator(
+            url: loc.url, guid: guid, since: loc.since
+          ))
           return acc + [sql]
         }.joined(separator: "\n")
         
@@ -183,7 +129,7 @@ public final class EntryQueue {
 extension EntryQueue: Queueing {
   
   public func entries(
-    entriesBlock: @escaping ([QueuedLocator], Error?) -> Void,
+    entriesBlock: @escaping ([Queued], Error?) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
     

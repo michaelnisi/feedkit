@@ -13,7 +13,7 @@ import Patron
 
 @testable import FeedKit
 
-class FeedRepositoryTests: XCTestCase {
+final class FeedRepositoryTests: XCTestCase {
   
   var repo: Browsing!
   var cache: Cache!

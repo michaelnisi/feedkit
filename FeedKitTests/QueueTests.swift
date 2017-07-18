@@ -11,7 +11,7 @@ import Ola
 
 @testable import FeedKit
 
-class QueueTests: XCTestCase {
+final class QueueTests: XCTestCase {
   
   fileprivate var queue: Queue<String>!
   
