@@ -20,7 +20,7 @@ final class SQLTests: XCTestCase {
   }
 
   func testSQLStringFromString() {
-    let found = SQLStringFromString("abc'd")
+    let found = SQLFormatter.SQLStringFromString("abc'd")
     let wanted = "'abc''d'"
     XCTAssertEqual(found, wanted)
   }
@@ -94,17 +94,17 @@ final class SQLTests: XCTestCase {
   }
   
   func testDateFromString() {
-    XCTAssertNil(formatter.dateFromString(nil))
-    XCTAssertNil(formatter.dateFromString(""))
-    XCTAssertNil(formatter.dateFromString("hello"))
+    XCTAssertNil(formatter.date(from: nil))
+    XCTAssertNil(formatter.date(from: ""))
+    XCTAssertNil(formatter.date(from: "hello"))
     
-    let found = formatter.dateFromString("2016-06-06 06:00:00")
+    let found = formatter.date(from: "2016-06-06 06:00:00")
     let wanted = Date(timeIntervalSince1970: 1465192800)
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectEntryByGUID() {
-    let found = SQLToSelectEntryByGUID("abc")
+    let found = SQLFormatter.SQLToSelectEntryByGUID("abc")
     let wanted = "SELECT * FROM entry_view WHERE guid = 'abc';"
     XCTAssertEqual(found, wanted)
   }
@@ -128,8 +128,8 @@ final class SQLTests: XCTestCase {
 
   func testSQLToSelectRowsByIDs() {
     let tests = [
-      ("entry_view", SQLToSelectEntriesByEntryIDs),
-      ("feed_view", SQLToSelectFeedsByFeedIDs)
+      ("entry_view", SQLFormatter.SQLToSelectEntriesByEntryIDs),
+      ("feed_view", SQLFormatter.SQLToSelectFeedsByFeedIDs)
     ]
     for t in tests {
       let (table, f) = t
@@ -150,7 +150,7 @@ final class SQLTests: XCTestCase {
   }
 
   func testSQLToRemoveFeedsWithFeedIDs() {
-    let f = SQLToRemoveFeedsWithFeedIDs
+    let f = SQLFormatter.SQLToRemoveFeedsWithFeedIDs
     XCTAssertNil(f([]))
     let findings = [
       f([1]),
@@ -167,7 +167,7 @@ final class SQLTests: XCTestCase {
   }
 
   func testSQLToSelectFeedIDFromURLView() {
-    let found = SQLToSelectFeedIDFromURLView("abc'")
+    let found = SQLFormatter.SQLToSelectFeedIDFromURLView("abc'")
     let wanted = "SELECT feedid FROM url_view WHERE url = 'abc''';"
     XCTAssertEqual(found, wanted)
   }
@@ -242,7 +242,7 @@ extension SQLTests {
       return r
     }
     
-    let iTunes = formatter.iTunesItem(from: row)!
+    let iTunes = SQLFormatter.iTunesItem(from: row)!
     
     XCTAssertEqual(iTunes.guid, 123)
     XCTAssertEqual(iTunes.img100, "img100")
@@ -252,13 +252,13 @@ extension SQLTests {
   }
   
   func testSQLToInsertSuggestionForTerm() {
-    let found = SQLToInsertSuggestionForTerm("abc")
+    let found = SQLFormatter.SQLToInsertSuggestionForTerm("abc")
     let wanted = "INSERT OR REPLACE INTO sug(term) VALUES('abc');"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectSuggestionsForTerm() {
-    let found = SQLToSelectSuggestionsForTerm("abc", limit: 5)
+    let found = SQLFormatter.SQLToSelectSuggestionsForTerm("abc", limit: 5)
     let wanted =
       "SELECT * FROM sug WHERE rowid IN (" +
         "SELECT rowid FROM sug_fts " +
@@ -269,7 +269,7 @@ extension SQLTests {
   }
   
   func testSQLToDeleteSuggestionsMatchingTerm() {
-    let found = SQLToDeleteSuggestionsMatchingTerm("abc")
+    let found = SQLFormatter.SQLToDeleteSuggestionsMatchingTerm("abc")
     let wanted =
       "DELETE FROM sug " +
         "WHERE rowid IN (" +
@@ -278,13 +278,13 @@ extension SQLTests {
   }
   
   func testSQLToInsertFeedIDForTerm() {
-    let found = SQLToInsertFeedID(1, forTerm: "abc")
+    let found = SQLFormatter.SQLToInsertFeedID(1, forTerm: "abc")
     let wanted = "INSERT OR REPLACE INTO search(feedID, term) VALUES(1, 'abc');"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectFeedsByTerm() {
-    let found = SQLToSelectFeedsByTerm("abc", limit: 50)
+    let found = SQLFormatter.SQLToSelectFeedsByTerm("abc", limit: 50)
     let wanted =
       "SELECT * FROM search_view WHERE searchid IN (" +
         "SELECT rowid FROM search_fts " +
@@ -294,7 +294,7 @@ extension SQLTests {
   }
   
   func testSQLToSelectFeedsMatchingTerm() {
-    let found = SQLToSelectFeedsMatchingTerm("abc", limit: 3)
+    let found = SQLFormatter.SQLToSelectFeedsMatchingTerm("abc", limit: 3)
     let wanted =
       "SELECT * FROM feed_view WHERE uid IN (" +
         "SELECT rowid FROM feed_fts " +
@@ -305,7 +305,7 @@ extension SQLTests {
   }
   
   func testSQLToSelectEntriesMatchingTerm() {
-    let found = SQLToSelectEntriesMatchingTerm("abc", limit: 3)
+    let found = SQLFormatter.SQLToSelectEntries(matching: "abc", limit: 3)
     let wanted =
       "SELECT * FROM entry_view WHERE uid IN (" +
         "SELECT rowid FROM entry_fts " +
@@ -316,20 +316,24 @@ extension SQLTests {
   }
   
   func testSQLToDeleteSearchForTerm() {
-    let found = SQLToDeleteSearchForTerm("abc")
+    let found = SQLFormatter.SQLToDeleteSearch(for: "abc")
     let wanted = "DELETE FROM search WHERE term='abc';"
     XCTAssertEqual(found, wanted)
   }
   
 }
 
-// MARK: - Queueing
+// MARK: - Syncing
 
 extension SQLTests {
   
-  func testSQLToQueueSynced() {
-    // TODO: Write test for SQLToQueueSynced
-  }
+  // TODO: Write SQLTests for Syncing
+  
+}
+
+// MARK: - Queueing
+
+extension SQLTests {
   
   func testSQLToUnqueue() {
     XCTAssertNil(SQLFormatter.SQLToUnqueue(guids: []))
@@ -370,15 +374,15 @@ extension SQLTests {
     // This hassle of producing a timestamp is unnecessary, really, because 
     // Queued: Equatable only compares locator, not the timestamp.
     
-    row["ts"] = formatter.df.string(from: Date())
-    let ts = formatter.df.date(from: row["ts"] as! String)!
-    
+    let now = formatter.now()
+    row["ts"] = now
+    let ts = formatter.date(from: now)    
     let found = formatter.queuedLocator(from: row)
     
     let since = Date(timeIntervalSince1970: 1465192800)
     let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    let wanted = Queued.entry(locator, ts)
+    let wanted = Queued.entry(locator, ts!)
     
     XCTAssertEqual(found, wanted)
   }

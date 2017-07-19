@@ -9,55 +9,7 @@
 import Foundation
 import Skull
 
-// TDOO: Package all global SQL functions into SQL struct
-
-// TODO: Review, document, and test
-
-// TODO: Store enclosures in extra table
-
-// TODO: Complete last eight percent of test coverage
-
-// TODO: Remove casts
-
-// MARK: Browsing
-
-// TODO: Review map functions regarding limits
-//
-// Maximum Depth Of An Expression Tree https://www.sqlite.org/limits.html
-// Here's the deal, basically every time an array of identifiers is longer than
-// 1000, these will break.
-
-private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
-  guard !ids.isEmpty else { return nil }
-  let sql = "SELECT * FROM \(table) WHERE" + ids.map {
-    " uid = \($0)"
-  }.joined(separator: " OR") + ";"
-  return sql
-}
-
-func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
-  return selectRowsByUIDs("entry_view", ids: entryIDs)
-}
-
-func SQLToSelectFeedsByFeedIDs(_ feedIDs: [Int]) -> String? {
-  return selectRowsByUIDs("feed_view", ids: feedIDs)
-}
-
-func SQLToSelectEntryByGUID(_ guid: String) -> String {
-  return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
-}
-
-// TODO: Test if entries are removed when their feeds are removed
-
-func SQLToRemoveFeedsWithFeedIDs(_ feedIDs: [Int]) -> String? {
-  guard !feedIDs.isEmpty else { return nil }
-  let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
-    "\($0)"
-  }.joined(separator: ", ") + ");"
-  return sql
-}
-
-func SQLStringFromString(_ string: String) -> String {
+private func SQLStringFromString(_ string: String) -> String {
   let s = string.replacingOccurrences(
     of: "'",
     with: "''",
@@ -67,102 +19,37 @@ func SQLStringFromString(_ string: String) -> String {
   return "'\(s)'"
 }
 
-func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
-  let s = SQLStringFromString(url)
-  return "SELECT feedid FROM url_view WHERE url = \(s);"
-}
+// MARK: - Stateful Formatting
 
-func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
-  return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), '\(term)');"
-}
-
-// MARK: Searching
-
-func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
-
-  let sql =
-  "SELECT * FROM search_view WHERE searchid IN (" +
-  "SELECT rowid FROM search_fts " +
-  "WHERE term = '\(term)') " +
-  "LIMIT \(limit);"
-  return sql
-}
-
-func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
-  let sql =
-  "SELECT * FROM feed_view WHERE uid IN (" +
-  "SELECT rowid FROM feed_fts " +
-  "WHERE feed_fts MATCH '\(term)*') " +
-  "ORDER BY ts DESC " +
-  "LIMIT \(limit);"
-  return sql
-}
-
-func SQLToSelectEntriesMatchingTerm(_ term: String, limit: Int) -> String {
-  let sql =
-  "SELECT * FROM entry_view WHERE uid IN (" +
-  "SELECT rowid FROM entry_fts " +
-  "WHERE entry_fts MATCH '\(term)*') " +
-  "ORDER BY updated DESC " +
-  "LIMIT \(limit);"
-  return sql
-}
-
-func SQLToDeleteSearchForTerm(_ term: String) -> String {
-  return "DELETE FROM search WHERE term='\(term)';"
-}
-
-// MARK: Suggestions
-
-func SQLToInsertSuggestionForTerm(_ term: String) -> String {
-  return "INSERT OR REPLACE INTO sug(term) VALUES('\(term)');"
-}
-
-func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
-  let sql =
-  "SELECT * FROM sug WHERE rowid IN (" +
-  "SELECT rowid FROM sug_fts " +
-  "WHERE term MATCH '\(term)*') " +
-  "ORDER BY ts DESC " +
-  "LIMIT \(limit);"
-  return sql
-}
-
-// TODO: Repackage global functions to SQL.toDeleteSuggestionsMatchingTerm, etc.
-
-func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
-  let sql =
-  "DELETE FROM sug " +
-  "WHERE rowid IN (" +
-  "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
-  return sql
-}
-
-// MARK: SQLFormatter
-
-// TODO: Repackage SQLFormatter to SQL.Translator
-
-/// The `SQLFormatter` formats to and from SQL statements. The only reason for
-/// this being a class is to share the date formatter. Couldn’t it live in
-/// strings or somewhere else?
+/// `SQLFormatter` produces SQL statements from FeedKit structures and creates 
+/// and transforms SQLite rows into FeedKit value objects. Mostly via stateless
+/// functions, the only reason for this being a class is to share a date
+/// formatter.
 final class SQLFormatter {
   
   public static var shared = SQLFormatter()
 
-  lazy var df: DateFormatter = {
+  lazy private var df: DateFormatter = {
     let df = DateFormatter()
     df.timeZone = TimeZone(secondsFromGMT: 0)
     df.dateFormat = "yyyy-MM-dd HH:mm:ss"
     return df
   }()
 
+  /// Returns now as an SQLite datetime timestamp string.
   func now() -> String {
     return df.string(from: Date())
   }
-
-  func dateFromString(_ str: String?) -> Date? {
-    guard str != nil else { return nil }
-    return df.date(from: str!)
+  
+  /// Returns a date from an SQLite datetime timestamp string.
+  /// 
+  /// - Parameter string: A `'yyyy-MM-dd HH:mm:ss'` formatted timestamp.
+  /// - Returns: A date or `nil`.
+  func date(from string: String?) -> Date? {
+    guard let str = string else {
+      return nil
+    }
+    return df.date(from: str)
   }
 
   func SQLToInsertFeed(_ feed: Feed) -> String {
@@ -298,24 +185,6 @@ final class SQLFormatter {
     }.joined(separator: " OR") + " ORDER BY feedid, updated;"
   }
 
-  func iTunesItem(from row: SkullRow) -> ITunesItem? {
-    let guid = row["guid"] as? Int
-    let img30 = row["img30"] as? String
-    let img60 = row["img60"] as? String
-    let img100 = row["img100"] as? String
-    let img600 = row["img600"] as? String
-
-    let it = ITunesItem(
-      guid: guid,
-      img100: img100,
-      img30: img30,
-      img60: img60,
-      img600: img600
-    )
-
-    return it
-  }
-
   func feedFromRow(_ row: SkullRow) throws -> Feed {
     let author = row["author"] as? String
     let iTunes = iTunesItem(from: row)
@@ -327,9 +196,9 @@ final class SQLFormatter {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
 
-    let ts = dateFromString(row["ts"] as? String)
+    let ts = date(from: row["ts"] as? String)
     let uid = row["uid"] as? Int
-    let updated = dateFromString(row["updated"] as? String)
+    let updated = date(from: row["updated"] as? String)
 
     guard let url = row["url"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing url")
@@ -387,9 +256,9 @@ final class SQLFormatter {
     let subtitle = row["subtitle"] as? String
     let summary = row["summary"] as? String
     let title = row["title"] as! String
-    let ts = dateFromString(row["ts"] as? String)
+    let ts = date(from: row["ts"] as? String)
 
-    guard let updated = dateFromString(row["updated"] as? String) else {
+    guard let updated = date(from: row["updated"] as? String) else {
       throw FeedKitError.invalidEntry(reason: "missing updated")
     }
 
@@ -413,6 +282,116 @@ final class SQLFormatter {
     )
   }
 
+}
+
+// MARK: - General Use
+
+// TODO: Review map functions regarding limits
+//
+// Maximum Depth Of An Expression Tree https://www.sqlite.org/limits.html
+// Here's the deal, basically every time an array of identifiers is longer than
+// 1000, these will break.
+
+private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
+  guard !ids.isEmpty else { return nil }
+  let sql = "SELECT * FROM \(table) WHERE" + ids.map {
+    " uid = \($0)"
+    }.joined(separator: " OR") + ";"
+  return sql
+}
+
+extension SQLFormatter {
+  
+  static func toRemoveFeed(with guid: Int) -> String {
+    return "DELETE FROM feed WHERE guid = \(guid);"
+  }
+  
+  static func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
+    return selectRowsByUIDs("entry_view", ids: entryIDs)
+  }
+  
+  static func SQLToSelectFeedsByFeedIDs(_ feedIDs: [Int]) -> String? {
+    return selectRowsByUIDs("feed_view", ids: feedIDs)
+  }
+  
+  static func SQLToSelectEntryByGUID(_ guid: String) -> String {
+    return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
+  }
+  
+  // TODO: Test if entries are removed when their feeds are removed
+  
+  static func SQLToRemoveFeedsWithFeedIDs(_ feedIDs: [Int]) -> String? {
+    guard !feedIDs.isEmpty else { return nil }
+    let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
+      "\($0)"
+      }.joined(separator: ", ") + ");"
+    return sql
+  }
+  
+  static func SQLStringFromString(_ string: String) -> String {
+    let s = string.replacingOccurrences(
+      of: "'",
+      with: "''",
+      options: NSString.CompareOptions.literal,
+      range: nil
+    )
+    return "'\(s)'"
+  }
+  
+  static func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
+    let s = SQLStringFromString(url)
+    return "SELECT feedid FROM url_view WHERE url = \(s);"
+  }
+  
+  static func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
+    return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), '\(term)');"
+  }
+}
+
+// MARK: - Searching
+
+extension SQLFormatter {
+  
+  static func SQLToInsertSuggestionForTerm(_ term: String) -> String {
+    return "INSERT OR REPLACE INTO sug(term) VALUES('\(term)');"
+  }
+  
+  static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
+    let sql =
+      "SELECT * FROM sug WHERE rowid IN (" +
+        "SELECT rowid FROM sug_fts " +
+        "WHERE term MATCH '\(term)*') " +
+        "ORDER BY ts DESC " +
+    "LIMIT \(limit);"
+    return sql
+  }
+  
+  static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
+    let sql =
+      "DELETE FROM sug " +
+        "WHERE rowid IN (" +
+    "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
+    return sql
+  }
+  
+  static func iTunesItem(from row: SkullRow) -> ITunesItem? {
+    let guid = row["guid"] as? Int
+    let img30 = row["img30"] as? String
+    let img60 = row["img60"] as? String
+    let img100 = row["img100"] as? String
+    let img600 = row["img600"] as? String
+    
+    let it = ITunesItem(
+      guid: guid,
+      img100: img100,
+      img30: img30,
+      img60: img60,
+      img600: img600
+    )
+    
+    return it
+  }
+  
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {
     guard let term = row["term"] as? String else {
       throw FeedKitError.invalidSuggestion(reason: "missing term")
@@ -420,33 +399,44 @@ final class SQLFormatter {
     guard let ts = row["ts"] as? String else {
       throw FeedKitError.invalidSuggestion(reason: "missing ts")
     }
-    return Suggestion(term: term, ts: dateFromString(ts))
+    return Suggestion(term: term, ts: date(from: ts))
+  }
+  
+  static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
+    let sql = "SELECT * FROM search_view WHERE searchid IN (" +
+      "SELECT rowid FROM search_fts " +
+      "WHERE term = '\(term)') " +
+      "LIMIT \(limit);"
+    return sql
+  }
+  
+  static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
+    let sql = "SELECT * FROM feed_view WHERE uid IN (" +
+      "SELECT rowid FROM feed_fts " +
+      "WHERE feed_fts MATCH '\(term)*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT \(limit);"
+    return sql
+  }
+  
+  static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
+    let sql = "SELECT * FROM entry_view WHERE uid IN (" +
+      "SELECT rowid FROM entry_fts " +
+      "WHERE entry_fts MATCH '\(term)*') " +
+      "ORDER BY updated DESC " +
+      "LIMIT \(limit);"
+    return sql
+  }
+  
+  static func SQLToDeleteSearch(for term: String) -> String {
+    return "DELETE FROM search WHERE term='\(term)';"
   }
   
 }
 
-// MARK: - Browsing
+// MARK: - Syncing
 
 extension SQLFormatter {
-  static func toRemoveFeed(with guid: Int) -> String {
-    return "DELETE FROM feed WHERE guid = \(guid);"
-  }
-}
-
-// MARK: - Queueing
-
-extension SQLFormatter {
-
-  static let SQLToSelectAllQueued = "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
-  
-  static func SQLToUnqueue(guids: [String]) -> String? {
-    guard !guids.isEmpty else {
-      return nil
-    }
-    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
-      "'\($0)'"
-    }.joined(separator: ", ") + ");"
-  }
   
   static func SQLToDeleteRecords(with names: [String]) -> String? {
     guard !names.isEmpty else {
@@ -471,9 +461,26 @@ extension SQLFormatter {
       return [
         "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\(name), \(tag));",
         "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, record_name) VALUES(" +
-      "\(guid), \(url), \(since), \(ts), \(name));"
+        "\(guid), \(url), \(since), \(ts), \(name));"
       ].joined(separator: "\n");
     }
+  }
+  
+}
+
+// MARK: - Queueing
+
+extension SQLFormatter {
+
+  static let SQLToSelectAllQueued = "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
+  
+  static func SQLToUnqueue(guids: [String]) -> String? {
+    guard !guids.isEmpty else {
+      return nil
+    }
+    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
+      "'\($0)'"
+    }.joined(separator: ", ") + ");"
   }
   
   func SQLToQueueEntry(locator entry: QueueEntryLocator) -> String {
@@ -487,11 +494,11 @@ extension SQLFormatter {
   
   func queuedLocator(from row: SkullRow) -> Queued {
     let url = row["url"] as! String
-    let since = dateFromString(row["since"] as? String)!
+    let since = date(from: row["since"] as? String)!
     let guid = row["guid"] as? String
     let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    let ts = dateFromString(row["ts"] as? String)!
+    let ts = date(from: row["ts"] as? String)!
     
     return Queued.entry(locator, ts)
   }

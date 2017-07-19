@@ -81,7 +81,7 @@ public final class Cache: LocalCache {
     
     var er: Error?
     var id: Int?
-    let sql = SQLToSelectFeedIDFromURLView(url)
+    let sql = SQLFormatter.SQLToSelectFeedIDFromURLView(url)
     
     try db.query(sql) { error, row in
       guard error == nil else {
@@ -231,7 +231,7 @@ extension Cache: FeedCaching {
       do {
         guard let dicts = try self.feedIDsForURLs(urls) else { return }
         let feedIDs = dicts.map { $0.1 }
-        guard let sql = SQLToSelectFeedsByFeedIDs(feedIDs) else { return }
+        guard let sql = SQLFormatter.SQLToSelectFeedsByFeedIDs(feedIDs) else { return }
         feeds = try self.feedsForSQL(sql)
       } catch {
         return er = error
@@ -398,7 +398,7 @@ extension Cache: FeedCaching {
         
         try db.exec("begin transaction;")
         for guid in guids {
-          let sql = SQLToSelectEntryByGUID(guid)
+          let sql = SQLFormatter.SQLToSelectEntryByGUID(guid)
           if let found = try self.entriesForSQL(sql) {
             entries = entries + found
           }
@@ -427,7 +427,7 @@ extension Cache: FeedCaching {
       do {
         guard let dicts = try self.feedIDsForURLs(urls) else { return }
         let feedIDs = dicts.map { $0.1 }
-        guard let sql = SQLToRemoveFeedsWithFeedIDs(feedIDs) else {
+        guard let sql = SQLFormatter.SQLToRemoveFeedsWithFeedIDs(feedIDs) else {
           throw FeedKitError.sqlFormatting
         }
         try db.exec(sql)
@@ -503,7 +503,7 @@ extension Cache: SearchCaching {
 
     queue.sync {
       do {
-        let delete = SQLToDeleteSearchForTerm(term)
+        let delete = SQLFormatter.SQLToDeleteSearch(for: term)
         let insert = try feeds.reduce([String]()) { acc, feed in
           let feedID: Int
           do {
@@ -518,7 +518,7 @@ extension Cache: SearchCaching {
             default: throw error
             }
           }
-          return acc + [SQLToInsertFeedID(feedID, forTerm: term)]
+          return acc + [SQLFormatter.SQLToInsertFeedID(feedID, forTerm: term)]
         }.joined(separator: "\n")
         
         let sql = [
@@ -561,7 +561,7 @@ extension Cache: SearchCaching {
           return feeds = []
         }
       }
-      let sql = SQLToSelectFeedsByTerm(term, limit: limit)
+      let sql = SQLFormatter.SQLToSelectFeedsByTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
       } catch {
@@ -593,7 +593,7 @@ extension Cache: SearchCaching {
     var er: Error?
 
     queue.sync {
-      let sql = SQLToSelectFeedsMatchingTerm(term, limit: limit)
+      let sql = SQLFormatter.SQLToSelectFeedsMatchingTerm(term, limit: limit)
       do {
         feeds = try self.feedsForSQL(sql)
       } catch {
@@ -622,7 +622,7 @@ extension Cache: SearchCaching {
     var er: Error?
 
     queue.sync {
-      let sql = SQLToSelectEntriesMatchingTerm(term, limit: limit)
+      let sql = SQLFormatter.SQLToSelectEntries(matching: term, limit: limit)
       do {
         entries = try self.entriesForSQL(sql)
       } catch {
@@ -645,7 +645,7 @@ extension Cache: SearchCaching {
       var er: Error?
       
       queue.sync {
-        let sql = SQLToDeleteSuggestionsMatchingTerm(term)
+        let sql = SQLFormatter.SQLToDeleteSuggestionsMatchingTerm(term)
         do {
           try db.exec(sql)
         } catch {
@@ -671,7 +671,7 @@ extension Cache: SearchCaching {
         let sql = [
           "BEGIN;",
           suggestions.map {
-            SQLToInsertSuggestionForTerm($0.term)
+            SQLFormatter.SQLToInsertSuggestionForTerm($0.term)
           }.joined(separator: "\n"),
           "COMMIT;"
         ].joined(separator: "\n")
@@ -737,7 +737,7 @@ extension Cache: SearchCaching {
         return []
       }
     }
-    let sql = SQLToSelectSuggestionsForTerm(term, limit: limit)
+    let sql = SQLFormatter.SQLToSelectSuggestionsForTerm(term, limit: limit)
     return try suggestionsForSQL(sql)
   }
 }
