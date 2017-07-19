@@ -558,6 +558,7 @@ public protocol QueueCaching {
   func entries() throws -> [Queued]
   
   func add(synced: [Synced]) throws
+  func remove(recordNames: [String]) throws
 }
 
 public enum Queued {

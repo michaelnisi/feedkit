@@ -445,10 +445,17 @@ extension SQLFormatter {
     }
     return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
       "'\($0)'"
-      }.joined(separator: ", ") + ");"
+    }.joined(separator: ", ") + ");"
   }
   
-  // TODO: Write test
+  static func SQLToDeleteRecords(with names: [String]) -> String? {
+    guard !names.isEmpty else {
+      return nil
+    }
+    return "DELETE FROM record WHERE record_name IN(" + names.map {
+      "'\($0)'"
+    }.joined(separator: ", ") + ");"
+  }
   
   func SQLToQueueSynced(locator synced: Synced) -> String {
     switch synced {

@@ -68,6 +68,25 @@ extension UserCache: QueueCaching {
     }
   }
   
+  public func remove(recordNames: [String]) throws {
+    var er: Error?
+    
+    queue.sync {
+      guard let sql = SQLFormatter.SQLToDeleteRecords(with: recordNames) else {
+        return
+      }
+      do {
+        try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
+  }
+  
   // TODO: Replace EntryLocator with QueueEntryLocator
   
   public func add(_ entries: [EntryLocator]) throws {

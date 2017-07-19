@@ -11,8 +11,6 @@ import XCTest
 @testable import FeedKit
 @testable import Skull
 
-// TODO: Group tests with extensions
-
 final class SQLTests: XCTestCase {
   var formatter: SQLFormatter!
 
@@ -29,26 +27,6 @@ final class SQLTests: XCTestCase {
   
   func skullColumn(_ name: String, value: Any) -> SkullColumn<Any> {
     return SkullColumn(name: name, value: value)
-  }
-  
-  func testITunesItemFromRow() {
-    let wanted = ITunesItem(guid: 123, img100: "img100", img30: "img30",
-                            img60: "img60", img600: "img600")!
-    
-    let row = Mirror(reflecting: wanted).children.reduce(SkullRow()) { acc, prop in
-      var r = acc
-      let col = skullColumn(prop.label!, value: prop.value)
-      r[col.name] = col.value
-      return r
-    }
-
-    let iTunes = formatter.iTunesItem(from: row)!
-    
-    XCTAssertEqual(iTunes.guid, 123)
-    XCTAssertEqual(iTunes.img100, "img100")
-    XCTAssertEqual(iTunes.img30, "img30")
-    XCTAssertEqual(iTunes.img60, "img60")
-    XCTAssertEqual(iTunes.img600, "img600")
   }
   
   fileprivate func skullRow(_ keys: [String]) -> SkullRow {
@@ -124,32 +102,6 @@ final class SQLTests: XCTestCase {
     let wanted = Date(timeIntervalSince1970: 1465192800)
     XCTAssertEqual(found, wanted)
   }
-
-  func testSQLToInsertSuggestionForTerm() {
-    let found = SQLToInsertSuggestionForTerm("abc")
-    let wanted = "INSERT OR REPLACE INTO sug(term) VALUES('abc');"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToSelectSuggestionsForTerm() {
-    let found = SQLToSelectSuggestionsForTerm("abc", limit: 5)
-    let wanted =
-    "SELECT * FROM sug WHERE rowid IN (" +
-    "SELECT rowid FROM sug_fts " +
-    "WHERE term MATCH 'abc*') " +
-    "ORDER BY ts DESC " +
-    "LIMIT 5;"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToDeleteSuggestionsMatchingTerm() {
-    let found = SQLToDeleteSuggestionsMatchingTerm("abc")
-    let wanted =
-    "DELETE FROM sug " +
-    "WHERE rowid IN (" +
-    "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
-    XCTAssertEqual(found, wanted)
-  }
   
   func testSQLToSelectEntryByGUID() {
     let found = SQLToSelectEntryByGUID("abc")
@@ -220,50 +172,6 @@ final class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
   }
 
-  func testSQLToInsertFeedIDForTerm() {
-    let found = SQLToInsertFeedID(1, forTerm: "abc")
-    let wanted = "INSERT OR REPLACE INTO search(feedID, term) VALUES(1, 'abc');"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToSelectFeedsByTerm() {
-    let found = SQLToSelectFeedsByTerm("abc", limit: 50)
-    let wanted =
-      "SELECT * FROM search_view WHERE searchid IN (" +
-      "SELECT rowid FROM search_fts " +
-      "WHERE term = 'abc') " +
-      "LIMIT 50;"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToSelectFeedsMatchingTerm() {
-    let found = SQLToSelectFeedsMatchingTerm("abc", limit: 3)
-    let wanted =
-      "SELECT * FROM feed_view WHERE uid IN (" +
-      "SELECT rowid FROM feed_fts " +
-      "WHERE feed_fts MATCH 'abc*') " +
-      "ORDER BY ts DESC " +
-      "LIMIT 3;"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToSelectEntriesMatchingTerm() {
-    let found = SQLToSelectEntriesMatchingTerm("abc", limit: 3)
-    let wanted =
-      "SELECT * FROM entry_view WHERE uid IN (" +
-      "SELECT rowid FROM entry_fts " +
-      "WHERE entry_fts MATCH 'abc*') " +
-      "ORDER BY updated DESC " +
-      "LIMIT 3;"
-    XCTAssertEqual(found, wanted)
-  }
-
-  func testSQLToDeleteSearchForTerm() {
-    let found = SQLToDeleteSearchForTerm("abc")
-    let wanted = "DELETE FROM search WHERE term='abc';"
-    XCTAssertEqual(found, wanted)
-  }
-
   func testSQLFormatter() {
     let f = formatter.stringFromAny
     let other = NSObject()
@@ -317,9 +225,111 @@ final class SQLTests: XCTestCase {
   }
 }
 
+// Found no rule to separate Browsing into a clear-cut extension.
+
+// MARK: - Searching
+
+extension SQLTests {
+  
+  func testITunesItemFromRow() {
+    let wanted = ITunesItem(guid: 123, img100: "img100", img30: "img30",
+                            img60: "img60", img600: "img600")!
+    
+    let row = Mirror(reflecting: wanted).children.reduce(SkullRow()) { acc, prop in
+      var r = acc
+      let col = skullColumn(prop.label!, value: prop.value)
+      r[col.name] = col.value
+      return r
+    }
+    
+    let iTunes = formatter.iTunesItem(from: row)!
+    
+    XCTAssertEqual(iTunes.guid, 123)
+    XCTAssertEqual(iTunes.img100, "img100")
+    XCTAssertEqual(iTunes.img30, "img30")
+    XCTAssertEqual(iTunes.img60, "img60")
+    XCTAssertEqual(iTunes.img600, "img600")
+  }
+  
+  func testSQLToInsertSuggestionForTerm() {
+    let found = SQLToInsertSuggestionForTerm("abc")
+    let wanted = "INSERT OR REPLACE INTO sug(term) VALUES('abc');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectSuggestionsForTerm() {
+    let found = SQLToSelectSuggestionsForTerm("abc", limit: 5)
+    let wanted =
+      "SELECT * FROM sug WHERE rowid IN (" +
+        "SELECT rowid FROM sug_fts " +
+        "WHERE term MATCH 'abc*') " +
+        "ORDER BY ts DESC " +
+    "LIMIT 5;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToDeleteSuggestionsMatchingTerm() {
+    let found = SQLToDeleteSuggestionsMatchingTerm("abc")
+    let wanted =
+      "DELETE FROM sug " +
+        "WHERE rowid IN (" +
+    "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToInsertFeedIDForTerm() {
+    let found = SQLToInsertFeedID(1, forTerm: "abc")
+    let wanted = "INSERT OR REPLACE INTO search(feedID, term) VALUES(1, 'abc');"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectFeedsByTerm() {
+    let found = SQLToSelectFeedsByTerm("abc", limit: 50)
+    let wanted =
+      "SELECT * FROM search_view WHERE searchid IN (" +
+        "SELECT rowid FROM search_fts " +
+        "WHERE term = 'abc') " +
+    "LIMIT 50;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectFeedsMatchingTerm() {
+    let found = SQLToSelectFeedsMatchingTerm("abc", limit: 3)
+    let wanted =
+      "SELECT * FROM feed_view WHERE uid IN (" +
+        "SELECT rowid FROM feed_fts " +
+        "WHERE feed_fts MATCH 'abc*') " +
+        "ORDER BY ts DESC " +
+    "LIMIT 3;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToSelectEntriesMatchingTerm() {
+    let found = SQLToSelectEntriesMatchingTerm("abc", limit: 3)
+    let wanted =
+      "SELECT * FROM entry_view WHERE uid IN (" +
+        "SELECT rowid FROM entry_fts " +
+        "WHERE entry_fts MATCH 'abc*') " +
+        "ORDER BY updated DESC " +
+    "LIMIT 3;"
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testSQLToDeleteSearchForTerm() {
+    let found = SQLToDeleteSearchForTerm("abc")
+    let wanted = "DELETE FROM search WHERE term='abc';"
+    XCTAssertEqual(found, wanted)
+  }
+  
+}
+
 // MARK: - Queueing
 
 extension SQLTests {
+  
+  func testSQLToQueueSynced() {
+    // TODO: Write test for SQLToQueueSynced
+  }
   
   func testSQLToUnqueue() {
     XCTAssertNil(SQLFormatter.SQLToUnqueue(guids: []))
