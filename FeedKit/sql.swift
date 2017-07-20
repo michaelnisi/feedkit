@@ -187,7 +187,7 @@ final class SQLFormatter {
 
   func feedFromRow(_ row: SkullRow) throws -> Feed {
     let author = row["author"] as? String
-    let iTunes = iTunesItem(from: row)
+    let iTunes = SQLFormatter.iTunesItem(from: row)
     let image = row["img"] as? String
     let link = row["link"] as? String
     let summary = row["summary"] as? String
@@ -250,7 +250,7 @@ final class SQLFormatter {
     let feedImage = row["feed_image"] as? String
     let feedTitle = row["feed_title"] as! String
     let guid = row["guid"] as! String
-    let iTunes = iTunesItem(from: row)
+    let iTunes = SQLFormatter.iTunesItem(from: row)
     let image = row["img"] as? String
     let link = row["link"] as? String
     let subtitle = row["subtitle"] as? String
@@ -357,20 +357,18 @@ extension SQLFormatter {
   }
   
   static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
-    let sql =
-      "SELECT * FROM sug WHERE rowid IN (" +
-        "SELECT rowid FROM sug_fts " +
-        "WHERE term MATCH '\(term)*') " +
-        "ORDER BY ts DESC " +
-    "LIMIT \(limit);"
+    let sql = "SELECT * FROM sug WHERE rowid IN (" +
+      "SELECT rowid FROM sug_fts " +
+      "WHERE term MATCH '\(term)*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT \(limit);"
     return sql
   }
   
   static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
-    let sql =
-      "DELETE FROM sug " +
-        "WHERE rowid IN (" +
-    "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
+    let sql = "DELETE FROM sug " +
+      "WHERE rowid IN (" +
+      "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
     return sql
   }
   
@@ -548,7 +546,10 @@ public class LocalCache {
     
     // If we'd pass these, we could disjoint the cache into separate objects.
     self.db = try Skull(url)
-    self.queue = DispatchQueue(label: "ink.codes.feedkit.cache", attributes: [])
+    
+    let me = type(of: self)
+    self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
+    
     self.sqlFormatter = SQLFormatter()
     
     try open()

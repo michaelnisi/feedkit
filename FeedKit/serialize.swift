@@ -10,6 +10,7 @@ import Foundation
 import Skull
 
 // TODO: Review, document, and test
+// TODO: Repackage to hide global functions
 
 /// Remove whitespace from specified string and replace it with `""` or the
 /// specified string. Consecutive spaces are reduced to a single space.

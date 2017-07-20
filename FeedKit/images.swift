@@ -119,6 +119,8 @@ fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 
 public final class ImageRepository: Images {
   
+  // TODO: Remove Singleton object
+  
   public static var shared: Images = ImageRepository()
   
   public init() {}
