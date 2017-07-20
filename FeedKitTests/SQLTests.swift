@@ -38,6 +38,30 @@ final class SQLTests: XCTestCase {
     return row
   }
   
+  func testITunesFromRow() {
+    let wanted = ITunesItem(
+      guid: 123,
+      img100: "img100",
+      img30: "img30",
+      img60: "img60",
+      img600: "img600"
+    )
+    
+    do { // feed
+      let keys = ["img100", "img30", "img60", "img600"]
+      var row = skullRow(keys)
+      row["guid"] = 123
+      XCTAssertEqual(SQLFormatter.iTunesItem(from: row), wanted)
+    }
+    
+    do { // entry
+      let keys = ["img100", "img30", "img60", "img600"]
+      var row = skullRow(keys)
+      row["feed_guid"] = 123
+      XCTAssertEqual(SQLFormatter.iTunesItem(from: row), wanted)
+    }
+  }
+  
   func testFeedFromRow() {
     let keys = [
       "img", "img100", "img30", "img60", "img600", "author", "link", "summary",

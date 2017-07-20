@@ -109,14 +109,14 @@ func JSONFromFileAtURL(_ url: URL) throws -> [[String : Any]] {
 
 func feedsFromFileAtURL(_ url: URL) throws -> [Feed] {
   let json = try JSONFromFileAtURL(url as URL)
-  let (errors, feeds) = feedsFromPayload(json)
+  let (errors, feeds) = serialize.feeds(from: json)
   XCTAssert(errors.isEmpty, "should return no errors")
   return feeds
 }
 
 func entriesFromFileAtURL(_ url: URL) throws -> [Entry] {
   let json = try JSONFromFileAtURL(url as URL)
-  let (errors, entries) = entriesFromPayload(json)
+  let (errors, entries) = serialize.entries(from: json)
   XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
   return entries
 }

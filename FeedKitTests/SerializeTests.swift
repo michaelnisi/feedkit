@@ -52,9 +52,9 @@ final class SerializeTests: XCTestCase {
 
   func testTimeIntervalFromJS() {
     let found = [
-      timeIntervalFromJS(-1000),
-      timeIntervalFromJS(0),
-      timeIntervalFromJS(1000)
+      serialize.timeIntervalFromJS(-1000),
+      serialize.timeIntervalFromJS(0),
+      serialize.timeIntervalFromJS(1000)
     ]
     let wanted = [
       -1.0,
@@ -69,14 +69,14 @@ final class SerializeTests: XCTestCase {
   func testDateFromDictionary() {
     let k = "key"
     
-    XCTAssertNil(date(fromDictionary: [k: -1], withKey: k))
-    XCTAssertNil(date(fromDictionary: [k: -0], withKey: k))
-    XCTAssertNotNil(date(fromDictionary: [k: 1], withKey: k))
+    XCTAssertNil(serialize.date(from: [k: -1], withKey: k))
+    XCTAssertNil(serialize.date(from: [k: -0], withKey: k))
+    XCTAssertNotNil(serialize.date(from: [k: 1], withKey: k))
     
-    XCTAssertNil(date(fromDictionary: [String : AnyObject](), withKey: k))
+    XCTAssertNil(serialize.date(from: [String : AnyObject](), withKey: k))
     
     XCTAssertEqual(Date(timeIntervalSince1970: 1),
-                   date(fromDictionary: [k: 1000], withKey: k)!)
+                   serialize.date(from: [k: 1000], withKey: k)!)
   }
 
   func testFeedImagesFromDictionary() {
@@ -86,7 +86,7 @@ final class SerializeTests: XCTestCase {
       d[prop.label!] = prop.value as AnyObject
       return d
     }
-    let found = iTunesItem(from: dict)!
+    let found = serialize.iTunesItem(from: dict)!
     XCTAssertEqual(found, wanted)
     XCTAssertEqual(found.guid, wanted.guid)
     XCTAssertEqual(found.img100, wanted.img100)
@@ -104,7 +104,7 @@ final class SerializeTests: XCTestCase {
       let (json, wanted) = $0
       var ok = false
       do {
-        let _ = try feed(from: json as [String : AnyObject])
+        let _ = try serialize.feed(from: json as [String : AnyObject])
       } catch FeedKitError.invalidFeed(let reason) {
         XCTAssertEqual(reason, wanted)
         ok = true
@@ -130,7 +130,7 @@ final class SerializeTests: XCTestCase {
       updated: nil,
       url: "http://abc.de/hellO"
     )
-    let found = try! feed(from: dict)
+    let found = try! serialize.feed(from: dict)
     XCTAssertEqual(found, wanted)
   }
   
@@ -149,7 +149,7 @@ final class SerializeTests: XCTestCase {
       updated: nil,
       url: "http://abc.de"
     )]
-    let (errors, feeds) = feedsFromPayload([dict])
+    let (errors, feeds) = serialize.feeds(from: [dict])
     XCTAssert(errors.isEmpty)
     XCTAssertEqual(feeds, wanted)
   }
@@ -193,7 +193,7 @@ final class SerializeTests: XCTestCase {
   func testEntryFromDictionary() {
     let (dict, wanted) = dictAndEntry()
     do {
-      let found = try entryFromDictionary(dict, podcast: false)
+      let found = try serialize.entry(from: dict, podcast: false)
       XCTAssertEqual(found, wanted)
     } catch {
       XCTFail("should not throw")
@@ -207,7 +207,7 @@ final class SerializeTests: XCTestCase {
       let payload = [dict]
       let wanted = [entry]
       let podcast = n > 0
-      let (errors, found) = entriesFromPayload(payload, podcast: podcast)
+      let (errors, found) = serialize.entries(from: payload, podcast: podcast)
       if !podcast {
         XCTAssert(errors.isEmpty)
         XCTAssertEqual(found, wanted)
@@ -220,7 +220,9 @@ final class SerializeTests: XCTestCase {
   }
 
   func testEnclosureFromDictionary() {
-    let f = enclosureFromDictionary
+    func f(_ json: [String : Any]) throws -> Enclosure? { // lazyiness
+      return try serialize.enclosure(from: json)
+    }
     do {
       let _ = try f([:])
       let _ = try f(["url": "http://serve.it/rad.mp3", "length": "123456"])

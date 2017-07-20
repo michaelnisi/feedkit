@@ -114,7 +114,7 @@ private final class SearchOperation: SearchRepoOperation {
       }
 
       do {
-        let (errors, feeds) = feedsFromPayload(payload!)
+        let (errors, feeds) = serialize.feeds(from: payload!)
 
         if !errors.isEmpty {
           if #available(iOS 10.0, *) {

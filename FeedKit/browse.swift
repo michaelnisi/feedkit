@@ -308,7 +308,7 @@ final class EntriesOperation: BrowseOperation {
         return self.done()
       }
       do {
-        let (errors, receivedEntries) = entriesFromPayload(payload!)
+        let (errors, receivedEntries) = serialize.entries(from: payload!)
         if !errors.isEmpty {
           if #available(iOS 10.0, *) {
             os_log("invalid entries", log: log,  type: .error)
@@ -502,7 +502,7 @@ final class FeedsOperation: BrowseOperation {
       }
 
       do {
-        let (errors, feeds) = feedsFromPayload(payload!)
+        let (errors, feeds) = serialize.feeds(from: payload!)
 
         // TODO: Handle errors
         //
