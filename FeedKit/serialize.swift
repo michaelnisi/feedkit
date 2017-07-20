@@ -70,14 +70,14 @@ func date(fromDictionary dict: [String : Any], withKey key: String) -> Date? {
 
 /// Create an iTunes item from a JSON payload.
 func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
-  guard let guid = dict["guid"] as? Int else {
+  guard
+    let guid = dict["guid"] as? Int,
+    let img100 = dict["img100"] as? String,
+    let img30 = dict["img30"] as? String,
+    let img60 = dict["img60"] as? String,
+    let img600 = dict["img600"] as? String else {
     return nil
   }
-  
-  let img100 = dict["img100"] as? String
-  let img30 = dict["img30"] as? String
-  let img60 = dict["img60"] as? String
-  let img600 = dict["img600"] as? String
 
   let it = ITunesItem(
     guid: guid,

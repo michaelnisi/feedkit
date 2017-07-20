@@ -108,10 +108,7 @@ final class CacheTests: XCTestCase {
     }
     
     do {
-      let empty = ITunesItem(guid: nil, img100: nil, img30: nil, img60: nil,
-                             img600: nil)
-      
-      let c = Feed(author: "not null", iTunes: empty, image: nil, link: nil,
+      let c = Feed(author: "not null", iTunes: nil, image: nil, link: nil,
                    originalURL: "abc", summary: nil, title: "Title", ts: nil,
                    uid: nil, updated: nil, url: "abc")
       

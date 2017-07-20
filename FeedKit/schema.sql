@@ -172,6 +172,8 @@ as select
   e.type,
   e.updated,
   e.url,
+  f.author feed_author,
+  f.guid feed_guid,
   f.img feed_image,
   f.img100,
   f.img30,
@@ -179,8 +181,7 @@ as select
   f.img600,
   f.rowid feedid,
   f.title feed_title,
-  f.url feed,
-  f.author feed_author
+  f.url feed
 from feed f inner join entry e on f.rowid=e.feedid;
 
 -- Suggestions

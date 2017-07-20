@@ -373,21 +373,22 @@ extension SQLFormatter {
   }
   
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
-    let guid = row["guid"] as? Int
-    let img30 = row["img30"] as? String
-    let img60 = row["img60"] as? String
-    let img100 = row["img100"] as? String
-    let img600 = row["img600"] as? String
+    guard
+      let guid = row["guid"] as? Int ?? row["feed_guid"] as? Int,
+      let img100 = row["img100"] as? String,
+      let img30 = row["img30"] as? String,
+      let img60 = row["img60"] as? String,
+      let img600 = row["img600"] as? String else {
+      return nil
+    }
     
-    let it = ITunesItem(
+    return ITunesItem(
       guid: guid,
       img100: img100,
       img30: img30,
       img60: img60,
       img600: img600
     )
-    
-    return it
   }
   
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {

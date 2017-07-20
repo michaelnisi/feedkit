@@ -9,6 +9,12 @@
 import Foundation
 import FanboyKit
 import Ola
+import os.log
+
+// MARK: - Logging
+
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
 
 // TODO: Persist search result order
 
@@ -111,8 +117,9 @@ private final class SearchOperation: SearchRepoOperation {
         let (errors, feeds) = feedsFromPayload(payload!)
 
         if !errors.isEmpty {
-          // TODO: Properly log these errors
-          dump(errors)
+          if #available(iOS 10.0, *) {
+            os_log("JSON parse errors: %{public}@", log: log,  type: .error, errors)
+          }
         }
 
         try self.cache.updateFeeds(feeds, forTerm: self.term)

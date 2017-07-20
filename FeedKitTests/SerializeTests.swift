@@ -80,7 +80,7 @@ final class SerializeTests: XCTestCase {
   }
 
   func testFeedImagesFromDictionary() {
-    let wanted = ITunesItem(guid: 123, img100: nil, img30: nil, img60: nil, img600: nil)!
+    let wanted = ITunesItem(guid: 123, img100: "abc", img30: "def", img60: "ghi", img600: "jkl")
     let dict = Mirror(reflecting: wanted).children.reduce([String : AnyObject]()) { acc, prop in
       var d = acc
       d[prop.label!] = prop.value as AnyObject

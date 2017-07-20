@@ -174,10 +174,10 @@ func feedWithName(_ name: String) throws -> Feed {
       author: "Daring Fireball / John Gruber",
       iTunes: ITunesItem(
         guid: 528458508,
-        img100: nil,
-        img30: nil,
-        img60: nil,
-        img600: nil
+        img100: "abc",
+        img30: "def",
+        img60: "ghi",
+        img600: "jkl"
       ),
       image: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
       link: nil,
@@ -194,10 +194,10 @@ func feedWithName(_ name: String) throws -> Feed {
       author: "Merlin Mann",
       iTunes: ITunesItem(
         guid: 471418144,
-        img100: nil,
-        img30: nil,
-        img60: nil,
-        img600: nil
+        img100: "abc",
+        img30: "def",
+        img60: "ghi",
+        img600: "jkl"
       ),
       image: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
       link: nil,

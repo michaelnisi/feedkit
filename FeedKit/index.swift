@@ -79,17 +79,13 @@ public protocol Redirectable {
 // optional. Especially the guid isn’t used in this framework. We identify
 // feeds by URLs.
 public struct ITunesItem {
-  public let guid: Int?
-  public let img100: String?
-  public let img30: String?
-  public let img60: String?
-  public let img600: String?
+  public let guid: Int
+  public let img100: String
+  public let img30: String
+  public let img60: String
+  public let img600: String
 
-  public init?(guid: Int?, img100: String?, img30: String?, img60: String?,
-               img600: String?) {
-    if guid == nil, img100 == nil, img30 == nil, img60 == nil, img600 == nil {
-      return nil
-    }
+  public init(guid: Int, img100: String, img30: String, img60: String, img600: String) {
     self.guid = guid
     self.img100 = img100
     self.img30 = img30
@@ -100,11 +96,7 @@ public struct ITunesItem {
 
 extension ITunesItem: Equatable {
   public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
-    guard let a = lhs.guid, let b = rhs.guid else {
-      return lhs.img100 == rhs.img100 && lhs.img600 == rhs.img600 &&
-        lhs.img60 == rhs.img60 && lhs.img30 == rhs.img30
-    }
-    return a == b
+    return lhs.guid == rhs.guid
   }
 }
 

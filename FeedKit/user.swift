@@ -124,7 +124,6 @@ extension UserCache: QueueCaching {
   }
   
   public func add(synced: [Synced]) throws {
-    dump(synced)
     var er: Error?
     
     let fmt = self.sqlFormatter
