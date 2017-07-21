@@ -8,6 +8,12 @@
 
 import Foundation
 import Skull
+import os.log
+
+// MARK: - Logging
+
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "serialize")
 
 /// Returns a new URL string with lowercased scheme and host, the path remains
 /// as it is. Here‘s the spec: https://tools.ietf.org/html/rfc3986
@@ -168,7 +174,7 @@ struct serialize {
   ///
   /// It should be noted, relying on our service written by ourselves, there
   /// shouldn't be any errors, handling these should be a mere safety measure for
-  /// more transparent debugging.
+  /// more transparent debugging. Doublets are filtered out and reported.
   ///
   /// - Parameter dicts: A JSON array of dictionaries to serialize.
   ///
@@ -181,6 +187,15 @@ struct serialize {
     let feeds = dicts.reduce([Feed]()) { acc, dict in
       do {
         let f = try serialize.feed(from: dict)
+        guard !acc.contains(f) else {
+          if #available(iOS 10.0, *) {
+            // Feed doublets can occure when iTunes search returns objects with
+            // different GUIDs, but with equal feed URLs.
+            os_log("feed doublet: %{public}@", log: log,  type: .error,
+                   String(describing: f))
+          }
+          return acc
+        }
         return acc + [f]
       } catch let er {
         errors.append(er)

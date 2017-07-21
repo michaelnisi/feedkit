@@ -149,7 +149,8 @@ final class SerializeTests: XCTestCase {
       updated: nil,
       url: "http://abc.de"
     )]
-    let (errors, feeds) = serialize.feeds(from: [dict])
+    let payload = [dict, dict]
+    let (errors, feeds) = serialize.feeds(from: payload)
     XCTAssert(errors.isEmpty)
     XCTAssertEqual(feeds, wanted)
   }

@@ -109,7 +109,8 @@ public protocol Imaginable {
 ///
 /// The initializer is inconvenient for a reason: **it shouldn't be used
 /// directly**. Instead users are expected to obtain their feeds from the
-/// repositories provided by this framework.
+/// repositories provided by this framework. Two feeds are equal if they
+/// have equal URLs.
 ///
 /// A feed is required to, at least, have `title` and `url`.
 public struct Feed: Cachable, Redirectable, Imaginable {
@@ -126,12 +127,6 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let url: String
 }
 
-extension Feed: Hashable {
-  public var hashValue: Int {
-    get { return url.hashValue }
-  }
-}
-
 extension Feed : CustomStringConvertible {
   public var description: String {
     return "Feed: \(title)"
@@ -141,6 +136,12 @@ extension Feed : CustomStringConvertible {
 extension Feed: Equatable {
   static public func ==(lhs: Feed, rhs: Feed) -> Bool {
     return lhs.url == rhs.url
+  }
+}
+
+extension Feed: Hashable {
+  public var hashValue: Int {
+    get { return url.hashValue }
   }
 }
 
