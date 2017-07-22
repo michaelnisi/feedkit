@@ -289,21 +289,19 @@ extension SQLTests {
   
   func testSQLToSelectSuggestionsForTerm() {
     let found = SQLFormatter.SQLToSelectSuggestionsForTerm("abc", limit: 5)
-    let wanted =
-      "SELECT * FROM sug WHERE rowid IN (" +
-        "SELECT rowid FROM sug_fts " +
-        "WHERE term MATCH 'abc*') " +
-        "ORDER BY ts DESC " +
-    "LIMIT 5;"
+    let wanted = "SELECT * FROM sug WHERE rowid IN (" +
+      "SELECT rowid FROM sug_fts " +
+      "WHERE term MATCH 'abc*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT 5;"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToDeleteSuggestionsMatchingTerm() {
     let found = SQLFormatter.SQLToDeleteSuggestionsMatchingTerm("abc")
-    let wanted =
-      "DELETE FROM sug " +
-        "WHERE rowid IN (" +
-    "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
+    let wanted = "DELETE FROM sug " +
+      "WHERE rowid IN (" +
+      "SELECT rowid FROM sug_fts WHERE term MATCH 'abc*');"
     XCTAssertEqual(found, wanted)
   }
   
@@ -315,32 +313,29 @@ extension SQLTests {
   
   func testSQLToSelectFeedsByTerm() {
     let found = SQLFormatter.SQLToSelectFeedsByTerm("abc", limit: 50)
-    let wanted =
-      "SELECT * FROM search_view WHERE searchid IN (" +
-        "SELECT rowid FROM search_fts " +
-        "WHERE term = 'abc') " +
-    "LIMIT 50;"
+    let wanted = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
+      "SELECT rowid FROM search_fts " +
+      "WHERE term = 'abc') " +
+      "LIMIT 50;"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectFeedsMatchingTerm() {
     let found = SQLFormatter.SQLToSelectFeedsMatchingTerm("abc", limit: 3)
-    let wanted =
-      "SELECT * FROM feed_view WHERE uid IN (" +
-        "SELECT rowid FROM feed_fts " +
-        "WHERE feed_fts MATCH 'abc*') " +
-        "ORDER BY ts DESC " +
-    "LIMIT 3;"
+    let wanted = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
+      "SELECT rowid FROM feed_fts " +
+      "WHERE feed_fts MATCH 'abc*') " +
+      "ORDER BY ts DESC " +
+      "LIMIT 3;"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectEntriesMatchingTerm() {
     let found = SQLFormatter.SQLToSelectEntries(matching: "abc", limit: 3)
-    let wanted =
-      "SELECT * FROM entry_view WHERE uid IN (" +
-        "SELECT rowid FROM entry_fts " +
-        "WHERE entry_fts MATCH 'abc*') " +
-        "ORDER BY updated DESC " +
+    let wanted = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
+    "SELECT rowid FROM entry_fts " +
+    "WHERE entry_fts MATCH 'abc*') " +
+    "ORDER BY updated DESC " +
     "LIMIT 3;"
     XCTAssertEqual(found, wanted)
   }

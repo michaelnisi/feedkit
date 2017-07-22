@@ -25,6 +25,7 @@ typealias ImageCache = Nuke.Cache
 public protocol Images {
   func loadImage(for item: Imaginable, into imageView: UIImageView)
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
+  func preheatImage(for item: Imaginable, at size: CGSize)
 }
 
 // MARK: -
@@ -155,6 +156,10 @@ public final class ImageRepository: Images {
     ImageCache.shared[req] = img
     
     return img
+  }
+  
+  public func preheatImage(for item: Imaginable, at size: CGSize) {
+    // TODO: Write
   }
   
   /// Loads an image to represent `item` into `imageView`, scaling the image

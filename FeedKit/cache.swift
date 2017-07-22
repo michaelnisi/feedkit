@@ -539,8 +539,8 @@ extension Cache: SearchCaching {
     }
   }
 
-  /// Return feeds matching the specified term, the number of feeds can be
-  /// limited.
+  /// Return distinct feeds matching the specified term, the number of feeds 
+  /// may be limited.
   ///
   /// - Parameters:
   ///   - term: The search term.
@@ -573,8 +573,8 @@ extension Cache: SearchCaching {
       throw error
     }
 
-    guard let f = feeds else { return feeds }
-
+    guard let f = feeds else { return nil }
+    assert(Array(Set(f)).count == f.count)
     return f
     
     // Commented out, because uniqueness should be intrinsic.

@@ -16,8 +16,6 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
 
-// TODO: Persist search result order
-
 /// An abstract class to be extended by search repository operations.
 private class SearchRepoOperation: SessionTaskOperation {
 
@@ -50,7 +48,7 @@ private class SearchRepoOperation: SessionTaskOperation {
   }
 }
 
-// An operation for searching feeds and entries.
+/// An operation for searching feeds and entries.
 private final class SearchOperation: SearchRepoOperation {
 
   // MARK: Callbacks
@@ -245,9 +243,8 @@ private final class SuggestOperation: SearchRepoOperation {
 
   // MARK: State
 
-  /// An array to keep track of finds that have been dispatched to prevent
-  /// doublings.
-  var dispatched = [Find]()
+  /// A set of finds that have been dispatched by this operation.
+  var dispatched = Set<Find>()
 
   /// Stale suggestions from the cache.
   var stock: [Suggestion]?
@@ -273,9 +270,12 @@ private final class SuggestOperation: SearchRepoOperation {
     target.sync { [unowned self] in
       guard !self.isCancelled else { return }
       guard let cb = self.perFindGroupBlock else { return }
+      
+      let candidates = Set(finds)
+      let diff = candidates.subtracting(self.dispatched)
+      self.dispatched.formUnion(diff)
 
-      self.dispatched += finds
-      cb(error as Error?, finds)
+      cb(error as Error?, Array(diff))
     }
   }
 
@@ -353,7 +353,7 @@ private final class SuggestOperation: SearchRepoOperation {
         return requestRequired = false
       }
       do {
-        if let finds = try f(term, cache, dispatched) {
+        if let finds = try f(term, cache, Array(dispatched)) {
           guard !finds.isEmpty else { return }
           dispatch(nil, finds: finds)
         }

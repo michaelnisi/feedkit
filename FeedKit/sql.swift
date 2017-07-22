@@ -401,8 +401,10 @@ extension SQLFormatter {
     return Suggestion(term: term, ts: date(from: ts))
   }
   
+  // TODO: Review SELECT DISTINCT in search queries
+  
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
-    let sql = "SELECT * FROM search_view WHERE searchid IN (" +
+    let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
       "SELECT rowid FROM search_fts " +
       "WHERE term = '\(term)') " +
       "LIMIT \(limit);"
@@ -410,7 +412,7 @@ extension SQLFormatter {
   }
   
   static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
-    let sql = "SELECT * FROM feed_view WHERE uid IN (" +
+    let sql = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
       "SELECT rowid FROM feed_fts " +
       "WHERE feed_fts MATCH '\(term)*') " +
       "ORDER BY ts DESC " +
@@ -419,7 +421,7 @@ extension SQLFormatter {
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
-    let sql = "SELECT * FROM entry_view WHERE uid IN (" +
+    let sql = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
       "SELECT rowid FROM entry_fts " +
       "WHERE entry_fts MATCH '\(term)*') " +
       "ORDER BY updated DESC " +
