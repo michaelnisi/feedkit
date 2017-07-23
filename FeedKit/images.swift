@@ -110,11 +110,11 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
 ///   - item: The concerned item.
 ///   - size: The target size the loaded image will get scaled to.
 ///
-/// - returns: The image URL or `nil`.
+/// - Returns: The image URL or `nil`.
 fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
   guard size.width > 60 else { return nil }
   
-  let wanted = size.width * UIScreen.main.scale / 4
+  let wanted = size.width / 4
   return urlToLoad(from: item, for: CGSize(width: wanted, height: wanted))
 }
 
