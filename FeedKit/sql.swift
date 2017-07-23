@@ -314,6 +314,8 @@ extension SQLFormatter {
     return selectRowsByUIDs("feed_view", ids: feedIDs)
   }
   
+  // TODO: Remove global guid dependency
+  
   static func SQLToSelectEntryByGUID(_ guid: String) -> String {
     return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
   }

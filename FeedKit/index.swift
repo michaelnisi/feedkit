@@ -596,9 +596,9 @@ public protocol Queueing {
   func next() -> Entry?
   func previous() -> Entry?
   
-  @discardableResult func entries(
-    entriesBlock: @escaping ([Queued], Error?) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+  @discardableResult func locators(
+    locatorsBlock: @escaping ([Queued], Error?) -> Void,
+    locatorsCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 }
 

@@ -172,16 +172,16 @@ public final class EntryQueue {
 
 extension EntryQueue: Queueing {
   
-  public func entries(
-    entriesBlock: @escaping ([Queued], Error?) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+  public func locators(
+    locatorsBlock: @escaping ([Queued], Error?) -> Void,
+    locatorsCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
     
     DispatchQueue.global(qos: .userInitiated).async {
       let locators = try! self.queueCache.entries()
       DispatchQueue.main.async {
-        entriesBlock(locators, nil)
-        entriesCompletionBlock(nil)
+        locatorsBlock(locators, nil)
+        locatorsCompletionBlock(nil)
       }
     }
     

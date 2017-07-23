@@ -100,6 +100,8 @@ from feed f;
 
 -- Entries
 
+-- TODO: Remove unique restriction for entry
+
 create table if not exists entry(
   author text,
   duration int,
