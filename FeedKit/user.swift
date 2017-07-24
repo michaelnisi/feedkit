@@ -87,8 +87,6 @@ extension UserCache: QueueCaching {
     }
   }
   
-  // TODO: Replace EntryLocator with QueueEntryLocator
-  
   public func add(_ entries: [EntryLocator]) throws {
     var er: Error?
     
@@ -148,34 +146,127 @@ extension UserCache: QueueCaching {
   
 }
 
-class FetchQueueOperation: Operation {
+private final class FetchQueueOperation: FeedKitOperation {
   
+  var entriesBlock: ((Error?, [Entry]) -> Void)?
+  var entriesCompletionBlock: ((Error?) -> Void)?
+  
+  let browser: Browsing
+  let cache: QueueCaching
+  let target: DispatchQueue
+  
+  init(browser: Browsing, cache: QueueCaching, target: DispatchQueue) {
+    self.browser = browser
+    self.cache = cache
+    self.target = target
+  }
+  
+  private func done(with error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
+    if let cb = entriesCompletionBlock {
+      target.async {
+        cb(er)
+      }
+    }
+    entriesCompletionBlock = nil
+    isFinished = true
+  }
+  
+  private func fetchEntries(for locators: [EntryLocator]) {
+    guard
+      let entriesBlock = self.entriesBlock,
+      let entriesCompletionBlock = self.entriesCompletionBlock else {
+      return
+    }
+    let op = browser.entries(
+      locators, entriesBlock: entriesBlock,
+      entriesCompletionBlock: entriesCompletionBlock
+    )
+    // TODO: Sort entries by queue order
+    
+    op.completionBlock = {
+      self.done()
+    }
+  }
+  
+  override func start() {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    isExecuting = true
+    
+    do {
+      // TODO: Rename cache.entries() to cache.queued()
+      let queued = try cache.entries()
+      
+      let locators: [EntryLocator] = queued.flatMap {
+        switch $0 {
+        case .locator(let locator, _):
+          return locator.including
+        }
+      }
+      
+      guard !isCancelled, !locators.isEmpty else {
+        return done()
+      }
+
+      fetchEntries(for: locators)
+    } catch {
+      done(with: error)
+    }
+  }
+ 
 }
 
 // TODO: Update queue after redirects
 
 public final class EntryQueue {
   
+  // TODO: User proper operation queue
+  let operationQueue = OperationQueue()
+  
   public var delegate: QueueDelegate?
   
-  let feedCache: FeedCaching
+  let feedCache: FeedCaching // TODO: Remove
+  
   let queueCache: QueueCaching
+  let browser: Browsing
   
   /// Creates a fresh EntryQueue object.
-  public init(feedCache: FeedCaching, queueCache: QueueCaching) {
+  public init(feedCache: FeedCaching, queueCache: QueueCaching, browser: Browsing) {
     self.feedCache = feedCache
     self.queueCache = queueCache
+    self.browser = browser
   }
   
   fileprivate var queue = Queue<Entry>()
 }
 
 extension EntryQueue: Queueing {
+
+  public func entries(
+    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation {
+    let cache = self.queueCache
+    let target = DispatchQueue.main
+    let op = FetchQueueOperation(browser: browser, cache: cache, target: target)
+    op.entriesBlock = entriesBlock
+    op.entriesCompletionBlock = entriesCompletionBlock
+    operationQueue.addOperation(op)
+    
+    // TODO: Pass this to browser operationQueue.underlyingQueue
+    
+    return op
+  }
+  
+  // TODO: Replace with entries
   
   public func locators(
     locatorsBlock: @escaping ([Queued], Error?) -> Void,
     locatorsCompletionBlock: @escaping (Error?) -> Void
-  ) -> Operation {
+  ) {
     
     DispatchQueue.global(qos: .userInitiated).async {
       let locators = try! self.queueCache.entries()
@@ -184,10 +275,6 @@ extension EntryQueue: Queueing {
         locatorsCompletionBlock(nil)
       }
     }
-    
-    // TODO: Return FetchQueueOperation depending on CKFetchRecordsOperation
-    
-    return FetchQueueOperation()
   }
   
   private func postDidChangeNotification() {

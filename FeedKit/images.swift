@@ -22,6 +22,15 @@ typealias ImageCache = Nuke.Cache
 
 // MARK: - API
 
+public enum ImageQuality: Int {
+  case high = 1
+  case medium = 2
+  case low = 4
+}
+
+// TODO: Introduce ImageQuality
+// TODO: Route all image requests through here
+
 public protocol Images {
   func loadImage(for item: Imaginable, into imageView: UIImageView)
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
@@ -131,8 +140,6 @@ public final class ImageRepository: Images {
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
     }
-    
-    // TODO: Don‘t round corners here
     
     let req = Request(url: url).processed(with: Scale(size: size))
     

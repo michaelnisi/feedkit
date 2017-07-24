@@ -514,6 +514,7 @@ public protocol Searching {
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
+  
   @discardableResult func feeds(
     _ urls: [String],
     feedsBlock: @escaping (Error?, [Feed]) -> Void,
@@ -532,6 +533,16 @@ public protocol Browsing {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
+  
+  // TODO: Add target parameter
+  
+//  @discardableResult func entries(
+//    _ locators: [EntryLocator],
+//    target: DispatchQueue,
+//    entriesBlock: @escaping (Error?, [Entry]) -> Void,
+//    entriesCompletionBlock: @escaping (Error?) -> Void
+//  ) -> Operation
+  
 }
 
 // MARK: - Syncing
@@ -555,13 +566,13 @@ public protocol QueueCaching {
 }
 
 public enum Queued {
-  case entry(EntryLocator, Date)
+  case locator(EntryLocator, Date)
 }
 
 extension Queued: Equatable {
   static public func ==(lhs: Queued, rhs: Queued) -> Bool {
     switch (lhs, rhs) {
-    case (.entry(let lLocator, _), .entry(let rLocator, _)):
+    case (.locator(let lLocator, _), .locator(let rLocator, _)):
       return lLocator == rLocator
     }
   }
@@ -571,7 +582,7 @@ extension Queued: Hashable {
   public var hashValue: Int {
     get {
       switch self {
-      case .entry(let locator, _):
+      case .locator(let locator, _):
         return locator.hashValue
       }
     }
@@ -596,9 +607,9 @@ public protocol Queueing {
   func next() -> Entry?
   func previous() -> Entry?
   
-  @discardableResult func locators(
-    locatorsBlock: @escaping ([Queued], Error?) -> Void,
-    locatorsCompletionBlock: @escaping (Error?) -> Void
+  func entries(
+    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 }
 
@@ -687,9 +698,43 @@ public class RemoteRepository: NSObject {
   }
 }
 
+/// Oh my! Inheritance.
+class FeedKitOperation: Operation {
+  fileprivate var _executing: Bool = false
+  
+  // MARK: - Operation
+  
+  override final var isExecuting: Bool {
+    get { return _executing }
+    set {
+      guard newValue != _executing else {
+        fatalError("FeedKitOperation: already executing")
+      }
+      willChangeValue(forKey: "isExecuting")
+      _executing = newValue
+      didChangeValue(forKey: "isExecuting")
+    }
+  }
+  
+  fileprivate var _finished: Bool = false
+  
+  override final var isFinished: Bool {
+    get { return _finished }
+    set {
+      guard newValue != _finished else {
+        // Just to be extra annoying.
+        fatalError("FeedKitOperation: already finished")
+      }
+      willChangeValue(forKey: "isFinished")
+      _finished = newValue
+      didChangeValue(forKey: "isFinished")
+    }
+  }
+}
+
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
-class SessionTaskOperation: Operation {
+class SessionTaskOperation: FeedKitOperation {
 
   // MARK: Properties
 
@@ -712,37 +757,6 @@ class SessionTaskOperation: Operation {
   final var task: URLSessionTask? {
     didSet {
       post(name: FeedKitRemoteRequestNotification)
-    }
-  }
-
-  fileprivate var _executing: Bool = false
-
-  // MARK: NSOperation
-
-  override final var isExecuting: Bool {
-    get { return _executing }
-    set {
-      guard newValue != _executing else {
-        fatalError("SessionTaskOperation: already executing")
-      }
-      willChangeValue(forKey: "isExecuting")
-      _executing = newValue
-      didChangeValue(forKey: "isExecuting")
-    }
-  }
-
-  fileprivate var _finished: Bool = false
-
-  override final var isFinished: Bool {
-    get { return _finished }
-    set {
-      guard newValue != _finished else {
-        // Just to be extra annoying.
-        fatalError("SessionTaskOperation: already finished")
-      }
-      willChangeValue(forKey: "isFinished")
-      _finished = newValue
-      didChangeValue(forKey: "isFinished")
     }
   }
 

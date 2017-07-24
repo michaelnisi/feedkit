@@ -503,7 +503,7 @@ extension SQLFormatter {
     
     let ts = date(from: row["ts"] as? String)!
     
-    return Queued.entry(locator, ts)
+    return Queued.locator(locator, ts)
   }
 }
 
