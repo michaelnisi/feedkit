@@ -62,6 +62,8 @@ private final class SearchOperation: SearchRepoOperation {
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = searchCompletionBlock {
+      // Dispatching synchronously here to only let this operation finish
+      // after searchCompletionBlock completes.
       target.sync {
         cb(er)
       }

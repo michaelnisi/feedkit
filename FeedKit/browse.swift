@@ -504,7 +504,7 @@ final class FeedsOperation: BrowseOperation {
       do {
         let (errors, feeds) = serialize.feeds(from: payload!)
 
-        // TODO: Handle errors
+        // TODO: Handle serialization errors
         //
         // Although, owning the remote service, we can be reasonably sure, these
         // objects are O.K., we should probably still handle these errors.
@@ -757,10 +757,7 @@ extension FeedRepository: Browsing {
     dep.reachable = r
 
     dep.feedsBlock = { error, feeds in
-      if let er = error {
-        // TODO: Pass error to entries operation
-        assert(false, "unhandled error: \(er)")
-      }
+
     }
 
     dep.feedsCompletionBlock = { error in

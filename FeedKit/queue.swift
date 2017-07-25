@@ -35,7 +35,7 @@ struct Queue<Item: Hashable> {
   /// 
   /// - Throws: Might throw `QueueError` if internal state is inconsistent.
   public init(items: [Item], next index: Int? = nil) throws {
-    assert(!items.isEmpty)
+//    assert(!items.isEmpty)
     
     try add(items: items)
     

@@ -7,26 +7,12 @@
 //
 
 import XCTest
-import Ola
 
 @testable import FeedKit
 
 final class QueueTests: XCTestCase {
   
   fileprivate var queue: Queue<String>!
-  
-  private func freshBrowser() -> Browsing {
-    let cache = freshCache(self.classForCoder)
-    let svc = freshManger(string: "http://localhost:8384")
-    
-    let dpq = DispatchQueue(label: "ink.codes.test.browsing")
-    let queue = OperationQueue()
-    queue.underlyingQueue = dpq
-    
-    let probe = Ola(host: "http://localhost:8384", queue: dpq)!
-    
-    return FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
-  }
   
   override func setUp() {
     super.setUp()
@@ -87,8 +73,6 @@ final class QueueTests: XCTestCase {
     }
   }
   
-  // TODO: Test moving back and forth through the queue (testBackAndForth)
-  
   func testRemove() {
     XCTAssertThrowsError(try queue.remove("11"), "should throw") { er in
       switch er {
@@ -97,6 +81,19 @@ final class QueueTests: XCTestCase {
       default:
         XCTFail()
       }
+    }
+    
+    populate()
+    
+    for i in 1...8 {
+      try! queue.remove(String(i))
+    }
+    
+    XCTAssertNil(queue.forward())
+    XCTAssertNil(queue.backward())
+    
+    for i in 1...8 {
+      XCTAssertFalse(queue.contains(String(i)))
     }
   }
   

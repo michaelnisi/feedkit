@@ -39,7 +39,7 @@ final class UserCacheTests: XCTestCase {
     try! cache.add(locators)
     
     let wanted = locators.map {
-      Queued.entry($0, Date())
+      Queued.locator($0, Date())
     }
     let found = try! cache.entries()
     XCTAssertEqual(found, wanted)
@@ -50,7 +50,7 @@ final class UserCacheTests: XCTestCase {
     
     do { // check if they‘ve actually been added
       let wanted = locators.map {
-        Queued.entry($0, Date())
+        Queued.locator($0, Date())
       }
       let found = try! cache.entries()
       XCTAssertEqual(found, wanted)

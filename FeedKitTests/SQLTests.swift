@@ -407,7 +407,7 @@ extension SQLTests {
     let since = Date(timeIntervalSince1970: 1465192800)
     let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    let wanted = Queued.entry(locator, ts!)
+    let wanted = Queued.locator(locator, ts!)
     
     XCTAssertEqual(found, wanted)
   }

@@ -179,11 +179,11 @@ private final class FetchQueueOperation: FeedKitOperation {
       return
     }
     let op = browser.entries(
-      locators, entriesBlock: entriesBlock,
+      locators,
+      entriesBlock: entriesBlock,
       entriesCompletionBlock: entriesCompletionBlock
     )
-    // TODO: Sort entries by queue order
-    
+
     op.completionBlock = {
       self.done()
     }
@@ -227,20 +227,19 @@ public final class EntryQueue {
   let operationQueue = OperationQueue()
   
   public var delegate: QueueDelegate?
-  
-  let feedCache: FeedCaching // TODO: Remove
-  
+
   let queueCache: QueueCaching
   let browser: Browsing
   
   /// Creates a fresh EntryQueue object.
-  public init(feedCache: FeedCaching, queueCache: QueueCaching, browser: Browsing) {
-    self.feedCache = feedCache
+  public init(queueCache: QueueCaching, browser: Browsing) {
     self.queueCache = queueCache
     self.browser = browser
   }
   
-  fileprivate var queue = Queue<Entry>()
+  // TODO: Make sure to have a queue when it‘s needed
+  
+  fileprivate var queue: Queue<Entry>!
 }
 
 extension EntryQueue: Queueing {
@@ -249,32 +248,30 @@ extension EntryQueue: Queueing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
+    assert(Thread.isMainThread)
+    
     let cache = self.queueCache
     let target = DispatchQueue.main
     let op = FetchQueueOperation(browser: browser, cache: cache, target: target)
-    op.entriesBlock = entriesBlock
-    op.entriesCompletionBlock = entriesCompletionBlock
+    
+    // TODO: Sort entries and create a new queue
+    
+    
+    var acc = [Entry]()
+    
+    op.entriesBlock = { error, entries in
+      acc.append(contentsOf: entries)
+      entriesBlock(error, entries)
+    }
+    
+    op.entriesCompletionBlock = { error in
+      self.queue = try! Queue<Entry>(items: acc)
+      entriesCompletionBlock(error)
+    }
+    
     operationQueue.addOperation(op)
     
-    // TODO: Pass this to browser operationQueue.underlyingQueue
-    
     return op
-  }
-  
-  // TODO: Replace with entries
-  
-  public func locators(
-    locatorsBlock: @escaping ([Queued], Error?) -> Void,
-    locatorsCompletionBlock: @escaping (Error?) -> Void
-  ) {
-    
-    DispatchQueue.global(qos: .userInitiated).async {
-      let locators = try! self.queueCache.entries()
-      DispatchQueue.main.async {
-        locatorsBlock(locators, nil)
-        locatorsCompletionBlock(nil)
-      }
-    }
   }
   
   private func postDidChangeNotification() {
@@ -302,15 +299,16 @@ extension EntryQueue: Queueing {
   }
   
   public func remove(_ entry: Entry) throws {
-    try queue.remove(entry)
-    
-    delegate?.queue(self, removedGUID: entry.guid)
-    postDidChangeNotification()
-    
     DispatchQueue.global(qos: .default).async {
       let entries = self.queue.enumerated()
       let guids = entries.map { $0.element.value.guid }
       try! self.queueCache.remove(guids: guids)
+      try! self.queue.remove(entry)
+      
+      DispatchQueue.main.async {
+        self.delegate?.queue(self, removedGUID: entry.guid)
+        self.postDidChangeNotification()
+      }
     }
   }
   

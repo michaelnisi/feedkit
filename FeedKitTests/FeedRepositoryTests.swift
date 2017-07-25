@@ -26,13 +26,10 @@ final class FeedRepositoryTests: XCTestCase {
     
     svc = freshManger(string: "http://localhost:8384")
     
-     let dpq = DispatchQueue(label: "xxx")
-    
     let queue = OperationQueue()
-    queue.underlyingQueue = dpq
-    
-   
-    let probe = Ola(host: "http://localhost:8384", queue: dpq)!
+    queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.FeedRepositoryTests")
+
+    let probe = Ola(host: "http://localhost:8384", queue: queue.underlyingQueue!)!
     
     repo = FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
   }
@@ -353,23 +350,53 @@ final class FeedRepositoryTests: XCTestCase {
     }
   }
   
-  func testEntriesWithGuid() {
+  func testEntriesWithGUID() {
+    let exp = self.expectation(description: "entries")
+    let repo = self.repo!
+    
+    // A very brittle test, the publisher might remove the entry with this
+    // GUID at any time. If it fails, replace guid with an existing one.
+    
+    let url = "http://feeds.wnyc.org/newyorkerradiohour"
+    let guid = "d560011a2db423121341675bfcbacc6925bff8aa"
+    let locators = [EntryLocator(url: url, guid: guid)]
+    
+    var acc = [Entry]()
+    
+    let _ = repo.entries(locators, entriesBlock: { er, entries in
+      XCTAssertNil(er)
+      acc.append(contentsOf: entries)
+    }) { er in
+      XCTAssertNil(er)
+      guard let found = acc.first else {
+        return XCTFail("should find entry")
+      }
+      XCTAssertEqual(found.guid, guid)
+      exp.fulfill()
+    }
+    self.waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testEntriesWithFalseGUID() {
     let exp = self.expectation(description: "entries")
     let repo = self.repo!
     
     let url = "http://feeds.wnyc.org/newyorkerradiohour"
-    let guid = "d603394f7083968191d8d2660871f9e80535e4fd"
+    let guid = "hello"
     let locators = [EntryLocator(url: url, guid: guid)]
     
-    var found: Entry?
-    
-    let _ = repo.entries(locators, entriesBlock: { er, entries in
-      XCTAssertNil(er)
-      XCTAssertEqual(entries.count, 1)
-      found = entries.first!
-    }) { er in
-      XCTAssertNil(er)
-      XCTAssertEqual(found!.guid, guid)
+    let _ = repo.entries(locators, entriesBlock: { error, entries in
+      switch error as! FeedKitError {
+      case .missingEntries(let urls):
+        XCTAssertEqual(urls, [url])
+      default:
+        XCTFail("should be expected error")
+      }
+      XCTAssert(entries.isEmpty)
+    }) { error in
+      XCTAssertNil(error)
       exp.fulfill()
     }
     self.waitForExpectations(timeout: 10) { er in
