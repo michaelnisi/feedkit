@@ -13,7 +13,7 @@ public enum QueueError: Error {
   case notInQueue
 }
 
-struct Queue<Item: Hashable> {
+public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
   
