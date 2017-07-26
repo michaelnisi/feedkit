@@ -12,6 +12,8 @@ import Nuke
 import UIKit
 import os.log
 
+public typealias ImageRequest = Request
+
 // MARK: - Logging
 
 @available(iOS 10.0, *)
@@ -22,19 +24,29 @@ typealias ImageCache = Nuke.Cache
 
 // MARK: - API
 
-public enum ImageQuality: Int {
+public enum ImageQuality: CGFloat {
   case high = 1
   case medium = 2
   case low = 4
 }
 
-// TODO: Introduce ImageQuality
 // TODO: Route all image requests through here
 
 public protocol Images {
   func loadImage(for item: Imaginable, into imageView: UIImageView)
+  func loadImage(for item: Imaginable, into imageView: UIImageView, quality: ImageQuality?)
+  
+  func prefetchImages(for items: [Imaginable], at size: CGSize, quality: ImageQuality) -> [ImageRequest] 
+  func cancel(prefetching requests: [ImageRequest])
+  
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
-  func preheatImage(for item: Imaginable, at size: CGSize)
+}
+
+fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
+  let q = quality?.rawValue ?? ImageQuality.high.rawValue
+  let w = size.width / q
+  let h = size.height / q
+  return CGSize(width: w, height: h)
 }
 
 // MARK: -
@@ -133,6 +145,8 @@ public final class ImageRepository: Images {
   
   public static var shared: Images = ImageRepository()
   
+  fileprivate let preheater = Nuke.Preheater()
+  
   public init() {}
   
   /// Synchronously loads an image for the specificied item and size.
@@ -165,20 +179,16 @@ public final class ImageRepository: Images {
     return img
   }
   
-  public func preheatImage(for item: Imaginable, at size: CGSize) {
-    // TODO: Write
-  }
-  
   /// Loads an image to represent `item` into `imageView`, scaling the image
   /// to match the image view’s bounds.
   ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
-  public func loadImage(for item: Imaginable, into imageView: UIImageView) {
+  public func loadImage(for item: Imaginable, into imageView: UIImageView, quality: ImageQuality? = nil) {
     let size = imageView.frame.size
     
-    guard let url = urlToLoad(from: item, for: size) else {
+    guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {
       if #available(iOS 10.0, *) {
         os_log("no image: %{public}@", log: log,  type: .error,
                String(describing: item))
@@ -216,4 +226,35 @@ public final class ImageRepository: Images {
       }
     }
   }
+  
+  public func loadImage(for item: Imaginable, into imageView: UIImageView) {
+    loadImage(for: item, into: imageView, quality: .high)
+  }
+}
+
+// MARK: - Prefetching
+
+extension ImageRepository {
+  
+  fileprivate func requests(with items: [Imaginable], at size: CGSize,
+                            quality: ImageQuality) -> [Request] {
+    return items.flatMap {
+      guard let url = urlToLoad(from: $0, for: scale(size, to: quality)) else {
+        return nil
+      }
+      return Request(url: url)
+    }
+  }
+  
+  public func prefetchImages(for items: [Imaginable], at size: CGSize,
+                             quality: ImageQuality) -> [ImageRequest] {
+    let reqs = requests(with: items, at: size, quality: quality)
+    preheater.startPreheating(with: reqs)
+    return reqs
+  }
+  
+  public func cancel(prefetching requests: [ImageRequest]) {
+    preheater.stopPreheating(with: requests)
+  }
+  
 }

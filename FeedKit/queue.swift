@@ -13,6 +13,10 @@ public enum QueueError: Error {
   case notInQueue
 }
 
+// TODO: Implement skip(to item: Item) -> Bool
+// TODO: Review errors vs. Bool
+// TODO: Implement nextUp() -> [Item]
+
 public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
