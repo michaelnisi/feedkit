@@ -223,23 +223,25 @@ private final class FetchQueueOperation: FeedKitOperation {
 
 public final class EntryQueue {
   
-  // TODO: User proper operation queue
-  let operationQueue = OperationQueue()
-  
-  public var delegate: QueueDelegate?
-
+  let operationQueue: OperationQueue
   let queueCache: QueueCaching
   let browser: Browsing
   
   /// Creates a fresh EntryQueue object.
-  public init(queueCache: QueueCaching, browser: Browsing) {
+  ///
+  /// - Parameters:
+  ///   - queueCache: The cache to store the queue locallly.
+  ///   - browser: The browser to retrieve entries.
+  ///   - queue: The operation queue to execute operations on.
+  public init(queueCache: QueueCaching, browser: Browsing, queue: OperationQueue) {
     self.queueCache = queueCache
     self.browser = browser
+    self.operationQueue = queue
   }
   
-  // TODO: Make sure to have a queue when it‘s needed
-  
   fileprivate var queue: Queue<Entry>!
+  
+  public var delegate: QueueDelegate?
 }
 
 extension EntryQueue: Queueing {
@@ -253,9 +255,6 @@ extension EntryQueue: Queueing {
     let cache = self.queueCache
     let target = DispatchQueue.main
     let op = FetchQueueOperation(browser: browser, cache: cache, target: target)
-    
-    // TODO: Sort entries and create a new queue
-    
     
     var acc = [Entry]()
     
