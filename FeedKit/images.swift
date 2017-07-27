@@ -12,8 +12,6 @@ import Nuke
 import UIKit
 import os.log
 
-public typealias ImageRequest = Request
-
 // MARK: - Logging
 
 @available(iOS 10.0, *)
@@ -24,19 +22,22 @@ typealias ImageCache = Nuke.Cache
 
 // MARK: - API
 
+public typealias ImageRequest = Request
+
 public enum ImageQuality: CGFloat {
   case high = 1
   case medium = 2
   case low = 4
 }
 
-// TODO: Route all image requests through here
-
 public protocol Images {
   func loadImage(for item: Imaginable, into imageView: UIImageView)
-  func loadImage(for item: Imaginable, into imageView: UIImageView, quality: ImageQuality?)
+  func loadImage(for item: Imaginable, into imageView: UIImageView,
+                 quality: ImageQuality?)
   
-  func prefetchImages(for items: [Imaginable], at size: CGSize, quality: ImageQuality) -> [ImageRequest] 
+  func prefetchImages(for items: [Imaginable], at size: CGSize,
+                      quality: ImageQuality) -> [ImageRequest]
+  
   func cancel(prefetching requests: [ImageRequest])
   
   func image(for item: Imaginable, in size: CGSize) -> UIImage?

@@ -556,15 +556,6 @@ public enum Synced {
 /// Posted when the queue has been changed.
 public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
 
-public protocol QueueCaching {
-  func add(_ entries: [EntryLocator]) throws
-  func remove(guids: [String]) throws
-  func entries() throws -> [Queued]
-  
-  func add(synced: [Synced]) throws
-  func remove(recordNames: [String]) throws
-}
-
 public enum Queued {
   case locator(EntryLocator, Date)
 }
@@ -587,6 +578,15 @@ extension Queued: Hashable {
       }
     }
   }
+}
+
+public protocol QueueCaching {
+  func add(_ entries: [EntryLocator]) throws
+  func remove(guids: [String]) throws
+  func queued() throws -> [Queued]
+  
+  func add(synced: [Synced]) throws
+  func remove(recordNames: [String]) throws
 }
 
 public protocol QueueDelegate {

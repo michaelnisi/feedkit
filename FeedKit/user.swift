@@ -17,7 +17,7 @@ fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 extension UserCache: QueueCaching {
   
-  public func entries() throws -> [Queued] {
+  public func queued() throws -> [Queued] {
     var er: Error?
     var locators = [Queued]()
     
@@ -99,10 +99,8 @@ extension UserCache: QueueCaching {
             return acc
           }
           guard let guid = loc.guid else {
-            // TODO: Remove fatalError
-            fatalError("not queueable: missing GUID")
-//            er = FeedKitError.invalidEntry(reason: "missing guid")
-//            return acc
+            er = FeedKitError.invalidEntry(reason: "missing guid")
+            return acc
           }
           let sql = fmt.SQLToQueueEntry(locator: QueueEntryLocator(
             url: loc.url, guid: guid, since: loc.since
@@ -197,8 +195,7 @@ private final class FetchQueueOperation: FeedKitOperation {
     isExecuting = true
     
     do {
-      // TODO: Rename cache.entries() to cache.queued()
-      let queued = try cache.entries()
+      let queued = try cache.queued()
       
       let locators: [EntryLocator] = queued.flatMap {
         switch $0 {
@@ -218,8 +215,6 @@ private final class FetchQueueOperation: FeedKitOperation {
   }
  
 }
-
-// TODO: Update queue after redirects
 
 public final class EntryQueue {
   
