@@ -757,7 +757,10 @@ extension FeedRepository: Browsing {
     dep.reachable = r
 
     dep.feedsBlock = { error, feeds in
-
+      if let er = error {
+        // TODO: Pass error to entries operation
+        assert(false, "unhandled error: \(er)")
+      }
     }
 
     dep.feedsCompletionBlock = { error in

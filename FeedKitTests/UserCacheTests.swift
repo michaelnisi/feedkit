@@ -41,7 +41,7 @@ final class UserCacheTests: XCTestCase {
     let wanted = locators.map {
       Queued.locator($0, Date())
     }
-    let found = try! cache.entries()
+    let found = try! cache.queued()
     XCTAssertEqual(found, wanted)
   }
   
@@ -52,13 +52,13 @@ final class UserCacheTests: XCTestCase {
       let wanted = locators.map {
         Queued.locator($0, Date())
       }
-      let found = try! cache.entries()
+      let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
     }
     
     try! cache.remove(guids: ["123"])
     
-    let found = try! cache.entries()
+    let found = try! cache.queued()
     XCTAssert(found.isEmpty)
   }
   

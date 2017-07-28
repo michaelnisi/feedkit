@@ -234,7 +234,7 @@ public final class EntryQueue {
     self.operationQueue = queue
   }
   
-  fileprivate var queue: Queue<Entry>!
+  fileprivate var queue = Queue<Entry>()
   
   public var delegate: QueueDelegate?
 }
@@ -259,7 +259,7 @@ extension EntryQueue: Queueing {
     }
     
     op.entriesCompletionBlock = { error in
-      self.queue = try! Queue<Entry>(items: acc)
+      self.queue = Queue<Entry>(items: acc)
       entriesCompletionBlock(error)
     }
     
