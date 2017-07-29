@@ -24,15 +24,7 @@ final class QueueTests: XCTestCase {
     super.tearDown()
   }
   
-  lazy fileprivate var items: [Int] = {
-    var items = [Int]()
-    
-    for i in 1...8 {
-      items.append(i)
-    }
-    
-    return items
-  }()
+  fileprivate var items = [1, 2, 3, 4, 5, 6, 7, 8]
   
   private func populate() {
     try! self.queue.add(items: items)
@@ -51,10 +43,13 @@ final class QueueTests: XCTestCase {
     populate()
     
     try! queue.skip(to: 6)
+    
     XCTAssertEqual(queue.nextUp, [7, 8])
-    XCTAssertEqual(queue.now, 6)
+    XCTAssertEqual(queue.current, 6)
+    
     XCTAssertEqual(queue.forward(), 7)
-    XCTAssertEqual(queue.backward(), 7)
+    
+    XCTAssertEqual(queue.backward(), 6)
     
     XCTAssertEqual(queue.nextUp, [7, 8])
   }
@@ -62,43 +57,45 @@ final class QueueTests: XCTestCase {
   func testNextUp() {
     XCTAssertEqual(queue.nextUp, [])
     populate()
-    XCTAssertEqual(queue.nextUp, items)
+    XCTAssertEqual(queue.current, 1)
     
-    XCTAssertEqual(queue.forward(), 1)
+    XCTAssertEqual(queue.forward(), 2)
     
-    XCTAssertEqual(queue.nextUp, [2,3,4,5,6,7,8])
+    XCTAssertEqual(queue.nextUp, [3,4,5,6,7,8])
   }
   
   func testForward() {
     XCTAssertNil(queue.forward())
     
     populate()
+    XCTAssertEqual(queue.current, 1)
     
     let now = 4
     
-    for i in 1...now {
+    for i in 2...now {
       XCTAssertEqual(queue.forward(), i)
     }
+    
+    XCTAssertEqual(queue.current, now)
+    XCTAssertEqual(queue.forward(), 5)
   }
   
   func testBackward() {
     XCTAssertNil(queue.backward())
     
     populate()
+    XCTAssertEqual(queue.current, 1)
     
     XCTAssertNil(queue.backward())
     
     let now = 4
     
-    for i in 1...now {
+    for i in 2...now {
       XCTAssertEqual(queue.forward(), i)
     }
     
-    XCTAssertEqual(queue.now, now)
-    
-    for i in 1...now {
-      XCTAssertEqual(queue.backward(), now - i + 1)
-    }
+    XCTAssertEqual(queue.current, now)
+    XCTAssertEqual(queue.backward(), 3)
   }
   
   func testRemove() {
@@ -126,18 +123,10 @@ final class QueueTests: XCTestCase {
   }
   
   func testAdd() {
-    let item = 11
-    try! queue.add(item)
+    try! queue.add(items: [1, 2, 3])
+    XCTAssertEqual(queue.current, 1)
     
-    XCTAssert(queue.contains(11))
-    
-    let wanted = item
-    for _ in 1...8 {
-      XCTAssertEqual(queue.forward(), wanted)
-      XCTAssertEqual(queue.backward(), wanted)
-    }
-    
-    XCTAssertThrowsError(try queue.add(item), "should throw") { er in
+    XCTAssertThrowsError(try queue.add(1), "should throw") { er in
       switch er {
       case QueueError.alreadyInQueue:
         break
@@ -145,5 +134,11 @@ final class QueueTests: XCTestCase {
         XCTFail()
       }
     }
+    
+    try! queue.add(5)
+    XCTAssertEqual(queue.current, 1)
+    
+    try! queue.skip(to: 5)
+    XCTAssertEqual(queue.current, 5)
   }
 }

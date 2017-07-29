@@ -22,6 +22,7 @@ public struct Queue<Item: Hashable> {
     return itemsByHashValues.enumerated()
   }
   
+  private var now: Int?
   private var fwd = [Int]()
   private var bwd = [Int]()
   
@@ -31,33 +32,44 @@ public struct Queue<Item: Hashable> {
     }
     
     let key = item.hashValue
-    
     itemsByHashValues[key] = item
     fwd.append(key)
   }
   
+  public var isEmpty: Bool { get { return itemsByHashValues.isEmpty } }
+  
   public mutating func add(items: [Item]) throws {
+    let shouldSetNow = isEmpty
     try items.reversed().forEach { item in
       try add(item)
+    }
+    if shouldSetNow {
+      now = fwd.removeLast().hashValue
     }
   }
   
   public init() {}
   
-  // TODO: throw
+  /// Creates a new queue containing `items` with its first item as `current`.
+  ///
+  /// - Parameter items: The items to enqueue, an empty array is fine too.
   public init(items: [Item]) {
     try! add(items: items)
+    now = fwd.removeLast().hashValue
   }
   
-  @discardableResult private mutating func castling(a: inout [Int], b: inout [Int]) -> Item? {
-    guard !a.isEmpty else {
+  @discardableResult private mutating func castling(
+    a: inout [Int], b: inout [Int]) -> Item? {
+    
+    guard a.count > 1 else {
       return nil
     }
     
     let key = a.removeLast()
     let item = itemsByHashValues[key]!
     
-    b.append(key)
+    b.append(now!)
+    now = item.hashValue
     
     return item
   }
@@ -74,30 +86,39 @@ public struct Queue<Item: Hashable> {
     guard contains(item) else {
       throw QueueError.notInQueue
     }
-    
+  
+    var it: Item?
     if fwd.contains(item.hashValue) {
-      while forward() != item {}
+      repeat {
+        it = forward()
+      } while it != item && it != nil
     } else {
-      while backward() != item {}
+      repeat {
+        it = backward()
+      } while it != item && it != nil
     }
   }
   
-  var now: Item? { get {
-    guard let hashValue = bwd.last else {
+  var current: Item? { get {
+    guard let hashValue = now else {
       return nil
     }
     return itemsByHashValues[hashValue]
   }}
   
   var nextUp: [Item] { get {
-    return fwd.reversed().flatMap { itemsByHashValues[$0.hashValue] }
+    return fwd.reversed().flatMap {
+      guard $0.hashValue != now else {
+        return nil
+      }
+      return itemsByHashValues[$0.hashValue]
+    }
   }}
   
   public func contains(_ item: Item) -> Bool {
     return itemsByHashValues.keys.contains(item.hashValue)
   }
 
-  
   public mutating func remove(_ item: Item) throws {
     let key = item.hashValue
     
@@ -107,9 +128,8 @@ public struct Queue<Item: Hashable> {
     
     if let index = fwd.index(of: key) {
       fwd.remove(at: index)
-    } else {
-      let index = bwd.index(of: key)
-      bwd.remove(at: index!)
+    } else if let index = bwd.index(of: key) {
+      bwd.remove(at: index)
     }
   }
 }

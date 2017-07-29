@@ -358,7 +358,7 @@ final class FeedRepositoryTests: XCTestCase {
     // GUID at any time. If it fails, replace guid with an existing one.
     
     let url = "http://feeds.wnyc.org/newyorkerradiohour"
-    let guid = "d560011a2db423121341675bfcbacc6925bff8aa"
+    let guid = "eee61768a48783c62756edd481a0364129c65be0"
     let locators = [EntryLocator(url: url, guid: guid)]
     
     var acc = [Entry]()

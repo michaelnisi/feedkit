@@ -234,6 +234,7 @@ public final class EntryQueue {
     self.operationQueue = queue
   }
   
+  /// The actual queue data structure. Starting off with an empty queue.
   fileprivate var queue = Queue<Entry>()
   
   public var delegate: QueueDelegate?
@@ -319,5 +320,4 @@ extension EntryQueue: Queueing {
   }
   
 }
-
 
