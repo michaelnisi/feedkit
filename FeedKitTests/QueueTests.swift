@@ -30,6 +30,10 @@ final class QueueTests: XCTestCase {
     try! self.queue.add(items: items)
   }
   
+  func testInitItems() {
+    let q = Queue<Int>(items: [])
+  }
+  
   func testSkipTo() {
     XCTAssertThrowsError(try queue.skip(to: 6)) { er in
       switch er {

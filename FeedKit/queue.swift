@@ -39,7 +39,7 @@ public struct Queue<Item: Hashable> {
   public var isEmpty: Bool { get { return itemsByHashValues.isEmpty } }
   
   public mutating func add(items: [Item]) throws {
-    let shouldSetNow = isEmpty
+    let shouldSetNow = isEmpty && !items.isEmpty
     try items.reversed().forEach { item in
       try add(item)
     }
@@ -55,7 +55,6 @@ public struct Queue<Item: Hashable> {
   /// - Parameter items: The items to enqueue, an empty array is fine too.
   public init(items: [Item]) {
     try! add(items: items)
-    now = fwd.removeLast().hashValue
   }
   
   @discardableResult private mutating func castling(

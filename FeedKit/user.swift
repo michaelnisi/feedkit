@@ -216,6 +216,8 @@ private final class FetchQueueOperation: FeedKitOperation {
  
 }
 
+// TODO: Consider extending this into User, organized into extensions
+
 public final class EntryQueue {
   
   let operationQueue: OperationQueue
