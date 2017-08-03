@@ -68,7 +68,7 @@ func freshCache(_ aClass: AnyClass!) -> Cache {
     try! fm.removeItem(at: url)
   }
   return try! Cache(
-    schema: schema(for: aClass, forResource: "schema"),
+    schema: schema(for: aClass, forResource: "cache"),
     url: nil
   )
 }

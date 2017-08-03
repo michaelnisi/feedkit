@@ -122,7 +122,11 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let summary: String?
   public let title: String
   public let ts: Date?
+  
+  /// The locally unique identifier of the feed, literally the `rowid` of the 
+  /// feed table.
   public let uid: Int?
+  
   public let updated: Date?
   public let url: String
 }
@@ -331,11 +335,19 @@ extension EntryLocator : CustomStringConvertible {
   }
 }
 
-/// An `EntryLocator` with required `guid`.
+// TODO: Remove QueueEntryLocator
+
+/// An `EntryLocator` with required `guid` to identify specific entries globally.
 public struct QueueEntryLocator {
   let url: String
   let guid: String
   let since: Date?
+  
+  init(url: String, guid: String, since: Date?) {
+    self.url = url
+    self.guid = guid
+    self.since = since
+  }
 }
 
 /// A suggested search term, bearing the timestamp of when it was added
@@ -584,6 +596,8 @@ public protocol QueueCaching {
   func add(_ entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
   func queued() throws -> [Queued]
+  
+  func local() throws -> [Queued]
   
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws

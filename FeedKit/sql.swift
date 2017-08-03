@@ -468,6 +468,8 @@ extension SQLFormatter {
       ].joined(separator: "\n");
     }
   }
+  // C494AD71-AB58-4A00-BFDE-2551A32BC3E4
+  static let SQLToSelectLocallyQueuedEntries = "SELECT * FROM locally_queued_entry;"
   
 }
 
@@ -491,8 +493,8 @@ extension SQLFormatter {
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     
-    return "INSERT OR REPLACE INTO queued_entry(guid, url, since) VALUES(" +
-    "\(guid), \(url), \(since));"
+    return "INSERT OR REPLACE INTO queued_entry(guid, url, since) " +
+      "VALUES(\(guid), \(url), \(since));"
   }
   
   func queuedLocator(from row: SkullRow) -> Queued {

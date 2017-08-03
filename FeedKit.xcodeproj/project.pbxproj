@@ -12,7 +12,6 @@
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
 		4C74A6E41F06BC6500951796 /* queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E31F06BC6500951796 /* queue.swift */; };
 		4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E51F07953300951796 /* UserCacheTests.swift */; };
-		4CA3B2C01A068D8E0072E0C4 /* schema.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BF1A068D8E0072E0C4 /* schema.sql */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
 		4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594A1BDF4E8B00EA7780 /* sql.swift */; };
@@ -27,6 +26,8 @@
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
 		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
+		4ED56CEC1F32DB4300BEC83C /* cache.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4ED56CEB1F32DB4300BEC83C /* cache.sql */; };
+		4ED56CED1F32DB7300BEC83C /* cache.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4ED56CEB1F32DB4300BEC83C /* cache.sql */; };
 		4EF5E0EC1E91370900A95D3D /* FeedKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4EF5E0EA1E9136D200A95D3D /* FeedKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		4EF5E0F61E91389F00A95D3D /* FeedKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C3485951977C236008A6B53 /* FeedKit.framework */; };
 		4EF5E0FC1E91390800A95D3D /* CacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */; };
@@ -39,7 +40,6 @@
 		4EF5E1031E91390800A95D3D /* feeds.json in Resources */ = {isa = PBXBuildFile; fileRef = 4CDA59591BE69D6700EA7780 /* feeds.json */; };
 		4EF5E1041E91390800A95D3D /* search.json in Resources */ = {isa = PBXBuildFile; fileRef = 4C7B0F971C1DC20E0085A88B /* search.json */; };
 		4EF5E1051E91390800A95D3D /* entries.json in Resources */ = {isa = PBXBuildFile; fileRef = 4CDA59571BE69AC200EA7780 /* entries.json */; };
-		4EF5E1061E91393C00A95D3D /* schema.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4CA3B2BF1A068D8E0072E0C4 /* schema.sql */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,7 +65,6 @@
 		4C7B0F971C1DC20E0085A88B /* search.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = search.json; sourceTree = "<group>"; };
 		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
 		4CA3B2BD1A068BC80072E0C4 /* CacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CacheTests.swift; sourceTree = "<group>"; };
-		4CA3B2BF1A068D8E0072E0C4 /* schema.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = schema.sql; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = serialize.swift; path = ../../FeedKit/FeedKit/serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
@@ -85,6 +84,7 @@
 		4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/FanboyKit.framework"; sourceTree = "<group>"; };
 		4E7B1D831E3D12D900B7F229 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
 		4E7B1D841E3D12D900B7F229 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
+		4ED56CEB1F32DB4300BEC83C /* cache.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cache.sql; sourceTree = "<group>"; };
 		4EF5E0EA1E9136D200A95D3D /* FeedKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedKit.h; sourceTree = "<group>"; };
 		4EF5E0F11E91389F00A95D3D /* FeedKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -155,7 +155,7 @@
 			isa = PBXGroup;
 			children = (
 				4C3485991977C236008A6B53 /* Info.plist */,
-				4CA3B2BF1A068D8E0072E0C4 /* schema.sql */,
+				4ED56CEB1F32DB4300BEC83C /* cache.sql */,
 				4E49B7371F07A524004668FD /* user.sql */,
 			);
 			name = "Supporting Files";
@@ -297,7 +297,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4CA3B2C01A068D8E0072E0C4 /* schema.sql in Resources */,
+				4ED56CEC1F32DB4300BEC83C /* cache.sql in Resources */,
 				4E49B7381F07A524004668FD /* user.sql in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -306,10 +306,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4EF5E1061E91393C00A95D3D /* schema.sql in Resources */,
+				4ED56CED1F32DB7300BEC83C /* cache.sql in Resources */,
+				4E49B7391F07A552004668FD /* user.sql in Resources */,
 				4EF5E1041E91390800A95D3D /* search.json in Resources */,
 				4EF5E1021E91390800A95D3D /* feed_query.json in Resources */,
-				4E49B7391F07A552004668FD /* user.sql in Resources */,
 				4EF5E1051E91390800A95D3D /* entries.json in Resources */,
 				4EF5E1031E91390800A95D3D /* feeds.json in Resources */,
 			);

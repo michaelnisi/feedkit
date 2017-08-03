@@ -1,5 +1,5 @@
 --
--- schema.sql
+-- cache.sql
 -- FeedKit
 --
 -- Created by Michael Nisi on 17.07.14.

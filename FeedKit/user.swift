@@ -17,7 +17,7 @@ fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 extension UserCache: QueueCaching {
   
-  public func queued() throws -> [Queued] {
+  public func _queued(sql: String) throws -> [Queued] {
     var er: Error?
     var locators = [Queued]()
     
@@ -25,7 +25,7 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        try db.query(SQLFormatter.SQLToSelectAllQueued) { skullError, row -> Int in
+        try db.query(sql) { skullError, row -> Int in
           guard skullError == nil else {
             er = skullError
             return 1
@@ -47,6 +47,14 @@ extension UserCache: QueueCaching {
     }
     
     return locators
+  }
+  
+  public func queued() throws -> [Queued] {
+    return try _queued(sql: SQLFormatter.SQLToSelectAllQueued)
+  }
+  
+  public func local() throws -> [Queued] {
+    return try _queued(sql: SQLFormatter.SQLToSelectLocallyQueuedEntries)
   }
   
   public func remove(guids: [String]) throws {
@@ -102,9 +110,8 @@ extension UserCache: QueueCaching {
             er = FeedKitError.invalidEntry(reason: "missing guid")
             return acc
           }
-          let sql = fmt.SQLToQueueEntry(locator: QueueEntryLocator(
-            url: loc.url, guid: guid, since: loc.since
-          ))
+          let l = QueueEntryLocator(url: loc.url, guid: guid, since: loc.since)
+          let sql = fmt.SQLToQueueEntry(locator: l)
           return acc + [sql]
         }.joined(separator: "\n")
         
