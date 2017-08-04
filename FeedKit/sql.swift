@@ -551,6 +551,8 @@ public class LocalCache {
     self.schema = schema
     self.url = url
     
+//    try! FileManager.default.removeItem(at: url!)
+    
     // If we'd pass these, we could disjoint the cache into separate objects.
     self.db = try Skull(url)
     

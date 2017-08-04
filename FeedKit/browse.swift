@@ -344,6 +344,12 @@ final class EntriesOperation: BrowseOperation {
           guard let urls = missing else {
             return nil
           }
+          
+          // TODO: Add GUIDs to missing entries error
+          // 
+          // Enabling further handling of the problem, for example, we might 
+          // want to remove these entries from the queue.
+          
           return FeedKitError.missingEntries(urls: urls)
         }()
 

@@ -268,8 +268,22 @@ extension EntryQueue: Queueing {
       entriesBlock(error, entries)
     }
     
+    // TODO: Find out why entriesCompletionBlock is called twice during launch
+    
     op.entriesCompletionBlock = { error in
-      self.queue = Queue<Entry>(items: acc)
+      let unique = Set(acc)
+      if acc.count != unique.count {
+        let (_, doublets) = acc.reduce(([String](), [String]())) { acc, entry in
+          let guid = entry.guid
+          let (all, doublets) = acc
+          guard !all.contains(guid) else {
+            return (all, doublets + [entry.title]) // title reads better
+          }
+          return (all + [entry.guid], doublets)
+        }
+        print("EntryQueue: \(#function): doublets detected: \(doublets)")
+      }
+      self.queue = Queue<Entry>(items: Array(unique))
       entriesCompletionBlock(error)
     }
     

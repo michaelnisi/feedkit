@@ -205,8 +205,7 @@ extension Enclosure : CustomStringConvertible {
   }
 }
 
-// TODO: Consider replacing Identifiable with Hashable
-
+/// Globally identifiable across sessions and devices.
 public protocol Identifiable {
   var guid: String { get }
 }

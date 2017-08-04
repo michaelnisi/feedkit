@@ -249,9 +249,11 @@ struct serialize {
     guard let title = json["title"] as? String else {
       throw FeedKitError.invalidEntry(reason: "missing title: \(feed)")
     }
-    guard let guid = json["id"] as? String else {
+    guard let id = json["id"] as? String else {
       throw FeedKitError.invalidEntry(reason: "missing id: \(feed)")
     }
+    
+    let guid = String(djb2Hash(string: id) ^ djb2Hash(string: feed))
     
     let updated = serialize.date(from: json, withKey: "updated") ??
       Date(timeIntervalSince1970: 0)

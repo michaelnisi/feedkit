@@ -23,3 +23,9 @@ public func djb2Hash(string: String) -> Int {
     ($0 << 5) &+ $0 &+ Int($1)
   }
 }
+
+// TODO: Type entry GUID Int
+
+func entryGUID(for item: String, at url: String) -> String {
+  return String(djb2Hash(string: url) ^ djb2Hash(string: item))
+}

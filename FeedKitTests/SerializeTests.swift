@@ -162,12 +162,12 @@ final class SerializeTests: XCTestCase {
     
     let dict = [
       "url": feed,
-      "id": "c596b134310d499b13651fed64597de2c9931179",
+      "id": "123",
       "title": title,
       "updated": NSNumber(value: 3600000 as Double) // ms
     ] as [String : Any]
     
-    let guid = "c596b134310d499b13651fed64597de2c9931179"
+    let guid = entryGUID(for: "123", at: feed)
     
     let entry = Entry(
       author: nil,
