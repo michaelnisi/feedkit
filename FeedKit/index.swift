@@ -11,16 +11,6 @@ import Ola
 import Patron
 import os.log
 
-// TODO: Encapsulate TODOs into GitHub issues
-
-// TODO: Free tests from network dependencies
-
-// TODO: Rename probe parameter to probe
-
-// TODO: Move all protocols into this file
-
-// TODO: All core objects should be Hashable
-
 // MARK: - Notifications
 
 /// Posted when a remote request has been started.
@@ -205,22 +195,22 @@ extension Enclosure : CustomStringConvertible {
   }
 }
 
-/// Globally identifiable across sessions and devices.
-public protocol Identifiable {
-  var guid: String { get }
-}
-
 // TODO: Resolve image/feedImage confusion
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
-public struct Entry: Redirectable, Imaginable, Identifiable {
+public struct Entry: Redirectable, Imaginable {
   public let author: String?
   public let duration: Int?
   public let enclosure: Enclosure?
   public let feed: String
   public let feedImage: String?
   public let feedTitle: String?
+  
+  // TODO: Type entry GUID as Int
+  
+  /// Globally unique identifier of the entry, generated locally.
   public let guid: String
+  
   public let iTunes: ITunesItem?
   public let image: String?
   public let link: String?
@@ -711,7 +701,7 @@ public class RemoteRepository: NSObject {
   }
 }
 
-/// Oh my! Inheritance.
+/// An abstract super class to be extended by concurrent FeedKit operations.
 class FeedKitOperation: Operation {
   fileprivate var _executing: Bool = false
   
@@ -748,8 +738,6 @@ class FeedKitOperation: Operation {
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation {
-
-  // MARK: Properties
 
   /// If you know in advance that the remote service is currently not available,
   /// you might set this to `false` to be more effective.

@@ -521,6 +521,8 @@ extension Cache: SearchCaching {
           return acc + [SQLFormatter.SQLToInsertFeedID(feedID, forTerm: term)]
         }.joined(separator: "\n")
         
+        // TODO: Avoid: "BEGIN;\nDELETE FROM search WHERE term=\'\'\';\n\nCOMMIT;"
+        
         let sql = [
           "BEGIN;",
           delete,

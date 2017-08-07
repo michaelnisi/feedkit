@@ -31,7 +31,7 @@ final class QueueTests: XCTestCase {
   }
   
   func testInitItems() {
-    let q = Queue<Int>(items: [])
+    XCTAssertNoThrow(Queue<Int>(items: []))
   }
   
   func testSkipTo() {

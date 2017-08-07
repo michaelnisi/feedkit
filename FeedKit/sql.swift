@@ -337,8 +337,11 @@ extension SQLFormatter {
       options: NSString.CompareOptions.literal,
       range: nil
     )
+    
     return "'\(s)'"
   }
+  
+  // TODO: Ensure all strings pass through SQLStringFromString
   
   static func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
     let s = SQLStringFromString(url)
@@ -346,7 +349,8 @@ extension SQLFormatter {
   }
   
   static func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
-    return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), '\(term)');"
+    let s = SQLStringFromString(term)
+    return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), \(s));"
   }
 }
 
@@ -404,11 +408,12 @@ extension SQLFormatter {
   }
   
   // TODO: Review SELECT DISTINCT in search queries
+  // TODO: Escape search term
   
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
       "SELECT rowid FROM search_fts " +
-      "WHERE term = '\(term)') " +
+      "WHERE term = \(SQLStringFromString(term))) " +
       "LIMIT \(limit);"
     return sql
   }
@@ -432,7 +437,7 @@ extension SQLFormatter {
   }
   
   static func SQLToDeleteSearch(for term: String) -> String {
-    return "DELETE FROM search WHERE term='\(term)';"
+    return "DELETE FROM search WHERE term=\(SQLStringFromString(term));"
   }
   
 }

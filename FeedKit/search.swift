@@ -42,8 +42,10 @@ private class SearchRepoOperation: SessionTaskOperation {
     self.cache = cache
     self.originalTerm = term
     self.svc = svc
-
-    self.term = replaceWhitespaces(in: term.lowercased(), with: " ")
+    
+    let trimmed = replaceWhitespaces(in: term.lowercased(), with: " ")
+    
+    self.term = trimmed
     self.target = target
   }
 }

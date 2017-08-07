@@ -26,6 +26,9 @@ public func djb2Hash(string: String) -> Int {
 
 // TODO: Type entry GUID Int
 
-func entryGUID(for item: String, at url: String) -> String {
-  return String(djb2Hash(string: url) ^ djb2Hash(string: item))
+/// Creates a globally unique identifier by combining an element `guid`, as
+/// specified by RSS or atom:id, unique within their respective feeds, with its 
+/// feed `url`. Combined with the URL, we can assume *fair* global uniqueness.
+func entryGUID(for guid: String, at url: String) -> String {
+  return String(djb2Hash(string: url) ^ djb2Hash(string: guid))
 }
