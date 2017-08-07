@@ -314,8 +314,6 @@ extension SQLFormatter {
     return selectRowsByUIDs("feed_view", ids: feedIDs)
   }
   
-  // TODO: Remove global guid dependency
-  
   static func SQLToSelectEntryByGUID(_ guid: String) -> String {
     return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
   }
@@ -330,15 +328,24 @@ extension SQLFormatter {
     return sql
   }
   
+  // TODO: Complete SQLStringFromString
+  
   static func SQLStringFromString(_ string: String) -> String {
-    let s = string.replacingOccurrences(
+    let a = string.replacingOccurrences(
+      of: "\"",
+      with: "''",
+      options: NSString.CompareOptions.literal,
+      range: nil
+    )
+    
+    let b = a.replacingOccurrences(
       of: "'",
       with: "''",
       options: NSString.CompareOptions.literal,
       range: nil
     )
     
-    return "'\(s)'"
+    return "'\(b)'"
   }
   
   // TODO: Ensure all strings pass through SQLStringFromString
@@ -356,25 +363,30 @@ extension SQLFormatter {
 
 // MARK: - Searching
 
+// TODO: Validate search term to avoid: "malformed MATCH expression: [\"*]"
+
 extension SQLFormatter {
   
   static func SQLToInsertSuggestionForTerm(_ term: String) -> String {
-    return "INSERT OR REPLACE INTO sug(term) VALUES('\(term)');"
+    let s = SQLStringFromString(term)
+    return "INSERT OR REPLACE INTO sug(term) VALUES(\(s));"
   }
   
   static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
+    let s = SQLStringFromString("\(term)*")
     let sql = "SELECT * FROM sug WHERE rowid IN (" +
       "SELECT rowid FROM sug_fts " +
-      "WHERE term MATCH '\(term)*') " +
+      "WHERE term MATCH \(s)) " +
       "ORDER BY ts DESC " +
       "LIMIT \(limit);"
     return sql
   }
   
   static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
+    let s = SQLStringFromString("\(term)*")
     let sql = "DELETE FROM sug " +
       "WHERE rowid IN (" +
-      "SELECT rowid FROM sug_fts WHERE term MATCH '\(term)*');"
+      "SELECT rowid FROM sug_fts WHERE term MATCH \(s));"
     return sql
   }
   
@@ -411,33 +423,37 @@ extension SQLFormatter {
   // TODO: Escape search term
   
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
+    let s = SQLStringFromString(term)
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
       "SELECT rowid FROM search_fts " +
-      "WHERE term = \(SQLStringFromString(term))) " +
+      "WHERE term = \(s)) " +
       "LIMIT \(limit);"
     return sql
   }
   
   static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
+    let s = SQLStringFromString("\(term)*")
     let sql = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
       "SELECT rowid FROM feed_fts " +
-      "WHERE feed_fts MATCH '\(term)*') " +
+      "WHERE feed_fts MATCH \(s)) " +
       "ORDER BY ts DESC " +
       "LIMIT \(limit);"
     return sql
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
+    let s = SQLStringFromString("\(term)*")
     let sql = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
       "SELECT rowid FROM entry_fts " +
-      "WHERE entry_fts MATCH '\(term)*') " +
+      "WHERE entry_fts MATCH \(s)) " +
       "ORDER BY updated DESC " +
       "LIMIT \(limit);"
     return sql
   }
   
   static func SQLToDeleteSearch(for term: String) -> String {
-    return "DELETE FROM search WHERE term=\(SQLStringFromString(term));"
+    let s = SQLStringFromString(term)
+    return "DELETE FROM search WHERE term=\(s);"
   }
   
 }

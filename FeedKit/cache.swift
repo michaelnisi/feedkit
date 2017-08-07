@@ -399,6 +399,7 @@ extension Cache: FeedCaching {
         try db.exec("begin transaction;")
         for guid in guids {
           let sql = SQLFormatter.SQLToSelectEntryByGUID(guid)
+          // TODO: Commit if this throws
           if let found = try self.entriesForSQL(sql) {
             entries = entries + found
           }

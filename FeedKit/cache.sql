@@ -9,7 +9,7 @@
 pragma journal_mode = WAL;
 pragma user_version = 1;
 
-begin immediate transaction;
+begin immediate;
 
 -- Feeds
 
@@ -276,4 +276,4 @@ as select
   s.ts
 from feed f inner join search s on f.rowid=s.feedid;
 
-commit transaction;
+commit;

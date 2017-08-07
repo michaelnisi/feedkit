@@ -50,7 +50,7 @@ fileprivate func feedURL(from json: [String : Any]) -> String? {
 func replaceWhitespaces(
   in string: String,
   with replacement: String = ""
-  ) -> String {
+) -> String {
   let ws = CharacterSet.whitespaces
   let ts = string.trimmingCharacters(in: ws)
   let cmps = ts.components(separatedBy: " ") as [String]

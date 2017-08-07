@@ -9,7 +9,7 @@
 pragma journal_mode = WAL;
 pragma user_version = 1;
 
-begin immediate transaction;
+begin immediate;
 
 -- CloudKit records
 
@@ -79,4 +79,4 @@ create trigger if not exists record_bd before delete on record begin
   delete from subscription where record_name=old.record_name;
 end;
 
-commit transaction;
+commit;
