@@ -324,28 +324,28 @@ extension SQLFormatter {
     guard !feedIDs.isEmpty else { return nil }
     let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
       "\($0)"
-      }.joined(separator: ", ") + ");"
+    }.joined(separator: ", ") + ");"
     return sql
   }
   
   // TODO: Complete SQLStringFromString
+  // TODO: Guard against SQL injections
+  // TODO: Write more tests
   
   static func SQLStringFromString(_ string: String) -> String {
-    let a = string.replacingOccurrences(
+    let s = string.replacingOccurrences(
       of: "\"",
-      with: "''",
+      with: "\"\"",
       options: NSString.CompareOptions.literal,
       range: nil
-    )
-    
-    let b = a.replacingOccurrences(
+    ).replacingOccurrences(
       of: "'",
       with: "''",
       options: NSString.CompareOptions.literal,
       range: nil
     )
     
-    return "'\(b)'"
+    return "'\(s)'"
   }
   
   // TODO: Ensure all strings pass through SQLStringFromString
@@ -540,7 +540,10 @@ public class LocalCache {
   var url: URL?
   
   let db: Skull
+  
+  /// Strictly submit to this queue to serialize database access.
   let queue: DispatchQueue
+  
   let sqlFormatter: SQLFormatter
   
   fileprivate func open() throws {
@@ -572,14 +575,14 @@ public class LocalCache {
     self.schema = schema
     self.url = url
     
-//    try! FileManager.default.removeItem(at: url!)
+    // Comment-in to remove all database files at start-up.
+    if let p = url { try FileManager.default.removeItem(at: p) }
     
-    // If we'd pass these, we could disjoint the cache into separate objects.
     self.db = try Skull(url)
     
     let me = type(of: self)
     self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
-    
+
     self.sqlFormatter = SQLFormatter()
     
     try open()

@@ -40,7 +40,7 @@ final class CacheTests: XCTestCase {
       var found: [String]?
       let wanted = [url]
       do {
-        let _ = try cache.feedIDForURL(url)
+        let _ = try cache.feedID(for: url)
       } catch FeedKitError.feedNotCached(let urls) {
         found = urls
       } catch {
@@ -57,7 +57,7 @@ final class CacheTests: XCTestCase {
       try! cache.update(feeds: feeds)
       feed = feeds.first!
       url = feed!.url
-      let found = try! cache.feedIDForURL(url!)
+      let found = try! cache.feedID(for: url!)
       let wanted = 1
       XCTAssertEqual(found, wanted)
     }
@@ -67,7 +67,7 @@ final class CacheTests: XCTestCase {
       var found: [String]?
       let wanted = [url!]
       do {
-        let _ = try cache.feedIDForURL(url!)
+        let _ = try cache.feedID(for: url!)
       } catch FeedKitError.feedNotCached(let urls) {
         found = urls
       } catch {
@@ -78,7 +78,7 @@ final class CacheTests: XCTestCase {
 
     do {
       try! cache.update(feeds: [feed!])
-      let found = try! cache.feedIDForURL(url!)
+      let found = try! cache.feedID(for: url!)
       let wanted = 11
       XCTAssertEqual(found, wanted)
     }
@@ -149,7 +149,7 @@ final class CacheTests: XCTestCase {
 
       let url = foundFeed.url
       XCTAssertTrue(cache.hasURL(url))
-      let uid = try! cache.feedIDForURL(url)
+      let uid = try! cache.feedID(for: url)
       XCTAssertEqual(uid, foundFeed.uid)
     }
   }
@@ -294,7 +294,7 @@ final class CacheTests: XCTestCase {
     // Granular scoping.
 
     do {
-      try cache.updateSuggestions([], forTerm: "new")
+      try cache.update(suggestions: [], for: "new")
     } catch {
       XCTFail("should not throw \(error)")
     }
@@ -306,7 +306,7 @@ final class CacheTests: XCTestCase {
     }
 
     do {
-      let found = try cache.feedsForTerm(term, limit: 50)
+      let found = try cache.feeds(for: term, limit: 50)
       let wanted = feeds.filter {
         $0.url != "http://feeds.feedburner.com/doublet"
       }
@@ -317,7 +317,7 @@ final class CacheTests: XCTestCase {
     }
 
     do {
-      let found = try cache.suggestionsForTerm(term, limit: 5)
+      let found = try cache.suggestions(for: term, limit: 5)
       let wanted = suggestionsFromTerms([term])
       XCTAssertEqual(found!, wanted)
     } catch {
@@ -331,14 +331,14 @@ final class CacheTests: XCTestCase {
     }
 
     do {
-      let found = try cache.feedsForTerm(term, limit: 50)
+      let found = try cache.feeds(for: term, limit: 50)
       XCTAssert(found!.isEmpty)
     } catch {
       XCTFail("should not throw \(error)")
     }
 
     do {
-      let found = try cache.suggestionsForTerm(term, limit: 5)
+      let found = try cache.suggestions(for: term, limit: 5)
       XCTAssertNil(found)
     } catch {
       XCTFail("should not throw \(error)")
@@ -351,12 +351,12 @@ final class CacheTests: XCTestCase {
     
     XCTAssertEqual(feeds.count, 12)
 
-    XCTAssertNil(try! cache.feedsForTerm(term, limit: 50))
+    XCTAssertNil(try! cache.feeds(for: term, limit: 50))
 
     for _ in 0...1 {
       try! cache.updateFeeds(feeds, forTerm: term)
 
-      let found = try! cache.feedsForTerm(term, limit: 50)!
+      let found = try! cache.feeds(for: term, limit: 50)!
       let wanted = feeds.filter {
         $0.url != "http://feeds.feedburner.com/doublet"
       }
@@ -376,7 +376,7 @@ final class CacheTests: XCTestCase {
 
         let url = foundFeed.url
         XCTAssertTrue(cache.hasURL(url))
-        let uid = try! cache.feedIDForURL(url)
+        let uid = try! cache.feedID(for: url)
         XCTAssertEqual(uid, foundFeed.uid)
       }
       
@@ -387,7 +387,7 @@ final class CacheTests: XCTestCase {
   func testFeedsMatchingTerm() {
     let feeds = try! feedsFromFile("search")
     let term = "newyorker"
-    XCTAssertNil(try! cache.feedsForTerm(term, limit: 50))
+    XCTAssertNil(try! cache.feeds(for: term, limit: 50))
 
     try! cache.updateFeeds(feeds, forTerm: term)
 
@@ -417,17 +417,17 @@ final class CacheTests: XCTestCase {
   }
 
   func testSuggestions() {
-    XCTAssertNil(try! cache.suggestionsForTerm("a", limit: 5))
+    XCTAssertNil(try! cache.suggestions(for: "a", limit: 5))
 
     let terms = ["apple", "apple watch", "apple pie"]
     let input = suggestionsFromTerms(terms)
-    try! cache.updateSuggestions(input, forTerm:"apple")
+    try! cache.update(suggestions: input, for: "apple")
 
     do {
       var term: String = ""
       for c in "apple ".characters {
         term.append(c)
-        if let sugs = try! cache.suggestionsForTerm(term, limit: 5) {
+        if let sugs = try! cache.suggestions(for: term, limit: 5) {
           XCTAssertEqual(sugs.count, terms.count)
           for sug in sugs {
             XCTAssertNotNil(sug.ts)
@@ -439,7 +439,7 @@ final class CacheTests: XCTestCase {
       }
     }
 
-    if let sugs = try! cache.suggestionsForTerm("apple p", limit: 5) {
+    if let sugs = try! cache.suggestions(for: "apple p", limit: 5) {
       XCTAssertEqual(sugs.count, 1)
       let found: Suggestion = sugs.last!
       XCTAssertNotNil(found.ts!)
@@ -449,14 +449,14 @@ final class CacheTests: XCTestCase {
       XCTFail("should suggest")
     }
 
-    try! cache.updateSuggestions([], forTerm:"apple")
+    try! cache.update(suggestions: [], for: "apple")
 
-    XCTAssertNil(try! cache.suggestionsForTerm("a", limit: 5))
+    XCTAssertNil(try! cache.suggestions(for: "a", limit: 5))
 
     do {
       let terms = ["apple", "apple ", "apple p", "apple pi", "apple pie"]
       for term in terms {
-        if let sugs = try! cache.suggestionsForTerm(term, limit: 5) {
+        if let sugs = try! cache.suggestions(for: term, limit: 5) {
           XCTAssert(sugs.isEmpty)
         } else {
           XCTFail("should suggest")
@@ -469,9 +469,9 @@ final class CacheTests: XCTestCase {
     let terms = ["apple", "apple watch", "apple pie"]
     let input = suggestionsFromTerms(terms)
 
-    try! cache.updateSuggestions(input, forTerm:"apple")
-    try! cache.updateSuggestions([], forTerm:"pie")
-    if let found = try! cache.suggestionsForTerm("apple", limit: 5) {
+    try! cache.update(suggestions: input, for: "apple")
+    try! cache.update(suggestions: [], for: "pie")
+    if let found = try! cache.suggestions(for: "apple", limit: 5) {
       XCTAssertEqual(found.count, 2)
       for (i, sug) in found.enumerated() {
         XCTAssertEqual(sug, input[i])
@@ -481,8 +481,8 @@ final class CacheTests: XCTestCase {
     }
   }
 
-  fileprivate func hit (_ term: String, _ wanted: String, _ cache: [String:Date]) {
-    if let (found, _) = subcached(term, dict: cache) {
+  fileprivate func hit(_ term: String, _ wanted: String, _ cache: [String : Date]) {
+    if let (found, _) = Cache.subcached(term, dict: cache) {
       XCTAssertEqual(found, wanted)
       if term.lengthOfBytes(using: String.Encoding.utf8) > 1 {
         let pre = term.characters.index(before: term.endIndex)
@@ -493,14 +493,14 @@ final class CacheTests: XCTestCase {
     }
   }
 
-  func testSubcached () {
-    var cache = [String:Date]()
+  func testSubcached() {
+    var cache = [String : Date]()
     cache["a"] = Date()
     hit("abc", "a", cache)
     cache["a"] = nil
 
     cache["abc"] = Date()
-    XCTAssertNotNil(subcached("abcd", dict: cache)!.0)
-    XCTAssertNil(subcached("ab", dict: cache)?.0)
+    XCTAssertNotNil(Cache.subcached("abcd", dict: cache)!.0)
+    XCTAssertNil(Cache.subcached("ab", dict: cache)?.0)
   }
 }

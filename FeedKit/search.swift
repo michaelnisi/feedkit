@@ -151,7 +151,7 @@ private final class SearchOperation: SearchRepoOperation {
     isExecuting = true
 
     do {
-      guard let cached = try cache.feedsForTerm(term, limit: 25) else {
+      guard let cached = try cache.feeds(for: term, limit: 25) else {
         return try request()
       }
 
@@ -162,9 +162,9 @@ private final class SearchOperation: SearchRepoOperation {
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
 
-      guard let ts = medianTS(cached) else { return done() }
+      guard let ts = Cache.medianTS(cached) else { return done() }
 
-      if !stale(ts, ttl: ttl.seconds) {
+      if !Cache.stale(ts, ttl: ttl.seconds) {
         guard let cb = perFindGroupBlock else { return done() }
         let finds = cached.map { Find.foundFeed($0) }
         target.sync {
@@ -184,7 +184,7 @@ private func recentSearchesForTerm(
   fromCache cache: SearchCaching,
   except exceptions: [Find]
 ) throws -> [Find]? {
-  if let feeds = try cache.feedsForTerm(term, limit: 2) {
+  if let feeds = try cache.feeds(for: term, limit: 2) {
     return feeds.reduce([Find]()) { acc, feed in
       let find = Find.recentSearch(feed)
       if exceptions.contains(find) {
@@ -318,7 +318,7 @@ private final class SuggestOperation: SearchRepoOperation {
 
       do {
         let suggestions = suggestionsFromTerms(payload!)
-        try self.cache.updateSuggestions(suggestions, forTerm: self.term)
+        try self.cache.update(suggestions: suggestions, for: self.term)
         guard !suggestions.isEmpty else { return }
         let finds = suggestions.reduce([Find]()) { acc, sug in
           guard acc.count < 4 else {
@@ -389,7 +389,7 @@ private final class SuggestOperation: SearchRepoOperation {
         dispatch(nil, finds: finds)
       }
 
-      guard let cached = try cache.suggestionsForTerm(term, limit: 4) else {
+      guard let cached = try cache.suggestions(for: term, limit: 4) else {
         dispatchOriginal()
         return resume()
       }
@@ -405,7 +405,7 @@ private final class SuggestOperation: SearchRepoOperation {
         return resume()
       }
 
-      if !stale(ts, ttl: ttl.seconds) {
+      if !Cache.stale(ts, ttl: ttl.seconds) {
         let finds = [original] + cached.map { Find.suggestedTerm($0) }
         dispatch(nil, finds: finds)
         requestRequired = false

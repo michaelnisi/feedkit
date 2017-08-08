@@ -481,11 +481,11 @@ public protocol FeedCaching {
 
 /// A persistent cache of things related to searching feeds and entries.
 public protocol SearchCaching {
-  func updateSuggestions(_ suggestions: [Suggestion], forTerm: String) throws
-  func suggestionsForTerm(_ term: String, limit: Int) throws -> [Suggestion]?
+  func update(suggestions: [Suggestion], for term: String) throws
+  func suggestions(for term: String, limit: Int) throws -> [Suggestion]?
 
   func updateFeeds(_ feeds: [Feed], forTerm: String) throws
-  func feedsForTerm(_ term: String, limit: Int) throws -> [Feed]?
+  func feeds(for term: String, limit: Int) throws -> [Feed]?
   func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]?
   func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]?
 }
@@ -692,7 +692,7 @@ public class RemoteRepository: NSObject {
 
     if let (code, ts) = status {
       let date = Date(timeIntervalSince1970: ts)
-      if code != 0 && !stale(date, ttl: CacheTTL.short.seconds) {
+      if code != 0 && !Cache.stale(date, ttl: CacheTTL.short.seconds) {
         return CacheTTL.forever
       }
     }
