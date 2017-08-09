@@ -300,7 +300,7 @@ final class CacheTests: XCTestCase {
     }
 
     do {
-      try cache.updateFeeds(feeds, forTerm: term)
+      try cache.update(feeds: feeds, for: term)
     } catch {
       XCTFail("should not throw \(error)")
     }
@@ -325,7 +325,7 @@ final class CacheTests: XCTestCase {
     }
 
     do {
-      try cache.updateFeeds([], forTerm: term)
+      try cache.update(feeds: [], for: term)
     } catch {
       XCTFail("should not throw \(error)")
     }
@@ -354,7 +354,7 @@ final class CacheTests: XCTestCase {
     XCTAssertNil(try! cache.feeds(for: term, limit: 50))
 
     for _ in 0...1 {
-      try! cache.updateFeeds(feeds, forTerm: term)
+      try! cache.update(feeds: feeds, for: term)
 
       let found = try! cache.feeds(for: term, limit: 50)!
       let wanted = feeds.filter {
@@ -389,13 +389,13 @@ final class CacheTests: XCTestCase {
     let term = "newyorker"
     XCTAssertNil(try! cache.feeds(for: term, limit: 50))
 
-    try! cache.updateFeeds(feeds, forTerm: term)
+    try! cache.update(feeds: feeds, for: term)
 
 
     var wanted = [Feed]()
     for i in 0...2 { wanted.append(feeds[i]) }
 
-    let found = try! cache.feedsMatchingTerm("new", limit: 3)!
+    let found = try! cache.feeds(matching: "new", limit: 3)!
 
     XCTAssertEqual(found, wanted)
 
@@ -409,7 +409,7 @@ final class CacheTests: XCTestCase {
 
   func testEntriesMatchingTerm() {
     let _ = try! populate()
-    guard let found = try! cache.entriesMatchingTerm("supercomputer", limit: 3) else {
+    guard let found = try! cache.entries(matching: "supercomputer", limit: 3) else {
       return XCTFail("not found")
     }
     XCTAssertEqual(found.count, 1)

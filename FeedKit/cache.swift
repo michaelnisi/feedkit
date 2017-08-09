@@ -485,7 +485,7 @@ extension Cache: SearchCaching {
   ///   - term: The term to associate the specified feeds with.
   ///
   /// - Throws: Might throw database errors: various `SkullError` types.
-  public func updateFeeds(_ feeds: [Feed], forTerm term: String) throws {
+  public func update(feeds: [Feed], for term: String) throws {
     if feeds.isEmpty {
       noSearch[term] = Date()
     } else {
@@ -532,7 +532,7 @@ extension Cache: SearchCaching {
 
   }
 
-  /// Return distinct feeds matching the specified term, the number of feeds 
+  /// Return distinct feeds cached for the specified term, the number of feeds
   /// may be limited.
   ///
   /// - Parameters:
@@ -560,7 +560,8 @@ extension Cache: SearchCaching {
     }
   }
 
-  public func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]? {
+  /// Returns feeds matching `term` using full-text-search.
+  public func feeds(matching term: String, limit: Int) throws -> [Feed]? {
     let db = self.db
     let fmt = self.sqlFormatter
 
@@ -579,7 +580,7 @@ extension Cache: SearchCaching {
   /// - Returns: Entries with matching author, summary, subtitle, or title.
   ///
   /// - Throws: Might throw SQL errors via Skull.
-  public func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]? {
+  public func entries(matching term: String, limit: Int) throws -> [Entry]? {
     let db = self.db
     let fmt = self.sqlFormatter
     
@@ -589,6 +590,10 @@ extension Cache: SearchCaching {
     }
   }
 
+  /// Update suggestions for a given `term`. You might pass an empty array to 
+  /// signal that the remote server didn‘t supply any suggestions for this term.
+  /// This state would than also be cache, so that the server doesn‘t has to be
+  /// hit again, within the respective time-to-live interval.
   public func update(suggestions: [Suggestion], for term: String) throws {
     try queue.sync {
       guard !suggestions.isEmpty else {

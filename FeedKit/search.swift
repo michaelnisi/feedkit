@@ -124,7 +124,7 @@ private final class SearchOperation: SearchRepoOperation {
           }
         }
 
-        try self.cache.updateFeeds(feeds, forTerm: self.term)
+        try self.cache.update(feeds: feeds, for: self.term)
         guard !feeds.isEmpty else {
           return
         }
@@ -203,7 +203,7 @@ private func suggestedFeedsForTerm(
   except exceptions: [Find]
 ) throws -> [Find]? {
   let limit = 5
-  if let feeds = try cache.feedsMatchingTerm(term, limit: limit + 2) {
+  if let feeds = try cache.feeds(matching: term, limit: limit + 2) {
     return feeds.reduce([Find]()) { acc, feed in
       let find = Find.suggestedFeed(feed)
       guard !exceptions.contains(find), acc.count < limit else {
@@ -220,7 +220,7 @@ private func suggestedEntriesForTerm(
   fromCache cache: SearchCaching,
   except exceptions: [Find]
 ) throws -> [Find]? {
-  if let entries = try cache.entriesMatchingTerm(term, limit: 5) {
+  if let entries = try cache.entries(matching: term, limit: 5) {
     return entries.reduce([Find]()) { acc, entry in
       let find = Find.suggestedEntry(entry)
       guard !exceptions.contains(find) else {

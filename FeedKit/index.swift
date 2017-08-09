@@ -484,10 +484,10 @@ public protocol SearchCaching {
   func update(suggestions: [Suggestion], for term: String) throws
   func suggestions(for term: String, limit: Int) throws -> [Suggestion]?
 
-  func updateFeeds(_ feeds: [Feed], forTerm: String) throws
+  func update(feeds: [Feed], for: String) throws
   func feeds(for term: String, limit: Int) throws -> [Feed]?
-  func feedsMatchingTerm(_ term: String, limit: Int) throws -> [Feed]?
-  func entriesMatchingTerm(_ term: String, limit: Int) throws -> [Entry]?
+  func feeds(matching term: String, limit: Int) throws -> [Feed]?
+  func entries(matching term: String, limit: Int) throws -> [Entry]?
 }
 
 // MARK: - Searching
