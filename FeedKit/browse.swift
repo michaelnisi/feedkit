@@ -326,7 +326,7 @@ final class EntriesOperation: BrowseOperation {
           try cache.remove(urls)
         }
 
-        try cache.updateEntries(receivedEntries)
+        try cache.update(entries: receivedEntries)
 
         guard let cb = entriesBlock, !receivedEntries.isEmpty else {
           return self.done()

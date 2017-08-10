@@ -200,7 +200,7 @@ final class SearchRepositoryTests: XCTestCase {
     try! cache.update(feeds: feeds)
 
     let entries = try! entriesFromFile()
-    try! cache.updateEntries(entries)
+    try! cache.update(entries: entries)
 
     return (feeds, entries)
   }

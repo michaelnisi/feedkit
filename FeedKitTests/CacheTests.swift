@@ -167,7 +167,7 @@ final class CacheTests: XCTestCase {
     var foundURLs: [String]? = nil
     let wantedURLs = ["http://daringfireball.net/thetalkshow/rss"]
     do {
-      try cache.updateEntries(entries)
+      try cache.update(entries: entries)
     } catch FeedKitError.feedNotCached(let urls) {
       foundURLs = urls
     } catch {
@@ -187,7 +187,7 @@ final class CacheTests: XCTestCase {
     try! cache.update(feeds: feeds)
 
     let entries = try! entriesFromFile()
-    try! cache.updateEntries(entries)
+    try! cache.update(entries: entries)
 
     return (feeds, entries)
   }
@@ -241,9 +241,12 @@ final class CacheTests: XCTestCase {
       XCTAssertNotNil(entry.guid)
     }
     let guids = entries.map { $0.guid }
-    let found = try! cache.entries(guids)
     
-    let wanted = entries
+    // TODO: Decide if sort order matters here
+    
+    let found = try! cache.entries(guids).sorted { $0.guid < $1.guid }
+    let wanted = entries.sorted { $0.guid < $1.guid }
+    
     XCTAssertEqual(found, wanted)
     checkEntries(found, wanted: wanted)
     
@@ -503,4 +506,28 @@ final class CacheTests: XCTestCase {
     XCTAssertNotNil(Cache.subcached("abcd", dict: cache)!.0)
     XCTAssertNil(Cache.subcached("ab", dict: cache)?.0)
   }
+}
+
+// MARK: - Utilities
+
+extension CacheTests {
+  
+  func testSliceElements() {
+    let fixtures = [
+      (Cache.slice(elements: [1, 2, 3], with: 1), [[1], [2], [3]]),
+      (Cache.slice(elements: [1, 2, 3], with: 2), [[1, 2], [3]]),
+      (Cache.slice(elements: [1, 2, 3], with: 3), [[1, 2, 3]]),
+      (Cache.slice(elements: [1, 2, 3], with: 4), [[1, 2, 3]])
+    ]
+   
+    fixtures.forEach { fixture in
+      let (found, wanted) = fixture
+      XCTAssertEqual(found.count, wanted.count)
+      found.enumerated().forEach { i, a in
+        let b = wanted[i]
+        XCTAssertEqual(a, b)
+      }
+    }
+  }
+  
 }

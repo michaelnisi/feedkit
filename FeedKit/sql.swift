@@ -317,6 +317,13 @@ extension SQLFormatter {
   static func SQLToSelectEntryByGUID(_ guid: String) -> String {
     return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
   }
+
+  static func SQLToSelectEntries(by guids: [String]) -> String? {
+    guard !guids.isEmpty else { return nil }
+    return "SELECT * FROM entry_view WHERE" + guids.map {
+      " guid = '\($0)'"
+    }.joined(separator: " OR") + ";"
+  }
   
   // TODO: Test if entries are removed when their feeds are removed
   
