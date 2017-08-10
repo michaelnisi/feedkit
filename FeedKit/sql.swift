@@ -173,11 +173,14 @@ final class SQLFormatter {
       return "NULL"
     }
   }
+  
+  // TODO: Add parameters for paging: DESC LIMIT 25
 
   func SQLToSelectEntriesByIntervals(_ intervals: [(Int, Date)]) -> String? {
     guard !intervals.isEmpty else {
       return nil
     }
+    
     return "SELECT * FROM entry_view WHERE" + intervals.map {
       let feedID = $0.0
       let updated = df.string(from: $0.1)

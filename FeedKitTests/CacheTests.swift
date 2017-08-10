@@ -84,7 +84,11 @@ final class CacheTests: XCTestCase {
     }
   }
 
-  // MARK: Feed Caching
+}
+
+// MARK: - Feed Caching
+
+extension CacheTests {
   
   func testKeepImages() {
     let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c",
@@ -226,7 +230,7 @@ final class CacheTests: XCTestCase {
     XCTAssertEqual(urls.count, 10)
 
     let locators = urls.map { EntryLocator(url: $0) }
-    let found = try! cache.entries(locators)
+    let found = try! cache.entries(within: locators)
     let wanted = entries
 
     XCTAssertEqual(wanted.count, 1099, "should be nine less than 1108")
@@ -241,9 +245,7 @@ final class CacheTests: XCTestCase {
       XCTAssertNotNil(entry.guid)
     }
     let guids = entries.map { $0.guid }
-    
-    // TODO: Decide if sort order matters here
-    
+  
     let found = try! cache.entries(guids).sorted { $0.guid < $1.guid }
     let wanted = entries.sorted { $0.guid < $1.guid }
     
@@ -284,11 +286,15 @@ final class CacheTests: XCTestCase {
     }
 
     let locators = urls.map { EntryLocator(url: $0) }
-    let found = try! cache.entries(locators)
+    let found = try! cache.entries(within: locators)
     XCTAssert(found.isEmpty, "should have removed entries too")
   }
+  
+}
 
-  // MARK: Search Caching
+// MARK: - Search Caching
+
+extension CacheTests {
 
   func testUpdateFeedsForTerm() {
     let feeds = try! feedsFromFile("search")

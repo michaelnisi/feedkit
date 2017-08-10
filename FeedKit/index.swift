@@ -471,7 +471,7 @@ public protocol FeedCaching {
   func feeds(_ urls: [String]) throws -> [Feed]
 
   func update(entries: [Entry]) throws
-  func entries(_ locators: [EntryLocator]) throws -> [Entry]
+  func entries(within locators: [EntryLocator]) throws -> [Entry]
   func entries(_ guids: [String]) throws -> [Entry]
 
   func remove(_ urls: [String]) throws

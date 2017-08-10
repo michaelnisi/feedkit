@@ -170,7 +170,7 @@ private func entriesFromCache(
     return !resguids.contains(guid)
   }
 
-  let items = try cache.entries(unresolved) + resolved
+  let items = try cache.entries(within: unresolved) + resolved
   let urls = unresolved.map { $0.url }
 
   let t = subtractItems(items, fromURLs: urls, withTTL: ttl)

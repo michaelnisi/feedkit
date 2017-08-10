@@ -322,7 +322,7 @@ extension Cache: FeedCaching {
   /// - Parameter locators: An array of time intervals between now and the past.
   ///
   /// - Returns: The matching array of entries currently cached.
-  public func entries(_ locators: [EntryLocator]) throws -> [Entry] {
+  public func entries(within locators: [EntryLocator]) throws -> [Entry] {
     guard !locators.isEmpty else {
       return []
     }
@@ -364,6 +364,7 @@ extension Cache: FeedCaching {
   /// - Throws: Might throw database errors.
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
+      // TODO: Test and review entries(having guids:)
       let chunks = Cache.slice(elements: guids, with: 512)
 
       return try chunks.reduce([Entry]()) { acc, guids in
@@ -603,12 +604,10 @@ extension Cache: SearchCaching {
 
 extension Cache {
   
-  // TODO: Review slice(elements: with:)
-  
-  /// Slices `elements` into arrays with `count`.
+  /// Slices an array into fixed sized arrays.
   ///
   /// - Parameters:
-  ///   - elements: The elements to slice.
+  ///   - elements: The array to slice.
   ///   - count: The number of elements in the returned arrays.
   ///
   /// - Returns: An array of arrays with count`.
@@ -616,10 +615,12 @@ extension Cache {
     guard elements.count > count else {
       return [elements]
     }
+    
     var i = 0
     var start = 0
     var end = 0
     var slices = [[T]]()
+    
     repeat {
       start = min(count * i, elements.count)
       end = min(start + count, elements.count)
@@ -631,6 +632,7 @@ extension Cache {
       
       i += 1
     } while start != end
+    
     return slices
   }
   
