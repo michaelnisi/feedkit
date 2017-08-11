@@ -9,16 +9,6 @@
 import Foundation
 import Skull
 
-private func SQLStringFromString(_ string: String) -> String {
-  let s = string.replacingOccurrences(
-    of: "'",
-    with: "''",
-    options: NSString.CompareOptions.literal,
-    range: nil
-  )
-  return "'\(s)'"
-}
-
 // MARK: - Stateful Formatting
 
 /// `SQLFormatter` produces SQL statements from FeedKit structures and creates 
@@ -133,7 +123,7 @@ final class SQLFormatter {
     let author = stringFromAny(entry.author)
     let duration = stringFromAny(entry.duration)
     let feedid = stringFromAny(feedID)
-    let guid = SQLStringFromString(entry.guid) // TODO: Review
+    let guid = SQLFormatter.SQLString(from: entry.guid) // TODO: Review
     let img = stringFromAny(entry.image)
     let length = stringFromAny(entry.enclosure?.length)
     let link = stringFromAny(entry.link)
@@ -164,11 +154,11 @@ final class SQLFormatter {
     case is Int, is Double:
       return "\(obj!)"
     case let value as String:
-      return SQLStringFromString(value)
+      return SQLFormatter.SQLString(from: value)
     case let value as Date:
       return "'\(df.string(from: value))'"
     case let value as URL:
-      return SQLStringFromString(value.absoluteString)
+      return SQLFormatter.SQLString(from: value.absoluteString)
     default:
       return "NULL"
     }
@@ -338,20 +328,13 @@ extension SQLFormatter {
     return sql
   }
   
-  // TODO: Complete SQLStringFromString
-  // TODO: Guard against SQL injections
-  // TODO: Write more tests
-  
-  static func SQLStringFromString(_ string: String) -> String {
+  /// The SQL standard specifies that single-quotes, and double quotes for that
+  /// matter in strings are escaped by putting two single quotes in a row.
+  static func SQLString(from string: String) -> String {
     let s = string.replacingOccurrences(
-      of: "\"",
-      with: "\"\"",
-      options: NSString.CompareOptions.literal,
-      range: nil
-    ).replacingOccurrences(
       of: "'",
       with: "''",
-      options: NSString.CompareOptions.literal,
+      options: String.CompareOptions.literal,
       range: nil
     )
     
@@ -361,12 +344,12 @@ extension SQLFormatter {
   // TODO: Ensure all strings pass through SQLStringFromString
   
   static func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
-    let s = SQLStringFromString(url)
+    let s = SQLFormatter.SQLString(from: url)
     return "SELECT feedid FROM url_view WHERE url = \(s);"
   }
   
   static func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
-    let s = SQLStringFromString(term)
+    let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), \(s));"
   }
 }
@@ -378,12 +361,12 @@ extension SQLFormatter {
 extension SQLFormatter {
   
   static func SQLToInsertSuggestionForTerm(_ term: String) -> String {
-    let s = SQLStringFromString(term)
+    let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO sug(term) VALUES(\(s));"
   }
   
   static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
-    let s = SQLStringFromString("\(term)*")
+    let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT * FROM sug WHERE rowid IN (" +
       "SELECT rowid FROM sug_fts " +
       "WHERE term MATCH \(s)) " +
@@ -393,7 +376,7 @@ extension SQLFormatter {
   }
   
   static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
-    let s = SQLStringFromString("\(term)*")
+    let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "DELETE FROM sug " +
       "WHERE rowid IN (" +
       "SELECT rowid FROM sug_fts WHERE term MATCH \(s));"
@@ -433,7 +416,7 @@ extension SQLFormatter {
   // TODO: Escape search term
   
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
-    let s = SQLStringFromString(term)
+    let s = SQLFormatter.SQLString(from: term)
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
       "SELECT rowid FROM search_fts " +
       "WHERE term = \(s)) " +
@@ -442,7 +425,7 @@ extension SQLFormatter {
   }
   
   static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
-    let s = SQLStringFromString("\(term)*")
+    let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
       "SELECT rowid FROM feed_fts " +
       "WHERE feed_fts MATCH \(s)) " +
@@ -452,7 +435,7 @@ extension SQLFormatter {
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
-    let s = SQLStringFromString("\(term)*")
+    let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
       "SELECT rowid FROM entry_fts " +
       "WHERE entry_fts MATCH \(s)) " +
@@ -462,7 +445,7 @@ extension SQLFormatter {
   }
   
   static func SQLToDeleteSearch(for term: String) -> String {
-    let s = SQLStringFromString(term)
+    let s = SQLFormatter.SQLString(from: term)
     return "DELETE FROM search WHERE term=\(s);"
   }
   

@@ -20,9 +20,14 @@ final class SQLTests: XCTestCase {
   }
 
   func testSQLStringFromString() {
-    let found = SQLFormatter.SQLStringFromString("abc'd")
-    let wanted = "'abc''d'"
-    XCTAssertEqual(found, wanted)
+    let tests = [
+      (SQLFormatter.SQLString(from: ""), "''"),
+      (SQLFormatter.SQLString(from: "abc'd"), "'abc''d'")
+    ]
+    
+    for (found, wanted) in tests {
+      XCTAssertEqual(found, wanted)
+    }
   }
   
   func skullColumn(_ name: String, value: Any) -> SkullColumn<Any> {
