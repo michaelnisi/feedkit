@@ -15,6 +15,10 @@ import Skull
 /// and transforms SQLite rows into FeedKit value objects. Mostly via stateless
 /// functions, the only reason for this being a class is to share a date
 /// formatter.
+/// 
+/// This formatter doesn‘t return explicit transactions, this is left to the
+/// call site, which knows more about the context, the formatted SQL is going
+/// to be used in.
 final class SQLFormatter {
   
   public static var shared = SQLFormatter()
@@ -464,16 +468,18 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
   
+  // TODO: Change locator type or throw
+  
   func SQLToQueueSynced(locator synced: Synced) -> String {
     switch synced {
-    case .entry(let locator, let queuedAt, let name, let tag):
+    case .entry(let locator, let queuedAt, let record):
       let guid = stringFromAny(locator.guid)
       let url = stringFromAny(locator.url)
       let since = stringFromAny(locator.since)
       
       let ts = stringFromAny(queuedAt)
-      let name = stringFromAny(name)
-      let tag = stringFromAny(tag)
+      let name = stringFromAny(record.name)
+      let tag = stringFromAny(record.changeTag)
       
       return [
         "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\(name), \(tag));",
@@ -519,77 +525,6 @@ extension SQLFormatter {
     
     let ts = date(from: row["ts"] as? String)!
     
-    return Queued.locator(locator, ts)
-  }
-}
-
-// MARK: - SQLite Database Super Class
-
-/// Abstract super class for embedded (SQLite) databases.
-public class LocalCache {
-  
-  fileprivate let schema: String
-  
-  var url: URL?
-  
-  let db: Skull
-  
-  /// Strictly submit to this queue to serialize database access.
-  let queue: DispatchQueue
-  
-  let sqlFormatter: SQLFormatter
-  
-  fileprivate func open() throws {
-    var er: Error?
-    
-    let db = self.db
-    let schema = self.schema
-    
-    queue.sync {
-      do {
-        let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
-    }
-  }
-  
-  /// Initializes a newly created cache.
-  ///
-  /// - Parameters:
-  ///   - schema: The path of the database schema file.
-  ///   - url: The file URL of the database to use—and create if necessary.
-  public init(schema: String, url: URL?) throws {
-    self.schema = schema
-    self.url = url
-    
-    // Comment-in to remove all database files at start-up.
-    if let p = url { try FileManager.default.removeItem(at: p) }
-    
-    self.db = try Skull(url)
-    
-    let me = type(of: self)
-    self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
-
-    self.sqlFormatter = SQLFormatter()
-    
-    try open()
-  }
-  
-  fileprivate func close() throws {
-    try db.close()
-  }
-  
-  deinit {
-    try! db.close()
-  }
-  
-  public func flush() throws {
-    try db.flush()
+    return Queued.entry(locator, ts)
   }
 }

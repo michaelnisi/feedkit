@@ -138,7 +138,7 @@ extension UserCache: QueueCaching {
           return acc + [sql]
         }.joined(separator: "\n")
         
-        try db.exec(["BEGIN TRANSACTION;", sql, "COMMIT;"].joined(separator: "\n"))
+        try db.exec(["BEGIN;", sql, "COMMIT;"].joined(separator: "\n"))
       } catch {
         er = error
       }
@@ -206,8 +206,8 @@ private final class FetchQueueOperation: FeedKitOperation {
       
       let locators: [EntryLocator] = queued.flatMap {
         switch $0 {
-        case .locator(let locator, _):
-          return locator.including
+        case .entry(let entry, _):
+          return entry.including
         }
       }
       

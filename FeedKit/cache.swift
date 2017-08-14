@@ -17,6 +17,77 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 
+// MARK: - SQLite Database Super Class
+
+/// Abstract super class for embedded (SQLite) databases.
+public class LocalCache {
+  
+  fileprivate let schema: String
+  
+  var url: URL?
+  
+  let db: Skull
+  
+  /// Strictly submit to this queue to serialize database access.
+  let queue: DispatchQueue
+  
+  let sqlFormatter: SQLFormatter
+  
+  fileprivate func open() throws {
+    var er: Error?
+    
+    let db = self.db
+    let schema = self.schema
+    
+    queue.sync {
+      do {
+        let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
+        try db.exec(sql)
+      } catch {
+        er = error
+      }
+    }
+    
+    if let error = er {
+      throw error
+    }
+  }
+  
+  /// Initializes a newly created cache.
+  ///
+  /// - Parameters:
+  ///   - schema: The path of the database schema file.
+  ///   - url: The file URL of the database to use—and create if necessary.
+  public init(schema: String, url: URL?) throws {
+    self.schema = schema
+    self.url = url
+    
+    // Comment-in to remove all database files at start-up.
+    if let p = url { try FileManager.default.removeItem(at: p) }
+    
+    self.db = try Skull(url)
+    
+    let me = type(of: self)
+    self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
+    
+    self.sqlFormatter = SQLFormatter()
+    
+    try open()
+  }
+  
+  fileprivate func close() throws {
+    try db.close()
+  }
+  
+  deinit {
+    try! db.close()
+  }
+  
+  public func flush() throws {
+    try db.flush()
+  }
+}
+
 // MARK: - Base
 
 public final class Cache: LocalCache {

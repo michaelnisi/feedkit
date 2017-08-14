@@ -357,7 +357,27 @@ extension SQLTests {
 
 extension SQLTests {
   
-  // TODO: Write SQLTests for Syncing
+  func testSQLToDeleteRecords() {
+    XCTAssertNil(SQLFormatter.SQLToDeleteRecords(with: []))
+    XCTAssertEqual(SQLFormatter.SQLToDeleteRecords(with: ["abc", "def"]),
+      "DELETE FROM record WHERE record_name IN('abc', 'def');")
+  }
+  
+  func testSQLToSelectLocallyQueuedEntries() {
+    let wanted = "SELECT * FROM locally_queued_entry;"
+    XCTAssertEqual(SQLFormatter.SQLToSelectLocallyQueuedEntries, wanted)
+  }
+  
+  func testSQLToQueueSynced() {
+    let loc = EntryLocator(url: "http://abc.de")
+    let name = "E49847D6-6251-48E3-9D7D-B70E8B7392CD" // actual record name
+    let record = RecordMetadata(name: name, changeTag: "e")
+    let synced = Synced.entry(loc, Date(), record)
+    // At this point we have an invalid synced item, because the locator doesn‘t
+    // have a guid.
+    // TODO: Refine and test
+    XCTAssertNotNil(loc.guid)
+  }
   
 }
 
@@ -412,7 +432,7 @@ extension SQLTests {
     let since = Date(timeIntervalSince1970: 1465192800)
     let locator = EntryLocator(url: url, since: since, guid: guid)
     
-    let wanted = Queued.locator(locator, ts!)
+    let wanted = Queued.entry(locator, ts!)
     
     XCTAssertEqual(found, wanted)
   }

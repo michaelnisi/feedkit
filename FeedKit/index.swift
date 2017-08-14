@@ -206,10 +206,12 @@ public struct Entry: Redirectable, Imaginable {
   public let feedImage: String?
   public let feedTitle: String?
   
-  // TODO: Type entry GUID as Int
-  
-  /// Globally unique identifier of the entry, generated locally.
+  /// Not the GUID from the RSS spec, but a globally—across feeds—unique 
+  /// identifier for the entry, which is locally generated from the feed URL and 
+  /// the GUID received from the remote service.
   public let guid: String
+  
+  // TODO: Replace guid: String with uuid: Int to differentiate from RSS guid
   
   public let iTunes: ITunesItem?
   public let image: String?
@@ -548,8 +550,16 @@ public protocol Browsing {
 
 // MARK: - Syncing
 
+public struct RecordMetadata {
+  let name: String
+  let changeTag: String
+}
+
 public enum Synced {
-  case entry(EntryLocator, Date, String, String)
+  /// An entry that has been synchronized with the iCloud database with these
+  /// properties: entry locator, the time the entry was added to the queue; and 
+  /// name and change tag of the record.
+  case entry(EntryLocator, Date, RecordMetadata)
 }
 
 // MARK: - Queueing
@@ -558,14 +568,14 @@ public enum Synced {
 public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
 
 public enum Queued {
-  case locator(EntryLocator, Date)
+  case entry(EntryLocator, Date)
 }
 
 extension Queued: Equatable {
   static public func ==(lhs: Queued, rhs: Queued) -> Bool {
     switch (lhs, rhs) {
-    case (.locator(let lLocator, _), .locator(let rLocator, _)):
-      return lLocator == rLocator
+    case (.entry(let a, _), .entry(let b, _)):
+      return a == b
     }
   }
 }
@@ -574,8 +584,8 @@ extension Queued: Hashable {
   public var hashValue: Int {
     get {
       switch self {
-      case .locator(let locator, _):
-        return locator.hashValue
+      case .entry(let entry, _):
+        return entry.hashValue
       }
     }
   }
