@@ -326,21 +326,6 @@ extension EntryLocator : CustomStringConvertible {
   }
 }
 
-// TODO: Remove QueueEntryLocator
-
-/// An `EntryLocator` with required `guid` to identify specific entries globally.
-public struct QueueEntryLocator {
-  let url: String
-  let guid: String
-  let since: Date?
-  
-  init(url: String, guid: String, since: Date?) {
-    self.url = url
-    self.guid = guid
-    self.since = since
-  }
-}
-
 /// A suggested search term, bearing the timestamp of when it was added
 /// (to the cache) or updated.
 public struct Suggestion {
@@ -558,7 +543,7 @@ public struct RecordMetadata {
 public enum Synced {
   /// An entry that has been synchronized with the iCloud database with these
   /// properties: entry locator, the time the entry was added to the queue; and 
-  /// name and change tag of the record.
+  /// CloudKit record metadata: name and change tag of the record.
   case entry(EntryLocator, Date, RecordMetadata)
 }
 

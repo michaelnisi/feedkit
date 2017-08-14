@@ -110,8 +110,7 @@ extension UserCache: QueueCaching {
             er = FeedKitError.invalidEntry(reason: "missing guid")
             return acc
           }
-          let l = QueueEntryLocator(url: loc.url, guid: guid, since: loc.since)
-          let sql = fmt.SQLToQueueEntry(locator: l)
+          let sql = fmt.SQLToQueue(entry: loc, with: guid)
           return acc + [sql]
         }.joined(separator: "\n")
         

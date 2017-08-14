@@ -403,8 +403,8 @@ extension SQLTests {
       let guid = "12three"
       let url = "abc.de"
       let since = Date(timeIntervalSince1970: 1465192800)
-      let locator = QueueEntryLocator(url: url, guid: guid, since: since)
-      let found = formatter.SQLToQueueEntry(locator: locator)
+      let locator = EntryLocator(url: url, since: since, guid: guid)
+      let found = formatter.SQLToQueue(entry: locator, with: guid)
       let wanted = "INSERT OR REPLACE INTO queued_entry(guid, url, since) VALUES('12three', 'abc.de', '2016-06-06 06:00:00');"
       XCTAssertEqual(found, wanted)
     }

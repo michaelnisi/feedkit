@@ -508,13 +508,12 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
   
-  func SQLToQueueEntry(locator entry: QueueEntryLocator) -> String {
-    let guid = stringFromAny(entry.guid)
+  func SQLToQueue(entry: EntryLocator, with guid: String) -> String {
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     
     return "INSERT OR REPLACE INTO queued_entry(guid, url, since) " +
-      "VALUES(\(guid), \(url), \(since));"
+      "VALUES(\(SQLFormatter.SQLString(from: guid)), \(url), \(since));"
   }
   
   func queuedLocator(from row: SkullRow) -> Queued {
