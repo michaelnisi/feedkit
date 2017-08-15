@@ -294,7 +294,7 @@ public struct EntryLocator {
     self.init(url: entry.feed, since: entry.updated, guid: entry.guid)
   }
   
-  /// A new `EntryLocator` with a modified *inclusive* `since`.
+  /// Returns a new `EntryLocator` with a modified *inclusive* `since`.
   public var including: EntryLocator { get {
     return EntryLocator(url: url, since: since.addingTimeInterval(-1), guid: guid)
   }}
@@ -538,6 +538,11 @@ public protocol Browsing {
 public struct RecordMetadata {
   let name: String
   let changeTag: String
+  
+  public init(name: String, changeTag: String) {
+    self.name = name
+    self.changeTag = changeTag
+  }
 }
 
 public enum Synced {

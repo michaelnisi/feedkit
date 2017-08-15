@@ -49,6 +49,7 @@ extension UserCache: QueueCaching {
     return locators
   }
   
+  /// The user‘s queued entries, sorted by time queued.
   public func queued() throws -> [Queued] {
     return try _queued(sql: SQLFormatter.SQLToSelectAllQueued)
   }
@@ -152,6 +153,7 @@ extension UserCache: QueueCaching {
 
 private final class FetchQueueOperation: FeedKitOperation {
   
+  var sortOrderBlock: (([String]) -> Void)?
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
   
@@ -167,14 +169,20 @@ private final class FetchQueueOperation: FeedKitOperation {
   
   private func done(with error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
     if let cb = entriesCompletionBlock {
       target.async {
         cb(er)
       }
     }
+    
     entriesCompletionBlock = nil
     isFinished = true
+    op?.cancel()
+    op = nil
   }
+  
+  weak var op: Operation?
   
   private func fetchEntries(for locators: [EntryLocator]) {
     guard
@@ -182,13 +190,14 @@ private final class FetchQueueOperation: FeedKitOperation {
       let entriesCompletionBlock = self.entriesCompletionBlock else {
       return
     }
-    let op = browser.entries(
+    
+    op = browser.entries(
       locators,
       entriesBlock: entriesBlock,
       entriesCompletionBlock: entriesCompletionBlock
     )
-
-    op.completionBlock = {
+    
+    op?.completionBlock = {
       self.done()
     }
   }
@@ -200,15 +209,24 @@ private final class FetchQueueOperation: FeedKitOperation {
     
     isExecuting = true
     
+    
     do {
       let queued = try cache.queued()
       
+      var guids = [String]()
+      
       let locators: [EntryLocator] = queued.flatMap {
         switch $0 {
-        case .entry(let entry, _):
-          return entry.including
+        case .entry(let locator, _):
+          guard let guid = locator.guid else {
+            fatalError("missing guid")
+          }
+          guids.append(guid)
+          return locator.including
         }
       }
+      
+      self.sortOrderBlock?(guids)
       
       guard !isCancelled, !locators.isEmpty else {
         return done()
@@ -248,8 +266,13 @@ public final class EntryQueue {
   public var delegate: QueueDelegate?
 }
 
-extension EntryQueue: Queueing {
+// MARK: - Queueing
 
+extension EntryQueue: Queueing {
+  
+  // TODO: Restore queue sort order
+
+  /// Fetches the queued entries and provides the populated queue.
   public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
@@ -262,16 +285,29 @@ extension EntryQueue: Queueing {
     
     var acc = [Entry]()
     
-    op.entriesBlock = { error, entries in
-      acc.append(contentsOf: entries)
-      entriesBlock(error, entries)
-    }
+    var sortedGuids: [String]?
     
-    // TODO: Find out why entriesCompletionBlock is called twice during launch
+    op.sortOrderBlock = { guids in
+      sortedGuids = guids
+    }
+
+    op.entriesBlock = { error, entries in
+      guard let guids = sortedGuids else {
+        fatalError("meh")
+      }
+
+      var dict = [String : Entry]()
+      entries.forEach { dict[$0.guid] = $0 }
+      let sorted: [Entry] = guids.flatMap { dict[$0] }
+      
+      acc.append(contentsOf: sorted)
+      entriesBlock(error, sorted)
+    }
     
     op.entriesCompletionBlock = { error in
       let unique = Set(acc)
       if acc.count != unique.count {
+        // TODO: Crash here
         let (_, doublets) = acc.reduce(([String](), [String]())) { acc, entry in
           let guid = entry.guid
           let (all, doublets) = acc
@@ -282,7 +318,9 @@ extension EntryQueue: Queueing {
         }
         print("EntryQueue: \(#function): doublets detected: \(doublets)")
       }
-      self.queue = Queue<Entry>(items: Array(unique))
+      
+      self.queue = Queue<Entry>(items: acc)
+      
       entriesCompletionBlock(error)
     }
     
@@ -305,9 +343,7 @@ extension EntryQueue: Queueing {
     postDidChangeNotification()
     
     DispatchQueue.global(qos: .default).async {
-      let entries = self.queue.enumerated()
-      let locators = entries.map { EntryLocator(entry:  $0.element.value) }
-      try! self.queueCache.add(locators)
+      try! self.queueCache.add([EntryLocator(entry: entry)])
     }
   }
   

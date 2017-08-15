@@ -21,7 +21,7 @@ create table if not exists record(
 -- Queued entry locators
 
 create table if not exists queued_entry(
-  guid int primary key,
+  guid text primary key,
   since datetime,
   ts datetime default current_timestamp,
   url text not null,

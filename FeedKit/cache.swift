@@ -63,7 +63,7 @@ public class LocalCache {
     self.url = url
     
     // Comment-in to remove all database files at start-up.
-    if let p = url { try FileManager.default.removeItem(at: p) }
+//    if let p = url { try FileManager.default.removeItem(at: p) }
     
     self.db = try Skull(url)
     
