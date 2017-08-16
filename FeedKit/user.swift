@@ -280,8 +280,6 @@ public final class EntryQueue {
 
 extension EntryQueue: Queueing {
   
-  // TODO: Restore queue sort order
-
   /// Fetches the queued entries and provides the populated queue.
   public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
@@ -292,8 +290,6 @@ extension EntryQueue: Queueing {
     let cache = self.queueCache
     let target = DispatchQueue.main
     let op = FetchQueueOperation(browser: browser, cache: cache, target: target)
-    
-    var acc = [Entry]()
     
     var sortedGuids: [String]?
     
@@ -312,9 +308,17 @@ extension EntryQueue: Queueing {
         entries.forEach { dict[$0.guid] = $0 }
         let sorted: [Entry] = guids.flatMap { dict[$0] }
 
+        do {
+          try self.queue.add(items: sorted)
+        } catch {
+          if #available(iOS 10.0, *) {
+            os_log("already in queue: %{public}@", log: log,  type: .error,
+                   String(describing: error))
+          }
+        }
+
         target.async {
           assert(Thread.isMainThread)
-          acc.append(contentsOf: sorted)
           entriesBlock(error, sorted)
         }
       }
@@ -323,22 +327,6 @@ extension EntryQueue: Queueing {
     op.entriesCompletionBlock = { error in
       assert(Thread.isMainThread)
       self.serialQueue.async {
-        // This checking of uniqueness is only for development.
-        let unique = Set(acc)
-        if acc.count != unique.count {
-          let (_, doublets) = acc.reduce(([String](), [String]())) { acc, entry in
-            let guid = entry.guid
-            let (all, doublets) = acc
-            guard !all.contains(guid) else {
-              return (all, doublets + [entry.title]) // title reads better
-            }
-            return (all + [entry.guid], doublets)
-          }
-          fatalError("EntryQueue: \(#function): doublets detected: \(doublets)")
-        }
-        
-        self.queue = Queue<Entry>(items: acc)
-        
         target.async {
           entriesCompletionBlock(error)
         }
@@ -357,28 +345,26 @@ extension EntryQueue: Queueing {
     )
   }
   
+  // TODO: Handle errors in asynchronous add and remove methods (add callbacks)
+  
   public func add(_ entry: Entry) throws {
-    try queue.add(entry)
-    
-    delegate?.queue(self, added: entry)
-    postDidChangeNotification()
-    
-    DispatchQueue.global(qos: .default).async {
+    serialQueue.async {
+      try! self.queue.add(entry)
       let locator = EntryLocator(entry: entry)
       try! self.queueCache.add([locator])
+      
+      DispatchQueue.main.async {
+        self.delegate?.queue(self, added: entry)
+        self.postDidChangeNotification()
+      }
     }
   }
   
-  public func add(entries: [Entry]) throws {
-    try queue.add(items: entries)
-  }
-  
   public func remove(_ entry: Entry) throws {
-    DispatchQueue.global(qos: .default).async {
-      let entries = self.queue.enumerated()
-      let guids = entries.map { $0.element.value.guid }
-      try! self.queueCache.remove(guids: guids)
+    serialQueue.async {
       try! self.queue.remove(entry)
+      let guid = entry.guid
+      try! self.queueCache.remove(guids: [guid])
       
       DispatchQueue.main.async {
         self.delegate?.queue(self, removedGUID: entry.guid)

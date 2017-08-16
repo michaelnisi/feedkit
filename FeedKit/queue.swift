@@ -9,7 +9,7 @@
 import Foundation
 
 public enum QueueError: Error {
-  case alreadyInQueue
+  case alreadyInQueue(Int)
   case notInQueue
 }
 
@@ -28,7 +28,7 @@ public struct Queue<Item: Hashable> {
   
   public mutating func add(_ item: Item) throws {
     guard !contains(item) else {
-      throw QueueError.alreadyInQueue
+      throw QueueError.alreadyInQueue(item.hashValue)
     }
     
     let key = item.hashValue
