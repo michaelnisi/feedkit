@@ -10,6 +10,8 @@ import Foundation
 import Skull
 import os.log
 
+// TODO: Write tests
+
 public class UserCache: LocalCache {}
 
 @available(iOS 10.0, *)
@@ -226,7 +228,9 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
-      self.sortOrderBlock?(guids)
+      target.async {
+        self.sortOrderBlock?(guids)
+      }
       
       guard !isCancelled, !locators.isEmpty else {
         return done()
@@ -240,8 +244,11 @@ private final class FetchQueueOperation: FeedKitOperation {
  
 }
 
-// TODO: Consider extending this into User, organized into extensions
+// TODO: Consider making EntryQueue into User, organized into extensions
+// ... for queueing, subscribing, preferences, etc.
 
+/// Coordinates the queue data structure, local persistence, and propagation of
+/// change events regarding the queue.
 public final class EntryQueue {
   
   let operationQueue: OperationQueue
@@ -264,6 +271,9 @@ public final class EntryQueue {
   fileprivate var queue = Queue<Entry>()
   
   public var delegate: QueueDelegate?
+  
+  /// Our private serial queue for doing things in order.
+  let serialQueue = DispatchQueue(label: "ink.codes.feedkit.user")
 }
 
 // MARK: - Queueing
@@ -288,40 +298,51 @@ extension EntryQueue: Queueing {
     var sortedGuids: [String]?
     
     op.sortOrderBlock = { guids in
+      assert(Thread.isMainThread)
       sortedGuids = guids
     }
 
     op.entriesBlock = { error, entries in
-      guard let guids = sortedGuids else {
-        fatalError("meh")
-      }
+      assert(Thread.isMainThread)
+      self.serialQueue.async {
+        guard let guids = sortedGuids else {
+          fatalError("sorted guids required")
+        }
+        var dict = [String : Entry]()
+        entries.forEach { dict[$0.guid] = $0 }
+        let sorted: [Entry] = guids.flatMap { dict[$0] }
 
-      var dict = [String : Entry]()
-      entries.forEach { dict[$0.guid] = $0 }
-      let sorted: [Entry] = guids.flatMap { dict[$0] }
-      
-      acc.append(contentsOf: sorted)
-      entriesBlock(error, sorted)
+        target.async {
+          assert(Thread.isMainThread)
+          acc.append(contentsOf: sorted)
+          entriesBlock(error, sorted)
+        }
+      }
     }
     
     op.entriesCompletionBlock = { error in
-      let unique = Set(acc)
-      if acc.count != unique.count {
-        // TODO: Crash here
-        let (_, doublets) = acc.reduce(([String](), [String]())) { acc, entry in
-          let guid = entry.guid
-          let (all, doublets) = acc
-          guard !all.contains(guid) else {
-            return (all, doublets + [entry.title]) // title reads better
+      assert(Thread.isMainThread)
+      self.serialQueue.async {
+        // This checking of uniqueness is only for development.
+        let unique = Set(acc)
+        if acc.count != unique.count {
+          let (_, doublets) = acc.reduce(([String](), [String]())) { acc, entry in
+            let guid = entry.guid
+            let (all, doublets) = acc
+            guard !all.contains(guid) else {
+              return (all, doublets + [entry.title]) // title reads better
+            }
+            return (all + [entry.guid], doublets)
           }
-          return (all + [entry.guid], doublets)
+          fatalError("EntryQueue: \(#function): doublets detected: \(doublets)")
         }
-        print("EntryQueue: \(#function): doublets detected: \(doublets)")
+        
+        self.queue = Queue<Entry>(items: acc)
+        
+        target.async {
+          entriesCompletionBlock(error)
+        }
       }
-      
-      self.queue = Queue<Entry>(items: acc)
-      
-      entriesCompletionBlock(error)
     }
     
     operationQueue.addOperation(op)
@@ -343,7 +364,8 @@ extension EntryQueue: Queueing {
     postDidChangeNotification()
     
     DispatchQueue.global(qos: .default).async {
-      try! self.queueCache.add([EntryLocator(entry: entry)])
+      let locator = EntryLocator(entry: entry)
+      try! self.queueCache.add([locator])
     }
   }
   
