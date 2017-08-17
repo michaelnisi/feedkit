@@ -18,6 +18,7 @@ public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
   
+  /// Returns an unsorted sequence of the items in the queue.
   public func enumerated() -> EnumeratedSequence<Dictionary<Int, Item>> {
     return itemsByHashValues.enumerated()
   }
@@ -26,6 +27,10 @@ public struct Queue<Item: Hashable> {
   private var fwd = [Int]()
   private var bwd = [Int]()
   
+  /// Adds one item to the queue.
+  ///
+  /// - Throws: Will throw `QueueError.alreadyInQueue` if the item is already 
+  /// in the queue, because this is probably a programming error.
   public mutating func add(_ item: Item) throws {
     guard !contains(item) else {
       throw QueueError.alreadyInQueue(item.hashValue)
@@ -38,6 +43,8 @@ public struct Queue<Item: Hashable> {
   
   public var isEmpty: Bool { get { return itemsByHashValues.isEmpty } }
   
+  /// Add multiple items to the queue at once, in reverse order, so that the 
+  /// order of `items` becomes the order of the queue.
   public mutating func add(items: [Item]) throws {
     let shouldSetNow = isEmpty && !items.isEmpty
     try items.reversed().forEach { item in
@@ -50,9 +57,10 @@ public struct Queue<Item: Hashable> {
   
   public init() {}
   
-  /// Creates a new queue containing `items` with its first item as `current`.
+  /// Creates a new queue populated with `items` with its first item as 
+  /// `current`.
   ///
-  /// - Parameter items: The items to enqueue, an empty array is fine too.
+  /// - Parameter items: The items to enqueue, an empty array is OK.
   public init(items: [Item]) {
     try! add(items: items)
   }

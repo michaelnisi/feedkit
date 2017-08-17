@@ -252,6 +252,7 @@ private final class FetchQueueOperation: FeedKitOperation {
 public final class EntryQueue {
   
   let operationQueue: OperationQueue
+  let serialQueue: DispatchQueue
   let queueCache: QueueCaching
   let browser: Browsing
   
@@ -265,15 +266,13 @@ public final class EntryQueue {
     self.queueCache = queueCache
     self.browser = browser
     self.operationQueue = queue
+    self.serialQueue = queue.underlyingQueue!
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
   fileprivate var queue = Queue<Entry>()
   
   public var delegate: QueueDelegate?
-  
-  /// Our private serial queue for doing things in order.
-  let serialQueue = DispatchQueue(label: "ink.codes.feedkit.user")
 }
 
 // MARK: - Queueing
@@ -345,13 +344,21 @@ extension EntryQueue: Queueing {
     )
   }
   
-  // TODO: Handle errors in asynchronous add and remove methods (add callbacks)
-  
-  public func add(_ entry: Entry) throws {
+  /// Adds `entry` to the queue. This is an asynchronous function returning
+  /// immediately. Uncritically, if it fails, an error is logged.
+  public func add(_ entry: Entry) {
     serialQueue.async {
-      try! self.queue.add(entry)
-      let locator = EntryLocator(entry: entry)
-      try! self.queueCache.add([locator])
+      do {
+        try self.queue.add(entry)
+        let locator = EntryLocator(entry: entry)
+        try self.queueCache.add([locator])
+      } catch {
+        if #available(iOS 10.0, *) {
+          os_log("could not add %{public}@ to queue: %{public}@", log: log,
+                 type: .error, entry.title, String(describing: error))
+        }
+        return
+      }
       
       DispatchQueue.main.async {
         self.delegate?.queue(self, added: entry)
@@ -360,11 +367,21 @@ extension EntryQueue: Queueing {
     }
   }
   
-  public func remove(_ entry: Entry) throws {
+  /// Removes `entry` to the queue. This is an asynchronous function returning
+  /// immediately. Uncritically, if it fails, an error is logged.
+  public func remove(_ entry: Entry) {
     serialQueue.async {
-      try! self.queue.remove(entry)
-      let guid = entry.guid
-      try! self.queueCache.remove(guids: [guid])
+      do {
+        try self.queue.remove(entry)
+        let guid = entry.guid
+        try self.queueCache.remove(guids: [guid])
+      } catch {
+        if #available(iOS 10.0, *) {
+          os_log("could not remove %{public}@ from queue: %{public}@", log: log,
+                 type: .error, entry.title, String(describing: error))
+        }
+        return
+      }
       
       DispatchQueue.main.async {
         self.delegate?.queue(self, removedGUID: entry.guid)

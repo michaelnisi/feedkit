@@ -601,8 +601,8 @@ public protocol Queueing {
   
   var delegate: QueueDelegate? { get set }
   
-  func add(_ entry: Entry) throws
-  func remove(_ entry: Entry) throws
+  func add(_ entry: Entry)
+  func remove(_ entry: Entry)
   
   func contains(_ entry: Entry) -> Bool
   
