@@ -11,12 +11,34 @@ pragma user_version = 1;
 
 begin immediate;
 
+-- Core
+
 -- CloudKit records
 
 create table if not exists record(
   record_name text primary key,
   change_tag text
 ) without rowid;
+
+-- Entries
+
+create table if not exists entry(
+  guid text primary key,
+  since datetime,
+  url text not null,
+  record_name text
+) without rowid;
+
+-- Feeds
+
+create table if not exists feed(
+  url text not null,
+  record_name text
+);
+
+-- Relations
+
+-- TODO: Update relations to use core tables
 
 -- Queued entry locators
 
@@ -33,6 +55,32 @@ create unique index if not exists queued_entry_idx on queued_entry(record_name);
 create trigger if not exists queued_entry_bd before delete on queued_entry begin
   delete from record where record_name=old.record_name;
 end;
+
+-- TODO: Refactoring starts here
+
+create table if not exists qe(
+  guid text primary key,
+  ts datetime default current_timestamp
+) without rowid;
+
+create table if not exists qe(
+  guid text primary key,
+  ts datetime default current_timestamp
+) without rowid;
+
+create view if not exists qe_view
+as select
+  r.record_name,
+  r.change_tag,
+  e.guid,
+  e.ts,
+  e.url,
+  e.since
+from queued_entry e
+  join qe on qe.guid = e.guid
+  left join record r on e.record_name=r.record_name;
+
+--
 
 -- All entries in queue including CloudKit meta data, if synced
 
