@@ -11,16 +11,16 @@ import Skull
 
 // MARK: - Stateful Formatting
 
-/// `SQLFormatter` produces SQL statements from FeedKit structures and creates 
+/// `SQLFormatter` produces SQL statements from FeedKit structures and creates
 /// and transforms SQLite rows into FeedKit value objects. Mostly via stateless
 /// functions, the only reason for this being a class is to share a date
 /// formatter.
-/// 
+///
 /// This formatter doesn‘t return explicit transactions, this is left to the
 /// call site, which knows more about the context, the formatted SQL is going
 /// to be used in.
 final class SQLFormatter {
-  
+
   public static var shared = SQLFormatter()
 
   lazy private var df: DateFormatter = {
@@ -34,9 +34,9 @@ final class SQLFormatter {
   func now() -> String {
     return df.string(from: Date())
   }
-  
+
   /// Returns a date from an SQLite datetime timestamp string.
-  /// 
+  ///
   /// - Parameter string: A `'yyyy-MM-dd HH:mm:ss'` formatted timestamp.
   /// - Returns: A date or `nil`.
   func date(from string: String?) -> Date? {
@@ -100,12 +100,9 @@ final class SQLFormatter {
       ("summary", summary), ("title", title), ("updated", updated), ("url", url)
     ]
 
-    // TODO: Find more effective way to do this
-    //
-    // There must be a better way using flatMap.
-
-    // If the feed doesn’t come from iTunes, it doesn’t contain the URLs of the
-    // prescaled and we don’t want to nullify them.
+    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
+    // contain URLs of the prescaled images. We don’t want to explicitly
+    // set these to 'NULL'.
     let kept = ["guid", "img100", "img30", "img60", "img600"]
 
     let vars = props.reduce([String]()) { acc, prop in
@@ -167,14 +164,14 @@ final class SQLFormatter {
       return "NULL"
     }
   }
-  
+
   // TODO: Add parameters for paging: DESC LIMIT 25
 
   func SQLToSelectEntriesByIntervals(_ intervals: [(Int, Date)]) -> String? {
     guard !intervals.isEmpty else {
       return nil
     }
-    
+
     return "SELECT * FROM entry_view WHERE" + intervals.map {
       let feedID = $0.0
       let updated = df.string(from: $0.1)
@@ -298,19 +295,19 @@ private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
 }
 
 extension SQLFormatter {
-  
+
   static func toRemoveFeed(with guid: Int) -> String {
     return "DELETE FROM feed WHERE guid = \(guid);"
   }
-  
+
   static func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
     return selectRowsByUIDs("entry_view", ids: entryIDs)
   }
-  
+
   static func SQLToSelectFeedsByFeedIDs(_ feedIDs: [Int]) -> String? {
     return selectRowsByUIDs("feed_view", ids: feedIDs)
   }
-  
+
   static func SQLToSelectEntryByGUID(_ guid: String) -> String {
     return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
   }
@@ -321,9 +318,9 @@ extension SQLFormatter {
       " guid = '\($0)'"
     }.joined(separator: " OR") + ";"
   }
-  
+
   // TODO: Test if entries are removed when their feeds are removed
-  
+
   static func SQLToRemoveFeedsWithFeedIDs(_ feedIDs: [Int]) -> String? {
     guard !feedIDs.isEmpty else { return nil }
     let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
@@ -331,7 +328,7 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
     return sql
   }
-  
+
   /// The SQL standard specifies that single-quotes, and double quotes for that
   /// matter in strings are escaped by putting two single quotes in a row.
   static func SQLString(from string: String) -> String {
@@ -341,17 +338,17 @@ extension SQLFormatter {
       options: String.CompareOptions.literal,
       range: nil
     )
-    
+
     return "'\(s)'"
   }
-  
+
   // TODO: Ensure all strings pass through SQLStringFromString
-  
+
   static func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
     let s = SQLFormatter.SQLString(from: url)
     return "SELECT feedid FROM url_view WHERE url = \(s);"
   }
-  
+
   static func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), \(s));"
@@ -363,12 +360,12 @@ extension SQLFormatter {
 // TODO: Validate search term to avoid: "malformed MATCH expression: [\"*]"
 
 extension SQLFormatter {
-  
+
   static func SQLToInsertSuggestionForTerm(_ term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO sug(term) VALUES(\(s));"
   }
-  
+
   static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT * FROM sug WHERE rowid IN (" +
@@ -378,7 +375,7 @@ extension SQLFormatter {
       "LIMIT \(limit);"
     return sql
   }
-  
+
   static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "DELETE FROM sug " +
@@ -386,7 +383,7 @@ extension SQLFormatter {
       "SELECT rowid FROM sug_fts WHERE term MATCH \(s));"
     return sql
   }
-  
+
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
     guard
       let guid = row["guid"] as? Int ?? row["feed_guid"] as? Int,
@@ -396,7 +393,7 @@ extension SQLFormatter {
       let img600 = row["img600"] as? String else {
       return nil
     }
-    
+
     return ITunesItem(
       guid: guid,
       img100: img100,
@@ -405,7 +402,7 @@ extension SQLFormatter {
       img600: img600
     )
   }
-  
+
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {
     guard let term = row["term"] as? String else {
       throw FeedKitError.invalidSuggestion(reason: "missing term")
@@ -415,10 +412,10 @@ extension SQLFormatter {
     }
     return Suggestion(term: term, ts: date(from: ts))
   }
-  
+
   // TODO: Review SELECT DISTINCT in search queries
   // TODO: Escape search term
-  
+
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: term)
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
@@ -427,7 +424,7 @@ extension SQLFormatter {
       "LIMIT \(limit);"
     return sql
   }
-  
+
   static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
@@ -437,7 +434,7 @@ extension SQLFormatter {
       "LIMIT \(limit);"
     return sql
   }
-  
+
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
     let sql = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
@@ -447,58 +444,21 @@ extension SQLFormatter {
       "LIMIT \(limit);"
     return sql
   }
-  
+
   static func SQLToDeleteSearch(for term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
     return "DELETE FROM search WHERE term=\(s);"
   }
-  
-}
 
-// MARK: - Syncing
-
-extension SQLFormatter {
-  
-  static func SQLToDeleteRecords(with names: [String]) -> String? {
-    guard !names.isEmpty else {
-      return nil
-    }
-    return "DELETE FROM record WHERE record_name IN(" + names.map {
-      "'\($0)'"
-    }.joined(separator: ", ") + ");"
-  }
-  
-  // TODO: Change locator type or throw
-  
-  func SQLToQueueSynced(locator synced: Synced) -> String {
-    switch synced {
-    case .entry(let locator, let queuedAt, let record):
-      let guid = stringFromAny(locator.guid)
-      let url = stringFromAny(locator.url)
-      let since = stringFromAny(locator.since)
-      
-      let ts = stringFromAny(queuedAt)
-      let name = stringFromAny(record.name)
-      let tag = stringFromAny(record.changeTag)
-      
-      return [
-        "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\(name), \(tag));",
-        "INSERT OR REPLACE INTO queued_entry(guid, url, since, ts, record_name) VALUES(" +
-        "\(guid), \(url), \(since), \(ts), \(name));"
-      ].joined(separator: "\n");
-    }
-  }
-  // C494AD71-AB58-4A00-BFDE-2551A32BC3E4
-  static let SQLToSelectLocallyQueuedEntries = "SELECT * FROM locally_queued_entry;"
-  
 }
 
 // MARK: - Queueing
 
 extension SQLFormatter {
 
-  static let SQLToSelectAllQueued = "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
-  
+  static let SQLToSelectAllQueued =
+    "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
+
   static func SQLToUnqueue(guids: [String]) -> String? {
     guard !guids.isEmpty else {
       return nil
@@ -507,23 +467,81 @@ extension SQLFormatter {
       "'\($0)'"
     }.joined(separator: ", ") + ");"
   }
+
   
-  func SQLToQueue(entry: EntryLocator, with guid: String) -> String {
+  // TODO: Remove extra GUID and throw instead
+  
+  func SQLToQueue(entry: EntryLocator, with rawGUID: String) -> String {
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
-    
-    return "INSERT OR REPLACE INTO queued_entry(guid, url, since) " +
-      "VALUES(\(SQLFormatter.SQLString(from: guid)), \(url), \(since));"
+    let guid = SQLFormatter.SQLString(from: rawGUID)
+
+    return [
+      "INSERT OR REPLACE INTO entry(guid, url, since) " +
+      "VALUES(\(guid), \(url), \(since));",
+
+      "INSERT OR REPLACE INTO queued_entry(guid) VALUES(\(guid));"
+    ].joined(separator: "\n");
   }
-  
+
   func queuedLocator(from row: SkullRow) -> Queued {
     let url = row["url"] as! String
     let since = date(from: row["since"] as? String)!
     let guid = row["guid"] as? String
     let locator = EntryLocator(url: url, since: since, guid: guid)
-    
+
     let ts = date(from: row["ts"] as? String)!
-    
+
     return Queued.entry(locator, ts)
   }
+}
+
+
+// MARK: - Syncing
+
+extension SQLFormatter {
+
+  // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4
+
+  static func SQLToDeleteRecords(with names: [String]) -> String? {
+    guard !names.isEmpty else {
+      return nil
+    }
+    return "DELETE FROM record WHERE record_name IN(" + names.map {
+      "'\($0)'"
+      }.joined(separator: ", ") + ");"
+  }
+
+  // TODO: Guarantee locator has guid
+
+  func SQLToQueueSynced(locator synced: Synced) throws -> String {
+    switch synced {
+    case .entry(let locator, let queuedAt, let record):
+      guard let lg = locator.guid else {
+        throw FeedKitError.invalidEntry(reason: "missing guid")
+      }
+      let guid = stringFromAny(lg)
+      let url = stringFromAny(locator.url)
+      let since = stringFromAny(locator.since)
+
+      let ts = stringFromAny(queuedAt)
+      let name = stringFromAny(record.name)
+      let tag = stringFromAny(record.changeTag)
+
+      return [
+        "INSERT OR REPLACE INTO record(record_name, change_tag) " +
+        "VALUES(\(name), \(tag));",
+
+        "INSERT OR REPLACE INTO entry(guid, url, since) " +
+        "VALUES(\(guid), \(url), \(since));",
+
+        "INSERT OR REPLACE INTO queued_entry(guid, ts, record_name) " +
+        "VALUES(\(guid), \(ts), \(name));"
+      ].joined(separator: "\n");
+    }
+  }
+
+  static let SQLToSelectLocallyQueuedEntries =
+    "SELECT * FROM locally_queued_entry;"
+
 }

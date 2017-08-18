@@ -373,10 +373,7 @@ extension SQLTests {
     let name = "E49847D6-6251-48E3-9D7D-B70E8B7392CD" // actual record name
     let record = RecordMetadata(name: name, changeTag: "e")
     let synced = Synced.entry(loc, Date(), record)
-    // At this point we have an invalid synced item, because the locator doesn‘t
-    // have a guid.
-    // TODO: Refine and test
-    XCTAssertNotNil(loc.guid)
+    XCTAssertThrowsError(try formatter.SQLToQueueSynced(locator: synced))
   }
   
 }
@@ -405,7 +402,7 @@ extension SQLTests {
       let since = Date(timeIntervalSince1970: 1465192800)
       let locator = EntryLocator(url: url, since: since, guid: guid)
       let found = formatter.SQLToQueue(entry: locator, with: guid)
-      let wanted = "INSERT OR REPLACE INTO queued_entry(guid, url, since) VALUES('12three', 'abc.de', '2016-06-06 06:00:00');"
+      let wanted = "INSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'12three\', \'abc.de\', \'2016-06-06 06:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid) VALUES(\'12three\');"
       XCTAssertEqual(found, wanted)
     }
   }

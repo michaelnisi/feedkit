@@ -135,8 +135,8 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        let sql = synced.reduce([String]()) { acc, loc in
-          let sql = fmt.SQLToQueueSynced(locator: loc)
+        let sql = try synced.reduce([String]()) { acc, loc in
+          let sql = try fmt.SQLToQueueSynced(locator: loc)
           return acc + [sql]
         }.joined(separator: "\n")
         
@@ -366,6 +366,8 @@ extension EntryQueue: Queueing {
       }
     }
   }
+  
+  // TODO: Store removed items
   
   /// Removes `entry` to the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
