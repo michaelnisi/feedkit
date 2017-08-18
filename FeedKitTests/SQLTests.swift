@@ -43,6 +43,15 @@ final class SQLTests: XCTestCase {
     return row
   }
   
+  fileprivate func skullRow(from item: Any) -> SkullRow {
+    return Mirror(reflecting: item).children.reduce(SkullRow()) { acc, prop in
+      var r = acc
+      let col = skullColumn(prop.label!, value: prop.value)
+      r[col.name] = col.value
+      return r
+    }
+  }
+  
   func testITunesFromRow() {
     let wanted = ITunesItem(
       guid: 123,
@@ -266,16 +275,29 @@ final class SQLTests: XCTestCase {
 
 extension SQLTests {
   
+  func testSuggestionFromRow() {
+    XCTAssertThrowsError(try formatter.suggestionFromRow(SkullRow()))
+    XCTAssertThrowsError(try formatter.suggestionFromRow(skullRow(["ts"])))
+    XCTAssertThrowsError(try formatter.suggestionFromRow(skullRow(["term"])))
+    XCTAssertThrowsError(try formatter.suggestionFromRow(skullRow(["term", "ts"])))
+    
+    var row = SkullRow()
+    row["term"] = "abc"
+    row["ts"] =  "2016-06-06 06:00:00"
+    
+    let ts = Date(timeIntervalSince1970: 1465192800)
+    let wanted = Suggestion(term: "abc", ts: ts)
+    
+    let found = try! formatter.suggestionFromRow(row)
+
+    XCTAssertEqual(found, wanted)
+  }
+  
   func testITunesItemFromRow() {
     let wanted = ITunesItem(guid: 123, img100: "img100", img30: "img30",
                             img60: "img60", img600: "img600")
     
-    let row = Mirror(reflecting: wanted).children.reduce(SkullRow()) { acc, prop in
-      var r = acc
-      let col = skullColumn(prop.label!, value: prop.value)
-      r[col.name] = col.value
-      return r
-    }
+    let row = skullRow(from: wanted)
     
     let iTunes = SQLFormatter.iTunesItem(from: row)!
     
@@ -369,11 +391,23 @@ extension SQLTests {
   }
   
   func testSQLToQueueSynced() {
-    let loc = EntryLocator(url: "http://abc.de")
+    let ts = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
     let name = "E49847D6-6251-48E3-9D7D-B70E8B7392CD" // actual record name
     let record = RecordMetadata(name: name, changeTag: "e")
-    let synced = Synced.entry(loc, Date(), record)
-    XCTAssertThrowsError(try formatter.SQLToQueueSynced(locator: synced))
+    
+    do {
+      let loc = EntryLocator(url: "http://abc.de")
+      let synced = Synced.entry(loc, Date(), record)
+      XCTAssertThrowsError(try formatter.SQLToQueueSynced(locator: synced))
+    }
+    
+    do {
+      let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
+      let synced = Synced.entry(loc, ts, record)
+      let found = try! formatter.SQLToQueueSynced(locator: synced)
+      let wanted = "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'e\');\nINSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      XCTAssertEqual(found, wanted)
+    }
   }
   
 }
@@ -399,7 +433,7 @@ extension SQLTests {
     do {
       let guid = "12three"
       let url = "abc.de"
-      let since = Date(timeIntervalSince1970: 1465192800)
+      let since = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
       let locator = EntryLocator(url: url, since: since, guid: guid)
       let found = formatter.SQLToQueue(entry: locator, with: guid)
       let wanted = "INSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'12three\', \'abc.de\', \'2016-06-06 06:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid) VALUES(\'12three\');"

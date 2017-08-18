@@ -407,10 +407,10 @@ extension SQLFormatter {
     guard let term = row["term"] as? String else {
       throw FeedKitError.invalidSuggestion(reason: "missing term")
     }
-    guard let ts = row["ts"] as? String else {
+    guard let rowTs = row["ts"] as? String, let ts = date(from: rowTs) else {
       throw FeedKitError.invalidSuggestion(reason: "missing ts")
     }
-    return Suggestion(term: term, ts: date(from: ts))
+    return Suggestion(term: term, ts: ts)
   }
 
   // TODO: Review SELECT DISTINCT in search queries
