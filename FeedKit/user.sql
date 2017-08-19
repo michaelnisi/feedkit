@@ -68,8 +68,8 @@ end;
 
 -- All queued entries, including iCloud meta-data if synced
 
-create view if not exists queued_entry_view
-as select
+create view if not exists queued_entry_view as
+select
   e.guid,
   e.since,
   e.url,
@@ -83,9 +83,27 @@ from entry e
 -- Locally queued entries, not synced yet
 
 create view if not exists locally_queued_entry_view as
-  select * from queued_entry
+select * from queued_entry_view
   where record_name is null;
 
--- TODO: Add views for previous entries
+-- Previously queued entries
+
+create view if not exists previous_entry_view as
+select
+  e.guid,
+  e.since,
+  e.url,
+  pe.ts,
+  r.change_tag,
+  r.record_name
+from entry e
+  join previous_entry pe on pe.guid = e.guid
+  left join record r on pe.record_name = r.record_name;
+
+-- Previously queued entries that not have been synced yet
+
+create view if not exists locally_previous_entry_view as
+select * from previous_entry_view
+  where record_name is null;
 
 commit;

@@ -435,7 +435,7 @@ extension Cache: FeedCaching {
   /// - Throws: Might throw database errors.
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
-      // TODO: Test and review entries(having guids:)
+      // TODO: Consider renaming to entries(having guids:)
       let chunks = Cache.slice(elements: guids, with: 512)
 
       return try chunks.reduce([Entry]()) { acc, guids in
@@ -674,6 +674,8 @@ extension Cache: SearchCaching {
 // MARK: - Utilities
 
 extension Cache {
+  
+  // TODO: Move slice utitlity function into LocalCache super class
   
   /// Slices an array into fixed sized arrays.
   ///

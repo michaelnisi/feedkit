@@ -386,7 +386,7 @@ extension SQLTests {
   }
   
   func testSQLToSelectLocallyQueuedEntries() {
-    let wanted = "SELECT * FROM locally_queued_entry;"
+    let wanted = "SELECT * FROM locally_queued_entry_view;"
     XCTAssertEqual(SQLFormatter.SQLToSelectLocallyQueuedEntries, wanted)
   }
   
@@ -427,6 +427,10 @@ extension SQLTests {
 
   func testSQLToSelectAllQueued() {
     XCTAssertEqual(SQLFormatter.SQLToSelectAllQueued, "SELECT * FROM queued_entry_view ORDER BY ts DESC;")
+  }
+  
+  func testSQLToSelectAllPrevious() {
+    XCTAssertEqual(SQLFormatter.SQLToSelectAllPrevious, "SELECT * FROM previous_entry_view ORDER BY ts DESC LIMIT 25;")
   }
   
   func testSQLToQueueEntry() {

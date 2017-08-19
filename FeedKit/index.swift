@@ -584,9 +584,13 @@ extension Queued: Hashable {
 public protocol QueueCaching {
   func add(_ entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
+
   func queued() throws -> [Queued]
+  func previous() throws -> [Queued]
   
   func local() throws -> [Queued]
+  
+  // A superset of functionality for syncing with iCloud.
   
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws

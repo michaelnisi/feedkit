@@ -35,31 +35,63 @@ final class UserCacheTests: XCTestCase {
     return locators
   }()
   
+}
+
+// MARK: - QueueCaching
+
+extension UserCacheTests {
+  
   func testAddEntries() {
     try! cache.add(locators)
     
-    let wanted = locators.map {
-      Queued.entry($0, Date())
-    }
-    let found = try! cache.queued()
-    XCTAssertEqual(found, wanted)
-  }
-  
-  func testRemoveEntries() {
-    try! cache.add(locators)
-    
-    do { // check if they‘ve actually been added
-      let wanted = locators.map {
-        Queued.entry($0, Date())
-      }
+    do {
+      let wanted = locators.map { Queued.entry($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
     }
     
-    try! cache.remove(guids: ["123"])
-    
-    let found = try! cache.queued()
-    XCTAssert(found.isEmpty)
+    do {
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      let found = try! cache.local()
+      XCTAssertEqual(found, wanted)
+    }
   }
   
+  func testRemoveEntries() {
+    do {
+      try! cache.add(locators)
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      let found = try! cache.queued()
+      XCTAssertEqual(found, wanted)
+      
+      // Unpacking the timestamp here, because Queued timestamps, Date() in the 
+      // map function above, aren‘t compared by Queued: Equatable.
+      switch found.first! {
+      case .entry(_, let ts):
+        XCTAssertNotNil(ts)
+      }
+    }
+    
+    do {
+      try! cache.remove(guids: ["123"])
+      let found = try! cache.queued()
+      XCTAssert(found.isEmpty)
+    }
+    
+    // Entries are rotated between queued and previous.
+    
+    do {
+      let found = try! cache.previous()
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      dump(found)
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      try! cache.add(locators)
+      let found = try! cache.previous()
+      XCTAssert(found.isEmpty)
+    }
+  }
+
 }

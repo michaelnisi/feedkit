@@ -10,12 +10,12 @@ import Foundation
 import Skull
 import os.log
 
-// TODO: Write tests
+@available(iOS 10.0, *)
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 public class UserCache: LocalCache {}
 
-@available(iOS 10.0, *)
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+// MARK: - QueueCaching
 
 extension UserCache: QueueCaching {
   
@@ -56,6 +56,13 @@ extension UserCache: QueueCaching {
     return try _queued(sql: SQLFormatter.SQLToSelectAllQueued)
   }
   
+  /// Returns previously queued entries, limited to the most recent 25.
+  public func previous() throws -> [Queued] {
+    return try _queued(sql: SQLFormatter.SQLToSelectAllPrevious)
+  }
+  
+  /// The queued entries, which not have been synced and are only locally
+  /// cached, hence the name.
   public func local() throws -> [Queued] {
     return try _queued(sql: SQLFormatter.SQLToSelectLocallyQueuedEntries)
   }

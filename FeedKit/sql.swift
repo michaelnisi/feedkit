@@ -19,6 +19,12 @@ import Skull
 /// This formatter doesn‘t return explicit transactions, this is left to the
 /// call site, which knows more about the context, the formatted SQL is going
 /// to be used in.
+///
+/// Remember to respect [SQLite limits](https://www.sqlite.org/limits.html) when 
+/// using this class. Some of its functions might exceed the maximum depth of an 
+/// SQLite expression tree Here's the deal, basically every time an array of 
+/// identifiers is longer than 1000, we have to slice it down, for example, with
+/// `Cache.slice(elements:, with:)`.
 final class SQLFormatter {
 
   public static var shared = SQLFormatter()
@@ -280,17 +286,11 @@ final class SQLFormatter {
 
 // MARK: - General Use
 
-// TODO: Review map functions regarding limits
-//
-// Maximum Depth Of An Expression Tree https://www.sqlite.org/limits.html
-// Here's the deal, basically every time an array of identifiers is longer than
-// 1000, these will break.
-
 private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
   guard !ids.isEmpty else { return nil }
   let sql = "SELECT * FROM \(table) WHERE" + ids.map {
     " uid = \($0)"
-    }.joined(separator: " OR") + ";"
+  }.joined(separator: " OR") + ";"
   return sql
 }
 
@@ -413,9 +413,6 @@ extension SQLFormatter {
     return Suggestion(term: term, ts: ts)
   }
 
-  // TODO: Review SELECT DISTINCT in search queries
-  // TODO: Escape search term
-
   static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: term)
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
@@ -458,6 +455,9 @@ extension SQLFormatter {
 
   static let SQLToSelectAllQueued =
     "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
+  
+  static let SQLToSelectAllPrevious =
+    "SELECT * FROM previous_entry_view ORDER BY ts DESC LIMIT 25;"
 
   static func SQLToUnqueue(guids: [String]) -> String? {
     guard !guids.isEmpty else {
@@ -509,18 +509,16 @@ extension SQLFormatter {
     }
     return "DELETE FROM record WHERE record_name IN(" + names.map {
       "'\($0)'"
-      }.joined(separator: ", ") + ");"
+    }.joined(separator: ", ") + ");"
   }
-
-  // TODO: Guarantee locator has guid
 
   func SQLToQueueSynced(locator synced: Synced) throws -> String {
     switch synced {
     case .entry(let locator, let queuedAt, let record):
-      guard let lg = locator.guid else {
+      guard let locGuid = locator.guid else {
         throw FeedKitError.invalidEntry(reason: "missing guid")
       }
-      let guid = stringFromAny(lg)
+      let guid = stringFromAny(locGuid)
       let url = stringFromAny(locator.url)
       let since = stringFromAny(locator.since)
 
@@ -542,6 +540,6 @@ extension SQLFormatter {
   }
 
   static let SQLToSelectLocallyQueuedEntries =
-    "SELECT * FROM locally_queued_entry;"
+    "SELECT * FROM locally_queued_entry_view;"
 
 }
