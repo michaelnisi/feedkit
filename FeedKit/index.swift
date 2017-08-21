@@ -113,6 +113,8 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let title: String
   public let ts: Date?
   
+  // TODO: Consider generating a GUID like Entry.guid
+  
   /// The locally unique identifier of the feed, literally the `rowid` of the 
   /// feed table.
   public let uid: Int?
@@ -545,6 +547,7 @@ public struct RecordMetadata {
   }
 }
 
+/// Enumerates data structures for synchronization with iCloud.
 public enum Synced {
   /// An entry that has been synchronized with the iCloud database with these
   /// properties: entry locator, the time the entry was added to the queue; and 

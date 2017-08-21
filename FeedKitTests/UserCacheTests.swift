@@ -83,7 +83,6 @@ extension UserCacheTests {
     do {
       let found = try! cache.previous()
       let wanted = locators.map { Queued.entry($0, Date()) }
-      dump(found)
       XCTAssertEqual(found, wanted)
     }
     

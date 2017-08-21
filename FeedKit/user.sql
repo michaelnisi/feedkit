@@ -20,6 +20,8 @@ create table if not exists record(
 
 -- Entries
 
+-- TODO: Once guid is changed to int, use ordinary rowid
+
 create table if not exists entry(
   guid text primary key,
   since datetime,
@@ -31,7 +33,7 @@ create table if not exists entry(
 create table if not exists queued_entry(
   guid text primary key,
   ts datetime default current_timestamp,
-  record_name text
+  record_name text unique
 ) without rowid;
 
 create unique index if not exists queued_entry_idx on queued_entry(record_name);
@@ -41,29 +43,51 @@ create unique index if not exists queued_entry_idx on queued_entry(record_name);
 create table if not exists previous_entry(
   guid text primary key,
   ts datetime default current_timestamp,
-  record_name text
+  record_name text unique
 ) without rowid;
 
 create unique index if not exists previous_entry_idx on previous_entry(record_name);
+
+-- Feeds
+
+create table if not exists feed(
+  guid int primary key,
+  url text not null
+);
+
+-- Subscribed feeds
+
+create table if not exists subscribed_feed(
+  guid int primary key,
+  ts datetime default current_timestamp,
+  record_name text unique
+);
+
+create unique index if not exists subscribed_feed_idx on subscribed_feed(record_name);
 
 -- Relations
 
 create trigger if not exists record_ad after delete on record begin
   delete from queued_entry where record_name = old.record_name;
   delete from previous_entry where record_name = old.record_name;
+  delete from subscribed_feed where record_name = old.record_name;
 end;
 
 create trigger if not exists queued_entry_ad after delete on queued_entry begin
   insert into previous_entry(guid) values(old.guid);
 end;
 
-create trigger if not exists queued_entry_ad after insert on queued_entry begin
+create trigger if not exists queued_entry_ai after insert on queued_entry begin
   delete from previous_entry where guid = new.guid;
 end;
 
 create trigger if not exists entry_ad after delete on entry begin
   delete from queued_entry where guid = old.guid;
-  delete from unqueued_entry where guid = old.guid;
+  delete from previous_entry where guid = old.guid;
+end;
+
+create trigger if not exists feed_ad after delete on feed begin
+  delete from subscribed_feed where guid = old.guid;
 end;
 
 -- All queued entries, including iCloud meta-data if synced
@@ -106,8 +130,35 @@ create view if not exists locally_previous_entry_view as
 select * from previous_entry_view
   where record_name is null;
 
+-- Unrelated zombie entries
+
 create view if not exists zombie_entry_guid_view as
 select guid from entry
   where guid not in (select guid from queued_entry) and (select guid from previous_entry);
+
+-- Subscribed feeds
+
+create view if not exists subscribed_feed_view as
+select
+  f.guid,
+  f.url,
+  sf.ts,
+  r.change_tag,
+  r.record_name
+from feed f
+  join subscribed_feed sf on sf.guid = f.guid
+  left join record r on sf.record_name = r.record_name;
+
+-- Locally subscribed feeds, not synced yet
+
+create view if not exists locally_subscribed_feed_view as
+select * from subscribed_feed_view
+  where record_name is null;
+
+-- Unrelated zombie feeds
+
+create view if not exists zombie_feed_guid_view as
+select guid from feed
+  where guid not in (select guid from subscribed_feed);
 
 commit;
