@@ -599,6 +599,8 @@ public protocol QueueCaching {
   func remove(recordNames: [String]) throws
 }
 
+// TODO: Rewrite QueueDelegate
+
 public protocol QueueDelegate {
   func queue(_ queue: Queueing, added: Entry)
   func queue(_ queue: Queueing, removedGUID: String)

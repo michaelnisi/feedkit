@@ -135,6 +135,8 @@ extension UserCache: QueueCaching {
     }
   }
   
+  // TODO: Switch on the type of synced item
+  
   public func add(synced: [Synced]) throws {
     var er: Error?
     
@@ -374,9 +376,7 @@ extension EntryQueue: Queueing {
     }
   }
   
-  // TODO: Store removed items
-  
-  /// Removes `entry` to the queue. This is an asynchronous function returning
+  /// Removes `entry` from the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
   public func remove(_ entry: Entry) {
     serialQueue.async {

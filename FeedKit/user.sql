@@ -11,6 +11,16 @@ pragma user_version = 1;
 
 begin immediate;
 
+-- CloudKit synchronization log
+
+create table if not exists server(
+  database_change_token blob,
+  previous_change_token blob,
+  queue_change_token blob,
+  subscriptions_change_token blob,
+  ts datetime default current_timestamp
+);
+
 -- CloudKit records
 
 create table if not exists record(
