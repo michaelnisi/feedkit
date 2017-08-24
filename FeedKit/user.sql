@@ -11,15 +11,13 @@ pragma user_version = 1;
 
 begin immediate;
 
--- CloudKit synchronization log
+-- Key-value store for small blobs
 
-create table if not exists server(
-  database_change_token blob,
-  previous_change_token blob,
-  queue_change_token blob,
-  subscriptions_change_token blob,
-  ts datetime default current_timestamp
-);
+create table if not exists kv(
+  key text primary key,
+  ts datetime default current_timestamp,
+  value blob
+) without rowid;
 
 -- CloudKit records
 
@@ -170,5 +168,16 @@ select * from subscribed_feed_view
 create view if not exists zombie_feed_guid_view as
 select guid from feed
   where guid not in (select guid from subscribed_feed);
+
+-- Unrelated zombie records
+
+-- TODO: Find a good diff join, this does not work
+
+create view if not exists zombie_record_name_view as
+select record_name from record
+  where record_name not in
+    (select record_name from queued_entry) and
+    (select record_name from previous_entry) and
+    (select record_name from subscribed_feed);
 
 commit;

@@ -87,6 +87,10 @@ extension UserCache: QueueCaching {
   }
   
   public func remove(recordNames: [String]) throws {
+    guard !recordNames.isEmpty else {
+      return
+    }
+    
     var er: Error?
     
     queue.sync {
@@ -138,6 +142,10 @@ extension UserCache: QueueCaching {
   // TODO: Switch on the type of synced item
   
   public func add(synced: [Synced]) throws {
+    guard !synced.isEmpty else {
+      return
+    }
+    
     var er: Error?
     
     let fmt = self.sqlFormatter
