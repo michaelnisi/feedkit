@@ -157,11 +157,15 @@ select guid from feed
 
 -- Unrelated zombie records
 
+create view if not exists zombie_record_name_view as
+  select record_name from record
+    except select record_name from queued_entry
+    except select record_name from prev_entry
+    except select record_name from subscribed_feed;
+
 create view if not exists zombie_record_view as
-select distinct r.record_name, r.zone_name from record r
-  left join queued_entry qe on r.record_name is not qe.record_name
-  left join prev_entry pe on r.record_name is not pe.record_name
-  left join subscribed_feed sf on r.record_name is not sf.record_name;
+select r.record_name, r.zone_name from record r
+  join zombie_record_name_view zrnv on r.record_name = zrnv.record_name;
 
 -- Additional key-value store for arbitrary small blobs
 
