@@ -457,7 +457,7 @@ extension SQLFormatter {
     "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
   
   static let SQLToSelectAllPrevious =
-    "SELECT * FROM previous_entry_view ORDER BY ts DESC LIMIT 25;"
+    "SELECT * FROM prev_entry_view ORDER BY ts DESC LIMIT 25;"
 
   static func SQLToUnqueue(guids: [String]) -> String? {
     guard !guids.isEmpty else {
@@ -523,23 +523,28 @@ extension SQLFormatter {
       let since = stringFromAny(locator.since)
 
       let ts = stringFromAny(queuedAt)
-      let name = stringFromAny(record.name)
+      
+      let zoneName = stringFromAny(record.zoneName)
+      let recordName = stringFromAny(record.recordName)
       let tag = stringFromAny(record.changeTag)
 
       return [
-        "INSERT OR REPLACE INTO record(record_name, change_tag) " +
-        "VALUES(\(name), \(tag));",
+        "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
+        "VALUES(\(recordName), \(zoneName), \(tag));",
 
         "INSERT OR REPLACE INTO entry(guid, url, since) " +
         "VALUES(\(guid), \(url), \(since));",
 
         "INSERT OR REPLACE INTO queued_entry(guid, ts, record_name) " +
-        "VALUES(\(guid), \(ts), \(name));"
+        "VALUES(\(guid), \(ts), \(recordName));"
       ].joined(separator: "\n");
     }
   }
 
   static let SQLToSelectLocallyQueuedEntries =
     "SELECT * FROM locally_queued_entry_view;"
+  
+  static let SQLToSelectAbandonedRecords =
+    "SELECT * FROM zombie_record_view;"
 
 }

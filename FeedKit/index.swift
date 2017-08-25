@@ -45,6 +45,7 @@ public enum FeedKitError : Error {
   case offline
   case noForceApplied
   case missingEntries(urls: [String])
+  case unexpectedDatabaseRow
 }
 
 extension FeedKitError: Equatable {
@@ -538,11 +539,13 @@ public protocol Browsing {
 // MARK: - Syncing
 
 public struct RecordMetadata {
-  let name: String
+  let zoneName: String
+  let recordName: String
   let changeTag: String
   
-  public init(name: String, changeTag: String) {
-    self.name = name
+  public init(zoneName: String, recordName: String, changeTag: String) {
+    self.zoneName = zoneName
+    self.recordName = recordName
     self.changeTag = changeTag
   }
 }
@@ -591,12 +594,13 @@ public protocol QueueCaching {
   func queued() throws -> [Queued]
   func previous() throws -> [Queued]
   
-  func local() throws -> [Queued]
-  
   // A superset of functionality for syncing with iCloud.
   
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws
+  
+  func local() throws -> [Queued]
+  func zombieRecords() throws -> [String : String]
 }
 
 // TODO: Rewrite QueueDelegate

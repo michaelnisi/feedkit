@@ -67,6 +67,40 @@ extension UserCache: QueueCaching {
     return try _queued(sql: SQLFormatter.SQLToSelectLocallyQueuedEntries)
   }
   
+  /// CloudKit record names of abandoned records by record zone names.
+  public func zombieRecords() throws -> [String : String] {
+    var er: Error?
+    var records = [String : String]()
+    
+    let db = self.db
+    
+    try queue.sync {
+      // TODO: Update SQL to include zones
+      let sql = SQLFormatter.SQLToSelectAbandonedRecords
+      try db.query(sql) { error, row -> Int in
+        guard error == nil else {
+          er = error
+          return 1
+        }
+        guard
+          let r = row,
+          let record = r["record_name"] as? String,
+          let zone = r["zone_name"] as? String else {
+          er = FeedKitError.unexpectedDatabaseRow
+          return 1
+        }
+        
+        records[zone] = record
+        
+        return 0
+      }
+    }
+    
+    if let error = er  { throw error }
+    
+    return records
+  }
+  
   public func remove(guids: [String]) throws {
     var er: Error?
     

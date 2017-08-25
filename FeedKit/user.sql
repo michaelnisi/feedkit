@@ -11,18 +11,11 @@ pragma user_version = 1;
 
 begin immediate;
 
--- Key-value store for small blobs
-
-create table if not exists kv(
-  key text primary key,
-  ts datetime default current_timestamp,
-  value blob
-) without rowid;
-
 -- CloudKit records
 
 create table if not exists record(
   record_name text primary key,
+  zone_name text not null,
   change_tag text
 ) without rowid;
 
@@ -48,13 +41,13 @@ create unique index if not exists queued_entry_idx on queued_entry(record_name);
 
 -- Previously queued entries
 
-create table if not exists previous_entry(
+create table if not exists prev_entry(
   guid text primary key,
   ts datetime default current_timestamp,
   record_name text unique
 ) without rowid;
 
-create unique index if not exists previous_entry_idx on previous_entry(record_name);
+create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 -- Feeds
 
@@ -77,21 +70,13 @@ create unique index if not exists subscribed_feed_idx on subscribed_feed(record_
 
 create trigger if not exists record_ad after delete on record begin
   delete from queued_entry where record_name = old.record_name;
-  delete from previous_entry where record_name = old.record_name;
+  delete from prev_entry where record_name = old.record_name;
   delete from subscribed_feed where record_name = old.record_name;
-end;
-
-create trigger if not exists queued_entry_ad after delete on queued_entry begin
-  insert into previous_entry(guid) values(old.guid);
-end;
-
-create trigger if not exists queued_entry_ai after insert on queued_entry begin
-  delete from previous_entry where guid = new.guid;
 end;
 
 create trigger if not exists entry_ad after delete on entry begin
   delete from queued_entry where guid = old.guid;
-  delete from previous_entry where guid = old.guid;
+  delete from prev_entry where guid = old.guid;
 end;
 
 create trigger if not exists feed_ad after delete on feed begin
@@ -118,9 +103,9 @@ create view if not exists locally_queued_entry_view as
 select * from queued_entry_view
   where record_name is null;
 
--- Previously queued entries
+-- prevly queued entries
 
-create view if not exists previous_entry_view as
+create view if not exists prev_entry_view as
 select
   e.guid,
   e.since,
@@ -129,20 +114,21 @@ select
   r.change_tag,
   r.record_name
 from entry e
-  join previous_entry pe on pe.guid = e.guid
+  join prev_entry pe on pe.guid = e.guid
   left join record r on pe.record_name = r.record_name;
 
--- Previously queued entries that not have been synced yet
+-- prevly queued entries that not have been synced yet
 
-create view if not exists locally_previous_entry_view as
-select * from previous_entry_view
+create view if not exists locally_prev_entry_view as
+select * from prev_entry_view
   where record_name is null;
 
 -- Unrelated zombie entries
 
 create view if not exists zombie_entry_guid_view as
 select guid from entry
-  where guid not in (select guid from queued_entry) and (select guid from previous_entry);
+  except select guid from queued_entry
+  except select guid from prev_entry;
 
 -- Subscribed feeds
 
@@ -167,17 +153,22 @@ select * from subscribed_feed_view
 
 create view if not exists zombie_feed_guid_view as
 select guid from feed
-  where guid not in (select guid from subscribed_feed);
+  except select guid from subscribed_feed;
 
 -- Unrelated zombie records
 
--- TODO: Find a good diff join, this does not work
+create view if not exists zombie_record_view as
+select distinct r.record_name, r.zone_name from record r
+  left join queued_entry qe on r.record_name is not qe.record_name
+  left join prev_entry pe on r.record_name is not pe.record_name
+  left join subscribed_feed sf on r.record_name is not sf.record_name;
 
-create view if not exists zombie_record_name_view as
-select record_name from record
-  where record_name not in
-    (select record_name from queued_entry) and
-    (select record_name from previous_entry) and
-    (select record_name from subscribed_feed);
+-- Additional key-value store for arbitrary small blobs
+
+create table if not exists kv(
+  key text primary key,
+  ts datetime default current_timestamp,
+  value blob
+) without rowid;
 
 commit;
