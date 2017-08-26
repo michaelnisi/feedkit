@@ -123,8 +123,8 @@ final class SearchRepositoryTests: XCTestCase {
         }
       }
     }
-    // Mere speculation that these return no results from iTunes.
-    go(["0", "0a", "0", "0a"])
+    // Mere speculation that these are yielding no results from iTunes.
+    go(["🙈", "🙉", "🙊"])
     self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }

@@ -544,7 +544,6 @@ extension SQLFormatter {
   static let SQLToSelectLocallyQueuedEntries =
     "SELECT * FROM locally_queued_entry_view;"
   
-  static let SQLToSelectAbandonedRecords =
-    "SELECT * FROM zombie_record_view;"
+  static let SQLToSelectAbandonedRecords = "SELECT * FROM zombie_record_view;"
 
 }

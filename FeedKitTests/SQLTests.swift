@@ -391,9 +391,9 @@ extension SQLTests {
   }
   
   func testSQLToQueueSynced() {
-    let ts = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
-    let name = "E49847D6-6251-48E3-9D7D-B70E8B7392CD" // actual record name
-    let record = RecordMetadata(name: name, changeTag: "e")
+    let zoneName = "queueZone"
+    let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
+    let record = RecordMetadata(zoneName: zoneName, recordName: recordName, changeTag: "e")
     
     do {
       let loc = EntryLocator(url: "http://abc.de")
@@ -401,11 +401,13 @@ extension SQLTests {
       XCTAssertThrowsError(try formatter.SQLToQueueSynced(locator: synced))
     }
     
+    let ts = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
+    
     do {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
       let synced = Synced.entry(loc, ts, record)
       let found = try! formatter.SQLToQueueSynced(locator: synced)
-      let wanted = "INSERT OR REPLACE INTO record(record_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'e\');\nINSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
       XCTAssertEqual(found, wanted)
     }
   }

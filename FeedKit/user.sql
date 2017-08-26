@@ -79,6 +79,14 @@ create trigger if not exists entry_ad after delete on entry begin
   delete from prev_entry where guid = old.guid;
 end;
 
+create trigger if not exists queued_entry_ai after insert on queued_entry begin
+  delete from prev_entry where guid = new.guid;
+end;
+
+create trigger if not exists queued_entry_ad after delete on queued_entry begin
+  insert into prev_entry(guid) values(old.guid);
+end;
+
 create trigger if not exists feed_ad after delete on feed begin
   delete from subscribed_feed where guid = old.guid;
 end;
