@@ -239,19 +239,17 @@ private final class FetchQueueOperation: FeedKitOperation {
   
   private func fetchEntries(for locators: [EntryLocator]) {
     guard
-      let entriesBlock = self.entriesBlock,
-      let entriesCompletionBlock = self.entriesCompletionBlock else {
-      return
+      let q = OperationQueue.current?.underlyingQueue,
+      let entriesBlock = self.entriesBlock else {
+      fatalError("queue and entriesBlock required")
     }
     
-    op = browser.entries(
-      locators,
-      entriesBlock: entriesBlock,
-      entriesCompletionBlock: entriesCompletionBlock
-    )
+    print("** \(q.label)")
     
-    op?.completionBlock = {
-      self.done()
+    op = browser.entries(locators, entriesBlock: entriesBlock) { error in
+      q.async {
+        self.done(with: error)
+      }
     }
   }
   
@@ -345,17 +343,22 @@ extension EntryQueue: Queueing {
     
     op.sortOrderBlock = { guids in
       assert(Thread.isMainThread)
+      
       sortedGuids = guids
     }
+    
+    var dispatched = [Entry]()
 
     op.entriesBlock = { error, entries in
       assert(Thread.isMainThread)
+      
       self.serialQueue.async {
         guard let guids = sortedGuids else {
           fatalError("sorted guids required")
         }
         var dict = [String : Entry]()
         entries.forEach { dict[$0.guid] = $0 }
+        
         let sorted: [Entry] = guids.flatMap { dict[$0] }
 
         do {
@@ -366,16 +369,28 @@ extension EntryQueue: Queueing {
                    String(describing: error))
           }
         }
+        
+        let queuedEntries: [Entry] = self.queue.enumerated().flatMap {
+          let entry = $0.element.value
+          guard !dispatched.contains(entry) else {
+            return nil
+          }
+          return entry
+        }
 
         target.async {
           assert(Thread.isMainThread)
-          entriesBlock(error, sorted)
+          entriesBlock(error, queuedEntries)
         }
+        
+        dispatched = dispatched + queuedEntries
       }
     }
     
     op.entriesCompletionBlock = { error in
+      print("** entriesCompletionBlock")
       assert(Thread.isMainThread)
+      
       self.serialQueue.async {
         target.async {
           entriesCompletionBlock(error)
