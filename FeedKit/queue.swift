@@ -13,11 +13,17 @@ public enum QueueError: Error {
   case notInQueue
 }
 
-/// A generic queue holding minimal state.
+/// A destructive Sequence representing a queue, in which you can move forward
+/// and backward.
 public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
-
+  
+  private var now: Int?
+  private var fwd = [Int]()
+  private var bwd = [Int]()
+  
+  /// The sorted items in the queue at this moment.
   public var items: [Item] {
     get {
       let x = [now!]
@@ -28,9 +34,7 @@ public struct Queue<Item: Hashable> {
     }
   }
   
-  private var now: Int?
-  private var fwd = [Int]()
-  private var bwd = [Int]()
+  public var isEmpty: Bool { get { return itemsByHashValues.isEmpty } }
   
   /// Adds one item to the queue.
   ///
@@ -45,8 +49,6 @@ public struct Queue<Item: Hashable> {
     itemsByHashValues[key] = item
     fwd.append(key)
   }
-  
-  public var isEmpty: Bool { get { return itemsByHashValues.isEmpty } }
   
   /// Add multiple items to the queue at once, in reverse order, so that the 
   /// order of `items` becomes the order of the queue.

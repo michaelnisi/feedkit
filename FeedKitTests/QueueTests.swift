@@ -33,12 +33,22 @@ final class QueueTests: XCTestCase {
   
   func testInitItems() {
     XCTAssertNoThrow(Queue<Int>(items: []))
+    XCTAssertNil(queue.current)
   }
   
   func testSequence() {
     populate()
     
     XCTAssertEqual(queue.map { $0 }, items)
+  }
+  
+  // TODO: Handle single items
+  
+  func testSingleItem() {
+    try! queue.add(3)
+//      XCTAssertEqual(queue.current, 3)
+//    XCTAssertEqual(queue.nextUp, [])
+    XCTAssertEqual(queue.nextUp, [3])
   }
   
   func testSkipTo() {
@@ -50,31 +60,38 @@ final class QueueTests: XCTestCase {
         XCTFail()
       }
     }
-    
+
     populate()
     
     try! queue.skip(to: 6)
     
+    XCTAssertEqual(queue.current, 6)
+    XCTAssertEqual(queue.nextUp, [7, 8])
     XCTAssertEqual(queue.items, [6, 7, 8, 5, 4, 3, 2, 1])
     
-    XCTAssertEqual(queue.nextUp, [7, 8])
-    XCTAssertEqual(queue.current, 6)
-    
     XCTAssertEqual(queue.forward(), 7)
-    
     XCTAssertEqual(queue.backward(), 6)
     
     XCTAssertEqual(queue.nextUp, [7, 8])
+    
+    try! queue.skip(to: 3)
+    
+    XCTAssertEqual(queue.current, 3)
+    XCTAssertEqual(queue.nextUp, [4, 5, 6, 7, 8])
+    XCTAssertEqual(queue.items, [3, 4, 5, 6, 7, 8, 2, 1])
   }
   
   func testNextUp() {
     XCTAssertEqual(queue.nextUp, [])
-    populate()
-    XCTAssertEqual(queue.current, 1)
     
-    XCTAssertEqual(queue.forward(), 2)
-    
-    XCTAssertEqual(queue.nextUp, [3,4,5,6,7,8])
+    do {
+      populate()
+      
+      XCTAssertEqual(queue.current, 1)
+      XCTAssertEqual(queue.forward(), 2)
+      
+      XCTAssertEqual(queue.nextUp, [3,4,5,6,7,8])
+    }
   }
   
   func testForward() {
@@ -121,17 +138,24 @@ final class QueueTests: XCTestCase {
       }
     }
     
-    populate()
-    
-    for i in 1...8 {
-      try! queue.remove(i)
+    do {
+      populate()
+      
+      for i in 1...8 { try! queue.remove(i) }
+      
+      XCTAssertNil(queue.forward())
+      XCTAssertNil(queue.backward())
+      for i in 1...8 { XCTAssertFalse(queue.contains(i)) }
+      XCTAssertTrue(queue.isEmpty)
     }
     
-    XCTAssertNil(queue.forward())
-    XCTAssertNil(queue.backward())
-    
-    for i in 1...8 {
-      XCTAssertFalse(queue.contains(i))
+    do {
+      populate()
+      try! queue.skip(to: 4)
+      
+      try! queue.remove(1)
+      
+      XCTAssertFalse(queue.contains(1))
     }
   }
   
