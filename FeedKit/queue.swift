@@ -17,14 +17,7 @@ public enum QueueError: Error {
 public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
-  
-  // TODO: Replace with Sequence
-  
-  /// Returns an unsorted sequence of the items in the queue.
-  public func enumerated() -> EnumeratedSequence<Dictionary<Int, Item>> {
-    return itemsByHashValues.enumerated()
-  }
-  
+
   public var items: [Item] {
     get {
       let x = [now!]
@@ -150,6 +143,13 @@ public struct Queue<Item: Hashable> {
     } else if let index = bwd.index(of: key) {
       bwd.remove(at: index)
     }
+
+  }
+}
+
+extension Queue: Sequence {
+  public func makeIterator() -> IndexingIterator<Array<Item>> {
+    return items.makeIterator()
   }
 }
 

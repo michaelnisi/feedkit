@@ -35,6 +35,12 @@ final class QueueTests: XCTestCase {
     XCTAssertNoThrow(Queue<Int>(items: []))
   }
   
+  func testSequence() {
+    populate()
+    
+    XCTAssertEqual(queue.map { $0 }, items)
+  }
+  
   func testSkipTo() {
     XCTAssertThrowsError(try queue.skip(to: 6)) { er in
       switch er {
