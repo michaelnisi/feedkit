@@ -253,6 +253,13 @@ private final class FetchQueueOperation: FeedKitOperation {
     }
   }
   
+  // MARK: FeedKitOperation
+  
+  override func cancel() {
+    super.cancel()
+    op?.cancel()
+  }
+  
   override func start() {
     guard !isCancelled else {
       return done()
@@ -327,6 +334,8 @@ public final class EntryQueue {
 // MARK: - Queueing
 
 extension EntryQueue: Queueing {
+  
+  // TODO: Move all sorting into the operation and return entries as whole
   
   /// Fetches the queued entries and provides the populated queue.
   public func entries(

@@ -18,6 +18,8 @@ public struct Queue<Item: Hashable> {
   
   private var itemsByHashValues = [Int : Item]()
   
+  // TODO: Replace with Sequence
+  
   /// Returns an unsorted sequence of the items in the queue.
   public func enumerated() -> EnumeratedSequence<Dictionary<Int, Item>> {
     return itemsByHashValues.enumerated()
@@ -140,3 +142,4 @@ public struct Queue<Item: Hashable> {
     }
   }
 }
+
