@@ -28,6 +28,7 @@ final class QueueTests: XCTestCase {
   
   private func populate() {
     try! self.queue.add(items: items)
+    XCTAssertEqual(queue.items, items)
   }
   
   func testInitItems() {
@@ -47,6 +48,8 @@ final class QueueTests: XCTestCase {
     populate()
     
     try! queue.skip(to: 6)
+    
+    XCTAssertEqual(queue.items, [6, 7, 8, 5, 4, 3, 2, 1])
     
     XCTAssertEqual(queue.nextUp, [7, 8])
     XCTAssertEqual(queue.current, 6)

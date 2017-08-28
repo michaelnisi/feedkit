@@ -325,7 +325,10 @@ extension EntryLocator: Equatable {
 
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
-    return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
+    guard let title = self.title else {
+      return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
+    }
+    return "EntryLocator: { \(title) }"
   }
 }
 

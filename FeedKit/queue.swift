@@ -25,6 +25,16 @@ public struct Queue<Item: Hashable> {
     return itemsByHashValues.enumerated()
   }
   
+  public var items: [Item] {
+    get {
+      let x = [now!]
+      let hashValues = x + fwd.reversed() + bwd.reversed()
+      return hashValues.map {
+        itemsByHashValues[$0]!
+      }
+    }
+  }
+  
   private var now: Int?
   private var fwd = [Int]()
   private var bwd = [Int]()

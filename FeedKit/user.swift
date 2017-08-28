@@ -270,7 +270,7 @@ private final class FetchQueueOperation: FeedKitOperation {
     
     do {
       let queued = try cache.queued()
-      
+
       var guids = [String]()
       
       let locators: [EntryLocator] = queued.flatMap {
@@ -379,12 +379,8 @@ extension EntryQueue: Queueing {
           }
         }
         
-        let queuedEntries: [Entry] = self.queue.enumerated().flatMap {
-          let entry = $0.element.value
-          guard !dispatched.contains(entry) else {
-            return nil
-          }
-          return entry
+        let queuedEntries: [Entry] = self.queue.items.filter {
+          !dispatched.contains($0)
         }
 
         target.async {

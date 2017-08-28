@@ -152,6 +152,11 @@ public final class ImageRepository: Images {
   
   /// Synchronously loads an image for the specificied item and size.
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
+    if #available(iOS 10.0, *) {
+      os_log("image for: %{public}@", log: log,  type: .debug,
+             String(describing: item))
+    }
+    
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
     }
@@ -187,6 +192,11 @@ public final class ImageRepository: Images {
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
   public func loadImage(for item: Imaginable, into imageView: UIImageView, quality: ImageQuality? = nil) {
+    if #available(iOS 10.0, *) {
+      os_log("image for: %{public}@", log: log,  type: .debug,
+             String(describing: item.iTunes))
+    }
+    
     let size = imageView.frame.size
     
     guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {

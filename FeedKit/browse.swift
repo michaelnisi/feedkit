@@ -196,10 +196,6 @@ private func entriesFromCache(
   return (cached, needed)
 }
 
-// TODO: Combine dispatch_sync and dispatch_async as in the search module
-//
-// What does this even mean?
-
 /// Although I despise inheritance, this is an abstract operation class to be
 /// extended by operations used in the feed repository. It provides common
 /// properties for the—currently two: feed and entries—operations of the
@@ -211,10 +207,11 @@ class BrowseOperation: SessionTaskOperation {
   let target: DispatchQueue
 
   /// Initialize and return a new feed repo operation.
-  ///
-  /// - parameter cache: The persistent feed cache.
-  /// - parameter svc: The remote service to fetch feeds and entries.
-  /// - parameter queue: The target queue for callback blocks.
+  /// 
+  /// - Parameters:
+  ///   - cache: The persistent feed cache.
+  ///   - svc: The remote service to fetch feeds and entries.
+  ///   - queue: The target queue for callback blocks.
   init(
     cache: FeedCaching,
     svc: MangerService,
