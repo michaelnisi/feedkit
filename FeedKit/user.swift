@@ -371,7 +371,7 @@ extension EntryQueue: Queueing {
         let sorted: [Entry] = guids.flatMap { dict[$0] }
 
         do {
-          try self.queue.add(items: sorted)
+          try self.queue.append(items: sorted)
         } catch {
           if #available(iOS 10.0, *) {
             os_log("already in queue: %{public}@", log: log,  type: .error,
@@ -420,7 +420,7 @@ extension EntryQueue: Queueing {
   public func add(_ entry: Entry) {
     serialQueue.async {
       do {
-        try self.queue.add(entry)
+        try self.queue.append(entry)
         let locator = EntryLocator(entry: entry)
         try self.queueCache.add([locator])
       } catch {

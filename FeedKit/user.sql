@@ -26,6 +26,7 @@ create table if not exists record(
 create table if not exists entry(
   guid text primary key,
   since datetime,
+  title text,
   url text not null
 ) without rowid;
 
@@ -51,8 +52,14 @@ create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 -- Feeds
 
+-- TODO: Nail guid approach
+
 create table if not exists feed(
   guid int primary key,
+  img100 text,
+  img30 text,
+  img60 text,
+  img600 text,
   url text not null
 );
 
