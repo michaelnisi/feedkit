@@ -35,7 +35,8 @@ final class QueueTests: XCTestCase {
   func testInitItems() {
     XCTAssertNoThrow(Queue<Int>(items: []))
     XCTAssertNil(Queue<Int>().current)
-    XCTAssertEqual(Queue<Int>(items: items).current, 8)
+    XCTAssertEqual(Queue<Int>(items: items).items, items)
+    XCTAssertEqual(Queue<Int>(items: items).current, 1)
   }
   
   func testSequence() {
@@ -43,12 +44,27 @@ final class QueueTests: XCTestCase {
     XCTAssertEqual(queue.map { $0 }, items)
   }
   
-  // TODO: Handle single items
-  
-  func testSingleItem() {
+  func testAppend() {
     try! queue.append(3)
     XCTAssertEqual(queue.current, 3)
     XCTAssertEqual(queue.nextUp, [])
+    
+    try! queue.append(4)
+    XCTAssertEqual(queue.current, 3)
+    XCTAssertEqual(queue.items, [3, 4])
+    XCTAssertEqual(queue.nextUp, [4])
+  }
+  
+  func testPrepend() {
+    try! queue.prepend(4)
+    XCTAssertEqual(queue.current, 4)
+    XCTAssertEqual(queue.nextUp, [])
+    
+    try! queue.prepend(3)
+    XCTAssertEqual(queue.current, 4)
+    XCTAssertEqual(queue.items, [3, 4])
+    XCTAssertEqual(queue.nextUp, [])
+    XCTAssertNil(queue.forward())
   }
   
   func testSkipTo() {
@@ -99,10 +115,12 @@ final class QueueTests: XCTestCase {
     
     populate()
     XCTAssertEqual(queue.current, 1)
-    XCTAssertEqual(queue.forward(), 2)
-    XCTAssertEqual(queue.current, 2)
-    XCTAssertEqual(queue.forward(), 3)
-    XCTAssertEqual(queue.current, 3)
+
+    let now = 4
+    for i in 2...now {
+      XCTAssertEqual(queue.forward(), i)
+    }
+    XCTAssertEqual(queue.current, now)
   }
   
   func testBackward() {
@@ -114,12 +132,11 @@ final class QueueTests: XCTestCase {
     XCTAssertNil(queue.backward())
     
     let now = 4
-    
     for i in 2...now {
       XCTAssertEqual(queue.forward(), i)
     }
-    
     XCTAssertEqual(queue.current, now)
+    
     XCTAssertEqual(queue.backward(), 3)
   }
   
@@ -154,7 +171,27 @@ final class QueueTests: XCTestCase {
     }
   }
   
-  func testappend() {
+  func testPrependItems() {
+    try! queue.prepend(items: [4, 5, 6])
+    XCTAssertEqual(queue.current, 6)
+    
+    try! queue.prepend(items: [1, 2, 3])
+    XCTAssertEqual(queue.current, 6)
+    
+    XCTAssertEqual(queue.items, [1, 2, 3, 4, 5, 6])
+    
+    
+    XCTAssertThrowsError(try queue.prepend(1), "should throw") { er in
+      switch er {
+      case QueueError.alreadyInQueue:
+        break
+      default:
+        XCTFail()
+      }
+    }
+  }
+  
+  func testAppendItems() {
     try! queue.append(items: [1, 2, 3])
     XCTAssertEqual(queue.current, 1)
     

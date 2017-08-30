@@ -8,8 +8,6 @@
 
 import Foundation
 
-// TODO: Add Queue protocol
-
 public enum QueueError: Error {
   case alreadyInQueue(Int)
   case notInQueue
@@ -18,6 +16,7 @@ public enum QueueError: Error {
 /// A destructive Sequence representing a queue, in which lets you navigate
 /// back and forth within the contained items.
 public struct Queue<Item: Hashable> {
+  
   /// The content.
   private var itemsByHashValues = [Int : Item]()
   
@@ -38,7 +37,7 @@ public struct Queue<Item: Hashable> {
     return hashValues.isEmpty
   }}
   
-  /// Adds one item to the queue.
+  /// Prepends `item` to queue, making it its head.
   ///
   /// - Throws: Will throw `QueueError.alreadyInQueue` if the item is already 
   /// in the queue, because this is probably a programming error.
@@ -55,14 +54,15 @@ public struct Queue<Item: Hashable> {
     if now == nil { now = h }
   }
   
-  /// Add multiple items to the queue at once, in reverse order, so that the 
-  /// order of `items` becomes the order of the queue.
+  /// Prepends multiple `items` to the queue at once, in reverse order, so the
+  /// order of `items` becomes the order of the head of the queue.
   public mutating func prepend(items: [Item]) throws {
-    for item in items {
+    for item in items.reversed() {
       try prepend(item)
     }
   }
   
+  /// Appends `item` to queue, making it its tail.
   public mutating func append(_ item: Item) throws {
     let h = item.hashValue
     
@@ -76,6 +76,7 @@ public struct Queue<Item: Hashable> {
     if now == nil { now = h }
   }
   
+  /// Appends `items` as the tail of the queue.
   public mutating func append(items: [Item]) throws {
     for item in items {
       try append(item)
@@ -93,23 +94,7 @@ public struct Queue<Item: Hashable> {
     now = hashValues.first
   }
   
-  @discardableResult private mutating func castling(
-    a: inout [Int], b: inout [Int]) -> Item? {
-    
-    guard a.count > 1 else {
-      return nil
-    }
-    
-    let key = a.removeLast()
-    let item = itemsByHashValues[key]!
-    
-    b.append(now!)
-    now = item.hashValue
-    
-    return item
-  }
-  
-  var currentIndex: Int? { get {
+  private var currentIndex: Int? { get {
     guard
       let item = now,
       let i = hashValues.index(of: item) else {
@@ -119,7 +104,7 @@ public struct Queue<Item: Hashable> {
   }}
   
   public mutating func forward() -> Item? {
-    guard let i = currentIndex, i < hashValues.count else {
+    guard let i = currentIndex, i < hashValues.count - 1 else {
       return nil
     }
     let n = hashValues.index(after: i)
@@ -145,19 +130,22 @@ public struct Queue<Item: Hashable> {
     now = item.hashValue
   }
   
-  var current: Item? { get {
+  public var current: Item? { get {
     guard let hashValue = now else {
       return nil
     }
     return itemsByHashValues[hashValue]
   }}
   
-  var nextUp: [Item] { get {
-    guard let h = now else {
+  public var nextUp: [Item] { get {
+    guard
+      let h = now,
+      let i = hashValues.index(of: h),
+      i != hashValues.count - 1 else {
       return []
     }
     let keys = hashValues.split(separator: h)
-    guard keys.count > 1, let last = keys.last else {
+    guard let last = keys.last else {
       return []
     }
     return last.flatMap {
