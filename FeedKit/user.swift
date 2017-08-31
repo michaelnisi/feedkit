@@ -13,7 +13,21 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
+// TODO: Move caching into cache.swift
+
 public class UserCache: LocalCache {}
+
+// MARK: - SubscriptionCaching
+
+extension UserCache: SubscriptionCaching {
+  public func add(urls: [String]) throws {
+    
+  }
+  
+  public func remove(urls: [String]) throws {
+    
+  }
+}
 
 // MARK: - QueueCaching
 
@@ -143,7 +157,7 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func add(_ entries: [EntryLocator]) throws {
+  public func add(entries: [EntryLocator]) throws {
     var er: Error?
     
     let fmt = self.sqlFormatter
@@ -173,8 +187,6 @@ extension UserCache: QueueCaching {
     }
   }
   
-  // TODO: Switch on the type of synced item
-  
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
       return
@@ -186,8 +198,8 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        let sql = try synced.reduce([String]()) { acc, loc in
-          let sql = try fmt.SQLToQueueSynced(locator: loc)
+        let sql = try synced.reduce([String]()) { acc, item in
+          let sql = try fmt.SQLToQueue(synced: item)
           return acc + [sql]
         }.joined(separator: "\n")
         
@@ -422,7 +434,7 @@ extension EntryQueue: Queueing {
       do {
         try self.queue.append(entry)
         let locator = EntryLocator(entry: entry)
-        try self.queueCache.add([locator])
+        try self.queueCache.add(entries: [locator])
       } catch {
         if #available(iOS 10.0, *) {
           os_log("could not add %{public}@ to queue: %{public}@", log: log,

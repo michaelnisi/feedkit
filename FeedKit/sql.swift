@@ -475,7 +475,7 @@ extension SQLFormatter {
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     let guid = SQLFormatter.SQLString(from: rawGUID)
-
+    
     return [
       "INSERT OR REPLACE INTO entry(guid, url, since) " +
       "VALUES(\(guid), \(url), \(since));",
@@ -496,6 +496,61 @@ extension SQLFormatter {
   }
 }
 
+// MARK: - Subscribing
+
+extension SQLFormatter {
+  
+  // TODO: Provide hashed URL as Feed property
+  
+  /// The SQL to fetch all feed subscriptions.
+  static let SQLToSelectSubscriptions =
+    "SELECT * from subscribed_feed_view;"
+  
+  /// SQL to select GUIDs of unrelated feeds that can be safely deleted.
+  static let SQLToSelectZombieFeedGUIDs = "SELECT * from zombie_feed_guid_view;"
+  
+  /// Returns SQL to insert a subscribed feed.
+  ///
+  /// - Parameter url: The URL of the feed to subscribe.
+  /// - Parameter iTunes: The iTunes item with image URLs.
+  static func SQLToSubscribe(to url: String, with iTunes: ITunesItem? = nil) -> String {
+    let guid = djb2Hash(string: url)
+    let url = SQLFormatter.SQLString(from: url)
+    
+    guard let item = iTunes else {
+      return [
+        "INSERT OR REPLACE INTO feed(guid, url) " +
+        "VALUES(\(guid), \(url));",
+        "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
+      ].joined(separator: "\n")
+    }
+    
+    let img100 = SQLFormatter.SQLString(from: item.img100)
+    let img30 = SQLFormatter.SQLString(from: item.img30)
+    let img60 = SQLFormatter.SQLString(from: item.img60)
+    let img600 = SQLFormatter.SQLString(from: item.img600)
+
+    return [
+      "INSERT OR REPLACE INTO feed(guid, url, img100, img30, img60, img600) " +
+      "VALUES(\(guid), \(url), \(img100), \(img30), \(img60), \(img600));",
+      "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
+    ].joined(separator: "\n")
+  }
+  
+  /// Returns SQL to remove a feed subscription.
+  /// 
+  /// - Parameter subscription: The URL of the unsubcribed feed.
+  static func SQLToUnsubscribe(from urls: [String]) -> String? {
+    guard !urls.isEmpty else {
+      return nil
+    }
+
+    return "DELETE FROM subscribed_feed WHERE guid IN(" + urls.map {
+      String(djb2Hash(string: $0))
+    }.joined(separator: ", ") + ");"
+  }
+  
+}
 
 // MARK: - Syncing
 
@@ -512,7 +567,7 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
 
-  func SQLToQueueSynced(locator synced: Synced) throws -> String {
+  func SQLToQueue(synced: Synced) throws -> String {
     switch synced {
     case .entry(let locator, let queuedAt, let record):
       guard let locGuid = locator.guid else {
@@ -545,5 +600,8 @@ extension SQLFormatter {
     "SELECT * FROM locally_queued_entry_view;"
   
   static let SQLToSelectAbandonedRecords = "SELECT * FROM zombie_record_view;"
+  
+  static let SQLToSelectLocallySubscribedFeeds =
+    "SELECT * FROM locally_subscribed_feed_view;"
 
 }

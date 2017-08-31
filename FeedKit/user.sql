@@ -52,23 +52,21 @@ create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 -- Feeds
 
--- TODO: Nail guid approach
-
 create table if not exists feed(
   guid int primary key,
   img100 text,
   img30 text,
   img60 text,
-  img600 text,
-  url text not null
+  img600 text
+  url text
 );
 
 -- Subscribed feeds
 
 create table if not exists subscribed_feed(
   guid int primary key,
-  ts datetime default current_timestamp,
-  record_name text unique
+  record_name text unique,
+  ts datetime default current_timestamp
 );
 
 create unique index if not exists subscribed_feed_idx on subscribed_feed(record_name);

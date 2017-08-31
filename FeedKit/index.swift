@@ -114,7 +114,7 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let title: String
   public let ts: Date?
   
-  // TODO: Consider generating a GUID like Entry.guid
+  // TODO: Add guid: Int
   
   /// The locally unique identifier of the feed, literally the `rowid` of the 
   /// feed table.
@@ -591,7 +591,7 @@ extension Queued: Hashable {
 }
 
 public protocol QueueCaching {
-  func add(_ entries: [EntryLocator]) throws
+  func add(entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
 
   func queued() throws -> [Queued]
@@ -606,15 +606,12 @@ public protocol QueueCaching {
   func zombieRecords() throws -> [String : String]
 }
 
-// TODO: Rewrite QueueDelegate
-
 public protocol QueueDelegate {
   func queue(_ queue: Queueing, added: Entry)
   func queue(_ queue: Queueing, removedGUID: String)
 }
 
 public protocol Queueing {
-  
   var delegate: QueueDelegate? { get set }
   
   func add(_ entry: Entry)
@@ -633,8 +630,14 @@ public protocol Queueing {
 
 // MARK: - Subscribing
 
-public protocol Subscribing {
+public protocol SubscriptionCaching {
+  func add(urls: [String]) throws
+  func remove(urls: [String]) throws
+}
 
+public protocol Subscribing {
+  func subscribe(to urls: [String]) throws
+  func unsubscribe(from urls: [String]) throws
 }
 
 // MARK: - Internal

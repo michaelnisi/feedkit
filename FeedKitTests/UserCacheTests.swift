@@ -42,7 +42,7 @@ final class UserCacheTests: XCTestCase {
 extension UserCacheTests {
   
   func testAddEntries() {
-    try! cache.add(locators)
+    try! cache.add(entries: locators)
 
     do {
       let wanted = locators.map { Queued.entry($0, Date()) }
@@ -59,7 +59,7 @@ extension UserCacheTests {
   
   func testRemoveEntries() {
     do {
-      try! cache.add(locators)
+      try! cache.add(entries: locators)
       let wanted = locators.map { Queued.entry($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
@@ -87,7 +87,7 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.add(locators)
+      try! cache.add(entries: locators)
       let found = try! cache.previous()
       XCTAssert(found.isEmpty)
     }

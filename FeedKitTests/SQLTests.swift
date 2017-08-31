@@ -398,7 +398,7 @@ extension SQLTests {
     do {
       let loc = EntryLocator(url: "http://abc.de")
       let synced = Synced.entry(loc, Date(), record)
-      XCTAssertThrowsError(try formatter.SQLToQueueSynced(locator: synced))
+      XCTAssertThrowsError(try formatter.SQLToQueue(synced: synced))
     }
     
     let ts = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
@@ -406,10 +406,57 @@ extension SQLTests {
     do {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
       let synced = Synced.entry(loc, ts, record)
-      let found = try! formatter.SQLToQueueSynced(locator: synced)
+      let found = try! formatter.SQLToQueue(synced: synced)
       let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
       XCTAssertEqual(found, wanted)
     }
+  }
+  
+  func testSQLToSelectLocallySubscribedFeeds() {
+    let wanted = "SELECT * FROM locally_subscribed_feed_view;"
+    XCTAssertEqual(SQLFormatter.SQLToSelectLocallySubscribedFeeds, wanted)
+  }
+  
+}
+
+// MARK: - Subscribing
+
+extension SQLTests {
+ 
+  func testSQLToSelectSubscriptions() {
+    let wanted = "SELECT * from subscribed_feed_view;"
+    XCTAssertEqual(SQLFormatter.SQLToSelectSubscriptions, wanted)
+  }
+  
+  func testSQLToSelectZombieFeedGUIDs() {
+    let wanted = "SELECT * from zombie_feed_guid_view;"
+    XCTAssertEqual(SQLFormatter.SQLToSelectZombieFeedGUIDs, wanted)
+  }
+  
+  func testSQLToSubscribeTo() {
+    do {
+      let url = "http://abc.de"
+      let found = SQLFormatter.SQLToSubscribe(to: url)
+      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(4707633401079847226, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);"
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c", img600: "d")
+      let found = SQLFormatter.SQLToSubscribe(to: url, with: iTunes)
+      let wanted = "INSERT OR REPLACE INTO feed(guid, url, img100, img30, img60, img600) VALUES(4707633401079847226, \'http://abc.de\', \'a\', \'b\', \'c\', \'d\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);"
+      XCTAssertEqual(found, wanted)
+    }
+  }
+  
+  func testSQLToUnsubscribeFrom() {
+    XCTAssertNil(SQLFormatter.SQLToUnsubscribe(from: []))
+    
+    let urls = ["http://abc.de"]
+    let found = SQLFormatter.SQLToUnsubscribe(from: urls)
+    let wanted = "DELETE FROM subscribed_feed WHERE guid IN(4707633401079847226);"
+    XCTAssertEqual(found, wanted)
   }
   
 }
