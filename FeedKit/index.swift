@@ -561,6 +561,17 @@ public enum Synced {
   case entry(EntryLocator, Date, RecordMetadata)
 }
 
+/// The user cache complies to this protocol for iCloud synchronization.
+public protocol UserCacheSyncing {
+  func add(synced: [Synced]) throws
+  func remove(recordNames: [String]) throws
+  
+  func local() throws -> [Queued]
+  func zombieRecords() throws -> [String : String]
+  
+  func locallySubscribed() throws -> [String]
+}
+
 // MARK: - Queueing
 
 /// Posted when the queue has been changed.
@@ -596,14 +607,6 @@ public protocol QueueCaching {
 
   func queued() throws -> [Queued]
   func previous() throws -> [Queued]
-  
-  // A superset of functionality for syncing with iCloud.
-  
-  func add(synced: [Synced]) throws
-  func remove(recordNames: [String]) throws
-  
-  func local() throws -> [Queued]
-  func zombieRecords() throws -> [String : String]
 }
 
 public protocol QueueDelegate {
@@ -630,14 +633,24 @@ public protocol Queueing {
 
 // MARK: - Subscribing
 
+public struct Subscription {
+  // TODO: Design
+}
+
 public protocol SubscriptionCaching {
-  func add(urls: [String]) throws
+  func add(feeds: [(String, ITunesItem?)]) throws
   func remove(urls: [String]) throws
+  func subscribed() throws -> [String]
 }
 
 public protocol Subscribing {
   func subscribe(to urls: [String]) throws
   func unsubscribe(from urls: [String]) throws
+  
+  func feeds(
+    feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
+    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation
 }
 
 // MARK: - Internal
@@ -683,12 +696,13 @@ public class RemoteRepository: NSObject {
   /// Return the momentary maximal age for cached items of a specific resource
   /// incorporating reachability and service status. This method's parameters
   /// are all optional.
-  ///
-  /// - parameter uri: The unique resource identifier.
-  /// - parameter force: Force refreshing of cached items.
-  /// - parameter status: The current status of the service, a tuple containing
+  /// 
+  /// - Parameters:
+  ///   - uri: The unique resource identifier.
+  ///   - force: Force refreshing of cached items.
+  ///   - status: The current status of the service, a tuple containing
   /// the latest error code and its timestamp.
-  /// - parameter ttl: Override the default, `CacheTTL.Long`, to return.
+  ///   - ttl: Override the default, `CacheTTL.Long`, to return.
   func timeToLive(
     _ uri: String? = nil,
     force: Bool = false,

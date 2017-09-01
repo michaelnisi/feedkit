@@ -471,6 +471,8 @@ extension Cache: FeedCaching {
 
 // MARK: - SearchCaching
 
+// TODO: Use prepared statements in SearchCaching
+
 extension Cache: SearchCaching {
   
   /// Scan dictionary for a term and its lexicographical predecessors.
