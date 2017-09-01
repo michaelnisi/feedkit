@@ -14,16 +14,18 @@ public class UserCache: LocalCache {}
 // MARK: - SubscriptionCaching
 
 extension UserCache: SubscriptionCaching {
-  public func add(feeds: [(String, ITunesItem?)]) throws {
+  
+  public func subscribe(with orders: [SubscriptionOrder]) throws {
     try queue.sync {
-      guard !feeds.isEmpty else {
+      guard !orders.isEmpty else {
         return
       }
       
       let sql = [
         "BEGIN;",
-        feeds.map {
-          let (url, iTunes) = $0
+        orders.map { order in
+          let url = order.url
+          let iTunes = order.iTunes
           return SQLFormatter.SQLToSubscribe(to: url, with: iTunes)
           }.joined(separator: "\n"),
         "COMMIT;"
@@ -33,7 +35,7 @@ extension UserCache: SubscriptionCaching {
     }
   }
   
-  public func remove(urls: [String]) throws {
+  public func unsubscribe(from urls: [String]) throws {
     try queue.sync {
       guard let sql = SQLFormatter.SQLToUnsubscribe(from: urls) else {
         return
@@ -43,8 +45,35 @@ extension UserCache: SubscriptionCaching {
     }
   }
   
-  public func subscribed() throws -> [String] {
-    return [] // TODO: Write
+  fileprivate func _subscribed(sql: String) throws -> [Subscription] {
+    return try queue.sync {
+      var er: Error?
+      var subscriptions = [Subscription]()
+      
+      try db.query(sql) { error, row in
+        guard error == nil else {
+          er = error
+          return 1
+        }
+        guard let r = row, let url = r["url"] as? String else {
+          return 1
+        }
+        
+        let s = Subscription(url: url)
+        
+        subscriptions.append(s)
+        
+        return 0
+      }
+      
+      if let error = er  { throw error }
+      
+      return subscriptions
+    }
+  }
+  
+  public func subscribed() throws -> [Subscription] {
+    return try _subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
   }
 }
 
@@ -239,31 +268,8 @@ extension UserCache: UserCacheSyncing {
     return records
   }
   
-  public func locallySubscribed() throws -> [String] {
-    return try queue.sync {
-      var er: Error?
-      var urls = [String]()
-      
-      let sql = SQLFormatter.SQLToSelectLocallySubscribedFeeds
-      
-      try db.query(sql) { error, row in
-        guard error == nil else {
-          er = error
-          return 1
-        }
-        guard let r = row, let url = r["url"] as? String else {
-          return 1
-        }
-        
-        urls.append(url)
-        
-        return 0
-      }
-      
-      if let error = er  { throw error }
-      
-      return urls
-    }
+  public func locallySubscribed() throws -> [Subscription] {
+    return try _subscribed(sql: SQLFormatter.SQLToSelectLocallySubscribedFeeds)
   }
   
 }

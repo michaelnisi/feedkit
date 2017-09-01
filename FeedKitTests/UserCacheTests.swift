@@ -94,3 +94,26 @@ extension UserCacheTests {
   }
 
 }
+
+// MARK: - SubscriptionCaching
+
+extension UserCacheTests {
+  
+  func testAddFeeds() {
+    do {
+      // Do we really need the whole iTunes item?
+      let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c", img600: "d")
+      let order = SubscriptionOrder(url: "http", iTunes: iTunes)
+      let orders = [order]
+      try! cache.subscribe(with: orders)
+      
+    }
+  }
+
+}
+
+// MARK: - UserCacheSyncing
+
+extension UserCacheTests {
+
+}

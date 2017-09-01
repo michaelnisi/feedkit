@@ -54,11 +54,11 @@ create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 create table if not exists feed(
   guid int primary key,
+  url text,
   img100 text,
   img30 text,
   img60 text,
   img600 text
-  url text
 );
 
 -- Subscribed feeds

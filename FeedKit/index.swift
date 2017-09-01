@@ -539,39 +539,6 @@ public protocol Browsing {
   
 }
 
-// MARK: - Syncing
-
-public struct RecordMetadata {
-  let zoneName: String
-  let recordName: String
-  let changeTag: String
-  
-  public init(zoneName: String, recordName: String, changeTag: String) {
-    self.zoneName = zoneName
-    self.recordName = recordName
-    self.changeTag = changeTag
-  }
-}
-
-/// Enumerates data structures for synchronization with iCloud.
-public enum Synced {
-  /// An entry that has been synchronized with the iCloud database with these
-  /// properties: entry locator, the time the entry was added to the queue; and 
-  /// CloudKit record metadata: name and change tag of the record.
-  case entry(EntryLocator, Date, RecordMetadata)
-}
-
-/// The user cache complies to this protocol for iCloud synchronization.
-public protocol UserCacheSyncing {
-  func add(synced: [Synced]) throws
-  func remove(recordNames: [String]) throws
-  
-  func local() throws -> [Queued]
-  func zombieRecords() throws -> [String : String]
-  
-  func locallySubscribed() throws -> [String]
-}
-
 // MARK: - Queueing
 
 /// Posted when the queue has been changed.
@@ -633,14 +600,19 @@ public protocol Queueing {
 
 // MARK: - Subscribing
 
+public struct SubscriptionOrder {
+  let url: String
+  let iTunes: ITunesItem // TODO: Replace with single image
+}
+
 public struct Subscription {
-  // TODO: Design
+  let url: String
 }
 
 public protocol SubscriptionCaching {
-  func add(feeds: [(String, ITunesItem?)]) throws
-  func remove(urls: [String]) throws
-  func subscribed() throws -> [String]
+  func subscribe(with orders: [SubscriptionOrder]) throws
+  func unsubscribe(from: [String]) throws
+  func subscribed() throws -> [Subscription]
 }
 
 public protocol Subscribing {
@@ -651,6 +623,39 @@ public protocol Subscribing {
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
+}
+
+// MARK: - Syncing
+
+public struct RecordMetadata {
+  let zoneName: String
+  let recordName: String
+  let changeTag: String
+  
+  public init(zoneName: String, recordName: String, changeTag: String) {
+    self.zoneName = zoneName
+    self.recordName = recordName
+    self.changeTag = changeTag
+  }
+}
+
+/// Enumerates data structures for synchronization with iCloud.
+public enum Synced {
+  /// An entry that has been synchronized with the iCloud database with these
+  /// properties: entry locator, the time the entry was added to the queue; and
+  /// CloudKit record metadata: name and change tag of the record.
+  case entry(EntryLocator, Date, RecordMetadata)
+}
+
+/// The user cache complies to this protocol for iCloud synchronization.
+public protocol UserCacheSyncing {
+  func add(synced: [Synced]) throws
+  func remove(recordNames: [String]) throws
+  
+  func local() throws -> [Queued]
+  func zombieRecords() throws -> [String : String]
+  
+  func locallySubscribed() throws -> [Subscription]
 }
 
 // MARK: - Internal

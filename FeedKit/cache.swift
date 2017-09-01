@@ -28,7 +28,7 @@ public class LocalCache {
   
   let db: Skull
   
-  /// Strictly submit to this queue to serialize database access.
+  /// Strictly submit to this serial queue to serialize database (write)-access.
   let queue: DispatchQueue
   
   let sqlFormatter: SQLFormatter
