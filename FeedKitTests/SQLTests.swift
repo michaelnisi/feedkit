@@ -54,7 +54,7 @@ final class SQLTests: XCTestCase {
   
   func testITunesFromRow() {
     let wanted = ITunesItem(
-      guid: 123,
+      iTunesID: 123,
       img100: "img100",
       img30: "img30",
       img60: "img60",
@@ -90,7 +90,7 @@ final class SQLTests: XCTestCase {
     let found = try! formatter.feedFromRow(row)
     
     let iTunes = ITunesItem(
-      guid: 123,
+      iTunesID: 123,
       img100: "img100",
       img30: "img30",
       img60: "img60",
@@ -294,18 +294,27 @@ extension SQLTests {
   }
   
   func testITunesItemFromRow() {
-    let wanted = ITunesItem(guid: 123, img100: "img100", img30: "img30",
-                            img60: "img60", img600: "img600")
+    do {
+      let rows: [SkullRow] = [
+        ["guid": 123, "img100": "a", "img30": "b", "img60": "c", "img600": "d"],
+        ["feed_guid": 123, "img100": "a", "img30": "b", "img60": "c", "img600": "d"]
+      ]
+      
+      for row in rows {
+        let found = SQLFormatter.iTunesItem(from: row)!
+      
+        XCTAssertEqual(found.iTunesID, 123)
+        XCTAssertEqual(found.img100, "a")
+        XCTAssertEqual(found.img30, "b")
+        XCTAssertEqual(found.img60, "c")
+        XCTAssertEqual(found.img600, "d")
+      }
+    }
     
-    let row = skullRow(from: wanted)
-    
-    let iTunes = SQLFormatter.iTunesItem(from: row)!
-    
-    XCTAssertEqual(iTunes.guid, 123)
-    XCTAssertEqual(iTunes.img100, "img100")
-    XCTAssertEqual(iTunes.img30, "img30")
-    XCTAssertEqual(iTunes.img60, "img60")
-    XCTAssertEqual(iTunes.img600, "img600")
+    do {
+      let row = ["img100": "a", "img30": "b", "img60": "c", "img600": "d"]
+      XCTAssertNil(SQLFormatter.iTunesItem(from: row))
+    }
   }
   
   func testSQLToInsertSuggestionForTerm() {
@@ -443,9 +452,9 @@ extension SQLTests {
     
     do {
       let url = "http://abc.de"
-      let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c", img600: "d")
+      let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c", img600: "d")
       let found = SQLFormatter.SQLToSubscribe(to: url, with: iTunes)
-      let wanted = "INSERT OR REPLACE INTO feed(guid, url, img100, img30, img60, img600) VALUES(4707633401079847226, \'http://abc.de\', \'a\', \'b\', \'c\', \'d\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);"
+      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(4707633401079847226, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);\nINSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) VALUES(123, \'a\', \'b\', \'c\', \'d\');"
       XCTAssertEqual(found, wanted)
     }
   }

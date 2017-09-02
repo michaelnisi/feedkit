@@ -70,14 +70,14 @@ public protocol Redirectable {
 // optional. Especially `guid` isn’t used in this framework. We identify
 // feeds by URLs.
 public struct ITunesItem {
-  public let guid: Int
+  public let iTunesID: Int
   public let img100: String
   public let img30: String
   public let img60: String
   public let img600: String
 
-  public init(guid: Int, img100: String, img30: String, img60: String, img600: String) {
-    self.guid = guid
+  public init(iTunesID: Int, img100: String, img30: String, img60: String, img600: String) {
+    self.iTunesID = iTunesID
     self.img100 = img100
     self.img30 = img30
     self.img60 = img60
@@ -87,7 +87,7 @@ public struct ITunesItem {
 
 extension ITunesItem: Equatable {
   public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
-    return lhs.guid == rhs.guid
+    return lhs.iTunesID == rhs.iTunesID
   }
 }
 
@@ -600,18 +600,21 @@ public protocol Queueing {
 
 // MARK: - Subscribing
 
-public struct SubscriptionOrder {
-  let url: String
-  let iTunes: ITunesItem // TODO: Replace with single image
+/// A feed subscription.
+public struct Subscription {
+  public let url: String
+  public let images: ITunesItem?
 }
 
-public struct Subscription {
-  let url: String
+extension Subscription: Equatable {
+  public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
+    return lhs.url == rhs.url
+  }
 }
 
 public protocol SubscriptionCaching {
-  func subscribe(with orders: [SubscriptionOrder]) throws
-  func unsubscribe(from: [String]) throws
+  func add(subscriptions: [Subscription]) throws
+  func remove(subscriptions: [String]) throws
   func subscribed() throws -> [Subscription]
 }
 

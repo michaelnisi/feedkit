@@ -173,7 +173,7 @@ func feedWithName(_ name: String) throws -> Feed {
     return Feed(
       author: "Daring Fireball / John Gruber",
       iTunes: ITunesItem(
-        guid: 528458508,
+        iTunesID: 528458508,
         img100: "abc",
         img30: "def",
         img60: "ghi",
@@ -193,7 +193,7 @@ func feedWithName(_ name: String) throws -> Feed {
     return Feed(
       author: "Merlin Mann",
       iTunes: ITunesItem(
-        guid: 471418144,
+        iTunesID: 471418144,
         img100: "abc",
         img30: "def",
         img60: "ghi",

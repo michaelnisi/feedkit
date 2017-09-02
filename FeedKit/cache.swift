@@ -276,7 +276,9 @@ extension Cache: FeedCaching {
           return acc + [self.sqlFormatter.SQLToUpdateFeed(feed, withID: feedID)]
         } catch FeedKitError.feedNotCached {
           
-          guard let guid = feed.iTunes?.guid else {
+          // TODO: Use feed guid
+          
+          guard let guid = feed.iTunes?.iTunesID else {
             return acc + [self.sqlFormatter.SQLToInsertFeed(feed)]
           }
           

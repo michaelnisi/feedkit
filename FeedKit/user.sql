@@ -52,13 +52,18 @@ create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 -- Feeds
 
-create table if not exists feed(
+create table if not exists itunes(
   guid int primary key,
-  url text,
+  itunes_id int unique,
   img100 text,
   img30 text,
   img60 text,
   img600 text
+);
+
+create table if not exists feed(
+  guid int primary key,
+  url text
 );
 
 -- Subscribed feeds
@@ -94,6 +99,7 @@ end;
 
 create trigger if not exists feed_ad after delete on feed begin
   delete from subscribed_feed where guid = old.guid;
+  delete from itunes where guid = old.guid;
 end;
 
 -- All queued entries, including iCloud meta-data if synced
@@ -150,10 +156,15 @@ select
   f.guid,
   f.url,
   sf.ts,
+  i.img100,
+  i.img30,
+  i.img60,
+  i.img600,
   r.change_tag,
   r.record_name
 from feed f
   join subscribed_feed sf on sf.guid = f.guid
+  left join itunes i on sf.guid = i.guid
   left join record r on sf.record_name = r.record_name;
 
 -- Locally subscribed feeds, not synced yet

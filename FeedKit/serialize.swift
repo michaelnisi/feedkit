@@ -90,7 +90,7 @@ struct serialize {
     }
     
     return ITunesItem(
-      guid: guid,
+      iTunesID: guid,
       img100: img100,
       img30: img30,
       img60: img60,

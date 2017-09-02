@@ -91,7 +91,7 @@ final class CacheTests: XCTestCase {
 extension CacheTests {
   
   func testKeepImages() {
-    let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c",
+    let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c",
                             img600: "d")
     
     let a = Feed(author: nil, iTunes: iTunes, image: nil, link: nil,

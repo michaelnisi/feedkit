@@ -100,14 +100,16 @@ extension UserCacheTests {
 extension UserCacheTests {
   
   func testAddFeeds() {
-    do {
-      // Do we really need the whole iTunes item?
-      let iTunes = ITunesItem(guid: 123, img100: "a", img30: "b", img60: "c", img600: "d")
-      let order = SubscriptionOrder(url: "http", iTunes: iTunes)
-      let orders = [order]
-      try! cache.subscribe(with: orders)
-      
-    }
+    try! cache.add(subscriptions: [])
+    
+    let images = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c", img600: "d")
+    let s = Subscription(url: "http://abc.de", images: images)
+    let subscriptions = [s]
+    try! cache.add(subscriptions: subscriptions)
+    let found = try! cache.subscribed()
+    
+    let wanted = subscriptions
+    XCTAssertEqual(found, wanted)
   }
 
 }

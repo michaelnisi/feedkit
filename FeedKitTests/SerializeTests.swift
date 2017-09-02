@@ -80,15 +80,26 @@ final class SerializeTests: XCTestCase {
   }
 
   func testFeedImagesFromDictionary() {
-    let wanted = ITunesItem(guid: 123, img100: "abc", img30: "def", img60: "ghi", img600: "jkl")
-    let dict = Mirror(reflecting: wanted).children.reduce([String : AnyObject]()) { acc, prop in
-      var d = acc
-      d[prop.label!] = prop.value as AnyObject
-      return d
-    }
+    let dict: [String : Any] = [
+      "guid": 123,
+      "img100": "abc",
+      "img30": "def",
+      "img60": "ghi",
+      "img600": "jkl"
+    ]
+    
     let found = serialize.iTunesItem(from: dict)!
+    
+    let wanted = ITunesItem(
+      iTunesID: 123,
+      img100: "abc",
+      img30: "def",
+      img60: "ghi",
+      img600: "jkl"
+    )
+    
     XCTAssertEqual(found, wanted)
-    XCTAssertEqual(found.guid, wanted.guid)
+    XCTAssertEqual(found.iTunesID, wanted.iTunesID)
     XCTAssertEqual(found.img100, wanted.img100)
     XCTAssertEqual(found.img30, wanted.img30)
     XCTAssertEqual(found.img60, wanted.img60)

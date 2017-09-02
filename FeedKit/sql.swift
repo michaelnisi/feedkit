@@ -54,7 +54,7 @@ final class SQLFormatter {
 
   func SQLToInsertFeed(_ feed: Feed) -> String {
     let author = stringFromAny(feed.author)
-    let guid = stringFromAny(feed.iTunes?.guid)
+    let guid = stringFromAny(feed.iTunes?.iTunesID)
     let img = stringFromAny(feed.image)
     let img100 = stringFromAny(feed.iTunes?.img100)
     let img30 = stringFromAny(feed.iTunes?.img30)
@@ -88,7 +88,7 @@ final class SQLFormatter {
 
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAny(feed.author)
-    let guid = stringFromAny(feed.iTunes?.guid)
+    let guid = stringFromAny(feed.iTunes?.iTunesID)
     let img = stringFromAny(feed.image)
     let img100 = stringFromAny(feed.iTunes?.img100)
     let img30 = stringFromAny(feed.iTunes?.img30)
@@ -383,10 +383,12 @@ extension SQLFormatter {
       "SELECT rowid FROM sug_fts WHERE term MATCH \(s));"
     return sql
   }
+  
+  // TODO: Fix ITunesItem guid issue
 
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
     guard
-      let guid = row["guid"] as? Int ?? row["feed_guid"] as? Int,
+      let iTunesID = row["guid"] as? Int ?? row["feed_guid"] as? Int,
       let img100 = row["img100"] as? String,
       let img30 = row["img30"] as? String,
       let img60 = row["img60"] as? String,
@@ -395,12 +397,20 @@ extension SQLFormatter {
     }
 
     return ITunesItem(
-      guid: guid,
+      iTunesID: iTunesID,
       img100: img100,
       img30: img30,
       img60: img60,
       img600: img600
     )
+  }
+  
+  static func subscription(from row: SkullRow) -> Subscription? {
+    guard let url = row["url"] as? String else {
+      return nil
+    }
+    let images = SQLFormatter.iTunesItem(from: row)
+    return Subscription(url: url, images: images)
   }
 
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {
@@ -516,25 +526,28 @@ extension SQLFormatter {
   static func SQLToSubscribe(to url: String, with iTunes: ITunesItem? = nil) -> String {
     let guid = djb2Hash(string: url)
     let url = SQLFormatter.SQLString(from: url)
+
+    var tokens = [
+      "INSERT OR REPLACE INTO feed(guid, url) VALUES(\(guid), \(url));",
+      "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
+    ]
     
     guard let item = iTunes else {
-      return [
-        "INSERT OR REPLACE INTO feed(guid, url) " +
-        "VALUES(\(guid), \(url));",
-        "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
-      ].joined(separator: "\n")
+      return tokens.joined(separator: "\n")
     }
     
+    let iTunesID = item.iTunesID
     let img100 = SQLFormatter.SQLString(from: item.img100)
     let img30 = SQLFormatter.SQLString(from: item.img30)
     let img60 = SQLFormatter.SQLString(from: item.img60)
     let img600 = SQLFormatter.SQLString(from: item.img600)
-
-    return [
-      "INSERT OR REPLACE INTO feed(guid, url, img100, img30, img60, img600) " +
-      "VALUES(\(guid), \(url), \(img100), \(img30), \(img60), \(img600));",
-      "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
-    ].joined(separator: "\n")
+    
+    tokens.append(
+      "INSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) " +
+      "VALUES(\(iTunesID), \(img100), \(img30), \(img60), \(img600));"
+    )
+    
+    return tokens.joined(separator: "\n")
   }
   
   /// Returns SQL to remove a feed subscription.
