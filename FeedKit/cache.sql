@@ -26,11 +26,17 @@ create table if not exists feed(
   title text not null,
   ts datetime default current_timestamp,
   updated datetime,
-  url text not null unique
+  url text primary key
 );
 
--- TODO: Consider feed index
--- create unique index if not exists feed_url_idx on feed(url);
+create table if not exists itunes(
+  feed_guid int primary key,
+  img100 text,
+  img30 text,
+  img60 text,
+  img600 text,
+  itunes_id int unique
+);
 
 create trigger if not exists feed_ts after update on feed for each row begin
   update feed set ts = current_timestamp where rowid = old.rowid;
@@ -45,13 +51,13 @@ create virtual table if not exists feed_fts using fts4(
 );
 
 create trigger if not exists feed_bu before update on feed begin
-  delete from feed_fts where docid=old.rowid;
+  delete from feed_fts where docid = old.rowid;
 end;
 
 create trigger if not exists feed_bd before delete on feed begin
-  delete from entry where feedid=old.rowid;
-  delete from feed_fts where docid=old.rowid;
-  delete from search where feedid=old.rowid;
+  delete from entry where feedid = old.rowid;
+  delete from feed_fts where docid = old.rowid;
+  delete from search where feedid = old.rowid;
 end;
 
 create trigger if not exists feed_au after update on feed begin
@@ -90,8 +96,6 @@ as select
   url
 from feed;
 
--- TODO: Review url_view view
-
 create view if not exists url_view
 as select
   f.url,
@@ -99,8 +103,6 @@ as select
 from feed f;
 
 -- Entries
-
--- TODO: Remove unique restriction for entry
 
 create table if not exists entry(
   author text,
@@ -131,11 +133,11 @@ create virtual table if not exists entry_fts using fts4(
 );
 
 create trigger if not exists entry_bu before update on entry begin
-  delete from entry_fts where docid=old.rowid;
+  delete from entry_fts where docid = old.rowid;
 end;
 
 create trigger if not exists entry_bd before delete on entry begin
-  delete from entry_fts where docid=old.rowid;
+  delete from entry_fts where docid = old.rowid;
 end;
 
 create trigger if not exists entry_au after update on entry begin
@@ -184,7 +186,7 @@ as select
   f.rowid feedid,
   f.title feed_title,
   f.url feed
-from feed f inner join entry e on f.rowid=e.feedid;
+from feed f inner join entry e on f.rowid = e.feedid;
 
 -- Suggestions
 
@@ -200,11 +202,11 @@ create virtual table if not exists sug_fts using fts4(
 );
 
 create trigger if not exists sug_bu before update on sug begin
-  delete from sug_fts where docid=old.rowid;
+  delete from sug_fts where docid = old.rowid;
 end;
 
 create trigger if not exists sug_bd before delete on sug begin
-  delete from sug_fts where docid=old.rowid;
+  delete from sug_fts where docid = old.rowid;
 end;
 
 create trigger if not exists sug_au after update on sug begin
@@ -234,11 +236,11 @@ create virtual table if not exists search_fts using fts4(
 );
 
 create trigger if not exists search_bu before update on search begin
-  delete from search_fts where docid=old.rowid;
+  delete from search_fts where docid = old.rowid;
 end;
 
 create trigger if not exists search_bd before delete on search begin
-  delete from search_fts where docid=old.rowid;
+  delete from search_fts where docid = old.rowid;
   delete from sug where term=old.term;
 end;
 
@@ -274,6 +276,6 @@ as select
   f.url,
   s.rowid searchid,
   s.ts
-from feed f inner join search s on f.rowid=s.feedid;
+from feed f inner join search s on f.rowid = s.feedid;
 
 commit;
