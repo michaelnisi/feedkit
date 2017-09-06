@@ -483,10 +483,16 @@ public enum CacheTTL {
   }
 }
 
+// MARK: - Caching
+
+public protocol Caching {
+  func flush() throws
+}
+
 // MARK: - FeedCaching
 
 /// A persistent cache for feeds and entries.
-public protocol FeedCaching {
+public protocol FeedCaching: Caching {
   func update(feeds: [Feed]) throws
   func feeds(_ urls: [String]) throws -> [Feed]
 
@@ -500,7 +506,7 @@ public protocol FeedCaching {
 // MARK: - SearchCaching
 
 /// A persistent cache of things related to searching feeds and entries.
-public protocol SearchCaching {
+public protocol SearchCaching: Caching {
   func update(suggestions: [Suggestion], for term: String) throws
   func suggestions(for term: String, limit: Int) throws -> [Suggestion]?
 
@@ -513,7 +519,7 @@ public protocol SearchCaching {
 // MARK: - Searching
 
 /// The search API of the FeedKit framework.
-public protocol Searching {
+public protocol Searching: Caching {
   @discardableResult func search(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
@@ -534,7 +540,7 @@ public protocol Searching {
 /// An asynchronous API for accessing feeds and entries. Designed with data
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
-public protocol Browsing {
+public protocol Browsing: Caching {
   
   @discardableResult func feeds(
     _ urls: [String],

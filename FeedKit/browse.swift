@@ -796,3 +796,11 @@ extension FeedRepository: Browsing {
     )
   }
 }
+
+// MARK: - Caching
+
+extension FeedRepository: Caching {
+  public func flush() throws {
+    try cache.flush()
+  }
+}

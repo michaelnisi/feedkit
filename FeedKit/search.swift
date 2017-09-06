@@ -525,3 +525,11 @@ public final class SearchRepository: RemoteRepository, Searching {
     return addOperation(op)
   }
 }
+
+// MARK: - Caching
+
+extension SearchRepository: Caching {
+  public func flush() throws {
+    try cache.flush()
+  }
+}
