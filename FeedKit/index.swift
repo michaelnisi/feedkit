@@ -332,6 +332,31 @@ extension EntryLocator : CustomStringConvertible {
   }
 }
 
+extension EntryLocator {
+  
+  public func encode(with coder: NSCoder) {
+    coder.encode(self.guid, forKey: "guid")
+    coder.encode(self.url, forKey: "url")
+    coder.encode(self.since, forKey: "since")
+    coder.encode(self.title, forKey: "title")
+  }
+  
+  public init?(coder: NSCoder) {
+    guard
+      let guid = coder.decodeObject(forKey: "guid") as? String,
+      let url = coder.decodeObject(forKey: "url") as? String else {
+        return nil
+    }
+    let since = coder.decodeObject(forKey: "since") as? Date
+    let title = coder.decodeObject(forKey: "title") as? String
+    
+    self.url = url
+    self.since = since ?? Date(timeIntervalSince1970: 0)
+    self.guid = guid
+    self.title = title
+  }
+}
+
 /// A suggested search term, bearing the timestamp of when it was added
 /// (to the cache) or updated.
 public struct Suggestion {
