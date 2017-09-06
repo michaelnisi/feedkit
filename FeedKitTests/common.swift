@@ -58,7 +58,7 @@ private func cacheURL(_ name: String) -> URL {
   return URL(string: name, relativeTo: dir)!
 }
 
-func freshCache(_ aClass: AnyClass!) -> Cache {
+func freshCache(_ aClass: AnyClass!) -> FeedCache {
   let name = "ink.codes.feedkit.test.cache.db"
   let url = cacheURL(name)
 
@@ -67,7 +67,7 @@ func freshCache(_ aClass: AnyClass!) -> Cache {
   if exists {
     try! fm.removeItem(at: url)
   }
-  return try! Cache(
+  return try! FeedCache(
     schema: schema(for: aClass, forResource: "cache"),
     url: nil
   )
@@ -172,6 +172,7 @@ func feedWithName(_ name: String) throws -> Feed {
   case "thetalkshow":
     return Feed(
       author: "Daring Fireball / John Gruber",
+      guid: -5013736692656448084,
       iTunes: ITunesItem(
         iTunesID: 528458508,
         img100: "abc",
@@ -192,6 +193,7 @@ func feedWithName(_ name: String) throws -> Feed {
   case "roderickontheline":
     return Feed(
       author: "Merlin Mann",
+      guid: 8681604165851527081,
       iTunes: ITunesItem(
         iTunesID: 471418144,
         img100: "abc",

@@ -8,20 +8,19 @@
 
 import Foundation
 
-/// Hashes a `string` using [djb2](http://www.cse.yorku.ca/~oz/hash.html), one 
-/// of the best string hash functions, it has excellent distribution and speed 
-/// on many different sets of keys and table sizes. 
-/// [Use Your Loaf](https://useyourloaf.com/) has 
-/// [this](https://useyourloaf.com/blog/swift-hashable/) to say about it.
+/// Returns 32-bit hash of `string`.
+///
+/// - [djb2](http://www.cse.yorku.ca/~oz/hash.html)
+/// - [Use Your Loaf](https://useyourloaf.com/blog/swift-hashable/)
 ///
 /// - Parameter string: The string to hash.
 ///
-/// - Returns: The hash of the string. Note that this might a negative value.
+/// - Returns: A 32-bit signed Integer.
 public func djb2Hash(string: String) -> Int {
   let unicodeScalars = string.unicodeScalars.map { $0.value }
-  return unicodeScalars.reduce(5381) {
-    ($0 << 5) &+ $0 &+ Int($1)
-  }
+  return Int(unicodeScalars.reduce(5381) {
+    ($0 << 5) &+ $0 &+ Int32($1)
+  })
 }
 
 // TODO: Type entry GUID Int

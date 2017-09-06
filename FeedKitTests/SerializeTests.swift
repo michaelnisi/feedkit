@@ -130,6 +130,7 @@ final class SerializeTests: XCTestCase {
     let dict = ["feed": "http://abc.DE/hellO", "title": "A title"]
     let wanted = Feed(
       author: nil,
+      guid: 123,
       iTunes: nil,
       image: nil,
       link: nil,
@@ -149,6 +150,7 @@ final class SerializeTests: XCTestCase {
     let dict = ["feed": "http://abc.de", "title": "A title"]
     let wanted = [Feed(
       author: nil,
+      guid: 123,
       iTunes: nil,
       image: nil,
       link: nil,

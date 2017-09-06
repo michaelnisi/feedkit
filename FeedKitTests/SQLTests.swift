@@ -83,6 +83,7 @@ final class SQLTests: XCTestCase {
     ]
     var row = skullRow(keys)
     
+    row["feed_guid"] = 456
     row["guid"] = 123
     row["uid"] = 0
     row["ts"] = "2016-06-06 06:00:00"
@@ -98,6 +99,7 @@ final class SQLTests: XCTestCase {
     )
     let wanted = Feed(
       author: "author",
+      guid: 456,
       iTunes: iTunes,
       image: "img",
       link: "link",
@@ -113,6 +115,7 @@ final class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
     
     XCTAssertEqual(found.author, wanted.author)
+    XCTAssertEqual(found.guid, wanted.guid)
     XCTAssertEqual(found.iTunes, wanted.iTunes)
     XCTAssertEqual(found.image, wanted.image)
     XCTAssertEqual(found.link, wanted.link)
@@ -245,7 +248,7 @@ final class SQLTests: XCTestCase {
     let feed = try! feedWithName("thetalkshow")
     let found = formatter.SQLToInsertFeed(feed)
     
-    let wanted = "INSERT INTO feed(author, guid, img, img100, img30, img60, img600, link, summary, title, updated, url) VALUES('Daring Fireball / John Gruber', 528458508, 'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg', 'abc', 'def', 'ghi', 'jkl', NULL, 'The director’s commentary track for Daring Fireball.', 'The Talk Show With John Gruber', '2015-10-17 19:35:01', 'http://daringfireball.net/thetalkshow/rss');"
+    let wanted = "INSERT INTO feed(author, feed_guid, guid, img, img100, img30, img60, img600, link, summary, title, updated, url) VALUES(\'Daring Fireball / John Gruber\', -5013736692656448084, 528458508, \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', \'abc\', \'def\', \'ghi\', \'jkl\', NULL, \'The director’s commentary track for Daring Fireball.\', \'The Talk Show With John Gruber\', \'2015-10-17 19:35:01\', \'http://daringfireball.net/thetalkshow/rss\');"
     
     XCTAssertEqual(found, wanted)
   }
@@ -254,7 +257,7 @@ final class SQLTests: XCTestCase {
     let feed = try! feedWithName("thetalkshow")
     let found = formatter.SQLToUpdateFeed(feed, withID: 1)
     
-    let wanted = "UPDATE feed SET author = \'Daring Fireball / John Gruber\', guid = 528458508, img = \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', img100 = \'abc\', img30 = \'def\', img60 = \'ghi\', img600 = \'jkl\', link = NULL, summary = \'The director’s commentary track for Daring Fireball.\', title = \'The Talk Show With John Gruber\', updated = \'2015-10-17 19:35:01\', url = \'http://daringfireball.net/thetalkshow/rss\' WHERE rowid = 1;"
+    let wanted = "UPDATE feed SET author = \'Daring Fireball / John Gruber\', feed_guid = -5013736692656448084, guid = 528458508, img = \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', img100 = \'abc\', img30 = \'def\', img60 = \'ghi\', img600 = \'jkl\', link = NULL, summary = \'The director’s commentary track for Daring Fireball.\', title = \'The Talk Show With John Gruber\', updated = \'2015-10-17 19:35:01\', url = \'http://daringfireball.net/thetalkshow/rss\' WHERE rowid = 1;"
     
     XCTAssertEqual(found, wanted)
   }
@@ -446,7 +449,7 @@ extension SQLTests {
     do {
       let url = "http://abc.de"
       let found = SQLFormatter.SQLToSubscribe(to: url)
-      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(4707633401079847226, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);"
+      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(-601827014);"
       XCTAssertEqual(found, wanted)
     }
     
@@ -454,7 +457,7 @@ extension SQLTests {
       let url = "http://abc.de"
       let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c", img600: "d")
       let found = SQLFormatter.SQLToSubscribe(to: url, with: iTunes)
-      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(4707633401079847226, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(4707633401079847226);\nINSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) VALUES(123, \'a\', \'b\', \'c\', \'d\');"
+      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(-601827014);\nINSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) VALUES(123, \'a\', \'b\', \'c\', \'d\');"
       XCTAssertEqual(found, wanted)
     }
   }
@@ -464,7 +467,7 @@ extension SQLTests {
     
     let urls = ["http://abc.de"]
     let found = SQLFormatter.SQLToUnsubscribe(from: urls)
-    let wanted = "DELETE FROM subscribed_feed WHERE guid IN(4707633401079847226);"
+    let wanted = "DELETE FROM subscribed_feed WHERE guid IN(-601827014);"
     XCTAssertEqual(found, wanted)
   }
   

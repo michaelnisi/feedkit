@@ -16,7 +16,7 @@ import Patron
 final class FeedRepositoryTests: XCTestCase {
   
   var repo: Browsing!
-  var cache: Cache!
+  var cache: FeedCache!
   var svc: MangerService!
   
   override func setUp() {

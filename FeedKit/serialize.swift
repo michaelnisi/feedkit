@@ -146,8 +146,7 @@ struct serialize {
       throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
     }
     
-    // TODO: Filter shady stuff like this earlier--in the remote service
-    
+    let guid = djb2Hash(string: url)
     let iTunes = serialize.iTunesItem(from: json)
     let image = json["image"] as? String
     let link = json["link"] as? String
@@ -157,6 +156,7 @@ struct serialize {
     
     return Feed(
       author: author,
+      guid: guid,
       iTunes: iTunes,
       image: image,
       link: link,

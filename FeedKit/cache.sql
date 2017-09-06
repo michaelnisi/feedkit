@@ -15,12 +15,13 @@ begin immediate;
 
 create table if not exists feed(
   author text,
-  guid int unique,
+  feed_guid int unique not null,
+  guid int unique, -- itunes
   img text,
-  img100 text,
-  img30 text,
-  img60 text,
-  img600 text,
+  img100 text, -- itunes
+  img30 text, -- itunes
+  img60 text, -- itunes
+  img600 text, -- itunes
   link text,
   summary text,
   title text not null,
@@ -81,6 +82,7 @@ end;
 create view if not exists feed_view
 as select
   author,
+  feed_guid,
   guid,
   img,
   img100,
@@ -262,6 +264,7 @@ end;
 create view if not exists search_view
 as select
   f.author,
+  f.feed_guid,
   f.guid,
   f.img,
   f.img100,

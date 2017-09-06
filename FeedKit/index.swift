@@ -106,6 +106,7 @@ public protocol Imaginable {
 /// A feed is required to, at least, have `title` and `url`.
 public struct Feed: Cachable, Redirectable, Imaginable {
   public let author: String?
+  public let guid: Int
   public let iTunes: ITunesItem?
   public let image: String?
   public let link: String?
@@ -294,7 +295,8 @@ public struct EntryLocator {
   ///
   /// - Parameter entry: The entry to locate.
   public init(entry: Entry) {
-    self.init(url: entry.feed, since: entry.updated, guid: entry.guid)
+    self.init(url: entry.feed, since: entry.updated, guid: entry.guid,
+              title: entry.title)
   }
   
   /// Returns a new `EntryLocator` with a modified *inclusive* `since`.
@@ -676,7 +678,7 @@ public enum Synced {
 }
 
 /// The user cache complies to this protocol for iCloud synchronization.
-public protocol UserCacheSyncing {
+public protocol UserCacheSyncing: QueueCaching {
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws
   
@@ -757,7 +759,7 @@ public class RemoteRepository: NSObject {
 
     if let (code, ts) = status {
       let date = Date(timeIntervalSince1970: ts)
-      if code != 0 && !Cache.stale(date, ttl: CacheTTL.short.seconds) {
+      if code != 0 && !FeedCache.stale(date, ttl: CacheTTL.short.seconds) {
         return CacheTTL.forever
       }
     }

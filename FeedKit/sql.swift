@@ -54,6 +54,7 @@ final class SQLFormatter {
 
   func SQLToInsertFeed(_ feed: Feed) -> String {
     let author = stringFromAny(feed.author)
+    let feedGUID = feed.guid
     let guid = stringFromAny(feed.iTunes?.iTunesID)
     let img = stringFromAny(feed.image)
     let img100 = stringFromAny(feed.iTunes?.img100)
@@ -68,10 +69,10 @@ final class SQLFormatter {
 
     let sql =
     "INSERT INTO feed(" +
-    "author, guid, " +
+    "author, feed_guid, guid, " +
     "img, img100, img30, img60, img600, " +
     "link, summary, title, updated, url) VALUES(" +
-    "\(author), \(guid), " +
+    "\(author), \(feedGUID), \(guid), " +
     "\(img), \(img100), \(img30), \(img60), \(img600), " +
     "\(link), \(summary), \(title), \(updated), \(url)" +
     ");"
@@ -85,9 +86,10 @@ final class SQLFormatter {
     }
     return value != "NULL" ? "\(name) = \(value)" : nil
   }
-
+  
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAny(feed.author)
+    let feedGUID = stringFromAny(feed.guid)
     let guid = stringFromAny(feed.iTunes?.iTunesID)
     let img = stringFromAny(feed.image)
     let img100 = stringFromAny(feed.iTunes?.img100)
@@ -101,9 +103,19 @@ final class SQLFormatter {
     let url = stringFromAny(feed.url)
 
     let props = [
-      ("author", author), ("guid", guid), ("img", img), ("img100", img100),
-      ("img30", img30), ("img60", img60), ("img600", img600), ("link", link),
-      ("summary", summary), ("title", title), ("updated", updated), ("url", url)
+      ("author", author),
+      ("feed_guid", feedGUID),
+      ("guid", guid),
+      ("img", img),
+      ("img100", img100),
+      ("img30", img30),
+      ("img60", img60),
+      ("img600", img600),
+      ("link", link),
+      ("summary", summary),
+      ("title", title),
+      ("updated", updated),
+      ("url", url)
     ]
 
     // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
@@ -192,6 +204,10 @@ final class SQLFormatter {
     let link = row["link"] as? String
     let summary = row["summary"] as? String
 
+    guard let guid = row["feed_guid"] as? Int else {
+      throw FeedKitError.invalidFeed(reason: "missing feed_guid")
+    }
+    
     guard let title = row["title"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
@@ -206,6 +222,7 @@ final class SQLFormatter {
 
     return Feed(
       author: author,
+      guid: guid,
       iTunes: iTunes,
       image: image,
       link: link,

@@ -26,7 +26,7 @@ private func freshFanboy(url: URL, target: DispatchQueue) -> Fanboy {
 
 final class SearchRepositoryTests: XCTestCase {
   var repo: Searching!
-  var cache: Cache!
+  var cache: FeedCache!
   var svc: Fanboy!
 
   // TODO: Mock remote service

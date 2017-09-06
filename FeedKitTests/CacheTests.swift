@@ -12,7 +12,7 @@ import Foundation
 @testable import FeedKit
 
 final class CacheTests: XCTestCase {
-  var cache: Cache!
+  var cache: FeedCache!
   let fm = FileManager.default
 
   override func setUp() {
@@ -94,14 +94,14 @@ extension CacheTests {
     let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c",
                             img600: "d")
     
-    let a = Feed(author: nil, iTunes: iTunes, image: nil, link: nil,
+    let a = Feed(author: nil, guid: 123, iTunes: iTunes, image: nil, link: nil,
                  originalURL: "abc", summary: nil, title: "Title", ts: nil,
                  uid: nil, updated: nil, url: "abc")
     
     try! cache.update(feeds: [a])
     
     do {
-      let b = Feed(author: nil, iTunes: nil, image: nil, link: nil,
+      let b = Feed(author: nil, guid: 123, iTunes: nil, image: nil, link: nil,
                    originalURL: "abc", summary: nil, title: "Title", ts: nil,
                    uid: nil, updated: nil, url: "abc")
       
@@ -112,7 +112,7 @@ extension CacheTests {
     }
     
     do {
-      let c = Feed(author: "not null", iTunes: nil, image: nil, link: nil,
+      let c = Feed(author: "not null", guid: 123, iTunes: nil, image: nil, link: nil,
                    originalURL: "abc", summary: nil, title: "Title", ts: nil,
                    uid: nil, updated: nil, url: "abc")
       
@@ -491,7 +491,7 @@ extension CacheTests {
   }
 
   fileprivate func hit(_ term: String, _ wanted: String, _ cache: [String : Date]) {
-    if let (found, _) = Cache.subcached(term, dict: cache) {
+    if let (found, _) = FeedCache.subcached(term, dict: cache) {
       XCTAssertEqual(found, wanted)
       if term.lengthOfBytes(using: String.Encoding.utf8) > 1 {
         let pre = term.characters.index(before: term.endIndex)
@@ -509,8 +509,8 @@ extension CacheTests {
     cache["a"] = nil
 
     cache["abc"] = Date()
-    XCTAssertNotNil(Cache.subcached("abcd", dict: cache)!.0)
-    XCTAssertNil(Cache.subcached("ab", dict: cache)?.0)
+    XCTAssertNotNil(FeedCache.subcached("abcd", dict: cache)!.0)
+    XCTAssertNil(FeedCache.subcached("ab", dict: cache)?.0)
   }
 }
 
@@ -520,10 +520,10 @@ extension CacheTests {
   
   func testSliceElements() {
     let fixtures = [
-      (Cache.slice(elements: [1, 2, 3], with: 1), [[1], [2], [3]]),
-      (Cache.slice(elements: [1, 2, 3], with: 2), [[1, 2], [3]]),
-      (Cache.slice(elements: [1, 2, 3], with: 3), [[1, 2, 3]]),
-      (Cache.slice(elements: [1, 2, 3], with: 4), [[1, 2, 3]])
+      (FeedCache.slice(elements: [1, 2, 3], with: 1), [[1], [2], [3]]),
+      (FeedCache.slice(elements: [1, 2, 3], with: 2), [[1, 2], [3]]),
+      (FeedCache.slice(elements: [1, 2, 3], with: 3), [[1, 2, 3]]),
+      (FeedCache.slice(elements: [1, 2, 3], with: 4), [[1, 2, 3]])
     ]
    
     fixtures.forEach { fixture in

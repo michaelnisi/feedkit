@@ -162,9 +162,9 @@ private final class SearchOperation: SearchRepoOperation {
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
 
-      guard let ts = Cache.medianTS(cached) else { return done() }
+      guard let ts = FeedCache.medianTS(cached) else { return done() }
 
-      if !Cache.stale(ts, ttl: ttl.seconds) {
+      if !FeedCache.stale(ts, ttl: ttl.seconds) {
         guard let cb = perFindGroupBlock else { return done() }
         let finds = cached.map { Find.foundFeed($0) }
         target.sync {
@@ -405,7 +405,7 @@ private final class SuggestOperation: SearchRepoOperation {
         return resume()
       }
 
-      if !Cache.stale(ts, ttl: ttl.seconds) {
+      if !FeedCache.stale(ts, ttl: ttl.seconds) {
         let finds = [original] + cached.map { Find.suggestedTerm($0) }
         dispatch(nil, finds: finds)
         requestRequired = false

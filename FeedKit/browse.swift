@@ -82,7 +82,7 @@ private func subtractItems<T: Cachable> (
       cachedItems.append(item)
       return acc
     }
-    if !Cache.stale(item.ts!, ttl: ttl) {
+    if !FeedCache.stale(item.ts!, ttl: ttl) {
       cachedItems.append(item)
       return acc + [item.url]
     } else {
@@ -98,7 +98,7 @@ private func subtractItems<T: Cachable> (
       break
     }
     let entry = latest(feed)
-    if !Cache.stale(entry.ts!, ttl: ttl) {
+    if !FeedCache.stale(entry.ts!, ttl: ttl) {
       cachedEntryURLs.append(entry.feed)
     }
   }
