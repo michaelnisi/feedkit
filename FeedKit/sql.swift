@@ -525,7 +525,7 @@ extension SQLFormatter {
 // MARK: - Subscribing
 
 extension SQLFormatter {
-
+  
   /// The SQL to fetch all feed subscriptions.
   static let SQLToSelectSubscriptions =
     "SELECT * from subscribed_feed_view;"

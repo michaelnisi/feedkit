@@ -668,6 +668,9 @@ extension Subscription: Equatable {
 public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
   func remove(subscriptions: [Subscription]) throws
+  
+  func has(_ feedID: Int) throws -> Bool
+  
   func subscribed() throws -> [Subscription]
 }
 
@@ -715,7 +718,7 @@ public protocol UserCacheSyncing: QueueCaching {
 
   func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
-
+  
   func zombieRecords() throws -> [String : String]
 }
 

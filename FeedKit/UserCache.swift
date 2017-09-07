@@ -70,6 +70,10 @@ extension UserCache: SubscriptionCaching {
   public func subscribed() throws -> [Subscription] {
     return try _subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
   }
+  
+  public func has(_ feedID: Int) throws -> Bool {
+    return try subscribed().map { $0.feedID }.contains(feedID)
+  }
 }
 
 // MARK: - QueueCaching

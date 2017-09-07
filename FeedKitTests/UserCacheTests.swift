@@ -95,6 +95,68 @@ extension UserCacheTests {
 
 }
 
+// MARK: - UserCacheSyncing
+
+extension UserCacheTests {
+  
+  fileprivate func freshSynced() -> [Synced] {
+    let zoneName = "queueZone"
+    let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
+  
+    let record = RecordMetadata(
+      zoneName: zoneName, recordName: recordName, changeTag: "e")
+    let url = "http://abc.de"
+    let guid = entryGUID(for: "123456789", at: url)
+    let loc = EntryLocator(url: url, guid: guid)
+    let s = Synced.entry(loc, Date(), record)
+  
+    return [s]
+  }
+  
+  func testAddSynced() {
+    let synced = freshSynced()
+    try! cache.add(synced: synced)
+  }
+  
+  func testRemoveSynced() {
+    let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
+    let recordNames = [recordName]
+    try! cache.remove(recordNames: recordNames)
+  }
+  
+  func testLocallyQueued() {
+    XCTAssertEqual(try! cache.locallyQueued(), [])
+    
+    try! cache.add(entries: locators)
+   
+    let queued = try! cache.locallyQueued()
+    
+    let found: [EntryLocator] = queued.flatMap {
+      switch $0 {
+      case .entry(let loc, _):
+        return loc
+      }
+    }
+    let wanted = locators
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testLocallySubscribed() {
+    let s = Subscription(url: "http:/abc.de")
+    let subscriptions = [s]
+    try! cache.add(subscriptions: subscriptions)
+    
+    let found = try! cache.locallySubscribed()
+    let wanted = subscriptions
+    XCTAssertEqual(found, wanted)
+  }
+  
+  func testZombieRecords() {
+    XCTAssertEqual(try! cache.zombieRecords(), [:])
+  }
+  
+}
+
 // MARK: - SubscriptionCaching
 
 extension UserCacheTests {
@@ -105,12 +167,15 @@ extension UserCacheTests {
     let s = Subscription(url: "http:/abc.de")
     let subscriptions = [s]
     
+    XCTAssertFalse(try! cache.has(s.feedID))
+    
     do {
       try! cache.add(subscriptions: subscriptions)
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
       
+      XCTAssert(try! cache.has(s.feedID))
       XCTAssertNotNil(found.first?.ts)
     }
   }
@@ -126,6 +191,7 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
+      XCTAssert(try! cache.has(s.feedID))
     }
     
     do {
@@ -133,14 +199,9 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = [Subscription]()
       XCTAssertEqual(found, wanted)
+      XCTAssertFalse(try! cache.has(s.feedID))
     }
     
   }
-
-}
-
-// MARK: - UserCacheSyncing
-
-extension UserCacheTests {
 
 }
