@@ -402,7 +402,7 @@ extension SQLTests {
     XCTAssertEqual(SQLFormatter.SQLToSelectLocallyQueuedEntries, wanted)
   }
   
-  func testSQLToQueueSynced() {
+  func testSQLToReplaceSynced() {
     let zoneName = "queueZone"
     let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
     let record = RecordMetadata(zoneName: zoneName, recordName: recordName, changeTag: "e")
@@ -410,7 +410,7 @@ extension SQLTests {
     do {
       let loc = EntryLocator(url: "http://abc.de")
       let synced = Synced.entry(loc, Date(), record)
-      XCTAssertThrowsError(try formatter.SQLToQueue(synced: synced))
+      XCTAssertThrowsError(try formatter.SQLToReplace(synced: synced))
     }
     
     let ts = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
@@ -418,8 +418,18 @@ extension SQLTests {
     do {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
       let synced = Synced.entry(loc, ts, record)
-      let found = try! formatter.SQLToQueue(synced: synced)
+      let found = try! formatter.SQLToReplace(synced: synced)
       let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(entry_guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let feedID = djb2Hash(string: url)
+      let s = Subscription(url: "http://abc.de", feedID: feedID, ts: ts)
+      let synced = Synced.subscription(s, record)
+      let found = try! formatter.SQLToReplace(synced: synced)
+      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO feed(feed_guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(feed_guid, record_name, ts) VALUES(-601827014, \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'2016-06-06 06:00:00\');"
       XCTAssertEqual(found, wanted)
     }
   }

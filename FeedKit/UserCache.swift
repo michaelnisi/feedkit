@@ -180,7 +180,7 @@ extension UserCache: UserCacheSyncing {
     queue.sync {
       do {
         let sql = try synced.reduce([String]()) { acc, item in
-          let sql = try fmt.SQLToQueue(synced: item)
+          let sql = try fmt.SQLToReplace(synced: item)
           return acc + [sql]
           }.joined(separator: "\n")
         

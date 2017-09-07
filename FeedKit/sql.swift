@@ -20,9 +20,9 @@ import Skull
 /// call site, which knows more about the context, the formatted SQL is going
 /// to be used in.
 ///
-/// Remember to respect [SQLite limits](https://www.sqlite.org/limits.html) when 
-/// using this class. Some of its functions might exceed the maximum depth of an 
-/// SQLite expression tree Here's the deal, basically every time an array of 
+/// Remember to respect [SQLite limits](https://www.sqlite.org/limits.html) when
+/// using this class. Some of its functions might exceed the maximum depth of an
+/// SQLite expression tree Here's the deal, basically every time an array of
 /// identifiers is longer than 1000, we have to slice it down, for example, with
 /// `Cache.slice(elements:, with:)`.
 final class SQLFormatter {
@@ -86,7 +86,7 @@ final class SQLFormatter {
     }
     return value != "NULL" ? "\(name) = \(value)" : nil
   }
-  
+
   func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
     let author = stringFromAny(feed.author)
     let feedGUID = stringFromAny(feed.guid)
@@ -207,7 +207,7 @@ final class SQLFormatter {
     guard let guid = row["feed_guid"] as? Int else {
       throw FeedKitError.invalidFeed(reason: "missing feed_guid")
     }
-    
+
     guard let title = row["title"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
@@ -400,7 +400,7 @@ extension SQLFormatter {
       "SELECT rowid FROM sug_fts WHERE term MATCH \(s));"
     return sql
   }
-  
+
   /// Returns optional iTunes item from feed or entry row.
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
     guard
@@ -420,7 +420,7 @@ extension SQLFormatter {
       img600: img600
     )
   }
-  
+
   static func subscription(from row: SkullRow) -> Subscription {
     let feedID = row["feed_guid"] as! Int
     let url = row["url"] as! String
@@ -479,7 +479,7 @@ extension SQLFormatter {
 
   static let SQLToSelectAllQueued =
     "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
-  
+
   static let SQLToSelectAllPrevious =
     "SELECT * FROM prev_entry_view ORDER BY ts DESC LIMIT 25;"
 
@@ -496,11 +496,11 @@ extension SQLFormatter {
     guard let guid = entry.guid else {
       throw FeedKitError.invalidEntryLocator(reason: "missing guid")
     }
-    
+
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
     let guidStr = SQLFormatter.SQLString(from: guid)
-    
+
     return [
       "INSERT OR REPLACE INTO entry(entry_guid, url, since) " +
       "VALUES(\(guidStr), \(url), \(since));",
@@ -524,14 +524,14 @@ extension SQLFormatter {
 // MARK: - Subscribing
 
 extension SQLFormatter {
-  
+
   /// The SQL to fetch all feed subscriptions.
   static let SQLToSelectSubscriptions =
     "SELECT * from subscribed_feed_view;"
-  
+
   /// SQL to select GUIDs of unrelated feeds that can be safely deleted.
   static let SQLToSelectZombieFeedGUIDs = "SELECT * from zombie_feed_guid_view;"
-  
+
   /// Returns SQL to replace `subscription`.
   static func SQLToReplace(subscription: Subscription) -> String {
     let guid = subscription.feedID
@@ -542,7 +542,7 @@ extension SQLFormatter {
       "INSERT OR REPLACE INTO subscribed_feed(feed_guid) VALUES(\(guid));"
     ].joined(separator: "\n")
   }
-  
+
   /// Returns SQL to delete feed `subscriptions`.
   static func SQLToDelete(subscriptions: [Subscription]) -> String? {
     guard !subscriptions.isEmpty else {
@@ -551,7 +551,7 @@ extension SQLFormatter {
     return "DELETE FROM subscribed_feed WHERE feed_guid IN(" +
       subscriptions.map { String($0.feedID) }.joined(separator: ", ") + ");"
   }
-  
+
 }
 
 // MARK: - Syncing
@@ -569,18 +569,37 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
 
-  func SQLToQueue(synced: Synced) throws -> String {
+  func SQLToReplace(synced: Synced) throws -> String {
     switch synced {
+    case .subscription(let subscription, let record):
+      let feedID = stringFromAny(subscription.feedID)
+      let url = stringFromAny(subscription.url)
+      let ts = stringFromAny(subscription.ts)
+
+      let recordName = stringFromAny(record.recordName)
+      let zoneName = stringFromAny(record.zoneName)
+      let tag = stringFromAny(record.changeTag)
+
+      return [
+        "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
+        "VALUES(\(recordName), \(zoneName), \(tag));",
+
+        "INSERT OR REPLACE INTO feed(feed_guid, url) " +
+        "VALUES(\(feedID), \(url));",
+
+        "INSERT OR REPLACE INTO subscribed_feed(feed_guid, record_name, ts) " +
+        "VALUES(\(feedID), \(recordName), \(ts));"
+      ].joined(separator: "\n");
     case .entry(let locator, let queuedAt, let record):
       guard let locGuid = locator.guid else {
-        throw FeedKitError.invalidEntry(reason: "missing guid")
+        throw FeedKitError.invalidEntryLocator(reason: "missing guid")
       }
       let guid = stringFromAny(locGuid)
       let url = stringFromAny(locator.url)
       let since = stringFromAny(locator.since)
 
       let ts = stringFromAny(queuedAt)
-      
+
       let zoneName = stringFromAny(record.zoneName)
       let recordName = stringFromAny(record.recordName)
       let tag = stringFromAny(record.changeTag)
@@ -600,9 +619,9 @@ extension SQLFormatter {
 
   static let SQLToSelectLocallyQueuedEntries =
     "SELECT * FROM locally_queued_entry_view;"
-  
+
   static let SQLToSelectAbandonedRecords = "SELECT * FROM zombie_record_view;"
-  
+
   static let SQLToSelectLocallySubscribedFeeds =
     "SELECT * FROM locally_subscribed_feed_view;"
 

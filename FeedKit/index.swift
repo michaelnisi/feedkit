@@ -115,13 +115,13 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let summary: String?
   public let title: String
   public let ts: Date?
-  
+
   // TODO: Add guid: Int
-  
-  /// The locally unique identifier of the feed, literally the `rowid` of the 
+
+  /// The locally unique identifier of the feed, literally the `rowid` of the
   /// feed table.
   public let uid: Int?
-  
+
   public let updated: Date?
   public let url: String
 }
@@ -210,14 +210,14 @@ public struct Entry: Redirectable, Imaginable {
   public let feed: String
   public let feedImage: String?
   public let feedTitle: String?
-  
-  /// Not the GUID from the RSS spec, but a globally—across feeds—unique 
-  /// identifier for the entry, which is locally generated from the feed URL and 
+
+  /// Not the GUID from the RSS spec, but a globally—across feeds—unique
+  /// identifier for the entry, which is locally generated from the feed URL and
   /// the GUID received from the remote service.
   public let guid: String
-  
+
   // TODO: Replace guid: String with uuid: Int to differentiate from RSS guid
-  
+
   public let iTunes: ITunesItem?
   public let image: String?
   public let link: String?
@@ -258,13 +258,13 @@ extension Entry: Hashable {
 public struct EntryLocator {
 
   public let url: String
-  
+
   // TODO: Type EntryLocator.since as TimeInterval to make it all value typed
-  
+
   public let since: Date
-  
+
   public let guid: String?
-  
+
   public let title: String?
 
   /// Initializes a newly created entry locator with the specified feed URL,
@@ -299,7 +299,7 @@ public struct EntryLocator {
     self.init(url: entry.feed, since: entry.updated, guid: entry.guid,
               title: entry.title)
   }
-  
+
   /// Returns a new `EntryLocator` with a modified *inclusive* `since`.
   public var including: EntryLocator { get {
     return EntryLocator(url: url, since: since.addingTimeInterval(-1), guid: guid)
@@ -336,14 +336,14 @@ extension EntryLocator : CustomStringConvertible {
 }
 
 extension EntryLocator {
-  
+
   public func encode(with coder: NSCoder) {
     coder.encode(self.guid, forKey: "guid")
     coder.encode(self.url, forKey: "url")
     coder.encode(self.since, forKey: "since")
     coder.encode(self.title, forKey: "title")
   }
-  
+
   public init?(coder: NSCoder) {
     guard
       let guid = coder.decodeObject(forKey: "guid") as? String,
@@ -352,7 +352,7 @@ extension EntryLocator {
     }
     let since = coder.decodeObject(forKey: "since") as? Date
     let title = coder.decodeObject(forKey: "title") as? String
-    
+
     self.url = url
     self.since = since ?? Date(timeIntervalSince1970: 0)
     self.guid = guid
@@ -542,7 +542,7 @@ public protocol Searching: Caching {
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing: Caching {
-  
+
   @discardableResult func feeds(
     _ urls: [String],
     feedsBlock: @escaping (Error?, [Feed]) -> Void,
@@ -561,16 +561,16 @@ public protocol Browsing: Caching {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   // TODO: Add target parameter
-  
+
 //  @discardableResult func entries(
 //    _ locators: [EntryLocator],
 //    target: DispatchQueue,
 //    entriesBlock: @escaping (Error?, [Entry]) -> Void,
 //    entriesCompletionBlock: @escaping (Error?) -> Void
 //  ) -> Operation
-  
+
 }
 
 // MARK: - Queueing
@@ -617,15 +617,15 @@ public protocol QueueDelegate {
 
 public protocol Queueing {
   var delegate: QueueDelegate? { get set }
-  
+
   func add(_ entry: Entry)
   func remove(_ entry: Entry)
-  
+
   func contains(_ entry: Entry) -> Bool
-  
+
   func next() -> Entry?
   func previous() -> Entry?
-  
+
   func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
@@ -637,16 +637,25 @@ public protocol Queueing {
 /// A feed subscription.
 public struct Subscription {
   public let feedID: Int
+  public let ts: Date?
   public let url: String
-  
+
+  public init(url: String, feedID: Int, ts: Date) {
+    self.url = url
+    self.feedID = feedID
+    self.ts = ts
+  }
+
   public init(url: String, feedID: Int) {
     self.url = url
     self.feedID = feedID
+    self.ts = nil
   }
-  
+
   public init(url: String) {
     self.feedID = djb2Hash(string: url)
     self.url = url
+    self.ts = nil
   }
 }
 
@@ -665,7 +674,7 @@ public protocol SubscriptionCaching {
 public protocol Subscribing {
   func subscribe(to urls: [String]) throws
   func unsubscribe(from urls: [String]) throws
-  
+
   func feeds(
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
@@ -674,13 +683,12 @@ public protocol Subscribing {
 
 // MARK: - Syncing
 
-/// Encapsulates CKRecord data to prevent CloudKit details from leaking into 
-/// this code base. Syncing is done in `sync.swift` and is a thing of its own.
+/// Encapsulates `CKRecord` data to **avoid CloudKit dependency**.
 public struct RecordMetadata {
   let zoneName: String
   let recordName: String
   let changeTag: String
-  
+
   public init(zoneName: String, recordName: String, changeTag: String) {
     self.zoneName = zoneName
     self.recordName = recordName
@@ -690,24 +698,24 @@ public struct RecordMetadata {
 
 /// Enumerates data structures for synchronization with iCloud.
 public enum Synced {
-  
+
   /// A queued entry that has been synchronized with the iCloud database with
-  /// these properties: entry locator, the time the entry was added to the 
+  /// these properties: entry locator, the time the entry was added to the
   /// queue, and CloudKit record metadata.
   case entry(EntryLocator, Date, RecordMetadata)
-  
+
   /// A synchronized feed subscription.
-  // TODO: case subscription(Subscription, RecordMetadata)
+  case subscription(Subscription, RecordMetadata)
 }
 
 /// The user cache complies to this protocol for iCloud synchronization.
 public protocol UserCacheSyncing: QueueCaching {
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws
-  
+
   func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
-  
+
   func zombieRecords() throws -> [String : String]
 }
 
@@ -754,7 +762,7 @@ public class RemoteRepository: NSObject {
   /// Return the momentary maximal age for cached items of a specific resource
   /// incorporating reachability and service status. This method's parameters
   /// are all optional.
-  /// 
+  ///
   /// - Parameters:
   ///   - uri: The unique resource identifier.
   ///   - force: Force refreshing of cached items.
@@ -794,9 +802,9 @@ public class RemoteRepository: NSObject {
 /// An abstract super class to be extended by concurrent FeedKit operations.
 class FeedKitOperation: Operation {
   fileprivate var _executing: Bool = false
-  
+
   // MARK: - Operation
-  
+
   override final var isExecuting: Bool {
     get { return _executing }
     set {
@@ -808,9 +816,9 @@ class FeedKitOperation: Operation {
       didChangeValue(forKey: "isExecuting")
     }
   }
-  
+
   fileprivate var _finished: Bool = false
-  
+
   override final var isFinished: Bool {
     get { return _finished }
     set {
