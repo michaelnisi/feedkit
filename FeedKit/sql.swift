@@ -487,31 +487,32 @@ extension SQLFormatter {
     guard !guids.isEmpty else {
       return nil
     }
-    return "DELETE FROM queued_entry WHERE guid IN(" + guids.map {
+    return "DELETE FROM queued_entry WHERE entry_guid IN(" + guids.map {
       "'\($0)'"
     }.joined(separator: ", ") + ");"
   }
 
-  
-  // TODO: Remove extra GUID and throw instead
-  
-  func SQLToQueue(entry: EntryLocator, with rawGUID: String) -> String {
+  func SQLToQueue(entry: EntryLocator) throws -> String {
+    guard let guid = entry.guid else {
+      throw FeedKitError.invalidEntryLocator(reason: "missing guid")
+    }
+    
     let url = stringFromAny(entry.url)
     let since = stringFromAny(entry.since)
-    let guid = SQLFormatter.SQLString(from: rawGUID)
+    let guidStr = SQLFormatter.SQLString(from: guid)
     
     return [
-      "INSERT OR REPLACE INTO entry(guid, url, since) " +
-      "VALUES(\(guid), \(url), \(since));",
+      "INSERT OR REPLACE INTO entry(entry_guid, url, since) " +
+      "VALUES(\(guidStr), \(url), \(since));",
 
-      "INSERT OR REPLACE INTO queued_entry(guid) VALUES(\(guid));"
+      "INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\(guidStr));"
     ].joined(separator: "\n");
   }
 
   func queuedLocator(from row: SkullRow) -> Queued {
     let url = row["url"] as! String
     let since = date(from: row["since"] as? String)!
-    let guid = row["guid"] as? String
+    let guid = row["entry_guid"] as? String
     let locator = EntryLocator(url: url, since: since, guid: guid)
 
     let ts = date(from: row["ts"] as? String)!
@@ -588,10 +589,10 @@ extension SQLFormatter {
         "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
         "VALUES(\(recordName), \(zoneName), \(tag));",
 
-        "INSERT OR REPLACE INTO entry(guid, url, since) " +
+        "INSERT OR REPLACE INTO entry(entry_guid, url, since) " +
         "VALUES(\(guid), \(url), \(since));",
 
-        "INSERT OR REPLACE INTO queued_entry(guid, ts, record_name) " +
+        "INSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) " +
         "VALUES(\(guid), \(ts), \(recordName));"
       ].joined(separator: "\n");
     }

@@ -419,7 +419,7 @@ extension SQLTests {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
       let synced = Synced.entry(loc, ts, record)
       let found = try! formatter.SQLToQueue(synced: synced)
-      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(entry_guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
       XCTAssertEqual(found, wanted)
     }
   }
@@ -474,7 +474,7 @@ extension SQLTests {
 
     let guids = ["12three", "45six"]
     let found = SQLFormatter.SQLToUnqueue(guids: guids)
-    let wanted = "DELETE FROM queued_entry WHERE guid IN('12three', '45six');"
+    let wanted = "DELETE FROM queued_entry WHERE entry_guid IN('12three', '45six');"
     XCTAssertEqual(found, wanted)
   }
 
@@ -488,12 +488,17 @@ extension SQLTests {
   
   func testSQLToQueueEntry() {
     do {
+      let locator = EntryLocator(url: "http://abc.de")
+      XCTAssertThrowsError(try formatter.SQLToQueue(entry: locator))
+    }
+    
+    do {
       let guid = "12three"
       let url = "abc.de"
       let since = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
       let locator = EntryLocator(url: url, since: since, guid: guid)
-      let found = formatter.SQLToQueue(entry: locator, with: guid)
-      let wanted = "INSERT OR REPLACE INTO entry(guid, url, since) VALUES(\'12three\', \'abc.de\', \'2016-06-06 06:00:00\');\nINSERT OR REPLACE INTO queued_entry(guid) VALUES(\'12three\');"
+      let found = try! formatter.SQLToQueue(entry: locator)
+      let wanted = "INSERT OR REPLACE INTO entry(entry_guid, url, since) VALUES(\'12three\', \'abc.de\', \'2016-06-06 06:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\'12three\');"
       XCTAssertEqual(found, wanted)
     }
   }

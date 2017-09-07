@@ -144,18 +144,13 @@ extension UserCache: QueueCaching {
     
     queue.sync {
       do {
-        let sql = entries.reduce([String]()) { acc, loc in
+        let sql = try entries.reduce([String]()) { acc, loc in
           guard er == nil else {
             return acc
           }
-          guard let guid = loc.guid else {
-            er = FeedKitError.invalidEntry(reason: "missing guid")
-            return acc
-          }
-          let sql = fmt.SQLToQueue(entry: loc, with: guid)
+          let sql = try fmt.SQLToQueue(entry: loc)
           return acc + [sql]
-          }.joined(separator: "\n")
-        
+        }.joined(separator: "\n")
         try db.exec(sql)
       } catch {
         er = error

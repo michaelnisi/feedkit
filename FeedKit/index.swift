@@ -39,6 +39,7 @@ public enum FeedKitError : Error {
   case cacheFailure(error: Error)
   case invalidSearchTerm(term: String)
   case invalidEntry(reason: String)
+  case invalidEntryLocator(reason: String)
   case invalidEnclosure(reason: String)
   case invalidFeed(reason: String)
   case invalidSuggestion(reason: String)
@@ -673,6 +674,8 @@ public protocol Subscribing {
 
 // MARK: - Syncing
 
+/// Encapsulates CKRecord data to prevent CloudKit details from leaking into 
+/// this code base. Syncing is done in `sync.swift` and is a thing of its own.
 public struct RecordMetadata {
   let zoneName: String
   let recordName: String
@@ -687,10 +690,14 @@ public struct RecordMetadata {
 
 /// Enumerates data structures for synchronization with iCloud.
 public enum Synced {
-  /// An entry that has been synchronized with the iCloud database with these
-  /// properties: entry locator, the time the entry was added to the queue; and
-  /// CloudKit record metadata: name and change tag of the record.
+  
+  /// A queued entry that has been synchronized with the iCloud database with
+  /// these properties: entry locator, the time the entry was added to the 
+  /// queue, and CloudKit record metadata.
   case entry(EntryLocator, Date, RecordMetadata)
+  
+  /// A synchronized feed subscription.
+  // TODO: case subscription(Subscription, RecordMetadata)
 }
 
 /// The user cache complies to this protocol for iCloud synchronization.
