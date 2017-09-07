@@ -102,8 +102,8 @@ extension UserCacheTests {
   func testAddFeeds() {
     try! cache.add(subscriptions: [])
     
-    let images = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c", img600: "d")
-    let s = Subscription(url: "http://abc.de", images: images)
+    let s = Subscription(url: "http:/abc.de")
+    
     let subscriptions = [s]
     try! cache.add(subscriptions: subscriptions)
     let found = try! cache.subscribed()

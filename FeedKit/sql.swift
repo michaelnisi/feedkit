@@ -401,8 +401,7 @@ extension SQLFormatter {
     return sql
   }
   
-  // TODO: Fix ITunesItem guid issue
-
+  /// Returns optional iTunes item from feed or entry row.
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
     guard
       let iTunesID = row["guid"] as? Int ?? row["feed_guid"] as? Int,
@@ -422,12 +421,10 @@ extension SQLFormatter {
     )
   }
   
-  static func subscription(from row: SkullRow) -> Subscription? {
-    guard let url = row["url"] as? String else {
-      return nil
-    }
-    let images = SQLFormatter.iTunesItem(from: row)
-    return Subscription(url: url, images: images)
+  static func subscription(from row: SkullRow) -> Subscription {
+    let feedID = row["feed_guid"] as! Int
+    let url = row["url"] as! String
+    return Subscription(url: url, feedID: feedID)
   }
 
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {
@@ -527,8 +524,6 @@ extension SQLFormatter {
 
 extension SQLFormatter {
   
-  // TODO: Provide hashed URL as Feed property
-  
   /// The SQL to fetch all feed subscriptions.
   static let SQLToSelectSubscriptions =
     "SELECT * from subscribed_feed_view;"
@@ -536,48 +531,24 @@ extension SQLFormatter {
   /// SQL to select GUIDs of unrelated feeds that can be safely deleted.
   static let SQLToSelectZombieFeedGUIDs = "SELECT * from zombie_feed_guid_view;"
   
-  /// Returns SQL to insert a subscribed feed.
-  ///
-  /// - Parameter url: The URL of the feed to subscribe.
-  /// - Parameter iTunes: The iTunes item with image URLs.
-  static func SQLToSubscribe(to url: String, with iTunes: ITunesItem? = nil) -> String {
-    let guid = djb2Hash(string: url)
-    let url = SQLFormatter.SQLString(from: url)
+  /// Returns SQL to replace `subscription`.
+  static func SQLToReplace(subscription: Subscription) -> String {
+    let guid = subscription.feedID
+    let url = SQLFormatter.SQLString(from: subscription.url)
 
-    var tokens = [
-      "INSERT OR REPLACE INTO feed(guid, url) VALUES(\(guid), \(url));",
-      "INSERT OR REPLACE INTO subscribed_feed(guid) VALUES(\(guid));"
-    ]
-    
-    guard let item = iTunes else {
-      return tokens.joined(separator: "\n")
-    }
-    
-    let iTunesID = item.iTunesID
-    let img100 = SQLFormatter.SQLString(from: item.img100)
-    let img30 = SQLFormatter.SQLString(from: item.img30)
-    let img60 = SQLFormatter.SQLString(from: item.img60)
-    let img600 = SQLFormatter.SQLString(from: item.img600)
-    
-    tokens.append(
-      "INSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) " +
-      "VALUES(\(iTunesID), \(img100), \(img30), \(img60), \(img600));"
-    )
-    
-    return tokens.joined(separator: "\n")
+    return [
+      "INSERT OR REPLACE INTO feed(feed_guid, url) VALUES(\(guid), \(url));",
+      "INSERT OR REPLACE INTO subscribed_feed(feed_guid) VALUES(\(guid));"
+    ].joined(separator: "\n")
   }
   
-  /// Returns SQL to remove a feed subscription.
-  /// 
-  /// - Parameter subscription: The URL of the unsubcribed feed.
-  static func SQLToUnsubscribe(from urls: [String]) -> String? {
-    guard !urls.isEmpty else {
+  /// Returns SQL to delete feed `subscriptions`.
+  static func SQLToDelete(subscriptions: [Subscription]) -> String? {
+    guard !subscriptions.isEmpty else {
       return nil
     }
-
-    return "DELETE FROM subscribed_feed WHERE guid IN(" + urls.map {
-      String(djb2Hash(string: $0))
-    }.joined(separator: ", ") + ");"
+    return "DELETE FROM subscribed_feed WHERE feed_guid IN(" +
+      subscriptions.map { String($0.feedID) }.joined(separator: ", ") + ");"
   }
   
 }

@@ -635,19 +635,29 @@ public protocol Queueing {
 
 /// A feed subscription.
 public struct Subscription {
+  public let feedID: Int
   public let url: String
-  public let images: ITunesItem?
+  
+  public init(url: String, feedID: Int) {
+    self.url = url
+    self.feedID = feedID
+  }
+  
+  public init(url: String) {
+    self.feedID = djb2Hash(string: url)
+    self.url = url
+  }
 }
 
 extension Subscription: Equatable {
   public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
-    return lhs.url == rhs.url
+    return lhs.feedID == rhs.feedID
   }
 }
 
 public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
-  func remove(subscriptions: [String]) throws
+  func remove(subscriptions: [Subscription]) throws
   func subscribed() throws -> [Subscription]
 }
 

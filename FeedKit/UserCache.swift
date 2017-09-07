@@ -16,15 +16,15 @@ public class UserCache: LocalCache {}
 extension UserCache: SubscriptionCaching {
   
   public func add(subscriptions: [Subscription]) throws {
+    guard !subscriptions.isEmpty else {
+      return
+    }
+    
     try queue.sync {
-      guard !subscriptions.isEmpty else {
-        return
-      }
-      
       let sql = [
         "BEGIN;",
         subscriptions.map {
-          SQLFormatter.SQLToSubscribe(to: $0.url, with: $0.images)
+          SQLFormatter.SQLToReplace(subscription: $0)
         }.joined(separator: "\n"),
         "COMMIT;"
       ].joined(separator: "\n")
@@ -33,12 +33,11 @@ extension UserCache: SubscriptionCaching {
     }
   }
   
-  public func remove(subscriptions: [String]) throws {
+  public func remove(subscriptions: [Subscription]) throws {
     try queue.sync {
-      guard let sql = SQLFormatter.SQLToUnsubscribe(from: subscriptions) else {
+      guard let sql = SQLFormatter.SQLToDelete(subscriptions: subscriptions) else {
         return
       }
-      
       try db.exec(sql)
     }
   }
@@ -53,13 +52,11 @@ extension UserCache: SubscriptionCaching {
           er = error
           return 1
         }
-        guard
-          let r = row,
-          let s = SQLFormatter.subscription(from: r) else {
+        guard let r = row else {
           return 1
         }
         
-        subscriptions.append(s)
+        subscriptions.append(SQLFormatter.subscription(from: r))
         
         return 0
       }

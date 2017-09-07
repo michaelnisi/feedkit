@@ -445,29 +445,21 @@ extension SQLTests {
     XCTAssertEqual(SQLFormatter.SQLToSelectZombieFeedGUIDs, wanted)
   }
   
-  func testSQLToSubscribeTo() {
+  func testSQLToSubscribeTo() {    
     do {
-      let url = "http://abc.de"
-      let found = SQLFormatter.SQLToSubscribe(to: url)
-      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(-601827014);"
-      XCTAssertEqual(found, wanted)
-    }
-    
-    do {
-      let url = "http://abc.de"
-      let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c", img600: "d")
-      let found = SQLFormatter.SQLToSubscribe(to: url, with: iTunes)
-      let wanted = "INSERT OR REPLACE INTO feed(guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(guid) VALUES(-601827014);\nINSERT OR REPLACE INTO itunes(itunes_id, img100, img30, img60, img600) VALUES(123, \'a\', \'b\', \'c\', \'d\');"
+      let s = Subscription(url: "http://abc.de")
+      let found = SQLFormatter.SQLToReplace(subscription: s)
+      let wanted = "INSERT OR REPLACE INTO feed(feed_guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(feed_guid) VALUES(-601827014);"
       XCTAssertEqual(found, wanted)
     }
   }
   
   func testSQLToUnsubscribeFrom() {
-    XCTAssertNil(SQLFormatter.SQLToUnsubscribe(from: []))
+    XCTAssertNil(SQLFormatter.SQLToDelete(subscriptions: []))
     
-    let urls = ["http://abc.de"]
-    let found = SQLFormatter.SQLToUnsubscribe(from: urls)
-    let wanted = "DELETE FROM subscribed_feed WHERE guid IN(-601827014);"
+    let subscriptions = [Subscription(url: "http://abc.de")]
+    let found = SQLFormatter.SQLToDelete(subscriptions: subscriptions)
+    let wanted = "DELETE FROM subscribed_feed WHERE feed_guid IN(-601827014);"
     XCTAssertEqual(found, wanted)
   }
   

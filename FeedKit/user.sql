@@ -11,17 +11,11 @@ pragma user_version = 1;
 
 begin immediate;
 
--- CloudKit records
-
 create table if not exists record(
   record_name text primary key,
   zone_name text not null,
   change_tag text
 ) without rowid;
-
--- Entries
-
--- TODO: Once guid is changed to int, use ordinary rowid
 
 create table if not exists entry(
   guid text primary key,
@@ -29,8 +23,6 @@ create table if not exists entry(
   title text,
   url text not null
 ) without rowid;
-
--- Queued entries
 
 create table if not exists queued_entry(
   guid text primary key,
@@ -40,8 +32,6 @@ create table if not exists queued_entry(
 
 create unique index if not exists queued_entry_idx on queued_entry(record_name);
 
--- Previously queued entries
-
 create table if not exists prev_entry(
   guid text primary key,
   ts datetime default current_timestamp,
@@ -50,33 +40,18 @@ create table if not exists prev_entry(
 
 create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
--- Feeds
-
-create table if not exists itunes(
-  guid int primary key,
-  itunes_id int unique,
-  img100 text,
-  img30 text,
-  img60 text,
-  img600 text
-);
-
 create table if not exists feed(
-  guid int primary key,
+  feed_guid integer primary key,
   url text
 );
 
--- Subscribed feeds
-
 create table if not exists subscribed_feed(
-  guid int primary key,
+  feed_guid int primary key,
   record_name text unique,
   ts datetime default current_timestamp
 );
 
 create unique index if not exists subscribed_feed_idx on subscribed_feed(record_name);
-
--- Relations
 
 create trigger if not exists record_ad after delete on record begin
   delete from queued_entry where record_name = old.record_name;
@@ -98,8 +73,7 @@ create trigger if not exists queued_entry_ad after delete on queued_entry begin
 end;
 
 create trigger if not exists feed_ad after delete on feed begin
-  delete from subscribed_feed where guid = old.guid;
-  delete from itunes where guid = old.guid;
+  delete from subscribed_feed where feed_guid = old.feed_guid;
 end;
 
 -- All queued entries, including iCloud meta-data if synced
@@ -153,18 +127,13 @@ select guid from entry
 
 create view if not exists subscribed_feed_view as
 select
-  f.guid,
+  f.feed_guid,
   f.url,
   sf.ts,
-  i.img100,
-  i.img30,
-  i.img60,
-  i.img600,
   r.change_tag,
   r.record_name
 from feed f
-  join subscribed_feed sf on sf.guid = f.guid
-  left join itunes i on sf.guid = i.guid
+  join subscribed_feed sf on sf.feed_guid = f.feed_guid
   left join record r on sf.record_name = r.record_name;
 
 -- Locally subscribed feeds, not synced yet
@@ -176,8 +145,8 @@ select * from subscribed_feed_view
 -- Unrelated zombie feeds
 
 create view if not exists zombie_feed_guid_view as
-select guid from feed
-  except select guid from subscribed_feed;
+select feed_guid from feed
+  except select feed_guid from subscribed_feed;
 
 -- Unrelated zombie records
 
