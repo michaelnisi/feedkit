@@ -445,7 +445,7 @@ extension SQLTests {
     XCTAssertEqual(SQLFormatter.SQLToSelectZombieFeedGUIDs, wanted)
   }
   
-  func testSQLToSubscribeTo() {    
+  func testSQLToReplaceSubscriptions() {
     do {
       let s = Subscription(url: "http://abc.de")
       let found = SQLFormatter.SQLToReplace(subscription: s)
@@ -454,7 +454,7 @@ extension SQLTests {
     }
   }
   
-  func testSQLToUnsubscribeFrom() {
+  func testSQLToDeleteSubscriptions() {
     XCTAssertNil(SQLFormatter.SQLToDelete(subscriptions: []))
     
     let subscriptions = [Subscription(url: "http://abc.de")]
