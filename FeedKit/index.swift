@@ -705,10 +705,10 @@ public protocol UserCacheSyncing: QueueCaching {
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws
   
-  func local() throws -> [Queued]
-  func zombieRecords() throws -> [String : String]
-  
+  func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
+  
+  func zombieRecords() throws -> [String : String]
 }
 
 // MARK: - Internal

@@ -52,7 +52,7 @@ extension UserCacheTests {
     
     do {
       let wanted = locators.map { Queued.entry($0, Date()) }
-      let found = try! cache.local()
+      let found = try! cache.locallyQueued()
       XCTAssertEqual(found, wanted)
     }
   }

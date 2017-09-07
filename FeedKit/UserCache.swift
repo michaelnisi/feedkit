@@ -220,7 +220,7 @@ extension UserCache: UserCacheSyncing {
   
   /// The queued entries, which not have been synced and are only locally
   /// cached, hence the name.
-  public func local() throws -> [Queued] {
+  public func locallyQueued() throws -> [Queued] {
     return try _queued(sql: SQLFormatter.SQLToSelectLocallyQueuedEntries)
   }
   
