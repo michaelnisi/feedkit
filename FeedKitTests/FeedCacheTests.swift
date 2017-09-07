@@ -1,5 +1,5 @@
 //
-//  CacheTests.swift
+//  FeedCacheTests.swift
 //  FeedKit
 //
 //  Created by Michael Nisi on 02.11.14.
@@ -11,7 +11,7 @@ import XCTest
 import Foundation
 @testable import FeedKit
 
-final class CacheTests: XCTestCase {
+final class FeedCacheTests: XCTestCase {
   var cache: FeedCache!
   let fm = FileManager.default
 
@@ -88,7 +88,7 @@ final class CacheTests: XCTestCase {
 
 // MARK: - Feed Caching
 
-extension CacheTests {
+extension FeedCacheTests {
   
   func testKeepImages() {
     let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c",
@@ -294,7 +294,7 @@ extension CacheTests {
 
 // MARK: - Search Caching
 
-extension CacheTests {
+extension FeedCacheTests {
 
   func testUpdateFeedsForTerm() {
     let feeds = try! feedsFromFile("search")
@@ -516,7 +516,7 @@ extension CacheTests {
 
 // MARK: - Utilities
 
-extension CacheTests {
+extension FeedCacheTests {
   
   func testSliceElements() {
     let fixtures = [
