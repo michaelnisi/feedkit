@@ -640,7 +640,7 @@ public struct Subscription {
   public let ts: Date?
   public let url: String
 
-  public init(url: String, feedID: Int, ts: Date) {
+  public init(url: String, feedID: Int, ts: Date?) {
     self.url = url
     self.feedID = feedID
     self.ts = ts

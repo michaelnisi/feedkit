@@ -56,7 +56,7 @@ extension UserCache: SubscriptionCaching {
           return 1
         }
         
-        subscriptions.append(SQLFormatter.subscription(from: r))
+        subscriptions.append(self.sqlFormatter.subscription(from: r))
         
         return 0
       }

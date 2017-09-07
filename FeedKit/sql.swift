@@ -421,10 +421,11 @@ extension SQLFormatter {
     )
   }
 
-  static func subscription(from row: SkullRow) -> Subscription {
+  func subscription(from row: SkullRow) -> Subscription {
     let feedID = row["feed_guid"] as! Int
     let url = row["url"] as! String
-    return Subscription(url: url, feedID: feedID)
+    let ts = date(from: row["ts"] as? String)
+    return Subscription(url: url, feedID: feedID, ts: ts)
   }
 
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {

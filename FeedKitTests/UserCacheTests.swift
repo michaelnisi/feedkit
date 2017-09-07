@@ -99,17 +99,42 @@ extension UserCacheTests {
 
 extension UserCacheTests {
   
-  func testAddFeeds() {
+  func testAddSubscriptions() {
     try! cache.add(subscriptions: [])
     
     let s = Subscription(url: "http:/abc.de")
-    
     let subscriptions = [s]
-    try! cache.add(subscriptions: subscriptions)
-    let found = try! cache.subscribed()
     
-    let wanted = subscriptions
-    XCTAssertEqual(found, wanted)
+    do {
+      try! cache.add(subscriptions: subscriptions)
+      let found = try! cache.subscribed()
+      let wanted = subscriptions
+      XCTAssertEqual(found, wanted)
+      
+      XCTAssertNotNil(found.first?.ts)
+    }
+  }
+  
+  func testRemoveSubscriptions() {
+    try! cache.remove(subscriptions: [])
+    
+    let s = Subscription(url: "http:/abc.de")
+    let subscriptions = [s]
+    
+    do {
+      try! cache.add(subscriptions: subscriptions)
+      let found = try! cache.subscribed()
+      let wanted = subscriptions
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      try! cache.remove(subscriptions: subscriptions)
+      let found = try! cache.subscribed()
+      let wanted = [Subscription]()
+      XCTAssertEqual(found, wanted)
+    }
+    
   }
 
 }
