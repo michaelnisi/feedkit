@@ -488,6 +488,8 @@ extension FeedCache: SearchCaching {
     
   }
   
+  // TODO: Review feeds(for term), rowid issues
+  
   /// Return distinct feeds cached for the specified term, the number of feeds
   /// may be limited.
   ///

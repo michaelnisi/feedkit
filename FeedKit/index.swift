@@ -617,11 +617,11 @@ public protocol QueueDelegate {
 
 public protocol Queueing {
   var delegate: QueueDelegate? { get set }
+  
+  func enqueue(entry: Entry)
+  func dequeue(entry: Entry)
 
-  func add(_ entry: Entry)
-  func remove(_ entry: Entry)
-
-  func contains(_ entry: Entry) -> Bool
+  func isQueued(entry: Entry) -> Bool
 
   func next() -> Entry?
   func previous() -> Entry?
@@ -630,6 +630,13 @@ public protocol Queueing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
+}
+
+// MARK: - Updating
+
+public protocol Updating {
+  func update(
+    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
 }
 
 // MARK: - Subscribing
@@ -674,7 +681,7 @@ public protocol SubscriptionCaching {
   func subscribed() throws -> [Subscription]
 }
 
-public protocol Subscribing {
+public protocol Subscribing: Updating {
   func subscribe(to urls: [String]) throws
   func unsubscribe(from urls: [String]) throws
 
@@ -682,6 +689,9 @@ public protocol Subscribing {
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
+  
+  func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void)
+  
 }
 
 // MARK: - Syncing

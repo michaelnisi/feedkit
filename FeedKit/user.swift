@@ -109,12 +109,9 @@ private final class FetchQueueOperation: FeedKitOperation {
  
 }
 
-// TODO: Consider making EntryQueue into User, organized into extensions
-// ... for queueing, subscribing, preferences, etc.
-
-/// Coordinates the queue data structure, local persistence, and propagation of
-/// change events regarding the queue.
-public final class EntryQueue {
+/// The `UserLibrary` manages the user‘s data, for example, feed subscriptions 
+/// and queue.
+public final class UserLibrary {
   
   let operationQueue: OperationQueue
   let serialQueue: DispatchQueue
@@ -125,7 +122,7 @@ public final class EntryQueue {
   ///
   /// - Parameters:
   ///   - queueCache: The cache to store the queue locallly.
-  ///   - browser: The browser to retrieve entries.
+  ///   - browser: The browser to access feeds and entries.
   ///   - queue: The operation queue to execute operations on.
   public init(queueCache: QueueCaching, browser: Browsing, queue: OperationQueue) {
     self.queueCache = queueCache
@@ -140,9 +137,48 @@ public final class EntryQueue {
   public var delegate: QueueDelegate?
 }
 
+// MARK: - Subscribing
+
+// TODO: Implement Subscribing asynchronously
+
+extension UserLibrary: Subscribing {
+  public func subscribe(to urls: [String]) throws {
+    throw FeedKitError.niy
+  }
+  
+  public func unsubscribe(from urls: [String]) throws {
+    throw FeedKitError.niy
+  }
+  
+  public func feeds(feedsBlock: @escaping (Error?, [Feed]) -> Void,
+    feedsCompletionBlock: @escaping (Error?) -> Void) -> Operation {
+    return Operation()
+  }
+  
+  public func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void) {
+    
+  }
+  
+  // Updates subscribed feeds.
+  //
+  // - Parameters:
+  //   - updateComplete: The block to execute when updating completes.
+  //   - newData: `true` if new data has been received.
+  //   - error: An error if something went wrong.
+  public func update(
+    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
+    if #available(iOS 10.0, *) {
+      os_log("updating", log: log,  type: .info)
+    }
+    updateComplete(true, nil)
+  }
+}
+
 // MARK: - Queueing
 
-extension EntryQueue: Queueing {
+/// Coordinates the queue data structure, local persistence, and propagation of
+/// change events regarding the queue.
+extension UserLibrary: Queueing {
   
   // TODO: Move all sorting into the operation and return entries as whole
   
@@ -226,7 +262,7 @@ extension EntryQueue: Queueing {
   
   /// Adds `entry` to the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
-  public func add(_ entry: Entry) {
+  public func enqueue(entry: Entry) {
     serialQueue.async {
       do {
         try self.queue.append(entry)
@@ -249,7 +285,7 @@ extension EntryQueue: Queueing {
   
   /// Removes `entry` from the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
-  public func remove(_ entry: Entry) {
+  public func dequeue(entry: Entry) {
     serialQueue.async {
       do {
         try self.queue.remove(entry)
@@ -270,7 +306,7 @@ extension EntryQueue: Queueing {
     }
   }
   
-  public func contains(_ entry: Entry) -> Bool {
+  public func isQueued(entry: Entry) -> Bool {
     return queue.contains(entry)
   }
   
