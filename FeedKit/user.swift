@@ -90,12 +90,6 @@ private final class FetchQueueOperation: FeedKitOperation {
       // Why does FeedKit.missingEntries appear in entriesBlock, instead of 
       // here, as I would have expected?
       
-      do {
-        try self.cache.deleteZombies()
-      } catch {
-        print("** \(error)")
-      }
-      
       // TODO: Define remove missing flag
       
       // If we aren‘t offline and the service is OK, we can remove missing
