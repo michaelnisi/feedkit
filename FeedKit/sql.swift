@@ -558,6 +558,11 @@ extension SQLFormatter {
 // MARK: - Syncing
 
 extension SQLFormatter {
+  
+  static var SQLToDeleteZombies =
+    "DELETE FROM record WHERE record_name IN (SELECT * FROM zombie_record_name_view);\n" +
+    "DELETE FROM feed WHERE feed_guid IN(SELECT * FROM zombie_feed_guid_view);\n" +
+    "DELETE FROM entry WHERE entry_guid IN(SELECT * FROM zombie_entry_guid_view);"
 
   // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4
 

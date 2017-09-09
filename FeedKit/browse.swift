@@ -42,6 +42,8 @@ func latest<T: Cachable> (_ items: [T]) -> T {
   }.first!
 }
 
+// TODO: Replace urls with locators
+
 /// Find out which URLs still need to be consulted, after items have been
 /// received from the cache, while respecting a maximal time cached items stay
 /// valid (ttl) before they become stale.
@@ -58,11 +60,12 @@ func latest<T: Cachable> (_ items: [T]) -> T {
 /// array, are added to the URLs array. Finally the latest entry of each feed is
 /// checked for its age and, if stale, its feed URL is added to the URLs.
 ///
-/// - parameter items: An array of items from the cache.
-/// - parameter urls: The originally requested URLs.
-/// - parameter ttl: The maximal age of cached items before they’re stale.
+/// - Parameters:
+///   - items: An array of items from the cache.
+///   - urls: The originally requested URLs.
+///   - ttl: The maximal age of cached items before they’re stale.
 ///
-/// - returns: A tuple of cached items, stale items, and URLs still to consult.
+/// - Returns: A tuple of cached items, stale items, and URLs still to consult.
 private func subtractItems<T: Cachable> (
   _ items: [T], fromURLs urls: [String], withTTL ttl: TimeInterval
 ) -> ([T], [T], [String]?) {
@@ -130,8 +133,10 @@ func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
   return t
 }
 
-/// Query the cache for persisted entries to return a tuple containing cached
-/// entries and URLs of stale or feeds not cached yet.
+// TODO: Return ([Entry], [EntryLocator]?)
+
+/// Query the cache for locally cached entries to return a tuple containing 
+/// cached entries and URLs of stale or feeds not cached yet.
 ///
 /// This function, firstly, finds all entries matching any GUIDs passed in the
 /// locators. It then merges all locators without GUIDs and those not matching
@@ -147,7 +152,7 @@ func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
 ///
 /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
 ///
-/// - Throws: Might throw database errors.
+/// - Throws: May throw database errors.
 private func entriesFromCache(
   _ cache: FeedCaching,
   locators: [EntryLocator],
@@ -155,6 +160,7 @@ private func entriesFromCache(
 ) throws -> ([Entry], [String]?) {
   
   let guids = locators.flatMap { $0.guid }
+  print("** guids: \(guids)")
   
   let resolved = try cache.entries(guids)
   
@@ -163,6 +169,7 @@ private func entriesFromCache(
   }
   
   let resguids = resolved.map { $0.guid }
+  print("** resolved: \(resguids)")
   let unresolved = locators.filter {
     guard let guid = $0.guid else {
       return true
@@ -219,7 +226,7 @@ class BrowseOperation: SessionTaskOperation {
   ) {
     self.cache = cache
     self.svc = svc
-    self.target = target
+    self.target = OperationQueue.current!.underlyingQueue!
   }
 }
 

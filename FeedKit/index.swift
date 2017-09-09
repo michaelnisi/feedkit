@@ -608,6 +608,8 @@ public protocol QueueCaching {
 
   func queued() throws -> [Queued]
   func previous() throws -> [Queued]
+  
+  func deleteZombies() throws
 }
 
 public protocol QueueDelegate {

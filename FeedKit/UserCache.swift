@@ -172,6 +172,12 @@ extension UserCache: QueueCaching {
 
 extension UserCache: UserCacheSyncing {
   
+  public func deleteZombies() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteZombies)
+    }
+  }
+  
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
       return

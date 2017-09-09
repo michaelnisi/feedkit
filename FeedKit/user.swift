@@ -15,21 +15,22 @@ fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 private final class FetchQueueOperation: FeedKitOperation {
   
-  var sortOrderBlock: (([String]) -> Void)?
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
   
   let browser: Browsing
   let cache: QueueCaching
+  var queue: Queue<Entry>
   let target: DispatchQueue
   
-  init(browser: Browsing, cache: QueueCaching, target: DispatchQueue) {
+  init(browser: Browsing, cache: QueueCaching, queue: Queue<Entry>) {
     self.browser = browser
     self.cache = cache
-    self.target = target
+    self.queue = queue
+    self.target = OperationQueue.current!.underlyingQueue!
   }
   
-  private func done(with error: Error? = nil) {
+  private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
     if let cb = entriesCompletionBlock {
@@ -44,20 +45,79 @@ private final class FetchQueueOperation: FeedKitOperation {
     op = nil
   }
   
+  /// The browser operation, fetching the entries.
   weak var op: Operation?
   
   private func fetchEntries(for locators: [EntryLocator]) {
-    guard
-      let q = OperationQueue.current?.underlyingQueue,
-      let entriesBlock = self.entriesBlock else {
-      fatalError("queue and entriesBlock required")
-    }
+    var missing = [String]()
+    var dispatched = [Entry]()
     
-    print("** \(q.label)")
-    
-    op = browser.entries(locators, entriesBlock: entriesBlock) { error in
-      q.async {
-        self.done(with: error)
+    op = browser.entries(locators, entriesBlock: { error, entries in
+      assert(!Thread.isMainThread)
+      guard let guids = self.sortedIds else {
+        fatalError("sorted guids required")
+      }
+      
+      var dict = [String : Entry]()
+      entries.forEach { dict[$0.guid] = $0 }
+      
+      let sorted: [Entry] = guids.flatMap { dict[$0] }
+      
+      do {
+        try self.queue.append(items: sorted)
+      } catch {
+        if #available(iOS 10.0, *) {
+          os_log("already in queue: %{public}@", log: log,  type: .error,
+                 String(describing: error))
+        }
+      }
+      
+      let queuedEntries: [Entry] = self.queue.items.filter {
+        !dispatched.contains($0)
+      }
+      
+      self.target.async { [weak self] in
+        guard let cb = self?.entriesBlock else {
+          return
+        }
+        cb(error, queuedEntries)
+      }
+      
+      dispatched = dispatched + queuedEntries
+    }) { error in
+      // TODO: Handle error
+      
+      // Why does FeedKit.missingEntries appear in entriesBlock, instead of 
+      // here, as I would have expected?
+      
+      do {
+        try self.cache.deleteZombies()
+      } catch {
+        print("** \(error)")
+      }
+      
+      // TODO: Define remove missing flag
+      
+      // If we aren‘t offline and the service is OK, we can remove missing
+      // entries.
+      let shouldRemoveMissing = true
+      
+      if shouldRemoveMissing {
+        let found = dispatched.map { $0.guid }
+        let wanted = locators.flatMap { $0.guid }
+        let missing = wanted.filter { !found.contains($0) }
+        
+        do {
+          try self.cache.remove(guids: missing)
+        } catch {
+          print("** \(error)")
+        }
+      }
+
+      print("** missing: \(missing)")
+      
+      self.target.async { [weak self] in
+        self?.done(but: error)
       }
     }
   }
@@ -69,13 +129,15 @@ private final class FetchQueueOperation: FeedKitOperation {
     op?.cancel()
   }
   
+  /// The sorted guids of the items in the queue.
+  private var sortedIds: [String]?
+  
   override func start() {
     guard !isCancelled else {
       return done()
     }
     
     isExecuting = true
-    
     
     do {
       let queued = try cache.queued()
@@ -93,9 +155,7 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
-      target.async {
-        self.sortOrderBlock?(guids)
-      }
+      sortedIds = guids
       
       guard !isCancelled, !locators.isEmpty else {
         return done()
@@ -103,7 +163,7 @@ private final class FetchQueueOperation: FeedKitOperation {
 
       fetchEntries(for: locators)
     } catch {
-      done(with: error)
+      done(but: error)
     }
   }
  
@@ -138,8 +198,6 @@ public final class UserLibrary {
 }
 
 // MARK: - Subscribing
-
-// TODO: Implement Subscribing asynchronously
 
 extension UserLibrary: Subscribing {
   public func subscribe(to urls: [String]) throws {
@@ -180,76 +238,15 @@ extension UserLibrary: Subscribing {
 /// change events regarding the queue.
 extension UserLibrary: Queueing {
   
-  // TODO: Move all sorting into the operation and return entries as whole
-  
   /// Fetches the queued entries and provides the populated queue.
   public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    assert(Thread.isMainThread)
-    
-    let cache = self.queueCache
-    let target = DispatchQueue.main
-    let op = FetchQueueOperation(browser: browser, cache: cache, target: target)
-    
-    var sortedGuids: [String]?
-    
-    op.sortOrderBlock = { guids in
-      assert(Thread.isMainThread)
-      
-      sortedGuids = guids
-    }
-    
-    var dispatched = [Entry]()
-
-    op.entriesBlock = { error, entries in
-      assert(Thread.isMainThread)
-      
-      self.serialQueue.async {
-        guard let guids = sortedGuids else {
-          fatalError("sorted guids required")
-        }
-        var dict = [String : Entry]()
-        entries.forEach { dict[$0.guid] = $0 }
-        
-        let sorted: [Entry] = guids.flatMap { dict[$0] }
-
-        do {
-          try self.queue.append(items: sorted)
-        } catch {
-          if #available(iOS 10.0, *) {
-            os_log("already in queue: %{public}@", log: log,  type: .error,
-                   String(describing: error))
-          }
-        }
-        
-        let queuedEntries: [Entry] = self.queue.items.filter {
-          !dispatched.contains($0)
-        }
-
-        target.async {
-          assert(Thread.isMainThread)
-          entriesBlock(error, queuedEntries)
-        }
-        
-        dispatched = dispatched + queuedEntries
-      }
-    }
-    
-    op.entriesCompletionBlock = { error in
-      print("** entriesCompletionBlock")
-      assert(Thread.isMainThread)
-      
-      self.serialQueue.async {
-        target.async {
-          entriesCompletionBlock(error)
-        }
-      }
-    }
-    
+    let op = FetchQueueOperation(browser: browser, cache: queueCache, queue: queue)
+    op.entriesBlock = entriesBlock
+    op.entriesCompletionBlock = entriesCompletionBlock
     operationQueue.addOperation(op)
-    
     return op
   }
   
