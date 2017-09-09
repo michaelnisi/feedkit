@@ -49,7 +49,6 @@ private final class FetchQueueOperation: FeedKitOperation {
   weak var op: Operation?
   
   private func fetchEntries(for locators: [EntryLocator]) {
-    var missing = [String]()
     var dispatched = [Entry]()
     
     op = browser.entries(locators, entriesBlock: { error, entries in
@@ -101,14 +100,14 @@ private final class FetchQueueOperation: FeedKitOperation {
         let wanted = locators.flatMap { $0.guid }
         let missing = wanted.filter { !found.contains($0) }
         
+        print("** removing missing: \(missing)")
+        
         do {
           try self.cache.remove(guids: missing)
         } catch {
           print("** \(error)")
         }
       }
-
-      print("** missing: \(missing)")
       
       self.target.async { [weak self] in
         self?.done(but: error)
