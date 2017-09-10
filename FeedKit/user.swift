@@ -20,13 +20,14 @@ private final class FetchQueueOperation: FeedKitOperation {
   
   let browser: Browsing
   let cache: QueueCaching
-  var queue: Queue<Entry>
+  var user: UserLibrary
   let target: DispatchQueue
   
-  init(browser: Browsing, cache: QueueCaching, queue: Queue<Entry>) {
+  init(browser: Browsing, cache: QueueCaching, user: UserLibrary) {
     self.browser = browser
     self.cache = cache
-    self.queue = queue
+    self.user = user
+    
     self.target = OperationQueue.current!.underlyingQueue!
   }
   
@@ -63,7 +64,7 @@ private final class FetchQueueOperation: FeedKitOperation {
       let sorted: [Entry] = guids.flatMap { dict[$0] }
       
       do {
-        try self.queue.append(items: sorted)
+        try self.user.queue.append(items: sorted)
       } catch {
         if #available(iOS 10.0, *) {
           os_log("already in queue: %{public}@", log: log,  type: .error,
@@ -71,7 +72,7 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
-      let queuedEntries: [Entry] = self.queue.items.filter {
+      let queuedEntries: [Entry] = self.user.queue.items.filter {
         !dispatched.contains($0)
       }
       
@@ -84,18 +85,10 @@ private final class FetchQueueOperation: FeedKitOperation {
       
       dispatched = dispatched + queuedEntries
     }) { error in
-      // TODO: Handle error
-      
-      // Why does FeedKit.missingEntries appear in entriesBlock, instead of 
-      // here, as I would have expected?
-      
-      // TODO: Define remove missing flag
-      
-      // If we aren‘t offline and the service is OK, we can remove missing
-      // entries.
-      let shouldRemoveMissing = true
-      
-      if shouldRemoveMissing {
+      if error == nil {
+        // If we aren‘t offline and the service is OK, we can remove missing
+        // entries.
+        
         let found = dispatched.map { $0.guid }
         let wanted = locators.flatMap { $0.guid }
         let missing = wanted.filter { !found.contains($0) }
@@ -176,11 +169,12 @@ public final class UserLibrary {
   /// - Parameters:
   ///   - queueCache: The cache to store the queue locallly.
   ///   - browser: The browser to access feeds and entries.
-  ///   - queue: The operation queue to execute operations on.
+  ///   - queue: A serial operation queue to execute operations on.
   public init(queueCache: QueueCaching, browser: Browsing, queue: OperationQueue) {
     self.queueCache = queueCache
     self.browser = browser
     self.operationQueue = queue
+    
     self.serialQueue = queue.underlyingQueue!
   }
   
@@ -231,12 +225,27 @@ extension UserLibrary: Subscribing {
 /// change events regarding the queue.
 extension UserLibrary: Queueing {
   
-  /// Fetches the queued entries and provides the populated queue.
+  /// Fetches entries in a user‘s queue populating the `queue` object of this
+  /// `UserLibrary` instance. The `entriesBlock` receives the entries sorted, 
+  /// according to the queue, with best effort. Queue order may vary, dealing
+  /// with latency and unavailable entries.
+  ///
+  /// - Parameters:
+  ///   - entriesBlock: Applied zero, one, or two times passing fetched
+  /// and/or cached entries. The error is currently not in use.
+  ///   - entriesError: An optional error, specific to these entries.
+  ///   - entries: All or some of the requested entries.
+  ///
+  ///   - entriesCompletionBlock: The completion block is applied when
+  /// all entries have been dispatched.
+  ///   - error: The, optional, final error of this operation, as a whole.
+  ///
+  /// - Returns: Returns an executing `Operation`.
   public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let op = FetchQueueOperation(browser: browser, cache: queueCache, queue: queue)
+    let op = FetchQueueOperation(browser: browser, cache: queueCache, user: self)
     op.entriesBlock = entriesBlock
     op.entriesCompletionBlock = entriesCompletionBlock
     operationQueue.addOperation(op)
