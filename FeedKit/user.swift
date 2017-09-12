@@ -264,7 +264,7 @@ extension UserLibrary: Queueing {
   public func enqueue(entry: Entry) {
     serialQueue.async {
       do {
-        try self.queue.append(entry)
+        try self.queue.prepend(entry)
         let locator = EntryLocator(entry: entry)
         try self.queueCache.add(entries: [locator])
       } catch {

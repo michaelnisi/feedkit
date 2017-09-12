@@ -536,8 +536,6 @@ public protocol Searching: Caching {
 
 // MARK: - Browsing
 
-// TODO: Introduce paging
-
 /// An asynchronous API for accessing feeds and entries. Designed with data
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
@@ -561,15 +559,6 @@ public protocol Browsing: Caching {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-
-  // TODO: Add target parameter
-
-//  @discardableResult func entries(
-//    _ locators: [EntryLocator],
-//    target: DispatchQueue,
-//    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-//    entriesCompletionBlock: @escaping (Error?) -> Void
-//  ) -> Operation
 
 }
 
@@ -595,8 +584,8 @@ extension Queued: Hashable {
   public var hashValue: Int {
     get {
       switch self {
-      case .entry(let entry, _):
-        return entry.hashValue
+      case .entry(let locator, _):
+        return locator.hashValue
       }
     }
   }
