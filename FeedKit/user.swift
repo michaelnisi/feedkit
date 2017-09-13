@@ -89,16 +89,19 @@ private final class FetchQueueOperation: FeedKitOperation {
         // If we aren‘t offline and the service is OK, we can remove missing
         // entries.
         
+        // TODO: Browser should expose service health
+        
         let found = dispatched.map { $0.guid }
         let wanted = locators.flatMap { $0.guid }
         let missing = wanted.filter { !found.contains($0) }
         
-        print("** removing missing: \(missing)")
-        
         do {
           try self.cache.remove(guids: missing)
         } catch {
-          print("** \(error)")
+          if #available(iOS 10.0, *) {
+            os_log("failed to remove missing: %{public}@", log: log,
+                   type: .error, String(describing: error))
+          }
         }
       }
       

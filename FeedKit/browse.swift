@@ -19,10 +19,11 @@ fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 /// Subtract two arrays of strings. Note that the order of the resulting array
 /// is undefined.
 ///
-/// - parameter a: An array of strings.
-/// - parameter b: The array of strings to subtract from.
+/// - Parameters:
+///   - a: An array of strings.
+///   - b: The array of strings to subtract from.
 ///
-/// - returns: Strings from `a` that are not in `b`.
+/// - Returns: Strings from `a` that are not in `b`.
 func subtract(strings a: [String], from b: [String]) -> [String] {
   let setA = Set(a)
   let setB = Set(b)
@@ -34,8 +35,9 @@ func subtract(strings a: [String], from b: [String]) -> [String] {
 /// Attention: this intentionally crashes if you pass an empty items array or
 /// if one of the items doesn't bear a timestamp.
 ///
-/// - parameter items: The cachable items to iterate and compare.
-/// - returns: The item with the latest timestamp.
+/// - Parameter items: The cachable items to iterate and compare.
+///
+/// - Returns: The item with the latest timestamp.
 func latest<T: Cachable> (_ items: [T]) -> T {
   return items.sorted {
     return $0.ts!.compare($1.ts! as Date) == .orderedDescending
@@ -119,13 +121,14 @@ private func subtractItems<T: Cachable> (
 /// containing cached feeds, stale feeds, and URLs of feeds currently not in
 /// the cache.
 ///
-/// - parameter cache: The cache to query.
-/// - parameter urls: An array of feed URLs.
-/// - parameter ttl: The limiting time stamp, a moment in the past.
+/// - Parameters:
+///   - cache: The cache to query.
+///   - urls: An array of feed URLs.
+///   - ttl: The limiting time stamp, a moment in the past.
 ///
-/// - throws: Might throw.
+/// - Throws: May throw SQLite errors via Skull.
 ///
-/// - returns: A tuple of cached feeds, stale feeds, and uncached URLs.
+/// - Returns: A tuple of cached feeds, stale feeds, and uncached URLs.
 func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
 ) throws -> ([Feed], [Feed], [String]?) {
   let items = try cache.feeds(urls)
@@ -160,8 +163,6 @@ private func entriesFromCache(
 ) throws -> ([Entry], [String]?) {
   
   let guids = locators.flatMap { $0.guid }
-  print("** guids: \(guids)")
-  
   let resolved = try cache.entries(guids)
   
   guard resolved.count < locators.count else {
@@ -169,7 +170,7 @@ private func entriesFromCache(
   }
   
   let resguids = resolved.map { $0.guid }
-  print("** resolved: \(resguids)")
+
   let unresolved = locators.filter {
     guard let guid = $0.guid else {
       return true
@@ -208,7 +209,6 @@ private func entriesFromCache(
 /// properties for the—currently two: feed and entries—operations of the
 /// browsing API.
 class BrowseOperation: SessionTaskOperation {
-
   let cache: FeedCaching
   let svc: MangerService
   let target: DispatchQueue
@@ -218,15 +218,13 @@ class BrowseOperation: SessionTaskOperation {
   /// - Parameters:
   ///   - cache: The persistent feed cache.
   ///   - svc: The remote service to fetch feeds and entries.
-  ///   - queue: The target queue for callback blocks.
   init(
     cache: FeedCaching,
-    svc: MangerService,
-    target: DispatchQueue
+    svc: MangerService
   ) {
     self.cache = cache
     self.svc = svc
-    self.target = OperationQueue.current!.underlyingQueue!
+    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
 }
 
@@ -265,12 +263,11 @@ final class EntriesOperation: BrowseOperation {
   init(
     cache: FeedCaching,
     svc: MangerService,
-    target: DispatchQueue,
     locators: [EntryLocator]
   ) {
     self.locators = locators
     
-    super.init(cache: cache, svc: svc, target: target)
+    super.init(cache: cache, svc: svc)
   }
 
   func done(_ error: Error? = nil) {
@@ -456,11 +453,10 @@ final class FeedsOperation: BrowseOperation {
   init(
     cache: FeedCaching,
     svc: MangerService,
-    target: DispatchQueue,
     urls: [String]
   ) {
     self.urls = urls
-    super.init(cache: cache, svc: svc, target: target)
+    super.init(cache: cache, svc: svc)
   }
 
   fileprivate func done(_ error: Error? = nil) {
@@ -655,12 +651,9 @@ extension FeedRepository: Browsing {
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let target = DispatchQueue.main
-
     let op = FeedsOperation(
       cache: cache,
       svc: svc,
-      target: target,
       urls: urls
     )
 
@@ -725,12 +718,9 @@ extension FeedRepository: Browsing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let target = DispatchQueue.main
-
     let op = EntriesOperation(
       cache: cache,
       svc: svc,
-      target: target,
       locators: locators
     )
 
@@ -759,7 +749,6 @@ extension FeedRepository: Browsing {
     let dep = FeedsOperation(
       cache: cache,
       svc: svc,
-      target: target,
       urls: urls
     )
 
