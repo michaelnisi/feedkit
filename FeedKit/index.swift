@@ -11,15 +11,11 @@ import Ola
 import Patron
 import os.log
 
-// MARK: - Notifications
-
 /// Posted when a remote request has been started.
 public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
 
 /// Posted when a remote response has been received.
 public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
-
-// MARK: - Types
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
 public enum FeedKitError : Error {
@@ -623,6 +619,9 @@ public protocol Queueing {
 
 // MARK: - Subscribing
 
+/// Posted when the subscriptions have been changed.
+public let FeedKitSubscriptionsDidChangeNotification = "FeedKitSubscriptionsDidChange"
+
 public protocol SubscribeDelegate {
   func queue(_ queue: Subscribing, added: Subscription)
   func queue(_ queue: Subscribing, removed: Subscription)
@@ -818,7 +817,7 @@ public class RemoteRepository: NSObject {
 class FeedKitOperation: Operation {
   fileprivate var _executing: Bool = false
 
-  // MARK: - Operation
+  // MARK: Operation
 
   override final var isExecuting: Bool {
     get { return _executing }

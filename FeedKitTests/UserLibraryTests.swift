@@ -32,17 +32,24 @@ class UserLibraryTests: XCTestCase {
   override func setUp() {
     super.setUp()
     
-    let cache = freshUserCache(self.classForCoder)
-    let browser = freshBrowser(self.classForCoder)
+    let dq = DispatchQueue(label: "ink.codes.feedkit.user-caching")
     
-    let queue = OperationQueue()
-    queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.user-caching")
-    queue.maxConcurrentOperationCount = 1
-    
-    site = Site()
-    
-    user = UserLibrary(cache: cache, browser: browser, queue: queue)
-    user.subscribeDelegate = site
+    dq.sync {
+      let cache = freshUserCache(self.classForCoder)
+      let browser = freshBrowser(self.classForCoder)
+      
+      let queue = OperationQueue()
+      queue.underlyingQueue = dq
+      queue.maxConcurrentOperationCount = 1
+      
+      let site = Site()
+      
+      let user = UserLibrary(cache: cache, browser: browser, queue: queue)
+      user.subscribeDelegate = site
+      
+      self.user = user
+      self.site = site
+    }
   }
   
   override func tearDown() {

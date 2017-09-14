@@ -187,12 +187,20 @@ public final class UserLibrary {
   public var queueDelegate: QueueDelegate?
   
   public var subscribeDelegate: SubscribeDelegate?
+
+  fileprivate func postDidChangeNotification(name rawValue: String) {
+    NotificationCenter.default.post(
+      name: Notification.Name(rawValue: rawValue),
+      object: self
+    )
+  }
+  
 }
 
 // MARK: - Subscribing
 
 extension UserLibrary: Subscribing {
-  
+ 
   public func subscribe(to urls: [String]) throws {
     guard !urls.isEmpty else {
       return
@@ -204,7 +212,7 @@ extension UserLibrary: Subscribing {
     for subscription in subscriptions {
       subscribeDelegate?.queue(self, added: subscription)
     }
-    
+    postDidChangeNotification(name: FeedKitSubscriptionsDidChangeNotification)
   }
   
   public func unsubscribe(from urls: [String]) throws {
@@ -218,6 +226,7 @@ extension UserLibrary: Subscribing {
     for subscription in subscriptions {
       subscribeDelegate?.queue(self, removed: subscription)
     }
+    postDidChangeNotification(name: FeedKitSubscriptionsDidChangeNotification)
   }
   
   public func feeds(feedsBlock: @escaping (Error?, [Feed]) -> Void,
@@ -286,13 +295,6 @@ extension UserLibrary: Queueing {
     return op
   }
   
-  private func postDidChangeNotification() {
-    NotificationCenter.default.post(
-      name: Notification.Name(rawValue: FeedKitQueueDidChangeNotification),
-      object: self
-    )
-  }
-  
   /// Adds `entry` to the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
   public func enqueue(entry: Entry) {
@@ -311,7 +313,7 @@ extension UserLibrary: Queueing {
       
       DispatchQueue.main.async {
         self.queueDelegate?.queue(self, added: entry)
-        self.postDidChangeNotification()
+        self.postDidChangeNotification(name: FeedKitQueueDidChangeNotification)
       }
     }
   }
@@ -334,7 +336,7 @@ extension UserLibrary: Queueing {
       
       DispatchQueue.main.async {
         self.queueDelegate?.queue(self, removedGUID: entry.guid)
-        self.postDidChangeNotification()
+        self.postDidChangeNotification(name: FeedKitQueueDidChangeNotification)
       }
     }
   }

@@ -224,7 +224,15 @@ class BrowseOperation: SessionTaskOperation {
   ) {
     self.cache = cache
     self.svc = svc
-    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
+    
+    self.target = {
+      guard let q = OperationQueue.current?.underlyingQueue else {
+        print("** target: falling back on main")
+        return DispatchQueue.main
+      }
+      print("** target: \(q)")
+      return q
+    }()
   }
 }
 
@@ -376,7 +384,7 @@ final class EntriesOperation: BrowseOperation {
   override func start() {
     guard !isCancelled else { return done() }
     isExecuting = true
-
+    
     do {
       let target = self.target
       let entriesBlock = self.entriesBlock
