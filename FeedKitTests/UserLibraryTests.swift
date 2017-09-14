@@ -7,22 +7,110 @@
 //
 
 import XCTest
+@testable import FeedKit
 
 class UserLibraryTests: XCTestCase {
   
+  fileprivate class Site: SubscribeDelegate {
+    var subscriptions = [Subscription]()
+    
+    func queue(_ queue: Subscribing, added: Subscription) {
+      subscriptions.append(added)
+    }
+    
+    func queue(_ queue: Subscribing, removed: Subscription) {
+      guard let index = subscriptions.index(of: removed) else {
+        fatalError("unexpected subscription")
+      }
+      subscriptions.remove(at: index)
+    }
+  }
+  
+  fileprivate var user: UserLibrary!
+  fileprivate var site: Site!
+  
   override func setUp() {
     super.setUp()
-    // Put setup code here. This method is called before the invocation of each test method in the class.
+    
+    let cache = freshUserCache(self.classForCoder)
+    let browser = freshBrowser(self.classForCoder)
+    
+    let queue = OperationQueue()
+    queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.user-caching")
+    queue.maxConcurrentOperationCount = 1
+    
+    site = Site()
+    
+    user = UserLibrary(cache: cache, browser: browser, queue: queue)
+    user.subscribeDelegate = site
   }
   
   override func tearDown() {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
+    site = nil
+    user = nil
     super.tearDown()
   }
   
-  func testExample() {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+}
+
+// MARK: - Subscribing
+
+// TODO: Check that notifications are being sent
+
+extension UserLibraryTests {
+  
+  func testSubscribe() {
+    try! user.subscribe(to: [])
+    
+    do {
+      try! user.subscribe(to: ["http://abc.de"])
+      
+      let wanted = [Subscription(url: "http://abc.de")]
+      XCTAssertEqual(site.subscriptions, wanted)
+    }
+  }
+  
+  func testUnsubscribe() {
+    try! user.unsubscribe(from: [])
+    
+    do {
+      try! user.subscribe(to: ["http://abc.de"])
+      try! user.unsubscribe(from: ["http://abc.de"])
+      
+      XCTAssertEqual(site.subscriptions, [])
+    }
+  }
+  
+  func testHasSubscription() {
+    try! user.subscribe(to: ["http://abc.de"])
+    
+    let exp = self.expectation(description: "has")
+    
+    user.has(subscription: 123) { yes, error in
+      guard error == nil else {
+        return XCTFail("should not error: \(error!)")
+      }
+      XCTAssertFalse(yes)
+      exp.fulfill()
+    }
+    
+    self.waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+
+}
+
+// MARK: - Queueing
+
+extension UserLibraryTests {
+  
+  func testNext() {
+    XCTAssertNil(user.next())
+  }
+  
+  func testPrevious() {
+    XCTAssertNil(user.previous())
   }
   
 }

@@ -9,7 +9,7 @@
 import Foundation
 import Skull
 
-public class UserCache: LocalCache {}
+public class UserCache: LocalCache, UserCaching {}
 
 // MARK: - SubscriptionCaching
 

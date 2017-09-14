@@ -11,6 +11,7 @@ import XCTest
 import Skull
 import Patron
 import MangerKit
+import Ola
 
 @testable import FeedKit
 
@@ -86,6 +87,18 @@ func freshUserCache(_ aClass: AnyClass!) -> UserCache {
     schema: schema(for: aClass, forResource: "user"),
     url: nil
   )
+}
+
+func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
+  let cache = freshCache(aClass)
+  let svc = freshManger(string: "http://localhost:8384")
+  
+  let queue = OperationQueue()
+  queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.browsing")
+  
+  let probe = Ola(host: "http://localhost:8384", queue: queue.underlyingQueue!)!
+  
+  return FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
 }
 
 func destroyCache(_ cache: LocalCache) throws {

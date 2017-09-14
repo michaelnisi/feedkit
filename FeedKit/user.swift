@@ -162,19 +162,19 @@ private final class FetchQueueOperation: FeedKitOperation {
 /// and queue.
 public final class UserLibrary {
   
+  let cache: UserCaching
+  let browser: Browsing
   let operationQueue: OperationQueue
   let serialQueue: DispatchQueue
-  let queueCache: QueueCaching
-  let browser: Browsing
   
   /// Creates a fresh EntryQueue object.
   ///
   /// - Parameters:
-  ///   - queueCache: The cache to store the queue locallly.
+  ///   - cache: The cache to store user data locallly.
   ///   - browser: The browser to access feeds and entries.
   ///   - queue: A serial operation queue to execute operations on.
-  public init(queueCache: QueueCaching, browser: Browsing, queue: OperationQueue) {
-    self.queueCache = queueCache
+  public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
+    self.cache = cache
     self.browser = browser
     self.operationQueue = queue
     
@@ -184,18 +184,40 @@ public final class UserLibrary {
   /// The actual queue data structure. Starting off with an empty queue.
   fileprivate var queue = Queue<Entry>()
   
-  public var delegate: QueueDelegate?
+  public var queueDelegate: QueueDelegate?
+  
+  public var subscribeDelegate: SubscribeDelegate?
 }
 
 // MARK: - Subscribing
 
 extension UserLibrary: Subscribing {
+  
   public func subscribe(to urls: [String]) throws {
-    throw FeedKitError.niy
+    guard !urls.isEmpty else {
+      return
+    }
+    
+    let subscriptions = urls.map { Subscription(url: $0) }
+    try cache.add(subscriptions: subscriptions)
+    
+    for subscription in subscriptions {
+      subscribeDelegate?.queue(self, added: subscription)
+    }
+    
   }
   
   public func unsubscribe(from urls: [String]) throws {
-    throw FeedKitError.niy
+    guard !urls.isEmpty else {
+      return
+    }
+    
+    let subscriptions = urls.map { Subscription(url: $0) }
+    try cache.remove(subscriptions: subscriptions)
+    
+    for subscription in subscriptions {
+      subscribeDelegate?.queue(self, removed: subscription)
+    }
   }
   
   public func feeds(feedsBlock: @escaping (Error?, [Feed]) -> Void,
@@ -204,7 +226,16 @@ extension UserLibrary: Subscribing {
   }
   
   public func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void) {
-    
+    assert(Thread.isMainThread)
+
+    serialQueue.async {
+      do {
+        let yes = try self.cache.has(feedID)
+        DispatchQueue.main.async { cb(yes, nil) }
+      } catch {
+        DispatchQueue.main.async { cb(false, error) }
+      }
+    }
   }
   
   // Updates subscribed feeds.
@@ -248,7 +279,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let op = FetchQueueOperation(browser: browser, cache: queueCache, user: self)
+    let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
     op.entriesCompletionBlock = entriesCompletionBlock
     operationQueue.addOperation(op)
@@ -269,7 +300,7 @@ extension UserLibrary: Queueing {
       do {
         try self.queue.prepend(entry)
         let locator = EntryLocator(entry: entry)
-        try self.queueCache.add(entries: [locator])
+        try self.cache.add(entries: [locator])
       } catch {
         if #available(iOS 10.0, *) {
           os_log("could not add %{public}@ to queue: %{public}@", log: log,
@@ -279,7 +310,7 @@ extension UserLibrary: Queueing {
       }
       
       DispatchQueue.main.async {
-        self.delegate?.queue(self, added: entry)
+        self.queueDelegate?.queue(self, added: entry)
         self.postDidChangeNotification()
       }
     }
@@ -292,7 +323,7 @@ extension UserLibrary: Queueing {
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
-        try self.queueCache.remove(guids: [guid])
+        try self.cache.remove(guids: [guid])
       } catch {
         if #available(iOS 10.0, *) {
           os_log("could not remove %{public}@ from queue: %{public}@", log: log,
@@ -302,7 +333,7 @@ extension UserLibrary: Queueing {
       }
       
       DispatchQueue.main.async {
-        self.delegate?.queue(self, removedGUID: entry.guid)
+        self.queueDelegate?.queue(self, removedGUID: entry.guid)
         self.postDidChangeNotification()
       }
     }

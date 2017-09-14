@@ -605,7 +605,7 @@ public protocol QueueDelegate {
 }
 
 public protocol Queueing {
-  var delegate: QueueDelegate? { get set }
+  var queueDelegate: QueueDelegate? { get set }
   
   func enqueue(entry: Entry)
   func dequeue(entry: Entry)
@@ -621,14 +621,12 @@ public protocol Queueing {
   ) -> Operation
 }
 
-// MARK: - Updating
-
-public protocol Updating {
-  func update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
-}
-
 // MARK: - Subscribing
+
+public protocol SubscribeDelegate {
+  func queue(_ queue: Subscribing, added: Subscription)
+  func queue(_ queue: Subscribing, removed: Subscription)
+}
 
 /// A feed subscription.
 public struct Subscription {
@@ -671,6 +669,8 @@ public protocol SubscriptionCaching {
 }
 
 public protocol Subscribing: Updating {
+  var subscribeDelegate: SubscribeDelegate? { get set }
+  
   func subscribe(to urls: [String]) throws
   func unsubscribe(from urls: [String]) throws
 
@@ -682,6 +682,10 @@ public protocol Subscribing: Updating {
   func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void)
   
 }
+
+// MARK: - UserCaching
+
+public protocol UserCaching: QueueCaching, SubscriptionCaching {}
 
 // MARK: - Syncing
 
@@ -721,6 +725,13 @@ public protocol UserCacheSyncing: QueueCaching {
   func zombieRecords() throws -> [String : String]
   
   func deleteZombies() throws
+}
+
+// MARK: - Updating
+
+public protocol Updating {
+  func update(
+    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
 }
 
 // MARK: - Internal
