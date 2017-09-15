@@ -105,6 +105,32 @@ extension UserLibraryTests {
       XCTAssertNil(er)
     }
   }
+  
+  func testFeeds() {
+    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+    
+    try! user.subscribe(to: [url])
+    
+    let exp = self.expectation(description: "feeds")
+    exp.expectedFulfillmentCount = 2
+    exp.assertForOverFulfill = true
+    
+    user.feeds(feedsBlock: { error, feeds in
+      let found = feeds.first!.url
+      let wanted = url
+      XCTAssertEqual(found, wanted)
+      exp.fulfill()
+    }) { error in
+      guard error == nil else {
+        return XCTFail("should not error: \(error!)")
+      }
+      exp.fulfill()
+    }
+    
+    self.waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
 
 }
 

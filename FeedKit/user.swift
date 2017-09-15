@@ -15,12 +15,10 @@ fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 private final class FetchQueueOperation: FeedKitOperation {
   
-  var entriesBlock: ((Error?, [Entry]) -> Void)?
-  var entriesCompletionBlock: ((Error?) -> Void)?
-  
   let browser: Browsing
   let cache: QueueCaching
   var user: UserLibrary
+  
   let target: DispatchQueue
   
   init(browser: Browsing, cache: QueueCaching, user: UserLibrary) {
@@ -30,6 +28,13 @@ private final class FetchQueueOperation: FeedKitOperation {
     
     self.target = OperationQueue.current!.underlyingQueue!
   }
+  
+  var entriesBlock: ((Error?, [Entry]) -> Void)?
+  var entriesCompletionBlock: ((Error?) -> Void)?
+  
+  
+  /// The browser operation, fetching the entries.
+  weak var op: Operation?
   
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
@@ -41,15 +46,18 @@ private final class FetchQueueOperation: FeedKitOperation {
     }
     
     entriesCompletionBlock = nil
+    entriesBlock = nil
+    
     isFinished = true
     op?.cancel()
     op = nil
   }
   
-  /// The browser operation, fetching the entries.
-  weak var op: Operation?
-  
   private func fetchEntries(for locators: [EntryLocator]) {
+    guard !isCancelled, locators.isEmpty else {
+      return done()
+    }
+    
     var dispatched = [Entry]()
     
     op = browser.entries(locators, entriesBlock: { error, entries in
@@ -165,7 +173,6 @@ public final class UserLibrary {
   let cache: UserCaching
   let browser: Browsing
   let operationQueue: OperationQueue
-  let serialQueue: DispatchQueue
   
   /// Creates a fresh EntryQueue object.
   ///
@@ -177,8 +184,6 @@ public final class UserLibrary {
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
-    
-    self.serialQueue = queue.underlyingQueue!
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
@@ -199,8 +204,85 @@ public final class UserLibrary {
 
 // MARK: - Subscribing
 
+private final class FetchFeedsOperation: FeedKitOperation {
+  
+  let browser: Browsing
+  let cache: SubscriptionCaching
+  let target: DispatchQueue
+  
+  init(browser: Browsing, cache: SubscriptionCaching) {
+    self.browser = browser
+    self.cache = cache
+    
+    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
+  }
+  
+  var feedsBlock: ((Error?, [Feed]) -> Void)?
+  var feedsCompletionBlock: ((Error?) -> Void)?
+  
+  /// The browser operation, fetching the feeds.
+  weak fileprivate var op: Operation?
+  
+  private func done(_ error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
+    if let cb = feedsCompletionBlock {
+      target.async {
+        cb(er)
+      }
+    }
+    
+    feedsBlock = nil
+    feedsCompletionBlock = nil
+    
+    isFinished = true
+    op?.cancel()
+    op = nil
+  }
+  
+  private func fetchFeeds(at urls: [String]) {
+    guard !isCancelled, !urls.isEmpty else {
+      return done()
+    }
+    
+    op = browser.feeds(urls, feedsBlock: { error, feeds in
+      if !self.isCancelled, let cb = self.feedsBlock {
+        self.target.async {
+          cb(error, feeds)
+        }
+      }
+    }) { error in
+      self.done(error)
+    }
+  }
+  
+  // MARK: FeedKitOperation
+  
+  override func cancel() {
+    super.cancel()
+    op?.cancel()
+  }
+  
+  override func start() {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    isExecuting = true
+    
+    do {
+      let subscriptions = try cache.subscribed()
+      let urls = subscriptions.map { $0.url }
+      fetchFeeds(at: urls)
+    } catch {
+      done(error)
+    }
+  }
+  
+}
+
 extension UserLibrary: Subscribing {
- 
+  
   public func subscribe(to urls: [String]) throws {
     guard !urls.isEmpty else {
       return
@@ -229,15 +311,21 @@ extension UserLibrary: Subscribing {
     postDidChangeNotification(name: FeedKitSubscriptionsDidChangeNotification)
   }
   
-  public func feeds(feedsBlock: @escaping (Error?, [Feed]) -> Void,
+  /// The subscribed feeds of the user.
+  @discardableResult public func feeds(
+    feedsBlock: @escaping (Error?, [Feed]) -> Void,
     feedsCompletionBlock: @escaping (Error?) -> Void) -> Operation {
-    return Operation()
+    let op = FetchFeedsOperation(browser: browser, cache: cache)
+    op.feedsBlock = feedsBlock
+    op.feedsCompletionBlock = feedsCompletionBlock
+    operationQueue.addOperation(op)
+    return op
   }
   
   public func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void) {
     assert(Thread.isMainThread)
 
-    serialQueue.async {
+    operationQueue.addOperation {
       do {
         let yes = try self.cache.has(feedID)
         DispatchQueue.main.async { cb(yes, nil) }
@@ -298,7 +386,7 @@ extension UserLibrary: Queueing {
   /// Adds `entry` to the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
   public func enqueue(entry: Entry) {
-    serialQueue.async {
+    operationQueue.addOperation {
       do {
         try self.queue.prepend(entry)
         let locator = EntryLocator(entry: entry)
@@ -321,7 +409,7 @@ extension UserLibrary: Queueing {
   /// Removes `entry` from the queue. This is an asynchronous function returning
   /// immediately. Uncritically, if it fails, an error is logged.
   public func dequeue(entry: Entry) {
-    serialQueue.async {
+    operationQueue.addOperation {
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
