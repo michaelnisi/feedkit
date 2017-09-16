@@ -54,7 +54,7 @@ private final class FetchQueueOperation: FeedKitOperation {
   }
   
   private func fetchEntries(for locators: [EntryLocator]) {
-    guard !isCancelled, locators.isEmpty else {
+    guard !isCancelled, !locators.isEmpty else {
       return done()
     }
     
@@ -334,6 +334,12 @@ extension UserLibrary: Subscribing {
       }
     }
   }
+
+}
+
+// MARK: - Updating
+
+extension UserLibrary: Updating {
   
   // Updates subscribed feeds.
   //
@@ -348,6 +354,7 @@ extension UserLibrary: Subscribing {
     }
     updateComplete(true, nil)
   }
+  
 }
 
 // MARK: - Queueing

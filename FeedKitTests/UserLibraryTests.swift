@@ -32,7 +32,7 @@ class UserLibraryTests: XCTestCase {
   override func setUp() {
     super.setUp()
     
-    let dq = DispatchQueue(label: "ink.codes.feedkit.user-caching")
+    let dq = DispatchQueue(label: "ink.codes.feedkit.user")
     
     dq.sync {
       let cache = freshUserCache(self.classForCoder)
@@ -112,7 +112,7 @@ extension UserLibraryTests {
     try! user.subscribe(to: [url])
     
     let exp = self.expectation(description: "feeds")
-    exp.expectedFulfillmentCount = 2
+    exp.expectedFulfillmentCount = 12
     exp.assertForOverFulfill = true
     
     user.feeds(feedsBlock: { error, feeds in
@@ -127,11 +127,20 @@ extension UserLibraryTests {
       exp.fulfill()
     }
     
+    for _ in 0..<10 {
+      user.feeds(feedsBlock: { error, feeds in
+        XCTFail()
+      }, feedsCompletionBlock: { error in
+        XCTAssertEqual(error as? FeedKitError, FeedKitError.cancelledByUser)
+        exp.fulfill()
+      }).cancel()
+    }
+    
     self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
     }
   }
-
+  
 }
 
 // MARK: - Queueing

@@ -617,6 +617,13 @@ public protocol Queueing {
   ) -> Operation
 }
 
+// MARK: - Updating
+
+public protocol Updating {
+  func update(
+    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
+}
+
 // MARK: - Subscribing
 
 /// Posted when the subscriptions have been changed.
@@ -724,13 +731,6 @@ public protocol UserCacheSyncing: QueueCaching {
   func zombieRecords() throws -> [String : String]
   
   func deleteZombies() throws
-}
-
-// MARK: - Updating
-
-public protocol Updating {
-  func update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
 }
 
 // MARK: - Internal
