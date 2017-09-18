@@ -19,6 +19,41 @@ fileprivate protocol EntryQueueHost {
   var queue: Queue<Entry> { get set }
 }
 
+/// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
+/// and queue.
+public final class UserLibrary: EntryQueueHost {
+  fileprivate let cache: UserCaching
+  fileprivate let browser: Browsing
+  fileprivate let operationQueue: OperationQueue
+  
+  /// Creates a fresh EntryQueue object.
+  ///
+  /// - Parameters:
+  ///   - cache: The cache to store user data locallly.
+  ///   - browser: The browser to access feeds and entries.
+  ///   - queue: A serial operation queue to execute operations on.
+  public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
+    self.cache = cache
+    self.browser = browser
+    self.operationQueue = queue
+  }
+  
+  /// The actual queue data structure. Starting off with an empty queue.
+  fileprivate var queue = Queue<Entry>()
+  
+  public var queueDelegate: QueueDelegate?
+  
+  public var subscribeDelegate: SubscribeDelegate?
+  
+  fileprivate func postDidChangeNotification(name rawValue: String) {
+    NotificationCenter.default.post(
+      name: Notification.Name(rawValue: rawValue),
+      object: self
+    )
+  }
+  
+}
+
 private final class FetchQueueOperation: FeedKitOperation {
   
   let browser: Browsing
@@ -168,42 +203,6 @@ private final class FetchQueueOperation: FeedKitOperation {
     }
   }
  
-}
-
-/// The `UserLibrary` manages the user‘s data, for example, feed subscriptions 
-/// and queue.
-public final class UserLibrary: EntryQueueHost {
-  
-  let cache: UserCaching
-  let browser: Browsing
-  let operationQueue: OperationQueue
-  
-  /// Creates a fresh EntryQueue object.
-  ///
-  /// - Parameters:
-  ///   - cache: The cache to store user data locallly.
-  ///   - browser: The browser to access feeds and entries.
-  ///   - queue: A serial operation queue to execute operations on.
-  public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
-    self.cache = cache
-    self.browser = browser
-    self.operationQueue = queue
-  }
-  
-  /// The actual queue data structure. Starting off with an empty queue.
-  fileprivate var queue = Queue<Entry>()
-  
-  public var queueDelegate: QueueDelegate?
-  
-  public var subscribeDelegate: SubscribeDelegate?
-
-  fileprivate func postDidChangeNotification(name rawValue: String) {
-    NotificationCenter.default.post(
-      name: Notification.Name(rawValue: rawValue),
-      object: self
-    )
-  }
-  
 }
 
 // MARK: - Subscribing

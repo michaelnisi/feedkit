@@ -179,18 +179,60 @@ extension UserLibraryTests {
 extension UserLibraryTests {
   
   func testEntries() {
-    let exp = expectation(description: "entries")
-    
-    user.entries(entriesBlock: { error, entries in
-      XCTFail("should not call block")
-    }) { error in
-      XCTAssertNil(error)
-      exp.fulfill()
+    do {
+      let exp = expectation(description: "entries-1")
+      
+      user.entries(entriesBlock: { error, entries in
+        XCTFail("should not call block")
+      }) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
     
-    waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+    do {
+      let exp = expectation(description: "enqueue")
+      
+      let entries = try! entriesFromFile()
+      let entriesToQueue = entries.prefix(5)
+      
+      // TODO: Allow to enque multiple entries at once
+      print(entriesToQueue)
+      
+      let entry = entriesToQueue.first! // a missing entry
+      dump(entry)
+      
+      user.enqueue(entry: entry) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { error in
+        XCTAssertNil(error)
+      }
     }
+    
+    do {
+      let exp = expectation(description: "entries-2")
+      
+      var acc = [Entry]()
+      
+      user.entries(entriesBlock: { error, entries in
+        acc.append(contentsOf: entries)
+      }) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+    
   }
   
   func testEnqueueEntry() {

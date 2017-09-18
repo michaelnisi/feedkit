@@ -127,8 +127,12 @@ func feedsFromFileAtURL(_ url: URL) throws -> [Feed] {
   return feeds
 }
 
-func entriesFromFileAtURL(_ url: URL) throws -> [Entry] {
-  let json = try JSONFromFileAtURL(url as URL)
+func entriesFromFile(at url: URL? = nil) throws -> [Entry] {
+  let entriesURL = url ?? {
+    let bundle = Bundle(identifier: "ink.codes.FeedKitTests")!
+    return bundle.url(forResource: "entries", withExtension: "json")!
+  }()
+  let json = try JSONFromFileAtURL(entriesURL)
   let (errors, entries) = serialize.entries(from: json)
   XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
   return entries

@@ -180,16 +180,12 @@ extension FeedCacheTests {
     XCTAssertEqual(foundURLs!, wantedURLs)
   }
 
-  func entriesFromFile() throws -> [Entry] {
-    let bundle = Bundle(for: self.classForCoder)
-    let entriesURL = bundle.url(forResource: "entries", withExtension: "json")
-    return try entriesFromFileAtURL(entriesURL!)
-  }
-
   func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
     try! cache.update(feeds: feeds)
 
+    dump(Bundle(for: self.classForCoder).bundleIdentifier)
+    
     let entries = try! entriesFromFile()
     try! cache.update(entries: entries)
 

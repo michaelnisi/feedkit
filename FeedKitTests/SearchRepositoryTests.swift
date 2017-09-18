@@ -189,12 +189,6 @@ final class SearchRepositoryTests: XCTestCase {
     return try feedsFromFileAtURL(feedsURL!)
   }
 
-  func entriesFromFile() throws -> [Entry] {
-    let bundle = Bundle(for: self.classForCoder)
-    let entriesURL = bundle.url(forResource: "entries", withExtension: "json")
-    return try entriesFromFileAtURL(entriesURL!)
-  }
-
   @discardableResult func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
     try! cache.update(feeds: feeds)
