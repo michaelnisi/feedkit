@@ -194,19 +194,13 @@ extension UserLibraryTests {
       }
     }
     
+    let entries = try! entriesFromFile()
+    let entriesToQueue = Array(entries.prefix(5))
+    
     do {
       let exp = expectation(description: "enqueue")
       
-      let entries = try! entriesFromFile()
-      let entriesToQueue = entries.prefix(5)
-      
-      // TODO: Allow to enque multiple entries at once
-      print(entriesToQueue)
-      
-      let entry = entriesToQueue.first! // a missing entry
-      dump(entry)
-      
-      user.enqueue(entry: entry) { error in
+      user.enqueue(entries: entriesToQueue) { error in
         XCTAssertNil(error)
         exp.fulfill()
       }
@@ -222,9 +216,19 @@ extension UserLibraryTests {
       var acc = [Entry]()
       
       user.entries(entriesBlock: { error, entries in
+        print("** error: \(error)")
+        
+        // Receiving five missing entries error here, while still getting the
+        // entries, because these are not the fetched ones, but those stored
+        // in the queue. This means we are queueing invalid entries.
+        
         acc.append(contentsOf: entries)
       }) { error in
         XCTAssertNil(error)
+        XCTAssertEqual(acc, entriesToQueue)
+        
+        print(acc.map { $0.enclosure?.url })
+        
         exp.fulfill()
       }
       
@@ -241,11 +245,11 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "enqueue")
     
-    user.enqueue(entry: entry) { error in
+    user.enqueue(entries: [entry]) { error in
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
       
-      self.user.enqueue(entry: entry) { error in
+      self.user.enqueue(entries: [entry]) { error in
         guard let er = error as? QueueError else {
           return XCTFail("should err")
         }
@@ -297,7 +301,7 @@ extension UserLibraryTests {
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueue")
-    user.enqueue(entry: entry) { error in
+    user.enqueue(entries: [entry]) { error in
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
       

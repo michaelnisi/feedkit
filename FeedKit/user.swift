@@ -54,157 +54,6 @@ public final class UserLibrary: EntryQueueHost {
   
 }
 
-private final class FetchQueueOperation: FeedKitOperation {
-  
-  let browser: Browsing
-  let cache: QueueCaching
-  var user: EntryQueueHost
-  
-  let target: DispatchQueue
-  
-  init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
-    self.browser = browser
-    self.cache = cache
-    self.user = user
-    self.target = OperationQueue.current!.underlyingQueue!
-  }
-  
-  var entriesBlock: ((Error?, [Entry]) -> Void)?
-  var entriesCompletionBlock: ((Error?) -> Void)?
-  
-  /// The browser operation, fetching the entries.
-  weak var op: Operation?
-  
-  private func done(but error: Error? = nil) {
-    let er = isCancelled ? FeedKitError.cancelledByUser : error
-    
-    if let cb = entriesCompletionBlock {
-      target.async {
-        cb(er)
-      }
-    }
-    
-    entriesCompletionBlock = nil
-    entriesBlock = nil
-    
-    isFinished = true
-    op?.cancel()
-    op = nil
-  }
-  
-  private func fetchEntries(for locators: [EntryLocator]) {
-    guard !isCancelled, !locators.isEmpty else {
-      return done()
-    }
-    
-    var dispatched = [Entry]()
-    
-    op = browser.entries(locators, entriesBlock: { error, entries in
-      assert(!Thread.isMainThread)
-      guard let guids = self.sortedIds else {
-        fatalError("sorted guids required")
-      }
-      
-      var dict = [String : Entry]()
-      entries.forEach { dict[$0.guid] = $0 }
-      
-      let sorted: [Entry] = guids.flatMap { dict[$0] }
-      
-      do {
-        try self.user.queue.append(items: sorted)
-      } catch {
-        if #available(iOS 10.0, *) {
-          os_log("already in queue: %{public}@", log: log,  type: .error,
-                 String(describing: error))
-        }
-      }
-      
-      let queuedEntries: [Entry] = self.user.queue.items.filter {
-        !dispatched.contains($0)
-      }
-      
-      self.target.async { [weak self] in
-        guard let cb = self?.entriesBlock else {
-          return
-        }
-        cb(error, queuedEntries)
-      }
-      
-      dispatched = dispatched + queuedEntries
-    }) { error in
-      if error == nil {
-        // If we aren‘t offline and the service is OK, we can remove missing
-        // entries.
-        
-        // TODO: Browser should expose service health
-        
-        let found = dispatched.map { $0.guid }
-        let wanted = locators.flatMap { $0.guid }
-        let missing = wanted.filter { !found.contains($0) }
-        
-        do {
-          try self.cache.remove(guids: missing)
-        } catch {
-          if #available(iOS 10.0, *) {
-            os_log("failed to remove missing: %{public}@", log: log,
-                   type: .error, String(describing: error))
-          }
-        }
-      }
-      
-      self.target.async { [weak self] in
-        self?.done(but: error)
-      }
-    }
-  }
-  
-  // MARK: FeedKitOperation
-  
-  override func cancel() {
-    super.cancel()
-    op?.cancel()
-  }
-  
-  /// The sorted guids of the items in the queue.
-  private var sortedIds: [String]?
-  
-  override func start() {
-    guard !isCancelled else {
-      return done()
-    }
-    
-    isExecuting = true
-    
-    do {
-      let queued = try cache.queued()
-
-      var guids = [String]()
-      
-      let locators: [EntryLocator] = queued.flatMap {
-        switch $0 {
-        case .entry(let locator, _):
-          guard let guid = locator.guid else {
-            fatalError("missing guid")
-          }
-          guids.append(guid)
-          return locator.including
-        }
-      }
-      
-      sortedIds = guids
-      
-      guard !isCancelled, !locators.isEmpty else {
-        return done()
-      }
-
-      fetchEntries(for: locators)
-    } catch {
-      done(but: error)
-    }
-  }
- 
-}
-
 // MARK: - Subscribing
 
 private final class FetchFeedsOperation: FeedKitOperation {
@@ -362,6 +211,159 @@ extension UserLibrary: Updating {
 
 // MARK: - Queueing
 
+private final class FetchQueueOperation: FeedKitOperation {
+  
+  let browser: Browsing
+  let cache: QueueCaching
+  var user: EntryQueueHost
+  
+  let target: DispatchQueue
+  
+  init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
+    self.browser = browser
+    self.cache = cache
+    self.user = user
+    self.target = OperationQueue.current!.underlyingQueue!
+  }
+  
+  var entriesBlock: ((Error?, [Entry]) -> Void)?
+  var entriesCompletionBlock: ((Error?) -> Void)?
+  
+  /// The browser operation, fetching the entries.
+  weak var op: Operation?
+  
+  private func done(but error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
+    if let cb = entriesCompletionBlock {
+      target.async {
+        cb(er)
+      }
+    }
+    
+    entriesCompletionBlock = nil
+    entriesBlock = nil
+    
+    isFinished = true
+    op?.cancel()
+    op = nil
+  }
+  
+  private func fetchEntries(for locators: [EntryLocator]) {
+    guard !isCancelled, !locators.isEmpty else {
+      return done()
+    }
+    
+    var dispatched = [Entry]()
+    
+    op = browser.entries(locators, entriesBlock: { error, entries in
+      assert(!Thread.isMainThread)
+      guard let guids = self.sortedIds else {
+        fatalError("sorted guids required")
+      }
+      
+      var dict = [String : Entry]()
+      entries.forEach { dict[$0.guid] = $0 }
+      
+      let sorted: [Entry] = guids.flatMap { dict[$0] }
+      
+      do {
+        try self.user.queue.append(items: sorted)
+      } catch {
+        if #available(iOS 10.0, *) {
+          os_log("already in queue: %{public}@", log: log,  type: .error,
+                 String(describing: error))
+        }
+      }
+      
+      let queuedEntries: [Entry] = self.user.queue.items.filter {
+        !dispatched.contains($0)
+      }
+      
+      self.target.async { [weak self] in
+        guard let cb = self?.entriesBlock else {
+          return
+        }
+        cb(error, queuedEntries)
+      }
+      
+      dispatched = dispatched + queuedEntries
+    }) { error in
+      if error == nil {
+        // If we aren‘t offline and the service is OK, we can remove missing
+        // entries.
+        
+        // TODO: Browser should expose service health
+        
+        let found = dispatched.map { $0.guid }
+        let wanted = locators.flatMap { $0.guid }
+        let missing = wanted.filter { !found.contains($0) }
+        
+        print("** missing: \(missing)")
+        
+        do {
+          try self.cache.remove(guids: missing)
+        } catch {
+          if #available(iOS 10.0, *) {
+            os_log("failed to remove missing: %{public}@", log: log,
+                   type: .error, String(describing: error))
+          }
+        }
+      }
+      
+      self.target.async { [weak self] in
+        self?.done(but: error)
+      }
+    }
+  }
+  
+  // MARK: FeedKitOperation
+  
+  override func cancel() {
+    super.cancel()
+    op?.cancel()
+  }
+  
+  /// The sorted guids of the items in the queue.
+  private var sortedIds: [String]?
+  
+  override func start() {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    isExecuting = true
+    
+    do {
+      let queued = try cache.queued()
+      
+      var guids = [String]()
+      
+      let locators: [EntryLocator] = queued.flatMap {
+        switch $0 {
+        case .entry(let locator, _):
+          guard let guid = locator.guid else {
+            fatalError("missing guid")
+          }
+          guids.append(guid)
+          return locator.including
+        }
+      }
+      
+      sortedIds = guids
+      
+      guard !isCancelled, !locators.isEmpty else {
+        return done()
+      }
+      
+      fetchEntries(for: locators)
+    } catch {
+      done(but: error)
+    }
+  }
+  
+}
+
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the queue.
 extension UserLibrary: Queueing {
@@ -395,13 +397,17 @@ extension UserLibrary: Queueing {
   
   /// Adds `entry` to the queue.
   public func enqueue(
-    entry: Entry,
+    entries: [Entry],
     enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
+    guard !entries.isEmpty else {
+      return enqueueCompletionBlock(nil)
+    }
+    
     operationQueue.addOperation {
       do {
-        try self.queue.prepend(entry)
-        let locator = EntryLocator(entry: entry)
-        try self.cache.add(entries: [locator])
+        try self.queue.prepend(items: entries)
+        let locators = entries.map { EntryLocator(entry: $0) }
+        try self.cache.add(entries: locators)
       } catch {
         return enqueueCompletionBlock(error)
       }
@@ -409,7 +415,7 @@ extension UserLibrary: Queueing {
       enqueueCompletionBlock(nil)
       
       DispatchQueue.main.async {
-        self.queueDelegate?.queue(self, added: entry)
+        // TODO: Evaluate QueueDelegate
         self.postDidChangeNotification(name: FeedKitQueueDidChangeNotification)
       }
     }

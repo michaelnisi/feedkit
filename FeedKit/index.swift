@@ -603,7 +603,7 @@ public protocol QueueDelegate {
 public protocol Queueing {
   var queueDelegate: QueueDelegate? { get set }
   
-  func enqueue(entry: Entry,
+  func enqueue(entries: [Entry],
                enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
   
   func dequeue(entry: Entry,
