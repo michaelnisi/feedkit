@@ -6,6 +6,7 @@
 //  Copyright © 2016 Michael Nisi. All rights reserved.
 //
 
+import AVFoundation
 import Foundation
 import Skull
 import os.log
@@ -13,25 +14,28 @@ import os.log
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
+/// Confines `Queue` state dependency.
+fileprivate protocol EntryQueueHost {
+  var queue: Queue<Entry> { get set }
+}
+
 private final class FetchQueueOperation: FeedKitOperation {
   
   let browser: Browsing
   let cache: QueueCaching
-  var user: UserLibrary
+  var user: EntryQueueHost
   
   let target: DispatchQueue
   
-  init(browser: Browsing, cache: QueueCaching, user: UserLibrary) {
+  init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
     self.browser = browser
     self.cache = cache
     self.user = user
-    
     self.target = OperationQueue.current!.underlyingQueue!
   }
   
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
-  
   
   /// The browser operation, fetching the entries.
   weak var op: Operation?
@@ -168,7 +172,7 @@ private final class FetchQueueOperation: FeedKitOperation {
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions 
 /// and queue.
-public final class UserLibrary {
+public final class UserLibrary: EntryQueueHost {
   
   let cache: UserCaching
   let browser: Browsing
@@ -341,12 +345,12 @@ extension UserLibrary: Subscribing {
 
 extension UserLibrary: Updating {
   
-  // Updates subscribed feeds.
-  //
-  // - Parameters:
-  //   - updateComplete: The block to execute when updating completes.
-  //   - newData: `true` if new data has been received.
-  //   - error: An error if something went wrong.
+  /// Updates subscribed feeds.
+  ///
+  /// - Parameters:
+  ///   - updateComplete: The block to execute when updating completes.
+  ///   - newData: `true` if new data has been received.
+  ///   - error: An error if something went wrong.
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     if #available(iOS 10.0, *) {
@@ -379,7 +383,7 @@ extension UserLibrary: Queueing {
   ///   - error: The, optional, final error of this operation, as a whole.
   ///
   /// - Returns: Returns an executing `Operation`.
-  public func entries(
+  @discardableResult public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
@@ -390,21 +394,20 @@ extension UserLibrary: Queueing {
     return op
   }
   
-  /// Adds `entry` to the queue. This is an asynchronous function returning
-  /// immediately. Uncritically, if it fails, an error is logged.
-  public func enqueue(entry: Entry) {
+  /// Adds `entry` to the queue.
+  public func enqueue(
+    entry: Entry,
+    enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
     operationQueue.addOperation {
       do {
         try self.queue.prepend(entry)
         let locator = EntryLocator(entry: entry)
         try self.cache.add(entries: [locator])
       } catch {
-        if #available(iOS 10.0, *) {
-          os_log("could not add %{public}@ to queue: %{public}@", log: log,
-                 type: .error, entry.title, String(describing: error))
-        }
-        return
+        return enqueueCompletionBlock(error)
       }
+      
+      enqueueCompletionBlock(nil)
       
       DispatchQueue.main.async {
         self.queueDelegate?.queue(self, added: entry)
@@ -413,21 +416,20 @@ extension UserLibrary: Queueing {
     }
   }
   
-  /// Removes `entry` from the queue. This is an asynchronous function returning
-  /// immediately. Uncritically, if it fails, an error is logged.
-  public func dequeue(entry: Entry) {
+  /// Removes `entry` from the queue.
+  public func dequeue(
+    entry: Entry,
+    dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
     operationQueue.addOperation {
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
         try self.cache.remove(guids: [guid])
       } catch {
-        if #available(iOS 10.0, *) {
-          os_log("could not remove %{public}@ from queue: %{public}@", log: log,
-                 type: .error, entry.title, String(describing: error))
-        }
-        return
+        return dequeueCompletionBlock(error)
       }
+      
+      dequeueCompletionBlock(nil)
       
       DispatchQueue.main.async {
         self.queueDelegate?.queue(self, removedGUID: entry.guid)
@@ -436,7 +438,33 @@ extension UserLibrary: Queueing {
     }
   }
   
-  public func isQueued(entry: Entry) -> Bool {
+  // MARK: Drafts
+  
+  /// An event handler for when an episode was paused, or finished, during 
+  /// playback.
+  private func played(entry: Entry, until time: CMTime) {
+    // TODO: Write
+  }
+  
+  // TODO: Fetch entry (maybe queued) at once (to replace contains)
+  
+  /// Fetch `entries` for `locators`, queued or not. If an entry is in the queue
+  /// its callback receives a timestamp `ts` of when it was enqueued.
+  private func entries(
+    for locators: [EntryLocator],
+    entryBlock: ((_ entry: Entry, _ ts: Date?) -> Void),
+    entryCompletionBlock: ((_ error: Error?) -> Void)) -> Operation {
+    return Operation()
+  }
+  
+  // MARK: Queue
+  
+  // These synchronous methods are super fast (AP), but may not be consistent.
+  // https://en.wikipedia.org/wiki/CAP_theorem
+  
+  /// Returns `true` if `entry` has been enqueued, but unreliably, only looking
+  /// at the queue, this may fail if the queue hasn‘t been populated.
+  public func contains(entry: Entry) -> Bool {
     return queue.contains(entry)
   }
   

@@ -9,22 +9,34 @@
 import XCTest
 @testable import FeedKit
 
-class UserLibraryTests: XCTestCase {
-  
-  fileprivate class Site: SubscribeDelegate {
-    var subscriptions = [Subscription]()
-    
-    func queue(_ queue: Subscribing, added: Subscription) {
-      subscriptions.append(added)
-    }
-    
-    func queue(_ queue: Subscribing, removed: Subscription) {
-      guard let index = subscriptions.index(of: removed) else {
-        fatalError("unexpected subscription")
-      }
-      subscriptions.remove(at: index)
-    }
+fileprivate class Site {
+  fileprivate var subscriptions = [Subscription]()
+}
+
+extension Site: SubscribeDelegate {
+  func queue(_ queue: Subscribing, added: Subscription) {
+    subscriptions.append(added)
   }
+  
+  func queue(_ queue: Subscribing, removed: Subscription) {
+    guard let index = subscriptions.index(of: removed) else {
+      fatalError("unexpected subscription")
+    }
+    subscriptions.remove(at: index)
+  }
+}
+
+extension Site: QueueDelegate {
+  func queue(_ queue: Queueing, added: Entry) {
+    dump(added)
+  }
+  
+  func queue(_ queue: Queueing, removedGUID: String) {
+    dump(removedGUID)
+  }
+}
+
+class UserLibraryTests: XCTestCase {
   
   fileprivate var user: UserLibrary!
   fileprivate var site: Site!
@@ -46,6 +58,7 @@ class UserLibraryTests: XCTestCase {
       
       let user = UserLibrary(cache: cache, browser: browser, queue: queue)
       user.subscribeDelegate = site
+      user.queueDelegate = site
       
       self.user = user
       self.site = site
@@ -143,9 +156,120 @@ extension UserLibraryTests {
   
 }
 
+// MARK: - Updating
+
+extension UserLibraryTests {
+  
+  func testUpdate() {
+    do {
+      let exp = expectation(description: "update")
+      user.update { newData, error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+  }
+}
+
 // MARK: - Queueing
 
 extension UserLibraryTests {
+  
+  func testEntries() {
+    let exp = expectation(description: "entries")
+    
+    user.entries(entriesBlock: { error, entries in
+      XCTFail("should not call block")
+    }) { error in
+      XCTAssertNil(error)
+      exp.fulfill()
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testEnqueueEntry() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+    
+    let exp = expectation(description: "enqueue")
+    
+    user.enqueue(entry: entry) { error in
+      XCTAssertNil(error)
+      XCTAssertTrue(self.user.contains(entry: entry))
+      
+      self.user.enqueue(entry: entry) { error in
+        guard let er = error as? QueueError else {
+          return XCTFail("should err")
+        }
+        
+        switch er {
+        case .alreadyInQueue(let guid):
+          XCTAssertEqual(guid, entry.guid.hashValue)
+        default:
+          XCTFail("should be expected error")
+        }
+        
+        exp.fulfill()
+      }
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testDequeueEntry() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+    
+    let exp = expectation(description: "dequeue")
+    
+    user.dequeue(entry: entry) { error in
+      guard let er = error as? QueueError else {
+        return XCTFail("should err")
+      }
+      
+      switch er {
+      case .notInQueue(let guid):
+        XCTAssertEqual(guid, entry.guid.hashValue)
+      default:
+        XCTFail("should be expected error")
+      }
+      
+      exp.fulfill()
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testContainsEntry() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+    
+    let exp = expectation(description: "enqueue")
+    user.enqueue(entry: entry) { error in
+      XCTAssertNil(error)
+      XCTAssertTrue(self.user.contains(entry: entry))
+      
+      self.user.dequeue(entry: entry) { error in
+        XCTAssertNil(error)
+        XCTAssertFalse(self.user.contains(entry: entry))
+        exp.fulfill()
+      }
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
   
   func testNext() {
     XCTAssertNil(user.next())

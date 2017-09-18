@@ -10,7 +10,7 @@ import Foundation
 
 public enum QueueError: Error {
   case alreadyInQueue(Int)
-  case notInQueue
+  case notInQueue(Int)
 }
 
 /// A destructive Sequence representing a queue, in which lets you navigate
@@ -125,7 +125,7 @@ public struct Queue<Item: Hashable> {
   
   public mutating func skip(to item: Item) throws {
     guard contains(item) else {
-      throw QueueError.notInQueue
+      throw QueueError.notInQueue(item.hashValue)
     }
     now = item.hashValue
   }
@@ -163,7 +163,7 @@ public struct Queue<Item: Hashable> {
     guard
       itemsByHashValues.removeValue(forKey: h) != nil,
       let i = hashValues.index(of: h) else {
-      throw QueueError.notInQueue
+      throw QueueError.notInQueue(item.hashValue)
     }
     
     hashValues.remove(at: i)

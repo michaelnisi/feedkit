@@ -134,14 +134,8 @@ func entriesFromFileAtURL(_ url: URL) throws -> [Entry] {
   return entries
 }
 
-// TODO: Use realistic guids in all tests
-
-/// A newly created entry specified by name.
-/// 
-/// - Parameter name: An arbitary name making sense in the test domain.
-/// - Returns: The named entry.
-/// - Throws: This, of course, throws if the requested name is unknown.
-func entryWithName(_ name: String) throws -> Entry {
+/// A new test `Entry` distinguished by `name`.
+func freshEntry(named name: String) throws -> Entry {
   switch name {
     case "thetalkshow":
       let feed = "http://daringfireball.net/thetalkshow/rss"
@@ -180,7 +174,8 @@ func entryWithName(_ name: String) throws -> Entry {
   }
 }
 
-func feedWithName(_ name: String) throws -> Feed {
+/// A new test `Feed` distinguished by `name`.
+func freshFeed(named name: String) throws -> Feed {
   switch name {
   case "thetalkshow":
     return Feed(

@@ -603,18 +603,23 @@ public protocol QueueDelegate {
 public protocol Queueing {
   var queueDelegate: QueueDelegate? { get set }
   
-  func enqueue(entry: Entry)
-  func dequeue(entry: Entry)
+  func enqueue(entry: Entry,
+               enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
+  
+  func dequeue(entry: Entry,
+               dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void))
 
-  func isQueued(entry: Entry) -> Bool
-
-  func next() -> Entry?
-  func previous() -> Entry?
-
-  func entries(
+  @discardableResult func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
+  
+  // The queue methods are synchronous, stunningly.
+  
+  func contains(entry: Entry) -> Bool
+  func next() -> Entry?
+  func previous() -> Entry?
+
 }
 
 // MARK: - Updating

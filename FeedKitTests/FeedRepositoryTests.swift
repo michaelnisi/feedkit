@@ -256,7 +256,7 @@ final class FeedRepositoryTests: XCTestCase {
     var count = 0
     
     func go() {
-      let extra = try! feedWithName("thetalkshow")
+      let extra = try! freshFeed(named: "thetalkshow")
       repo.feeds(urls + [extra.url], feedsBlock: { er, feeds in
         count += feeds.count
       }) { er in

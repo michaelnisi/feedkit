@@ -166,7 +166,7 @@ extension FeedCacheTests {
 
   func testUpdateEntriesOfUncachedFeeds() {
     let entries = [
-      try! entryWithName("thetalkshow")
+      try! freshEntry(named: "thetalkshow")
     ]
     var foundURLs: [String]? = nil
     let wantedURLs = ["http://daringfireball.net/thetalkshow/rss"]
