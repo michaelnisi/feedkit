@@ -11,202 +11,12 @@ import MangerKit
 import Ola
 import os.log
 
-// MARK: - Logging
-
 @available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 
-/// Subtract two arrays of strings. Note that the order of the resulting array
-/// is undefined.
-///
-/// - Parameters:
-///   - a: An array of strings.
-///   - b: The array of strings to subtract from.
-///
-/// - Returns: Strings from `a` that are not in `b`.
-func subtract(strings a: [String], from b: [String]) -> [String] {
-  let setA = Set(a)
-  let setB = Set(b)
-  let diff = setB.subtracting(setA)
-  return Array(diff)
-}
-
-/// Find and return the newest item in the specified array of cachable items.
-/// Attention: this intentionally crashes if you pass an empty items array or
-/// if one of the items doesn't bear a timestamp.
-///
-/// - Parameter items: The cachable items to iterate and compare.
-///
-/// - Returns: The item with the latest timestamp.
-func latest<T: Cachable> (_ items: [T]) -> T {
-  return items.sorted {
-    return $0.ts!.compare($1.ts! as Date) == .orderedDescending
-  }.first!
-}
-
-// TODO: Replace urls with locators
-
-/// Find out which URLs still need to be consulted, after items have been
-/// received from the cache, while respecting a maximal time cached items stay
-/// valid (ttl) before they become stale.
-///
-/// The stale items are also returned, because they might be used to fall back
-/// on, in case something goes wrong further down the road.
-///
-/// Because **entries never become stale** this function collects and adds them
-/// to the cached items array. Other item types, like feeds, are checked for
-/// their age and put in the cached items or, respectively, the stale items
-/// array.
-///
-/// URLs of stale items, as well as URLs not present in the specified items
-/// array, are added to the URLs array. Finally the latest entry of each feed is
-/// checked for its age and, if stale, its feed URL is added to the URLs.
-///
-/// - Parameters:
-///   - items: An array of items from the cache.
-///   - urls: The originally requested URLs.
-///   - ttl: The maximal age of cached items before they’re stale.
-///
-/// - Returns: A tuple of cached items, stale items, and URLs still to consult.
-private func subtractItems<T: Cachable> (
-  _ items: [T], fromURLs urls: [String], withTTL ttl: TimeInterval
-) -> ([T], [T], [String]?) {
-
-  guard !items.isEmpty else {
-    return ([], [], urls)
-  }
-
-  var cachedItems = [T]()
-  var staleItems = [T]()
-
-  var entries = [Entry]()
-
-  let cachedURLs = items.reduce([String]()) { acc, item in
-    if let entry = item as? Entry {
-      entries.append(entry)
-      cachedItems.append(item)
-      return acc
-    }
-    if !FeedCache.stale(item.ts!, ttl: ttl) {
-      cachedItems.append(item)
-      return acc + [item.url]
-    } else {
-      staleItems.append(item)
-      return acc
-    }
-  }
-
-  var cachedEntryURLs = [String]()
-  for url in urls {
-    let feed = entries.filter { $0.feed == url }
-    guard !feed.isEmpty else {
-      break
-    }
-    let entry = latest(feed)
-    if !FeedCache.stale(entry.ts!, ttl: ttl) {
-      cachedEntryURLs.append(entry.feed)
-    }
-  }
-
-  let notCachedURLs = subtract(strings: cachedURLs + cachedEntryURLs, from: urls)
-
-  if notCachedURLs.isEmpty {
-    return (cachedItems, [], nil)
-  } else {
-    return (cachedItems, staleItems, notCachedURLs)
-  }
-}
-
-/// Retrieve feeds with the provided URLs from the cache and return a tuple
-/// containing cached feeds, stale feeds, and URLs of feeds currently not in
-/// the cache.
-///
-/// - Parameters:
-///   - cache: The cache to query.
-///   - urls: An array of feed URLs.
-///   - ttl: The limiting time stamp, a moment in the past.
-///
-/// - Throws: May throw SQLite errors via Skull.
-///
-/// - Returns: A tuple of cached feeds, stale feeds, and uncached URLs.
-func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
-) throws -> ([Feed], [Feed], [String]?) {
-  let items = try cache.feeds(urls)
-  let t = subtractItems(items, fromURLs: urls, withTTL: ttl)
-  return t
-}
-
-// TODO: Return ([Entry], [EntryLocator]?)
-
-/// Query the cache for locally cached entries to return a tuple containing 
-/// cached entries and URLs of stale or feeds not cached yet.
-///
-/// This function, firstly, finds all entries matching any GUIDs passed in the
-/// locators. It then merges all locators without GUIDs and those not matching
-/// any entry by GUID in the cache. With these, not yet satisfied, locators,
-/// the cache is queried again. Both results are combined to one and subtracted,
-/// segregated into cached entries, stale entries (an empty array apparently),
-/// and URLs of stale or not yet cached feeds, to the resulting tuple.
-///
-/// - Parameters:
-///   - cache: The cache object to retrieve entries from.
-///   - locators: The selection of entries to fetch.
-///   - ttl: The maximum age of entries to use.
-///
-/// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
-///
-/// - Throws: May throw database errors.
-private func entriesFromCache(
-  _ cache: FeedCaching,
-  locators: [EntryLocator],
-  ttl: TimeInterval
-) throws -> ([Entry], [String]?) {
-  
-  let guids = locators.flatMap { $0.guid }
-  let resolved = try cache.entries(guids)
-  
-  guard resolved.count < locators.count else {
-    return (resolved, nil)
-  }
-  
-  let resguids = resolved.map { $0.guid }
-
-  let unresolved = locators.filter {
-    guard let guid = $0.guid else {
-      return true
-    }
-    return !resguids.contains(guid)
-  }
-
-  let items = try cache.entries(within: unresolved) + resolved
-  let urls = unresolved.map { $0.url }
-
-  let t = subtractItems(items, fromURLs: urls, withTTL: ttl)
-  let (cached, stale, needed) = t
-  assert(stale.isEmpty, "entries cannot be stale")
-
-  guard guids.isEmpty else {
-    // TODO: Optimize unresolved guids code path
-    
-    let a = cached.filter { guids.contains($0.guid) }
-    let cachedGUIDs = a.map { $0.guid }
-    
-    let b = locators.filter {
-      guard let guid = $0.guid else {
-        return false
-      }
-      return !cachedGUIDs.contains(guid)
-    }
-    
-    return (a, b.isEmpty ? nil : b.map { $0.url })
-  }
-
-  return (cached, needed)
-}
-
-/// Although I despise inheritance, this is an abstract operation class to be
+/// Although I despise inheritance, this is an abstract `Operation` to be
 /// extended by operations used in the feed repository. It provides common
-/// properties for the—currently two: feed and entries—operations of the
+/// properties for the, currently two: feed and entries; operations of the
 /// browsing API.
 class BrowseOperation: SessionTaskOperation {
   let cache: FeedCaching
@@ -218,10 +28,7 @@ class BrowseOperation: SessionTaskOperation {
   /// - Parameters:
   ///   - cache: The persistent feed cache.
   ///   - svc: The remote service to fetch feeds and entries.
-  init(
-    cache: FeedCaching,
-    svc: MangerService
-  ) {
+  init(cache: FeedCaching, svc: MangerService) {
     self.cache = cache
     self.svc = svc
     
@@ -236,13 +43,126 @@ class BrowseOperation: SessionTaskOperation {
   }
 }
 
-private func redirects(in items: [Redirectable]) -> [Redirectable] {
-  return items.filter {
-    guard let originalURL = $0.originalURL, originalURL != $0.url else {
-      return false
+// MARK: HTTP
+
+extension BrowseOperation {
+  
+  static func redirects(in items: [Redirectable]) -> [Redirectable] {
+    return items.filter {
+      guard let originalURL = $0.originalURL, originalURL != $0.url else {
+        return false
+      }
+      return true
     }
-    return true
   }
+  
+}
+
+// MARK: Accessing Cached Items
+
+extension BrowseOperation {
+  
+  // In this file, we use static functions to expose some logic for testing.
+
+  /// Subtract two arrays of strings. Note that the order of the resulting array
+  /// is undefined.
+  ///
+  /// - Parameters:
+  ///   - a: An array of strings.
+  ///   - b: The array of strings to subtract from.
+  ///
+  /// - Returns: Strings from `a` that are not in `b`.
+  static func subtract(strings a: [String], from b: [String]) -> [String] {
+    let setA = Set(a)
+    let setB = Set(b)
+    let diff = setB.subtracting(setA)
+    return Array(diff)
+  }
+  
+  /// Find and return the newest item in the specified array of cachable items.
+  /// Attention: this intentionally crashes if you pass an empty items array or
+  /// if one of the items doesn't bear a timestamp.
+  ///
+  /// - Parameter items: The cachable items to iterate and compare.
+  ///
+  /// - Returns: The item with the latest timestamp.
+  static func latest<T: Cachable> (_ items: [T]) -> T {
+    return items.sorted {
+      return $0.ts!.compare($1.ts! as Date) == .orderedDescending
+      }.first!
+  }
+  
+  /// Find out which URLs still need to be consulted, after items have been
+  /// received from the cache, while respecting a maximal time cached items stay
+  /// valid (ttl) before becoming stale.
+  ///
+  /// The stale items are also returned, because they might be used to fall back
+  /// on, in case something goes wrong further down the road.
+  ///
+  /// Because **entries never become stale**, this function collects and adds them
+  /// to the cached items array. Other item types, like feeds, are checked for
+  /// their age and put in the cached items or, respectively, the stale items
+  /// array.
+  ///
+  /// URLs of stale items, as well as URLs not present in the specified items
+  /// array, are added to the URLs array. Finally the latest entry of each feed is
+  /// checked for its age and, if stale, its feed URL is added to the URLs.
+  ///
+  /// - Parameters:
+  ///   - items: An array of items from the cache.
+  ///   - urls: The originally requested URLs.
+  ///   - ttl: The maximal age of cached items before they’re stale.
+  ///
+  /// - Returns: A tuple of cached items, stale items, and URLs still to consult.
+  static func subtract<T: Cachable> (
+    items: [T], from urls: [String], with ttl: TimeInterval)
+    -> ([T], [T], [String]?) {
+    guard !items.isEmpty else {
+      return ([], [], urls)
+    }
+    
+    var cachedItems = [T]()
+    var staleItems = [T]()
+    
+    var entries = [Entry]()
+    
+    let cachedURLs = items.reduce([String]()) { acc, item in
+      if let entry = item as? Entry {
+        entries.append(entry)
+        cachedItems.append(item)
+        return acc
+      }
+      if !FeedCache.stale(item.ts!, ttl: ttl) {
+        cachedItems.append(item)
+        return acc + [item.url]
+      } else {
+        staleItems.append(item)
+        return acc
+      }
+    }
+    
+    var cachedEntryURLs = [String]()
+    for url in urls {
+      let feed = entries.filter { $0.feed == url }
+      guard !feed.isEmpty else {
+        break
+      }
+      let entry = latest(feed)
+      if !FeedCache.stale(entry.ts!, ttl: ttl) {
+        cachedEntryURLs.append(entry.feed)
+      }
+    }
+    
+    let strings = cachedURLs + cachedEntryURLs
+    let notCachedURLs = subtract(strings: strings, from: urls)
+    
+    if notCachedURLs.isEmpty {
+      return (cachedItems, [], nil)
+    } else {
+      return (cachedItems, staleItems, notCachedURLs)
+    }
+  }
+
 }
 
 // MARK: - Entries
@@ -268,13 +188,8 @@ final class EntriesOperation: BrowseOperation {
   /// Refer to `BrowseOperation` for more information.
   ///
   /// - parameter locators: The selection of entries to fetch.
-  init(
-    cache: FeedCaching,
-    svc: MangerService,
-    locators: [EntryLocator]
-  ) {
+  init(cache: FeedCaching, svc: MangerService, locators: [EntryLocator]) {
     self.locators = locators
-    
     super.init(cache: cache, svc: svc)
   }
 
@@ -296,13 +211,6 @@ final class EntriesOperation: BrowseOperation {
   ///   - locators: The locators of entries to request.
   ///   - dispatched: Entries that have already been dispatched.
   func request(_ locators: [EntryLocator], dispatched: [Entry]) throws {
-    let target = self.target
-    let cache = self.cache
-    let entriesBlock = self.entriesBlock
-
-    let c = self.cache
-    let l = self.locators
-
     let reload = ttl == .none
 
     task = try svc.entries(locators, reload: reload) { error, payload in
@@ -324,7 +232,7 @@ final class EntriesOperation: BrowseOperation {
           }
         }
 
-        let r = redirects(in: receivedEntries)
+        let r = BrowseOperation.redirects(in: receivedEntries)
         if !r.isEmpty {
           let urls = r.reduce([String]()) { acc, entry in
             guard let url = entry.originalURL, !acc.contains(url) else {
@@ -332,12 +240,12 @@ final class EntriesOperation: BrowseOperation {
             }
             return acc + [url]
           }
-          try cache.remove(urls)
+          try self.cache.remove(urls)
         }
 
-        try cache.update(entries: receivedEntries)
+        try self.cache.update(entries: receivedEntries)
 
-        guard let cb = entriesBlock, !receivedEntries.isEmpty else {
+        guard let cb = self.entriesBlock, !receivedEntries.isEmpty else {
           return self.done()
         }
 
@@ -347,26 +255,21 @@ final class EntriesOperation: BrowseOperation {
         // centrally, we retrieve our, freshly updated, entries from the cache,
         // in the hopes that SQLite is fast enough.
 
-        let (cached, missing) = try entriesFromCache(c, locators: l, ttl: FOREVER)
+        let (cached, missing) = try EntriesOperation.entries(
+          in: self.cache, locators: self.locators, ttl: .infinity)
         
         let error: FeedKitError? = {
-          guard let urls = missing else {
+          guard !missing.isEmpty else {
             return nil
           }
-          
-          // TODO: Add GUIDs to missing entries error
-          // 
-          // Enabling further handling of the problem, for example, we might 
-          // want to remove these entries from the queue.
-          
-          return FeedKitError.missingEntries(urls: urls)
+          return FeedKitError.missingEntries(locators: locators)
         }()
 
         let entries = cached.filter() { entry in
           !dispatched.contains(entry)
         }
         
-        target.async() {
+        self.target.async() {
           cb(error, entries)
         }
         self.done()
@@ -389,54 +292,90 @@ final class EntriesOperation: BrowseOperation {
       let target = self.target
       let entriesBlock = self.entriesBlock
 
-      let (cached, urls) = try entriesFromCache(
-        cache, locators: locators, ttl: ttl.seconds)
-
-      // Returning URLs requires us to perform an extra work reducing URLs
-      // back to the initial locators. A first step to improve this might be to
-      // move the reduce into entriesFromCache and actually return locators,
-      // which would fix the API, and give a us space to remove this step later
-      // requiring only internal changes.
-      
-      // TODO: Remove extra reduce
-
-      let unresolved = urls?.reduce([EntryLocator]()) { acc, url in
-        for locator in locators {
-          if locator.url == url {
-            return acc + [locator]
-          }
-        }
-        return acc
-      }
+      let (cached, missing) = try EntriesOperation.entries(
+        in: cache, locators: locators, ttl: ttl.seconds)
 
       guard !isCancelled else { return done() }
 
       var dispatched = [Entry]()
       
-      if let cb = entriesBlock {
-        if !cached.isEmpty {
-          dispatched += cached
-          target.async {
-            cb(nil, cached)
-          }
+      if let cb = entriesBlock, !cached.isEmpty {
+        dispatched += cached
+        target.async {
+          cb(nil, cached)
         }
       }
 
-      guard unresolved != nil else {
+      guard !missing.isEmpty else {
         return done()
       }
-
-      assert(!unresolved!.isEmpty, "unresolved locators cannot be empty")
 
       if !reachable {
         done(FeedKitError.offline)
       } else {
-        try request(unresolved!, dispatched: dispatched)
+        try request(missing, dispatched: dispatched)
       }
     } catch let er {
       done(er)
     }
   }
+}
+
+// MARK: Accessing Cached Entries
+
+extension EntriesOperation {
+  
+  /// Queries the local `cache` for entries and returns a tuple of cached 
+  /// entries and unfullfilled entry `locators`, if any.
+  ///
+  /// - Parameters:
+  ///   - cache: The cache object to retrieve entries from.
+  ///   - locators: The selection of entries to fetch.
+  ///   - ttl: The maximum age of entries to use.
+  ///
+  /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
+  ///
+  /// - Throws: Might throw database errors.
+  static func entries(in cache: FeedCaching, locators: [EntryLocator], ttl: TimeInterval)
+    throws -> ([Entry], [EntryLocator]) {
+      let guids = locators.flatMap { $0.guid }
+      let resolved = try cache.entries(guids) // TODO: cache.entries(with: guids)
+      
+      guard resolved.count < locators.count else {
+        return (resolved, [])
+      }
+      
+      let resguids = resolved.map { $0.guid }
+      
+      let unresolved = locators.filter {
+        guard let guid = $0.guid else { return true }
+        return !resguids.contains(guid)
+      }
+      
+      // TODO: Merge locators having no guids but equal URLs
+      
+      let items = try cache.entries(within: unresolved) + resolved
+      let unresolvedURLs = unresolved.map { $0.url }
+      
+      let (cached, stale, needed) =
+        BrowseOperation.subtract(items: items, from: unresolvedURLs, with: ttl)
+      assert(stale.isEmpty, "entries cannot be stale")
+      
+      let neededLocators: [EntryLocator] = locators.filter {
+        let urls = needed ?? []
+        if let guid = $0.guid {
+          return !resguids.contains(guid) || urls.contains($0.url)
+        }
+        return urls.contains($0.url)
+      }
+      
+      guard neededLocators != locators else {
+        return ([], neededLocators)
+      }
+      
+      return (cached, neededLocators)
+  }
+  
 }
 
 // MARK: - Feeds
@@ -525,7 +464,7 @@ final class FeedsOperation: BrowseOperation {
 
         assert(errors.isEmpty, "unhandled errors: \(errors)")
 
-        let r = redirects(in: feeds)
+        let r = BrowseOperation.redirects(in: feeds)
         if !r.isEmpty {
           let urls = r.map { $0.originalURL! }
           try cache.remove(urls)
@@ -565,8 +504,8 @@ final class FeedsOperation: BrowseOperation {
       let cache = self.cache
       let feedsBlock = self.feedsBlock
 
-      let (cached, stale, urlsToRequest) = try
-        feeds(in: cache, with: urls, within: ttl.seconds)
+      let (cached, stale, urlsToRequest) =
+        try FeedsOperation.feeds(in: cache, with: urls, within: ttl.seconds)
 
       guard !isCancelled else { return done() }
 
@@ -605,6 +544,31 @@ final class FeedsOperation: BrowseOperation {
   }
 }
 
+// MARK: Accessing Cached Feeds
+
+extension FeedsOperation {
+  
+  /// Retrieve feeds with the provided URLs from the cache and return a tuple
+  /// containing cached feeds, stale feeds, and URLs of feeds currently not in
+  /// the cache.
+  ///
+  /// - Parameters:
+  ///   - cache: The cache to query.
+  ///   - urls: An array of feed URLs.
+  ///   - ttl: The limiting time stamp, a moment in the past.
+  ///
+  /// - Throws: May throw SQLite errors via Skull.
+  ///
+  /// - Returns: A tuple of cached feeds, stale feeds, and uncached URLs.
+  static func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
+    ) throws -> ([Feed], [Feed], [String]?) {
+    let items = try cache.feeds(urls)
+    let t = BrowseOperation.subtract(items: items, from: urls, with: ttl)
+    return t
+  }
+
+}
+
 /// The `FeedRepository` provides feeds and entries.
 public final class FeedRepository: RemoteRepository {
   
@@ -634,7 +598,6 @@ public final class FeedRepository: RemoteRepository {
 
 extension FeedRepository: Browsing {
 
-  // TODO: Make all callbacks optional
   // TODO: Add force parameter to feeds()
 
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`

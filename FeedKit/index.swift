@@ -41,7 +41,7 @@ public enum FeedKitError : Error {
   case invalidSuggestion(reason: String)
   case offline
   case noForceApplied
-  case missingEntries(urls: [String])
+  case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
 }
 
@@ -315,10 +315,7 @@ extension EntryLocator: Hashable {
 
 extension EntryLocator: Equatable {
   public static func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
-    guard let a = lhs.guid, let b = rhs.guid else {
-      return lhs.url == rhs.url && lhs.since == rhs.since
-    }
-    return a == b
+    return lhs.hashValue == rhs.hashValue
   }
 }
 
@@ -739,8 +736,6 @@ public protocol UserCacheSyncing: QueueCaching {
 }
 
 // MARK: - Internal
-
-let FOREVER = TimeInterval(Double.infinity)
 
 func nop(_: Any) -> Void {}
 

@@ -51,60 +51,11 @@ final class FeedRepositoryTests: XCTestCase {
     return self.urls.map { EntryLocator(url: $0) }
   }()
   
-  // MARK: General
-  
-  func testLatest() {
-    struct Thing: Cachable {
-      let url: String
-      let ts: Date?
-      func equals(_ rhs: Thing) -> Bool {
-        return url == rhs.url
-      }
-    }
-    let a = Thing(url: "abc", ts: Date(timeIntervalSince1970: 0))
-    let b = Thing(url: "def", ts: Date(timeIntervalSince1970: 3600))
-    let c = Thing(url: "ghi", ts: Date(timeIntervalSince1970: 7200))
-    let found = [
-      latest([a, b, c]),
-      latest([c, b, a]),
-      latest([a, c, b]),
-      latest([b, c, a])
-    ]
-    let wanted = [
-      c,
-      c,
-      c,
-      c
-    ]
-    for (i, b) in wanted.enumerated() {
-      let a = found[i]
-      XCTAssert(a.equals(b))
-    }
-  }
-  
-  func testSubtractStringsFromStrings() {
-    let abc = ["a", "b", "c"]
-    let found = [
-      subtract(strings: abc, from: abc),
-      subtract(strings: abc, from: abc + ["d"]),
-      subtract(strings: abc, from: abc + ["d", "e", "f"]),
-      subtract(strings: ["a", "a"], from: abc),
-      subtract(strings: ["c", "c", "a", "a"], from: abc)
-    ]
-    let wanted = [
-      [],
-      ["d"],
-      ["d", "e", "f"],
-      ["b", "c"],
-      ["b"]
-    ]
-    for (i, b) in wanted.enumerated() {
-      let a = found[i]
-      XCTAssert(a == b || a == ["e", "f", "d"])
-    }
-  }
-  
-  // MARK: Feeds
+}
+
+// MARK: - Feeds
+
+extension FeedRepositoryTests {
   
   func testFeeds() {
     let exp = self.expectation(description: "feeds")
@@ -188,8 +139,8 @@ final class FeedRepositoryTests: XCTestCase {
   }
   
   func testFeedsFromCache() {
-    let (cached, stale, notCached) = try!
-      feeds(in: cache, with: urls, within: CacheTTL.long.seconds)
+    let (cached, stale, notCached) = try! FeedsOperation.feeds(
+      in: cache, with: urls, within: CacheTTL.long.seconds)
     
     XCTAssert(cached.isEmpty)
     XCTAssert(stale.isEmpty)
@@ -226,7 +177,7 @@ final class FeedRepositoryTests: XCTestCase {
         exp.fulfill()
       }
     }
-
+    
     do { // Cache Loading
       let probe = Ola(host: "localhost", queue: DispatchQueue.main)!
       let b: Browsing = FeedRepository(
@@ -269,9 +220,9 @@ final class FeedRepositoryTests: XCTestCase {
       let found = feeds.map { $0.url }
       // TODO: Test redirection
       // http://feeds.soundcloud.com/users/soundcloud:users:180603351/sounds.rss
-      // This RSS feed has been redirected, and SoundCloud cannot guarantee the 
-      // safety of external links. If you would like to continue, you can 
-      // navigate to 'https://rss.art19.com/women-of-the-hour'. RSS Readers and 
+      // This RSS feed has been redirected, and SoundCloud cannot guarantee the
+      // safety of external links. If you would like to continue, you can
+      // navigate to 'https://rss.art19.com/women-of-the-hour'. RSS Readers and
       // Podcasting apps will be redirected automatically.
       XCTAssertEqual(found, wanted)
       count += feeds.count
@@ -284,7 +235,7 @@ final class FeedRepositoryTests: XCTestCase {
     }
   }
   
-
+  
   func testFeedsAllCached() {
     let exp = self.expectation(description: "feeds")
     let wanted = urls
@@ -331,8 +282,12 @@ final class FeedRepositoryTests: XCTestCase {
     }
   }
   
-  // MARK: Entries
+}
 
+// MARK: - Entries
+
+extension FeedRepositoryTests {
+  
   func testEntries() {
     let exp = self.expectation(description: "entries")
     var found = [Entry]()
@@ -380,18 +335,18 @@ final class FeedRepositoryTests: XCTestCase {
     }
   }
   
-  func testEntriesWithFalseGUID() {
+  func testEntriesWithUnknownGUID() {
     let exp = self.expectation(description: "entries")
     let repo = self.repo!
     
     let url = "http://feeds.wnyc.org/newyorkerradiohour"
-    let guid = "hello"
+    let guid = entryGUID(for: UUID().uuidString, at: url)
     let locators = [EntryLocator(url: url, guid: guid)]
     
-    let _ = repo.entries(locators, entriesBlock: { error, entries in
+    repo.entries(locators, entriesBlock: { error, entries in
       switch error as! FeedKitError {
-      case .missingEntries(let urls):
-        XCTAssertEqual(urls, [url])
+      case .missingEntries(let missingLocators):
+        XCTAssertEqual(missingLocators, locators)
       default:
         XCTFail("should be expected error")
       }
@@ -424,7 +379,7 @@ final class FeedRepositoryTests: XCTestCase {
     let repo = self.repo!
     
     let q = DispatchQueue.global(qos: .userInitiated)
-
+    
     let min = locators.count
     var count = 0
     var n = locators.count
@@ -529,4 +484,78 @@ final class FeedRepositoryTests: XCTestCase {
       XCTAssertNil(er)
     }
   }
+  
 }
+
+// MARK: - Caching
+
+extension FeedRepositoryTests {
+  
+  func testEntriesInCache() {
+    let age = CacheTTL.forever.seconds
+    
+    do {
+      let locators = [EntryLocator]()
+      let (entries, missing) =
+        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+      
+      // TODO: entries(in: cache, with: locators, under: age)
+      
+      XCTAssertTrue(entries.isEmpty)
+      XCTAssertTrue(missing.isEmpty)
+    }
+  }
+  
+  func testLatest() {
+    struct Thing: Cachable {
+      let url: String
+      let ts: Date?
+      func equals(_ rhs: Thing) -> Bool {
+        return url == rhs.url
+      }
+    }
+    let a = Thing(url: "abc", ts: Date(timeIntervalSince1970: 0))
+    let b = Thing(url: "def", ts: Date(timeIntervalSince1970: 3600))
+    let c = Thing(url: "ghi", ts: Date(timeIntervalSince1970: 7200))
+    let found = [
+      BrowseOperation.latest([a, b, c]),
+      BrowseOperation.latest([c, b, a]),
+      BrowseOperation.latest([a, c, b]),
+      BrowseOperation.latest([b, c, a])
+    ]
+    let wanted = [
+      c,
+      c,
+      c,
+      c
+    ]
+    for (i, b) in wanted.enumerated() {
+      let a = found[i]
+      XCTAssert(a.equals(b))
+    }
+  }
+  
+  func testSubtractStringsFromStrings() {
+    let abc = ["a", "b", "c"]
+    let found = [
+      BrowseOperation.subtract(strings: abc, from: abc),
+      BrowseOperation.subtract(strings: abc, from: abc + ["d"]),
+      BrowseOperation.subtract(strings: abc, from: abc + ["d", "e", "f"]),
+      BrowseOperation.subtract(strings: ["a", "a"], from: abc),
+      BrowseOperation.subtract(strings: ["c", "c", "a", "a"], from: abc)
+    ]
+    let wanted = [
+      [],
+      ["d"],
+      ["d", "e", "f"],
+      ["b", "c"],
+      ["b"]
+    ]
+    for (i, b) in wanted.enumerated() {
+      let a = found[i]
+      XCTAssert(a == b || a == ["e", "f", "d"])
+    }
+  }
+  
+}
+

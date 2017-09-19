@@ -520,7 +520,7 @@ extension SQLTests {
     let guid = "12three"
     let url = "abc.de"
     
-    row["guid"] = guid
+    row["entry_guid"] = guid
     row["url"] = url
     row["since"] = "2016-06-06 06:00:00" // UTC
     

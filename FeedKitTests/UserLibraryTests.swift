@@ -178,7 +178,7 @@ extension UserLibraryTests {
 
 extension UserLibraryTests {
   
-  func testEntries() {
+  func testMissingEntries() {
     do {
       let exp = expectation(description: "entries-1")
       
@@ -216,7 +216,34 @@ extension UserLibraryTests {
       var acc = [Entry]()
       
       user.entries(entriesBlock: { error, entries in
-        print("** error: \(error)")
+        guard let er = error as? FeedKitError else {
+          return XCTFail("should error")
+        }
+        
+        switch er {
+        case .missingEntries(let missing):
+          func guids(lhs: EntryLocator, rhs: EntryLocator) -> Bool  {
+            let a = lhs.guid
+            let b = rhs.guid
+            return Int(a!)! < Int(b!)!
+          }
+          
+          let found = missing.sorted(by: guids)
+          let wanted = entriesToQueue.map { EntryLocator(entry: $0) }.sorted(by: guids)
+          
+          XCTAssertEqual(found.count, wanted.count)
+         
+          found.enumerated().forEach { offset, a in
+            let b = wanted[offset]
+            XCTAssertEqual(a, b)
+          }
+          
+           XCTAssertEqual(found, wanted)
+        default:
+          XCTFail("should err expectedly")
+        }
+        
+        
         
         // Receiving five missing entries error here, while still getting the
         // entries, because these are not the fetched ones, but those stored
