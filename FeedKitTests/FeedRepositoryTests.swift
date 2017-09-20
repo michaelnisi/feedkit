@@ -491,7 +491,7 @@ extension FeedRepositoryTests {
 
 extension FeedRepositoryTests {
   
-  func testEntriesInCache() {
+  func testMissingEntriesInCache() {
     let age = CacheTTL.forever.seconds
     
     do {
@@ -503,6 +503,41 @@ extension FeedRepositoryTests {
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertTrue(missing.isEmpty)
+    }
+    
+    do {
+      let locator = EntryLocator(url: "http://abc.de")
+      let locators = [locator, locator]
+      let (entries, missing) =
+        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+      
+      XCTAssertTrue(entries.isEmpty)
+      XCTAssertEqual(missing, [locator])
+    }
+    
+    do {
+      let older = EntryLocator(url: "http://abc.de")
+      let locators = [
+        EntryLocator(url: "http://abc.de", since: Date()),
+        older
+      ]
+      let (entries, missing) =
+        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+      
+      XCTAssertTrue(entries.isEmpty)
+      XCTAssertEqual(missing, [older], "should merge locators")
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let guid = entryGUID(for: "123", at: url)
+      let locator = EntryLocator(url: url, guid: guid)
+      let locators = [locator, locator]
+      let (entries, missing) =
+        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+      
+      XCTAssertTrue(entries.isEmpty)
+      XCTAssertEqual(missing, [locator], "should be unique")
     }
   }
   

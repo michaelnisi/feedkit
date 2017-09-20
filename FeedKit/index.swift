@@ -353,6 +353,51 @@ extension EntryLocator {
   }
 }
 
+extension EntryLocator {
+  
+  /// Removes doublets with the same GUID and merges locators with similar
+  /// URLs into a single locator with the longest time-to-live for that URL.
+  static func reduce(_ locators: [EntryLocator]) -> [EntryLocator] {
+    guard !locators.isEmpty else {
+      return []
+    }
+    
+    let unique = Array(Set(locators))
+    
+    var withGuids = [EntryLocator]()
+    var withoutGuidsByUrl = [String : [EntryLocator]]()
+    
+    for loc in unique {
+      if loc.guid == nil {
+        let url = loc.url
+        if let prev = withoutGuidsByUrl[url] {
+          withoutGuidsByUrl[url] = prev + [loc]
+        } else {
+          withoutGuidsByUrl[url] = [loc]
+        }
+      } else {
+        withGuids.append(loc)
+      }
+    }
+    
+    guard !withoutGuidsByUrl.isEmpty else {
+      return withGuids
+    }
+    
+    var withoutGuids = [EntryLocator]()
+    
+    for it in withoutGuidsByUrl {
+      let sorted = it.value.sorted { $0.since < $1.since }
+      guard let loc = sorted.first else {
+        continue
+      }
+      withoutGuids.append(loc)
+    }
+    
+    return withGuids + withoutGuids
+  }
+}
+
 /// A suggested search term, bearing the timestamp of when it was added
 /// (to the cache) or updated.
 public struct Suggestion {

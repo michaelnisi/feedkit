@@ -338,21 +338,21 @@ extension EntriesOperation {
   /// - Throws: Might throw database errors.
   static func entries(in cache: FeedCaching, locators: [EntryLocator], ttl: TimeInterval)
     throws -> ([Entry], [EntryLocator]) {
-      let guids = locators.flatMap { $0.guid }
-      let resolved = try cache.entries(guids) // TODO: cache.entries(with: guids)
+      let optimized = EntryLocator.reduce(locators)
       
-      guard resolved.count < locators.count else {
+      let guids = optimized.flatMap { $0.guid }
+      let resolved = try cache.entries(guids)
+      
+      guard resolved.count < optimized.count else {
         return (resolved, [])
       }
       
       let resguids = resolved.map { $0.guid }
       
-      let unresolved = locators.filter {
+      let unresolved = optimized.filter {
         guard let guid = $0.guid else { return true }
         return !resguids.contains(guid)
       }
-      
-      // TODO: Merge locators having no guids but equal URLs
       
       let items = try cache.entries(within: unresolved) + resolved
       let unresolvedURLs = unresolved.map { $0.url }
@@ -361,7 +361,7 @@ extension EntriesOperation {
         BrowseOperation.subtract(items: items, from: unresolvedURLs, with: ttl)
       assert(stale.isEmpty, "entries cannot be stale")
       
-      let neededLocators: [EntryLocator] = locators.filter {
+      let neededLocators: [EntryLocator] = optimized.filter {
         let urls = needed ?? []
         if let guid = $0.guid {
           return !resguids.contains(guid) || urls.contains($0.url)
@@ -369,7 +369,7 @@ extension EntriesOperation {
         return urls.contains($0.url)
       }
       
-      guard neededLocators != locators else {
+      guard neededLocators != optimized else {
         return ([], neededLocators)
       }
       
