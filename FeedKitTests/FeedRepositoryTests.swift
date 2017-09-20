@@ -492,6 +492,7 @@ extension FeedRepositoryTests {
 extension FeedRepositoryTests {
   
   func testMissingEntriesInCache() {
+    let url = "http://abc.de"
     let age = CacheTTL.forever.seconds
     
     do {
@@ -499,14 +500,14 @@ extension FeedRepositoryTests {
       let (entries, missing) =
         try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
       
-      // TODO: entries(in: cache, with: locators, under: age)
+      // TODO: Rename to: entries(in: cache, with: locators, under: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertTrue(missing.isEmpty)
     }
     
     do {
-      let locator = EntryLocator(url: "http://abc.de")
+      let locator = EntryLocator(url: url)
       let locators = [locator, locator]
       let (entries, missing) =
         try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
@@ -516,9 +517,9 @@ extension FeedRepositoryTests {
     }
     
     do {
-      let older = EntryLocator(url: "http://abc.de")
+      let older = EntryLocator(url: url)
       let locators = [
-        EntryLocator(url: "http://abc.de", since: Date()),
+        EntryLocator(url: url, since: Date()),
         older
       ]
       let (entries, missing) =
@@ -529,7 +530,6 @@ extension FeedRepositoryTests {
     }
     
     do {
-      let url = "http://abc.de"
       let guid = entryGUID(for: "123", at: url)
       let locator = EntryLocator(url: url, guid: guid)
       let locators = [locator, locator]
