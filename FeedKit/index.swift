@@ -906,10 +906,13 @@ class SessionTaskOperation: FeedKitOperation {
   /// Posts a notification of `name` with the default notification center from
   /// this operation.
   func post(name: String) {
-    NotificationCenter.default.post(
-      name: Notification.Name(rawValue: name),
-      object: self
-    )
+    DispatchQueue.main.async {
+      NotificationCenter.default.post(
+        name: Notification.Name(rawValue: name),
+        object: self
+      )
+    }
+
   }
 
   final var task: URLSessionTask? {

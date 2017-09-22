@@ -404,6 +404,8 @@ extension FeedCache: FeedCaching {
 
 extension FeedCache: SearchCaching {
   
+  // TODO: Review subcached function
+  
   /// Scan dictionary for a term and its lexicographical predecessors.
   ///
   /// The specified dictionary, containing timestamps by terms, is scanned
@@ -422,7 +424,8 @@ extension FeedCache: SearchCaching {
     } else {
       if !term.isEmpty {
         let pre = term.characters.index(before: term.endIndex)
-        return subcached(term.substring(to: pre), dict: dict)
+        let substring = String(term[..<pre])
+        return subcached(substring, dict: dict)
       }
       return nil
     }

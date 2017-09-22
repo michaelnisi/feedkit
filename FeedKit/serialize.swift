@@ -74,7 +74,7 @@ struct serialize {
   ///
   /// - Returns: The respective time interval (in seconds):
   static func timeIntervalFromJS(_ value: NSNumber) -> TimeInterval {
-    return Double(value) / 1000 as TimeInterval
+    return Double(truncating: value) / 1000 as TimeInterval
   }
   
   /// Create an iTunes item from a JSON payload. All properties: guid, img100,

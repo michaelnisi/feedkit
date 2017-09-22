@@ -491,7 +491,7 @@ extension FeedCacheTests {
       XCTAssertEqual(found, wanted)
       if term.lengthOfBytes(using: String.Encoding.utf8) > 1 {
         let pre = term.characters.index(before: term.endIndex)
-        self.hit(term.substring(to: pre), wanted, cache)
+        self.hit(String(term[..<pre]), wanted, cache)
       }
     } else {
       XCTFail("\(term) should be cached")
