@@ -214,7 +214,7 @@ final class EntriesOperation: BrowseOperation {
     let reload = ttl == .none
 
     task = try svc.entries(locators, reload: reload) { error, payload in
-      self.post(name: FeedKitRemoteResponseNotification)
+      self.post(name: Notification.Name.FKRemoteResponse)
 
       guard !self.isCancelled else { return self.done() }
 
@@ -431,7 +431,7 @@ final class FeedsOperation: BrowseOperation {
     let target = self.target
 
     task = try svc.feeds(queries) { error, payload in
-      self.post(name: FeedKitRemoteResponseNotification)
+      self.post(name: Notification.Name.FKRemoteResponse)
 
       guard !self.isCancelled else {
         return self.done()

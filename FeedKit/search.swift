@@ -86,7 +86,7 @@ private final class SearchOperation: SearchRepoOperation {
     // operation, here or somewhere else, inducing the system to release it.
 
     task = try svc.search(term: term) { [unowned self] payload, error in
-      self.post(name: FeedKitRemoteResponseNotification)
+      self.post(name: Notification.Name.FKRemoteResponse)
 
       var er: Error?
       defer {
@@ -291,7 +291,7 @@ private final class SuggestOperation: SearchRepoOperation {
     task = try svc.suggestions(matching: term, limit: 10) {
       [unowned self] payload, error in
       
-      self.post(name: FeedKitRemoteResponseNotification)
+      self.post(name: Notification.Name.FKRemoteResponse)
 
       var er: Error?
       defer {

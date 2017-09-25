@@ -11,11 +11,24 @@ import Ola
 import Patron
 import os.log
 
-/// Posted when a remote request has been started.
-public let FeedKitRemoteRequestNotification = "FeedKitRemoteRequest"
-
-/// Posted when a remote response has been received.
-public let FeedKitRemoteResponseNotification = "FeedKitRemoteResponse"
+/// Adds some FeedKit notification names.
+public extension Notification.Name {
+  
+  /// Posted when a remote request has been started.
+  static var FKRemoteRequest =
+    NSNotification.Name(rawValue: "FeedKitRemoteRequest")
+  
+  /// Posted when a remote response has been received.
+  static var FKRemoteResponse =
+    NSNotification.Name(rawValue: "FeedKitRemoteResponse")
+  
+  public static var FKSubscriptionsDidChange =
+    NSNotification.Name(rawValue: "FeedKitSubscriptionsDidChange")
+  
+  public static var FKQueueDidChange =
+    NSNotification.Name("FeedKitQueueDidChange")
+  
+}
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
 public enum FeedKitError : Error {
@@ -602,9 +615,6 @@ public protocol Browsing: Caching {
 
 // MARK: - Queueing
 
-/// Posted when the queue has been changed.
-public let FeedKitQueueDidChangeNotification = "FeedKitQueueDidChange"
-
 public enum Queued {
   case entry(EntryLocator, Date)
 }
@@ -672,9 +682,6 @@ public protocol Updating {
 }
 
 // MARK: - Subscribing
-
-/// Posted when the subscriptions have been changed.
-public let FeedKitSubscriptionsDidChangeNotification = "FeedKitSubscriptionsDidChange"
 
 public protocol SubscribeDelegate {
   func queue(_ queue: Subscribing, added: Subscription)
@@ -902,22 +909,16 @@ class SessionTaskOperation: FeedKitOperation {
 
   /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
-
-  /// Posts a notification of `name` with the default notification center from
-  /// this operation.
-  func post(name: String) {
+  
+  func post(name: NSNotification.Name) {
     DispatchQueue.main.async {
-      NotificationCenter.default.post(
-        name: Notification.Name(rawValue: name),
-        object: self
-      )
+      NotificationCenter.default.post(name: name, object: self)
     }
-
   }
 
   final var task: URLSessionTask? {
     didSet {
-      post(name: FeedKitRemoteRequestNotification)
+      post(name: Notification.Name.FKRemoteRequest)
     }
   }
 
@@ -926,3 +927,5 @@ class SessionTaskOperation: FeedKitOperation {
     super.cancel()
   }
 }
+
+

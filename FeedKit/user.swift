@@ -45,11 +45,10 @@ public final class UserLibrary: EntryQueueHost {
   
   public var subscribeDelegate: SubscribeDelegate?
   
-  fileprivate func postDidChangeNotification(name rawValue: String) {
-    NotificationCenter.default.post(
-      name: Notification.Name(rawValue: rawValue),
-      object: self
-    )
+  fileprivate func post(name: NSNotification.Name) {
+    DispatchQueue.main.async {
+      NotificationCenter.default.post(name: name, object: self)
+    }
   }
   
 }
@@ -146,7 +145,7 @@ extension UserLibrary: Subscribing {
     for subscription in subscriptions {
       subscribeDelegate?.queue(self, added: subscription)
     }
-    postDidChangeNotification(name: FeedKitSubscriptionsDidChangeNotification)
+    post(name: Notification.Name.FKQueueDidChange)
   }
   
   public func unsubscribe(from urls: [String]) throws {
@@ -160,7 +159,7 @@ extension UserLibrary: Subscribing {
     for subscription in subscriptions {
       subscribeDelegate?.queue(self, removed: subscription)
     }
-    postDidChangeNotification(name: FeedKitSubscriptionsDidChangeNotification)
+    post(name: Notification.Name.FKSubscriptionsDidChange)
   }
   
   /// The subscribed feeds of the user.
@@ -414,10 +413,7 @@ extension UserLibrary: Queueing {
       
       enqueueCompletionBlock(nil)
       
-      DispatchQueue.main.async {
-        // TODO: Evaluate QueueDelegate
-        self.postDidChangeNotification(name: FeedKitQueueDidChangeNotification)
-      }
+      self.post(name: Notification.Name.FKQueueDidChange)
     }
   }
   
@@ -436,10 +432,7 @@ extension UserLibrary: Queueing {
       
       dequeueCompletionBlock(nil)
       
-      DispatchQueue.main.async {
-        self.queueDelegate?.queue(self, removedGUID: entry.guid)
-        self.postDidChangeNotification(name: FeedKitQueueDidChangeNotification)
-      }
+      self.post(name: Notification.Name.FKQueueDidChange)
     }
   }
   
