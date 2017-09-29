@@ -11,23 +11,25 @@ import Ola
 import Patron
 import os.log
 
-/// Adds some FeedKit notification names.
+/// Adds this framework‘s notification names.
 public extension Notification.Name {
-  
+
   /// Posted when a remote request has been started.
   static var FKRemoteRequest =
     NSNotification.Name(rawValue: "FeedKitRemoteRequest")
-  
+
   /// Posted when a remote response has been received.
   static var FKRemoteResponse =
     NSNotification.Name(rawValue: "FeedKitRemoteResponse")
-  
+
+  /// Posted after the users‘s subscriptions have been changed.
   public static var FKSubscriptionsDidChange =
     NSNotification.Name(rawValue: "FeedKitSubscriptionsDidChange")
-  
+
+  /// Posted after the user‘s queue has been changed.
   public static var FKQueueDidChange =
     NSNotification.Name("FeedKitQueueDidChange")
-  
+
 }
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
@@ -367,19 +369,19 @@ extension EntryLocator {
 }
 
 extension EntryLocator {
-  
+
   /// Removes doublets with the same GUID and merges locators with similar
   /// URLs into a single locator with the longest time-to-live for that URL.
   static func reduce(_ locators: [EntryLocator]) -> [EntryLocator] {
     guard !locators.isEmpty else {
       return []
     }
-    
+
     let unique = Array(Set(locators))
-    
+
     var withGuids = [EntryLocator]()
     var withoutGuidsByUrl = [String : [EntryLocator]]()
-    
+
     for loc in unique {
       if loc.guid == nil {
         let url = loc.url
@@ -392,13 +394,13 @@ extension EntryLocator {
         withGuids.append(loc)
       }
     }
-    
+
     guard !withoutGuidsByUrl.isEmpty else {
       return withGuids
     }
-    
+
     var withoutGuids = [EntryLocator]()
-    
+
     for it in withoutGuidsByUrl {
       let sorted = it.value.sorted { $0.since < $1.since }
       guard let loc = sorted.first else {
@@ -406,7 +408,7 @@ extension EntryLocator {
       }
       withoutGuids.append(loc)
     }
-    
+
     return withGuids + withoutGuids
   }
 }
@@ -654,10 +656,10 @@ public protocol QueueDelegate {
 
 public protocol Queueing {
   var queueDelegate: QueueDelegate? { get set }
-  
+
   func enqueue(entries: [Entry],
                enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
-  
+
   func dequeue(entry: Entry,
                dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void))
 
@@ -665,9 +667,9 @@ public protocol Queueing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
-  
+
   // The queue methods are synchronous, stunningly.
-  
+
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
@@ -722,15 +724,15 @@ extension Subscription: Equatable {
 public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
   func remove(subscriptions: [Subscription]) throws
-  
+
   func has(_ feedID: Int) throws -> Bool
-  
+
   func subscribed() throws -> [Subscription]
 }
 
 public protocol Subscribing: Updating {
   var subscribeDelegate: SubscribeDelegate? { get set }
-  
+
   func subscribe(to urls: [String]) throws
   func unsubscribe(from urls: [String]) throws
 
@@ -738,9 +740,9 @@ public protocol Subscribing: Updating {
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
-  
+
   func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void)
-  
+
 }
 
 // MARK: - UserCaching
@@ -781,9 +783,9 @@ public protocol UserCacheSyncing: QueueCaching {
 
   func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
-  
+
   func zombieRecords() throws -> [String : String]
-  
+
   func deleteZombies() throws
 }
 
@@ -909,7 +911,7 @@ class SessionTaskOperation: FeedKitOperation {
 
   /// The maximal age, `CacheTTL.Long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
-  
+
   func post(name: NSNotification.Name) {
     DispatchQueue.main.async {
       NotificationCenter.default.post(name: name, object: self)
