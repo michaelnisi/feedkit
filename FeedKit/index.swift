@@ -673,6 +673,8 @@ public protocol Queueing {
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
+  
+  var isEmpty: Bool { get }
 
 }
 

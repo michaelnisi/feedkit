@@ -367,6 +367,10 @@ private final class FetchQueueOperation: FeedKitOperation {
 /// change events regarding the queue.
 extension UserLibrary: Queueing {
   
+  public var isEmpty: Bool {
+    return queue.isEmpty
+  }
+  
   /// Fetches entries in a user‘s queue populating the `queue` object of this
   /// `UserLibrary` instance. The `entriesBlock` receives the entries sorted, 
   /// according to the queue, with best effort. Queue order may vary, dealing
