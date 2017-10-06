@@ -402,9 +402,11 @@ private final class SuggestOperation: SearchRepoOperation {
         requestRequired = false
         return resume()
       }
+      
+      dispatchOriginal()
 
       if !FeedCache.stale(ts, ttl: ttl.seconds) {
-        let finds = [original] + cached.map { Find.suggestedTerm($0) }
+        let finds = cached.map { Find.suggestedTerm($0) }
         dispatch(nil, finds: finds)
         requestRequired = false
       } else {
