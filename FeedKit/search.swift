@@ -375,20 +375,11 @@ private final class SuggestOperation: SearchRepoOperation {
     isExecuting = true
 
     do {
-      guard let cb = self.perFindGroupBlock else {
-        return resume()
-      }
-
       let sug = Suggestion(term: originalTerm, ts: nil)
       let original = Find.suggestedTerm(sug)
-
-      func dispatchOriginal() {
-        let finds = [original]
-        dispatch(nil, finds: finds)
-      }
+      dispatch(nil, finds: [original]) // resulting in five suggested terms
 
       guard let cached = try cache.suggestions(for: term, limit: 4) else {
-        dispatchOriginal()
         return resume()
       }
       
@@ -398,12 +389,9 @@ private final class SuggestOperation: SearchRepoOperation {
       
       // See timestamp comment in SearchOperation.
       guard let ts = cached.first?.ts else {
-        dispatchOriginal()
         requestRequired = false
         return resume()
       }
-      
-      dispatchOriginal()
 
       if !FeedCache.stale(ts, ttl: ttl.seconds) {
         let finds = cached.map { Find.suggestedTerm($0) }
@@ -427,10 +415,11 @@ public final class SearchRepository: RemoteRepository, Searching {
 
   /// Initialize and return a new search repository object.
   ///
-  /// - parameter cache: The search cache.
-  /// - parameter queue: An operation queue to run the search operations.
-  /// - parameter svc: The fanboy service to handle remote queries.
-  /// - parameter probe: The probe object to probe reachability.
+  /// - Parameters:
+  ///   - cache: The search cache.
+  ///   - queue: An operation queue to run the search operations.
+  ///   - svc: The fanboy service to handle remote queries.
+  ///   - probe: The probe object to probe reachability.
   public init(
     cache: SearchCaching,
     svc: FanboyService,
@@ -460,9 +449,10 @@ public final class SearchRepository: RemoteRepository, Searching {
   /// service. This method falls back on cached data if the remote call fails;
   /// the failure is reported by passing an error in the completion block.
   ///
-  /// - parameter term: The term to search for.
-  /// - parameter perFindGroupBlock: The block to receive finds.
-  /// - parameter searchCompletionBlock: The block to execute after the search
+  /// - Parameters:
+  ///   - term: The term to search for.
+  ///   - perFindGroupBlock: The block to receive finds.
+  ///   - searchCompletionBlock: The block to execute after the search
   /// is complete.
   ///
   /// - returns: The, already executing, operation.
