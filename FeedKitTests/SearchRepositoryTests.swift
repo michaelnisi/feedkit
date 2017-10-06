@@ -203,9 +203,14 @@ final class SearchRepositoryTests: XCTestCase {
     func suggest(cb: @escaping () -> Void) {
       var found:UInt = 4
       func shift () { found = found << 1 }
+      
+      var acc = [Find]()
+      
       repo.suggest("a", perFindGroupBlock: { er, finds in
         XCTAssertNil(er)
         XCTAssertFalse(finds.isEmpty)
+        
+        acc.append(contentsOf: finds)
 
         // XCTAssertEqual(finds.count, Set(finds).count, "should be unique")
 
@@ -231,8 +236,10 @@ final class SearchRepositoryTests: XCTestCase {
         }
       }) { er in
         XCTAssertNil(er)
-        let wanted = UInt(32)
+        let first = Find.suggestedTerm(Suggestion(term: "a", ts: nil))
+        XCTAssertEqual(acc.first, first)
         
+        let wanted = UInt(32)
         XCTAssertEqual(found, wanted, "should find things sequentially")
         
         cb()

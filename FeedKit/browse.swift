@@ -34,10 +34,14 @@ class BrowseOperation: SessionTaskOperation {
     
     self.target = {
       guard let q = OperationQueue.current?.underlyingQueue else {
-        print("** target: falling back on main")
+        // TODO: Target iOS 10
+        if #available(iOS 10.0, *) {
+          os_log("no underlying queue", log: log,  type: .error)
+        } else {
+          // Fallback on earlier versions
+        }
         return DispatchQueue.main
       }
-      print("** target: \(q)")
       return q
     }()
   }

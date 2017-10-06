@@ -236,6 +236,8 @@ func suggestionsFromTerms(_ terms: [String]) -> [Suggestion] {
   return terms.map { Suggestion(term: $0, ts: nil) }
 }
 
+// TODO: Put original search term first
+
 // An operation to get search suggestions.
 private final class SuggestOperation: SearchRepoOperation {
 
@@ -253,7 +255,7 @@ private final class SuggestOperation: SearchRepoOperation {
   /// Stale suggestions from the cache.
   var stock: [Suggestion]?
 
-  /// This is `true` if a remote request is required.
+  /// This is `true` if a remote request is required, the default.
   var requestRequired: Bool = true
 
   // MARK: Internals
@@ -274,12 +276,8 @@ private final class SuggestOperation: SearchRepoOperation {
     target.sync { [unowned self] in
       guard !self.isCancelled else { return }
       guard let cb = self.perFindGroupBlock else { return }
-      
-      let candidates = Set(finds)
-      let diff = candidates.subtracting(self.dispatched)
-      self.dispatched.formUnion(diff)
-
-      cb(error as Error?, Array(diff))
+      cb(error as Error?, finds.filter { !self.dispatched.contains($0) })
+      self.dispatched.formUnion(finds)
     }
   }
 
