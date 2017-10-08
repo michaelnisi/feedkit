@@ -12,11 +12,6 @@ import Nuke
 import UIKit
 import os.log
 
-// MARK: - Logging
-
-@available(iOS 10.0, *)
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
-
 // Typealiasing Nuke.Cache to prevent collision with FeedKit.Cache.
 typealias ImageCache = Nuke.Cache
 
@@ -142,17 +137,22 @@ fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 
 public final class ImageRepository: Images {
   
+  private static var images_log: OSLog?
+  
   // TODO: Remove Singleton object
   
   public static var shared: Images = ImageRepository()
   
   fileprivate let preheater = Nuke.Preheater()
   
-  public init() {}
+  public init() {
+//    ImageRepository.images_log = OSLog(
+//      subsystem: "ink.codes.feedkit", category: "images")
+  }
   
   /// Synchronously loads an image for the specificied item and size.
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
-    if #available(iOS 10.0, *) {
+    if let log = ImageRepository.images_log {
       os_log("image for: %{public}@", log: log,  type: .debug,
              String(describing: item))
     }
@@ -191,8 +191,11 @@ public final class ImageRepository: Images {
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
-  public func loadImage(for item: Imaginable, into imageView: UIImageView, quality: ImageQuality? = nil) {
-    if #available(iOS 10.0, *) {
+  public func loadImage(
+    for item: Imaginable,
+    into imageView: UIImageView,
+    quality: ImageQuality? = nil) {
+    if let log = ImageRepository.images_log {
       os_log("image for: %{public}@", log: log,  type: .debug,
              String(describing: item.iTunes))
     }
@@ -200,7 +203,7 @@ public final class ImageRepository: Images {
     let size = imageView.frame.size
     
     guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {
-      if #available(iOS 10.0, *) {
+      if let log = ImageRepository.images_log {
         os_log("no image: %{public}@", log: log,  type: .error,
                String(describing: item))
       }
@@ -216,7 +219,7 @@ public final class ImageRepository: Images {
       
       guard let v = view else { return }
       
-      if #available(iOS 10.0, *) {
+      if let log = ImageRepository.images_log {
         os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
                url as CVarArg, size as CVarArg)
       }
