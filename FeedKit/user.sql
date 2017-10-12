@@ -46,7 +46,7 @@ create table if not exists feed(
 );
 
 create table if not exists subscribed_feed(
-  feed_guid int primary key,
+  feed_guid integer primary key,
   record_name text unique,
   ts datetime default current_timestamp
 );

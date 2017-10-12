@@ -191,18 +191,11 @@ extension UserLibrary: Subscribing {
 // MARK: - Updating
 
 extension UserLibrary: Updating {
-  
-  /// Updates subscribed feeds.
-  ///
-  /// - Parameters:
-  ///   - updateComplete: The block to execute when updating completes.
-  ///   - newData: `true` if new data has been received.
-  ///   - error: An error if something went wrong.
+
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    if #available(iOS 10.0, *) {
-      os_log("updating", log: log,  type: .info)
-    }
+    os_log("updating", log: log,  type: .info)
+    // TODO: Implement updating of subscribed feeds
     updateComplete(true, nil)
   }
   
@@ -288,30 +281,34 @@ private final class FetchQueueOperation: FeedKitOperation {
       
       dispatched = dispatched + queuedEntries
     }) { error in
+      defer {
+        self.target.async { [weak self] in
+          self?.done(but: error)
+        }
+      }
+      
       if error == nil {
-        // If we aren‘t offline and the service is OK, we can remove missing
-        // entries.
-        
-        // TODO: Browser should expose service health
+        // If we aren‘t offline and the remote service is OK, we can remove
+        // missing entries. A specific feed‘s server might be offline for a
+        // second, while the remote cache is cold, but well, tough luck.
         
         let found = dispatched.map { $0.guid }
         let wanted = locators.flatMap { $0.guid }
         let missing = wanted.filter { !found.contains($0) }
-        
-        print("** missing: \(missing)")
+
+        guard !missing.isEmpty else {
+          return
+        }
         
         do {
+          os_log("removing zombies: %{public}@", log: log, type: .debug,
+                 String(describing: missing))
           try self.cache.remove(guids: missing)
         } catch {
-          if #available(iOS 10.0, *) {
-            os_log("failed to remove missing: %{public}@", log: log,
-                   type: .error, String(describing: error))
-          }
+          os_log("failed to remove zombies: %{public}@", log: log, type: .error,
+                 String(describing: error))
+          
         }
-      }
-      
-      self.target.async { [weak self] in
-        self?.done(but: error)
       }
     }
   }

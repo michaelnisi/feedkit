@@ -681,8 +681,14 @@ public protocol Queueing {
 // MARK: - Updating
 
 public protocol Updating {
-  func update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
+  
+  /// Updates subscribed entries of subscribed feeds.
+  ///
+  /// - Parameters:
+  ///   - updateComplete: The completion block to apply when done.
+  ///   - newData: `true` if new data has been received.
+  ///   - error: An if something went wrong.
+  func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
 }
 
 // MARK: - Subscribing
@@ -789,6 +795,7 @@ public protocol UserCacheSyncing: QueueCaching {
   func zombieRecords() throws -> [String : String]
 
   func deleteZombies() throws
+  // TODO: func deleteAll() throws
 }
 
 // MARK: - Internal
