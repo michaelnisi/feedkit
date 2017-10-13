@@ -30,15 +30,6 @@ create table if not exists feed(
   url text primary key
 );
 
-create table if not exists itunes(
-  feed_guid int primary key,
-  img100 text,
-  img30 text,
-  img60 text,
-  img600 text,
-  itunes_id int unique
-);
-
 create trigger if not exists feed_ts after update on feed for each row begin
   update feed set ts = current_timestamp where rowid = old.rowid;
 end;
@@ -123,7 +114,7 @@ create table if not exists entry(
   url text
 );
 
-create unique index if not exists entry_guid_idx on entry(guid);
+create index if not exists entry_feedid_idx on entry(feedid);
 
 create virtual table if not exists entry_fts using fts4(
   content="entry",

@@ -312,8 +312,8 @@ extension FeedRepositoryTests {
     // A very brittle test, the publisher might remove the entry with this
     // GUID at any time. If it fails, replace guid with an existing one.
     
-    let url = "http://feeds.wnyc.org/newyorkerradiohour"
-    let id = "eee61768a48783c62756edd481a0364129c65be0"
+    let url = "http://feeds.gimletmedia.com/homecomingshow"
+    let id = "9dfdaf50-9ed8-11e6-8031-db4a6a0ebe91"
     let guid = entryGUID(for: id, at: url)
     let locators = [EntryLocator(url: url, guid: guid)]
     

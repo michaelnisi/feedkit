@@ -12,36 +12,36 @@ pragma user_version = 1;
 begin immediate;
 
 create table if not exists record(
-  record_name text primary key,
+  record_name text unique primary key,
   zone_name text not null,
   change_tag text
 ) without rowid;
 
 create table if not exists entry(
-  entry_guid text primary key,
+  entry_guid text unique primary key,
   since datetime,
   title text,
   url text not null
 ) without rowid;
 
 create table if not exists queued_entry(
-  entry_guid text primary key,
+  entry_guid text unique primary key,
   ts datetime default current_timestamp,
   record_name text unique
 ) without rowid;
-
-create unique index if not exists queued_entry_idx on queued_entry(record_name);
 
 create table if not exists prev_entry(
-  entry_guid text primary key,
+  entry_guid text unique primary key,
   ts datetime default current_timestamp,
   record_name text unique
 ) without rowid;
-
-create unique index if not exists prev_entry_idx on prev_entry(record_name);
 
 create table if not exists feed(
   feed_guid integer primary key,
+  img100 text,
+  img30 text,
+  img60 text,
+  img600 text,
   url text
 );
 
@@ -50,8 +50,6 @@ create table if not exists subscribed_feed(
   record_name text unique,
   ts datetime default current_timestamp
 );
-
-create unique index if not exists subscribed_feed_idx on subscribed_feed(record_name);
 
 create trigger if not exists record_ad after delete on record begin
   delete from queued_entry where record_name = old.record_name;
