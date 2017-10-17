@@ -106,7 +106,7 @@ extension UserCacheTests {
     let record = RecordMetadata(
       zoneName: zoneName, recordName: recordName, changeTag: "e")
     let url = "http://abc.de"
-    let guid = entryGUID(for: "123456789", at: url)
+    let guid = "abc"
     let loc = EntryLocator(url: url, guid: guid)
     let s = Synced.entry(loc, Date(), record)
   
@@ -164,10 +164,11 @@ extension UserCacheTests {
   func testAddSubscriptions() {
     try! cache.add(subscriptions: [])
     
-    let s = Subscription(url: "http:/abc.de")
+    let url = "http:/abc.de"
+    let s = Subscription(url: url)
     let subscriptions = [s]
     
-    XCTAssertFalse(try! cache.has(s.feedID))
+    XCTAssertFalse(try! cache.has(url))
     
     do {
       try! cache.add(subscriptions: subscriptions)
@@ -175,7 +176,7 @@ extension UserCacheTests {
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
       
-      XCTAssert(try! cache.has(s.feedID))
+      XCTAssert(try! cache.has(url))
       XCTAssertNotNil(found.first?.ts)
     }
   }
@@ -183,7 +184,8 @@ extension UserCacheTests {
   func testRemoveSubscriptions() {
     try! cache.remove(subscriptions: [])
     
-    let s = Subscription(url: "http:/abc.de")
+    let url = "http:/abc.de"
+    let s = Subscription(url: url)
     let subscriptions = [s]
     
     do {
@@ -191,7 +193,7 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
-      XCTAssert(try! cache.has(s.feedID))
+      XCTAssert(try! cache.has(url))
     }
     
     do {
@@ -199,7 +201,7 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = [Subscription]()
       XCTAssertEqual(found, wanted)
-      XCTAssertFalse(try! cache.has(s.feedID))
+      XCTAssertFalse(try! cache.has(url))
     }
     
   }

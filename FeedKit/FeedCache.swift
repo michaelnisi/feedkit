@@ -10,11 +10,15 @@ import Foundation
 import Skull
 import os.log
 
-// TODO: Harmonize implementation and style
+// TODO: Compare NSValue vs StructValue
 
-// MARK: - Logging
+class StructValue<T>: NSObject {
+  let value: T
+  init(_ value: T) {
+    self.value = value
+  }
+}
 
-@available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 
 public final class FeedCache: LocalCache {
@@ -25,14 +29,15 @@ public final class FeedCache: LocalCache {
   // TODO: Replace noSearch Dictionary with NSCache
   fileprivate var noSearch = [String : Date]()
   
-  fileprivate var feedIDsCache = NSCache<NSString, NSNumber>()
+  fileprivate var feedIDsCache = NSCache<NSString, StructValue<FeedID>>()
   
-  fileprivate func cachedFeedID(for url: String) -> Int? {
-    return feedIDsCache.object(forKey: url as NSString) as? Int
+  fileprivate func cachedFeedID(for url: String) -> FeedID? {
+    return feedIDsCache.object(forKey: url as NSString)?.value
   }
   
-  fileprivate func cache(feedID: Int, for url: String) -> Int {
-    feedIDsCache.setObject(feedID as NSNumber, forKey: url as NSString)
+  fileprivate func cache(feedID: FeedID, for url: String) -> FeedID {
+    let obj = StructValue<FeedID>(feedID)
+    feedIDsCache.setObject(obj, forKey: url as NSString)
     return feedID
   }
   
@@ -43,22 +48,26 @@ public final class FeedCache: LocalCache {
   /// Returns the local feed identifier, its rowid in the database feed table,
   /// for the given URL. Retrieved identifiers are being cached in memory, for
   /// faster access, although this should probably be measured for prove.
-  func feedID(for url: String) throws -> Int {
+  func feedID(for url: String) throws -> FeedID {
     if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
     }
     
     var er: Error?
-    var id: Int?
+    var id: FeedID?
     let sql = SQLFormatter.SQLToSelectFeedIDFromURLView(url)
+    let fmt = self.sqlFormatter
     
     try db.query(sql) { error, row in
-      guard error == nil else {
-        er = error!
+      guard error == nil, let r = row else {
+        er = error ?? FeedKitError.unexpectedDatabaseRow
         return 1
       }
-      if let r = row {
-        id = r["feedid"] as? Int
+      do {
+        id = try fmt.feedID(from: r)
+      } catch {
+        er = error
+        return 1
       }
       return 0
     }
@@ -200,13 +209,10 @@ extension FeedCache: FeedCaching {
       let sql = try feeds.reduce([String]()) { acc, feed in
         do {
           let feedID = try self.feedID(for: feed.url)
-          return acc + [self.sqlFormatter.SQLToUpdateFeed(feed, withID: feedID)]
+          return acc + [self.sqlFormatter.SQLToUpdate(feed: feed, with: feedID)]
         } catch FeedKitError.feedNotCached {
-          
-          // TODO: Use feed guid
-          
           guard let guid = feed.iTunes?.iTunesID else {
-            return acc + [self.sqlFormatter.SQLToInsertFeed(feed)]
+            return acc + [self.sqlFormatter.SQLToInsert(feed: feed)]
           }
           
           // Removing feed with this guid before inserting, to avoid doublets
@@ -215,16 +221,14 @@ extension FeedCache: FeedCaching {
           //
           // unhandled error: Skull: 19: UNIQUE constraint failed: feed.guid
           
-          if #available(iOS 10.0, *) {
-            os_log("replacing feed with guid: %{public}@",
-                   log: log,
-                   type: .debug,
-                   String(describing: guid))
-          }
+          os_log("replacing feed with iTunes guid: %{public}@",
+                 log: log, type: .debug, String(describing: guid))
+
+          // TODO: Use feedID to remove feed
           
           return acc + [
             SQLFormatter.toRemoveFeed(with: guid),
-            self.sqlFormatter.SQLToInsertFeed(feed)
+            self.sqlFormatter.SQLToInsert(feed: feed)
           ]
         }
         }.joined(separator: "\n")
@@ -238,10 +242,10 @@ extension FeedCache: FeedCaching {
   /// - Parameter urls: An array of feed URL strings.
   ///
   /// - Returns: An array of feeds currently in the cache.
-  func feedIDsForURLs(_ urls: [String]) throws -> [String : Int]? {
+  func feedIDsForURLs(_ urls: [String]) throws -> [String : FeedID]? {
     assert(!urls.isEmpty)
     
-    var result = [String : Int]()
+    var result = [String : FeedID]()
     try urls.forEach { url in
       do {
         let feedID = try self.feedID(for: url)
@@ -267,7 +271,7 @@ extension FeedCache: FeedCaching {
         return []
       }
       let feedIDs = dicts.map { $0.1 }
-      guard let sql = SQLFormatter.SQLToSelectFeedsByFeedIDs(feedIDs) else {
+      guard let sql = SQLFormatter.SQLToSelectFeeds(by: feedIDs) else {
         return []
       }
       let formatter = self.sqlFormatter
@@ -281,19 +285,23 @@ extension FeedCache: FeedCaching {
     return true
   }
   
-  /// Update entries in the cache, inserting new ones.
+  /// Updates entries of cached feeds, adding new ones.
   ///
   /// - Parameter entries: An array of entries to be cached.
   ///
   /// - Throws: You cannot update entries of feeds that are not cached yet,
-  /// if you do, this method will throw `FeedKitError.FeedNotCached`,
+  /// if you do, this method will throw `FeedKitError.feedNotCached`,
   /// containing the respective URLs.
   public func update(entries: [Entry]) throws {
+    guard !entries.isEmpty else {
+      return
+    }
+    
     try queue.sync {
       var unidentified = [String]()
       
       let sql = entries.reduce([String]()) { acc, entry in
-        var feedID: Int?
+        var feedID: FeedID?
         do {
           feedID = try self.feedID(for: entry.feed)
         } catch {
@@ -304,8 +312,8 @@ extension FeedCache: FeedCaching {
           return acc
         }
         let formatter = self.sqlFormatter
-        return acc + [formatter.SQLToInsertEntry(entry, forFeedID: feedID!)]
-        }.joined(separator: "\n")
+        return acc + [formatter.SQLToInsert(entry: entry, for: feedID!)]
+      }.joined(separator: "\n")
       
       if sql != "\n" {
         try self.db.exec(sql)
@@ -334,7 +342,7 @@ extension FeedCache: FeedCaching {
         return []
       }
       
-      let specs = locators.reduce([(Int, Date)]()) { acc, interval in
+      let intervals = locators.reduce([(FeedID, Date)]()) { acc, interval in
         let url = interval.url
         let since = interval.since
         if let feedID = feedIDsByURLs[url] {
@@ -345,7 +353,7 @@ extension FeedCache: FeedCaching {
       }
       
       let formatter = self.sqlFormatter
-      guard let sql = formatter.SQLToSelectEntriesByIntervals(specs) else {
+      guard let sql = formatter.SQLToSelectEntries(within: intervals) else {
         return []
       }
       
@@ -354,6 +362,8 @@ extension FeedCache: FeedCaching {
       return entries ?? []
     }
   }
+  
+  // TODO: Cache entryIDs too (by guids)
   
   /// Selects entries with matching guids.
   ///
@@ -364,7 +374,6 @@ extension FeedCache: FeedCaching {
   /// - Throws: Might throw database errors.
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
-      // TODO: Consider renaming to entries(having guids:)
       let chunks = FeedCache.slice(elements: guids, with: 512)
       
       return try chunks.reduce([Entry]()) { acc, guids in
@@ -388,7 +397,7 @@ extension FeedCache: FeedCaching {
     try queue.sync {
       guard let dicts = try self.feedIDsForURLs(urls) else { return }
       let feedIDs = dicts.map { $0.1 }
-      guard let sql = SQLFormatter.SQLToRemoveFeedsWithFeedIDs(feedIDs) else {
+      guard let sql = SQLFormatter.SQLToRemoveFeeds(with: feedIDs) else {
         throw FeedKitError.sqlFormatting
       }
       try db.exec(sql)
@@ -462,7 +471,7 @@ extension FeedCache: SearchCaching {
       do {
         let delete = SQLFormatter.SQLToDeleteSearch(for: term)
         let insert = try feeds.reduce([String]()) { acc, feed in
-          let feedID: Int
+          let feedID: FeedID
           do {
             feedID = try feed.uid ?? self.feedID(for: feed.url)
           } catch {
@@ -475,7 +484,7 @@ extension FeedCache: SearchCaching {
             default: throw error
             }
           }
-          return acc + [SQLFormatter.SQLToInsertFeedID(feedID, forTerm: term)]
+          return acc + [SQLFormatter.SQLToInsert(feedID: feedID, for: term)]
           }.joined(separator: "\n")
         
         let sql = [

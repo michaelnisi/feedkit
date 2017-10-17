@@ -130,7 +130,6 @@ final class SerializeTests: XCTestCase {
     let dict = ["feed": "http://abc.DE/hellO", "title": "A title"]
     let wanted = Feed(
       author: nil,
-      guid: 123,
       iTunes: nil,
       image: nil,
       link: nil,
@@ -150,7 +149,6 @@ final class SerializeTests: XCTestCase {
     let dict = ["feed": "http://abc.de", "title": "A title"]
     let wanted = [Feed(
       author: nil,
-      guid: 123,
       iTunes: nil,
       image: nil,
       link: nil,
@@ -172,15 +170,14 @@ final class SerializeTests: XCTestCase {
     let feed = "abc"
     let title = "Giant Robots"
     let updated = Date(timeIntervalSince1970: 3600)
+    let guid = "123"
     
     let dict = [
       "url": feed,
-      "id": "123",
+      "id": guid,
       "title": title,
       "updated": NSNumber(value: 3600000 as Double) // ms
     ] as [String : Any]
-    
-    let guid = entryGUID(for: "123", at: feed)
     
     let entry = Entry(
       author: nil,

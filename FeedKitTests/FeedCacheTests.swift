@@ -58,7 +58,7 @@ final class FeedCacheTests: XCTestCase {
       feed = feeds.first!
       url = feed!.url
       let found = try! cache.feedID(for: url!)
-      let wanted = 1
+      let wanted = FeedID(rowid: 1, url: url!)
       XCTAssertEqual(found, wanted)
     }
 
@@ -79,7 +79,7 @@ final class FeedCacheTests: XCTestCase {
     do {
       try! cache.update(feeds: [feed!])
       let found = try! cache.feedID(for: url!)
-      let wanted = 11
+      let wanted = FeedID(rowid: 11, url: url!)
       XCTAssertEqual(found, wanted)
     }
   }
@@ -94,14 +94,14 @@ extension FeedCacheTests {
     let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c",
                             img600: "d")
     
-    let a = Feed(author: nil, guid: 123, iTunes: iTunes, image: nil, link: nil,
+    let a = Feed(author: nil, iTunes: iTunes, image: nil, link: nil,
                  originalURL: "abc", summary: nil, title: "Title", ts: nil,
                  uid: nil, updated: nil, url: "abc")
     
     try! cache.update(feeds: [a])
     
     do {
-      let b = Feed(author: nil, guid: 123, iTunes: nil, image: nil, link: nil,
+      let b = Feed(author: nil, iTunes: nil, image: nil, link: nil,
                    originalURL: "abc", summary: nil, title: "Title", ts: nil,
                    uid: nil, updated: nil, url: "abc")
       
@@ -112,7 +112,7 @@ extension FeedCacheTests {
     }
     
     do {
-      let c = Feed(author: "not null", guid: 123, iTunes: nil, image: nil, link: nil,
+      let c = Feed(author: "not null", iTunes: nil, image: nil, link: nil,
                    originalURL: "abc", summary: nil, title: "Title", ts: nil,
                    uid: nil, updated: nil, url: "abc")
       
@@ -184,8 +184,6 @@ extension FeedCacheTests {
     let feeds = try! feedsFromFile()
     try! cache.update(feeds: feeds)
 
-    dump(Bundle(for: self.classForCoder).bundleIdentifier)
-    
     let entries = try! entriesFromFile()
     try! cache.update(entries: entries)
 

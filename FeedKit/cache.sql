@@ -15,8 +15,8 @@ begin immediate;
 
 create table if not exists feed(
   author text,
-  feed_guid int unique not null,
-  guid int unique, -- itunes
+  feed_id integer primary key,
+  itunes_guid int unique,
   img text,
   img100 text, -- itunes
   img30 text, -- itunes
@@ -27,7 +27,7 @@ create table if not exists feed(
   title text not null,
   ts datetime default current_timestamp,
   updated datetime,
-  url text primary key
+  url text not null unique
 );
 
 create trigger if not exists feed_ts after update on feed for each row begin
@@ -47,9 +47,9 @@ create trigger if not exists feed_bu before update on feed begin
 end;
 
 create trigger if not exists feed_bd before delete on feed begin
-  delete from entry where feedid = old.rowid;
+  delete from entry where feed_id = old.rowid;
   delete from feed_fts where docid = old.rowid;
-  delete from search where feedid = old.rowid;
+  delete from search where feed_id = old.rowid;
 end;
 
 create trigger if not exists feed_au after update on feed begin
@@ -70,29 +70,10 @@ create trigger if not exists feed_ai after insert on feed begin
   );
 end;
 
-create view if not exists feed_view
-as select
-  author,
-  feed_guid,
-  guid,
-  img,
-  img100,
-  img30,
-  img60,
-  img600,
-  link,
-  rowid uid,
-  summary,
-  title,
-  ts,
-  updated,
-  url
-from feed;
-
 create view if not exists url_view
 as select
   f.url,
-  f.rowid feedid
+  f.rowid feed_id
 from feed f;
 
 -- Entries
@@ -100,8 +81,9 @@ from feed f;
 create table if not exists entry(
   author text,
   duration int,
-  feedid int not null,
-  guid text not null unique,
+  entry_id integer primary key,
+  feed_id int not null,
+  entry_guid text not null unique,
   img text,
   length int,
   link text,
@@ -114,7 +96,7 @@ create table if not exists entry(
   url text
 );
 
-create index if not exists entry_feedid_idx on entry(feedid);
+create index if not exists entry_feed_id_idx on entry(feed_id);
 
 create virtual table if not exists entry_fts using fts4(
   content="entry",
@@ -157,11 +139,11 @@ create view if not exists entry_view
 as select
   e.author,
   e.duration,
-  e.guid,
+  e.entry_guid,
+  e.entry_id,
   e.img,
   e.length,
   e.link,
-  e.rowid uid,
   e.subtitle,
   e.summary,
   e.title,
@@ -170,16 +152,16 @@ as select
   e.updated,
   e.url,
   f.author feed_author,
-  f.guid feed_guid,
+  f.feed_id,
   f.img feed_image,
   f.img100,
   f.img30,
   f.img60,
   f.img600,
-  f.rowid feedid,
+  f.itunes_guid,
   f.title feed_title,
   f.url feed
-from feed f inner join entry e on f.rowid = e.feedid;
+from feed f inner join entry e on f.rowid = e.feed_id;
 
 -- Suggestions
 
@@ -217,14 +199,14 @@ end;
 -- Searching
 
 create table if not exists search(
-  feedid int not null,
+  feed_id int not null,
   term text not null collate nocase,
   ts datetime default current_timestamp
 );
 
 create virtual table if not exists search_fts using fts4(
   content="search",
-  feedid,
+  feed_id,
   term
 );
 
@@ -255,21 +237,20 @@ end;
 create view if not exists search_view
 as select
   f.author,
-  f.feed_guid,
-  f.guid,
+  f.itunes_guid,
   f.img,
   f.img100,
   f.img30,
   f.img60,
   f.img600,
   f.link,
-  f.rowid uid,
+  f.feed_id,
   f.summary,
   f.title,
   f.updated,
   f.url,
   s.rowid searchid,
   s.ts
-from feed f inner join search s on f.rowid = s.feedid;
+from feed f inner join search s on f.rowid = s.feed_id;
 
 commit;

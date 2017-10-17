@@ -313,9 +313,8 @@ extension FeedRepositoryTests {
     // GUID at any time. If it fails, replace guid with an existing one.
     
     let url = "http://feeds.gimletmedia.com/homecomingshow"
-    let id = "9dfdaf50-9ed8-11e6-8031-db4a6a0ebe91"
-    let guid = entryGUID(for: id, at: url)
-    let locators = [EntryLocator(url: url, guid: guid)]
+    let guid = "6e80b95c2e64f995252fd18b22fc964a5f401b45"
+    let locators = [EntryLocator(url: url, guid: guid).including]
     
     var acc = [Entry]()
     
@@ -340,7 +339,7 @@ extension FeedRepositoryTests {
     let repo = self.repo!
     
     let url = "http://feeds.wnyc.org/newyorkerradiohour"
-    let guid = entryGUID(for: UUID().uuidString, at: url)
+    let guid = "hello, here dawg!"
     let locators = [EntryLocator(url: url, guid: guid)]
     
     repo.entries(locators, entriesBlock: { error, entries in
@@ -530,7 +529,7 @@ extension FeedRepositoryTests {
     }
     
     do {
-      let guid = entryGUID(for: "123", at: url)
+      let guid = "abc"
       let locator = EntryLocator(url: url, guid: guid)
       let locators = [locator, locator]
       let (entries, missing) =

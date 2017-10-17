@@ -23,13 +23,13 @@
 		4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */; };
 		4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F091EF2C77600B090EF /* images.swift */; };
 		4E5C0F0C1EF2C80200B090EF /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E5C0F0B1EF2C80200B090EF /* Nuke.framework */; };
-		4E5C0F171EF39AA800B090EF /* hash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F161EF39AA800B090EF /* hash.swift */; };
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
 		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
 		4E7D10B11F6256CA0048CB43 /* UserLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7D10B01F6256CA0048CB43 /* UserLibraryTests.swift */; };
-		4EB7EE471F5E8B0500F418D5 /* HashTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB7EE461F5E8B0500F418D5 /* HashTests.swift */; };
 		4EB7EE491F5E8F9F00F418D5 /* FeedCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB7EE481F5E8F9F00F418D5 /* FeedCache.swift */; };
+		4ED2D6BB1F960C41000DA71B /* hash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED2D6BA1F960C41000DA71B /* hash.swift */; };
+		4ED2D6BD1F960D30000DA71B /* HashTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED2D6BC1F960D30000DA71B /* HashTests.swift */; };
 		4ED56CEC1F32DB4300BEC83C /* cache.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4ED56CEB1F32DB4300BEC83C /* cache.sql */; };
 		4ED56CED1F32DB7300BEC83C /* cache.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4ED56CEB1F32DB4300BEC83C /* cache.sql */; };
 		4EF5E0EC1E91370900A95D3D /* FeedKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4EF5E0EA1E9136D200A95D3D /* FeedKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -85,13 +85,13 @@
 		4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QueueTests.swift; sourceTree = "<group>"; };
 		4E5C0F091EF2C77600B090EF /* images.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = images.swift; sourceTree = "<group>"; };
 		4E5C0F0B1EF2C80200B090EF /* Nuke.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Nuke.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphonesimulator/Nuke.framework"; sourceTree = "<group>"; };
-		4E5C0F161EF39AA800B090EF /* hash.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = hash.swift; sourceTree = "<group>"; };
 		4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FanboyKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/FanboyKit.framework"; sourceTree = "<group>"; };
 		4E7B1D831E3D12D900B7F229 /* MangerKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MangerKit.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/MangerKit.framework"; sourceTree = "<group>"; };
 		4E7B1D841E3D12D900B7F229 /* Ola.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Ola.framework; path = "../../Library/Developer/Xcode/DerivedData/podest-cxrwkbilpoiklmejexzjehpjqzub/Build/Products/Debug-iphoneos/Ola.framework"; sourceTree = "<group>"; };
 		4E7D10B01F6256CA0048CB43 /* UserLibraryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserLibraryTests.swift; sourceTree = "<group>"; };
-		4EB7EE461F5E8B0500F418D5 /* HashTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HashTests.swift; sourceTree = "<group>"; };
 		4EB7EE481F5E8F9F00F418D5 /* FeedCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedCache.swift; sourceTree = "<group>"; };
+		4ED2D6BA1F960C41000DA71B /* hash.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = hash.swift; sourceTree = "<group>"; };
+		4ED2D6BC1F960D30000DA71B /* HashTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HashTests.swift; sourceTree = "<group>"; };
 		4ED56CEB1F32DB4300BEC83C /* cache.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cache.sql; sourceTree = "<group>"; };
 		4EF5E0EA1E9136D200A95D3D /* FeedKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FeedKit.h; sourceTree = "<group>"; };
 		4EF5E0F11E91389F00A95D3D /* FeedKitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedKitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -145,6 +145,7 @@
 			children = (
 				4EF5E0EA1E9136D200A95D3D /* FeedKit.h */,
 				4C3485B11977C2BD008A6B53 /* index.swift */,
+				4ED2D6BA1F960C41000DA71B /* hash.swift */,
 				4C372BF81A08133F00D22A9A /* cache.swift */,
 				4C0549D41A8BDD5700104B3E /* browse.swift */,
 				4CCC8C981C0598F100120D07 /* search.swift */,
@@ -155,7 +156,6 @@
 				4CA3D31D1A89E78900CA58E9 /* serialize.swift */,
 				4CDA594A1BDF4E8B00EA7780 /* sql.swift */,
 				4E5C0F091EF2C77600B090EF /* images.swift */,
-				4E5C0F161EF39AA800B090EF /* hash.swift */,
 				4C3485981977C236008A6B53 /* Supporting Files */,
 			);
 			path = FeedKit;
@@ -183,7 +183,7 @@
 				4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */,
 				4E7D10B01F6256CA0048CB43 /* UserLibraryTests.swift */,
 				4CDA594D1BE340AB00EA7780 /* SQLTests.swift */,
-				4EB7EE461F5E8B0500F418D5 /* HashTests.swift */,
+				4ED2D6BC1F960D30000DA71B /* HashTests.swift */,
 				4C3485A51977C237008A6B53 /* Supporting Files */,
 			);
 			path = FeedKitTests;
@@ -334,6 +334,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C0549D51A8BDD5700104B3E /* browse.swift in Sources */,
+				4ED2D6BB1F960C41000DA71B /* hash.swift in Sources */,
 				4C372BF91A08133F00D22A9A /* cache.swift in Sources */,
 				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,
 				4E2AEB651F59666D004BC34A /* UserCache.swift in Sources */,
@@ -342,7 +343,6 @@
 				4C74A6E41F06BC6500951796 /* queue.swift in Sources */,
 				4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */,
 				4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */,
-				4E5C0F171EF39AA800B090EF /* hash.swift in Sources */,
 				4EB7EE491F5E8F9F00F418D5 /* FeedCache.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
 			);
@@ -358,10 +358,10 @@
 				4EF5E1001E91390800A95D3D /* SearchRepositoryTests.swift in Sources */,
 				4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */,
 				4EF5E0FE1E91390800A95D3D /* SerializeTests.swift in Sources */,
-				4EB7EE471F5E8B0500F418D5 /* HashTests.swift in Sources */,
 				4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */,
 				4E7D10B11F6256CA0048CB43 /* UserLibraryTests.swift in Sources */,
 				4EF5E0FD1E91390800A95D3D /* common.swift in Sources */,
+				4ED2D6BD1F960D30000DA71B /* HashTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -404,7 +404,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -463,7 +463,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Distribution";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -493,11 +493,11 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 11;
+				DYLIB_CURRENT_VERSION = 12;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;
@@ -520,11 +520,11 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "";
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = "";
 				DYLIB_COMPATIBILITY_VERSION = $CURRENT_PROJECT_VERSION;
-				DYLIB_CURRENT_VERSION = 11;
+				DYLIB_CURRENT_VERSION = 12;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;

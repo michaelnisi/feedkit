@@ -44,6 +44,7 @@ final class SQLFormatter {
   /// Returns a date from an SQLite datetime timestamp string.
   ///
   /// - Parameter string: A `'yyyy-MM-dd HH:mm:ss'` formatted timestamp.
+  ///
   /// - Returns: A date or `nil`.
   func date(from string: String?) -> Date? {
     guard let str = string else {
@@ -52,121 +53,8 @@ final class SQLFormatter {
     return df.date(from: str)
   }
 
-  func SQLToInsertFeed(_ feed: Feed) -> String {
-    let author = stringFromAny(feed.author)
-    let feedGUID = feed.guid
-    let guid = stringFromAny(feed.iTunes?.iTunesID)
-    let img = stringFromAny(feed.image)
-    let img100 = stringFromAny(feed.iTunes?.img100)
-    let img30 = stringFromAny(feed.iTunes?.img30)
-    let img60 = stringFromAny(feed.iTunes?.img60)
-    let img600 = stringFromAny(feed.iTunes?.img600)
-    let link = stringFromAny(feed.link)
-    let summary = stringFromAny(feed.summary)
-    let title = stringFromAny(feed.title)
-    let updated = stringFromAny(feed.updated)
-    let url = stringFromAny(feed.url)
-
-    let sql =
-    "INSERT INTO feed(" +
-    "author, feed_guid, guid, " +
-    "img, img100, img30, img60, img600, " +
-    "link, summary, title, updated, url) VALUES(" +
-    "\(author), \(feedGUID), \(guid), " +
-    "\(img), \(img100), \(img30), \(img60), \(img600), " +
-    "\(link), \(summary), \(title), \(updated), \(url)" +
-    ");"
-
-    return sql
-  }
-
-  private func column(name: String, value: String, keep: Bool = false) -> String? {
-    guard keep else {
-      return "\(name) = \(value)"
-    }
-    return value != "NULL" ? "\(name) = \(value)" : nil
-  }
-
-  func SQLToUpdateFeed(_ feed: Feed, withID rowid: Int) -> String {
-    let author = stringFromAny(feed.author)
-    let feedGUID = stringFromAny(feed.guid)
-    let guid = stringFromAny(feed.iTunes?.iTunesID)
-    let img = stringFromAny(feed.image)
-    let img100 = stringFromAny(feed.iTunes?.img100)
-    let img30 = stringFromAny(feed.iTunes?.img30)
-    let img60 = stringFromAny(feed.iTunes?.img60)
-    let img600 = stringFromAny(feed.iTunes?.img600)
-    let link = stringFromAny(feed.link)
-    let summary = stringFromAny(feed.summary)
-    let title = stringFromAny(feed.title)
-    let updated = stringFromAny(feed.updated)
-    let url = stringFromAny(feed.url)
-
-    let props = [
-      ("author", author),
-      ("feed_guid", feedGUID),
-      ("guid", guid),
-      ("img", img),
-      ("img100", img100),
-      ("img30", img30),
-      ("img60", img60),
-      ("img600", img600),
-      ("link", link),
-      ("summary", summary),
-      ("title", title),
-      ("updated", updated),
-      ("url", url)
-    ]
-
-    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
-    // contain URLs of the prescaled images. We don’t want to explicitly
-    // set these to 'NULL'.
-    let kept = ["guid", "img100", "img30", "img60", "img600"]
-
-    let vars = props.reduce([String]()) { acc, prop in
-      let (name, value) = prop
-      let keep = kept.contains(name)
-      guard let col = column(name: name, value: value, keep: keep) else {
-        return acc
-      }
-      return acc + [col]
-
-    }.joined(separator: ", ")
-
-    let sql = "UPDATE feed SET \(vars) WHERE rowid = \(rowid);"
-
-    return sql
-  }
-
-  func SQLToInsertEntry(_ entry: Entry, forFeedID feedID: Int) -> String {
-    let author = stringFromAny(entry.author)
-    let duration = stringFromAny(entry.duration)
-    let feedid = stringFromAny(feedID)
-    let guid = SQLFormatter.SQLString(from: entry.guid) // TODO: Review
-    let img = stringFromAny(entry.image)
-    let length = stringFromAny(entry.enclosure?.length)
-    let link = stringFromAny(entry.link)
-    let subtitle = stringFromAny(entry.subtitle)
-    let summary = stringFromAny(entry.summary)
-    let title = stringFromAny(entry.title)
-
-    let type = stringFromAny(entry.enclosure?.type.rawValue)
-    let updated = stringFromAny(entry.updated)
-    let url = stringFromAny(entry.enclosure?.url)
-
-    let sql =
-    "INSERT OR REPLACE INTO entry(" +
-    "author, duration, feedid, guid, img, length, " +
-    "link, subtitle, summary, title, type, updated, url) VALUES(" +
-    "\(author), \(duration), \(feedid), \(guid), \(img), \(length), " +
-    "\(link), \(subtitle), \(summary), \(title), \(type), \(updated), \(url)" +
-    ");"
-    return sql
-  }
-
-  // TODO: Rename to string(from:)
-
-  func stringFromAny(_ obj: Any?) -> String {
+  /// Produces an SQL formatted strings.
+  func SQLString(from obj: Any?) -> String {
     switch obj {
     case nil:
       return "NULL"
@@ -183,18 +71,132 @@ final class SQLFormatter {
     }
   }
 
-  // TODO: Add parameters for paging: DESC LIMIT 25
+  func SQLToInsert(feed: Feed) -> String {
+    let author = SQLString(from: feed.author)
+    let guid = SQLString(from: feed.iTunes?.iTunesID)
+    let img = SQLString(from: feed.image)
+    let img100 = SQLString(from: feed.iTunes?.img100)
+    let img30 = SQLString(from: feed.iTunes?.img30)
+    let img60 = SQLString(from: feed.iTunes?.img60)
+    let img600 = SQLString(from: feed.iTunes?.img600)
+    let link = SQLString(from: feed.link)
+    let summary = SQLString(from: feed.summary)
+    let title = SQLString(from: feed.title)
+    let updated = SQLString(from: feed.updated)
+    let url = SQLString(from: feed.url)
 
-  func SQLToSelectEntriesByIntervals(_ intervals: [(Int, Date)]) -> String? {
+    return """
+    INSERT INTO feed(
+      author, itunes_guid, img, img100, img30, img60, img600,
+      link, summary, title, updated, url
+    ) VALUES(
+      \(author), \(guid), \(img), \(img100), \(img30), \(img60), \(img600),
+      \(link), \(summary), \(title), \(updated), \(url)
+    );
+    """
+  }
+
+  private func column(name: String, value: String, keep: Bool = false) -> String? {
+    guard keep else {
+      return "\(name) = \(value)"
+    }
+    return value != "NULL" ? "\(name) = \(value)" : nil
+  }
+
+  func SQLToUpdate(feed: Feed, with feedID: FeedID) -> String {
+    let author = SQLString(from: feed.author)
+    let guid = SQLString(from: feed.iTunes?.iTunesID)
+    let img = SQLString(from: feed.image)
+    let img100 = SQLString(from: feed.iTunes?.img100)
+    let img30 = SQLString(from: feed.iTunes?.img30)
+    let img60 = SQLString(from: feed.iTunes?.img60)
+    let img600 = SQLString(from: feed.iTunes?.img600)
+    let link = SQLString(from: feed.link)
+    let summary = SQLString(from: feed.summary)
+    let title = SQLString(from: feed.title)
+    let updated = SQLString(from: feed.updated)
+    let url = SQLString(from: feed.url)
+
+    let props = [
+      ("author", author),
+      ("itunes_guid", guid),
+      ("img", img),
+      ("img100", img100),
+      ("img30", img30),
+      ("img60", img60),
+      ("img600", img600),
+      ("link", link),
+      ("summary", summary),
+      ("title", title),
+      ("updated", updated),
+      ("url", url)
+    ]
+
+    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
+    // contain URLs of the prescaled images. We don’t want to explicitly
+    // set these to 'NULL'.
+    let kept = ["itunes_guid", "img100", "img30", "img60", "img600"]
+
+    let vars = props.reduce([String]()) { acc, prop in
+      let (name, value) = prop
+      let keep = kept.contains(name)
+      guard let col = column(name: name, value: value, keep: keep) else {
+        return acc
+      }
+      return acc + [col]
+
+    }.joined(separator: ", ")
+
+    let sql = "UPDATE feed SET \(vars) WHERE feed_id = \(feedID.rowid);"
+
+    return sql
+  }
+
+  func SQLToInsert(entry: Entry, for feedID: FeedID) -> String {
+    let author = SQLString(from: entry.author)
+    let duration = SQLString(from: entry.duration)
+    let guid = SQLFormatter.SQLString(from: entry.guid)
+    let img = SQLString(from: entry.image)
+    let length = SQLString(from: entry.enclosure?.length)
+    let link = SQLString(from: entry.link)
+    let subtitle = SQLString(from: entry.subtitle)
+    let summary = SQLString(from: entry.summary)
+    let title = SQLString(from: entry.title)
+
+    let type = SQLString(from: entry.enclosure?.type.rawValue)
+    let updated = SQLString(from: entry.updated)
+    let url = SQLString(from: entry.enclosure?.url)
+
+    return """
+    INSERT OR REPLACE INTO entry(
+      author, duration, feed_id, entry_guid, img, length,
+      link, subtitle, summary, title, type, updated, url
+    ) VALUES(
+      \(author), \(duration), \(feedID.rowid), \(guid), \(img), \(length),
+      \(link), \(subtitle), \(summary), \(title), \(type), \(updated), \(url)
+    );
+    """
+  }
+
+  func SQLToSelectEntries(within intervals: [(FeedID, Date)]) -> String? {
     guard !intervals.isEmpty else {
       return nil
     }
 
     return "SELECT * FROM entry_view WHERE" + intervals.map {
-      let feedID = $0.0
+      let feedID = $0.0.rowid
       let updated = df.string(from: $0.1)
-      return " feedid = \(feedID) AND updated > '\(updated)'"
-    }.joined(separator: " OR") + " ORDER BY feedid, updated;"
+      return " feed_id = \(feedID) AND updated > '\(updated)'"
+    }.joined(separator: " OR") + " ORDER BY feed_id, updated;"
+  }
+
+  func feedID(from row: SkullRow) throws -> FeedID {
+    guard
+      let rowid = row["feed_id"] as? Int64,
+      let url = row["url"] as? String else {
+      throw FeedKitError.unidentifiedFeed
+    }
+    return FeedID(rowid: rowid, url: url)
   }
 
   func feedFromRow(_ row: SkullRow) throws -> Feed {
@@ -204,16 +206,12 @@ final class SQLFormatter {
     let link = row["link"] as? String
     let summary = row["summary"] as? String
 
-    guard let guid = row["feed_guid"] as? Int else {
-      throw FeedKitError.invalidFeed(reason: "missing feed_guid")
-    }
-
     guard let title = row["title"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing title")
     }
 
     let ts = date(from: row["ts"] as? String)
-    let uid = row["uid"] as? Int
+    let uid = try feedID(from: row)
     let updated = date(from: row["updated"] as? String)
 
     guard let url = row["url"] as? String else {
@@ -222,7 +220,6 @@ final class SQLFormatter {
 
     return Feed(
       author: author,
-      guid: guid,
       iTunes: iTunes,
       image: image,
       link: link,
@@ -266,7 +263,7 @@ final class SQLFormatter {
     let feed = row["feed"] as! String
     let feedImage = row["feed_image"] as? String
     let feedTitle = row["feed_title"] as! String
-    let guid = row["guid"] as! String
+    let guid = row["entry_guid"] as! String
     let iTunes = SQLFormatter.iTunesItem(from: row)
     let image = row["img"] as? String
     let link = row["link"] as? String
@@ -303,45 +300,48 @@ final class SQLFormatter {
 
 // MARK: - General Use
 
-private func selectRowsByUIDs(_ table: String, ids: [Int]) -> String? {
-  guard !ids.isEmpty else { return nil }
-  let sql = "SELECT * FROM \(table) WHERE" + ids.map {
-    " uid = \($0)"
-  }.joined(separator: " OR") + ";"
-  return sql
-}
-
 extension SQLFormatter {
 
   static func toRemoveFeed(with guid: Int) -> String {
-    return "DELETE FROM feed WHERE guid = \(guid);"
+    return "DELETE FROM feed WHERE itunes_guid = \(guid);"
   }
 
   static func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
-    return selectRowsByUIDs("entry_view", ids: entryIDs)
+    guard !entryIDs.isEmpty else {
+      return nil
+    }
+    let sql = "SELECT * FROM entry_view WHERE" + entryIDs.map {
+      " entry_id = \($0)"
+    }.joined(separator: " OR") + ";"
+    return sql
   }
 
-  static func SQLToSelectFeedsByFeedIDs(_ feedIDs: [Int]) -> String? {
-    return selectRowsByUIDs("feed_view", ids: feedIDs)
+  static func SQLToSelectFeeds(by feedIDs: [FeedID]) -> String? {
+    guard !feedIDs.isEmpty else {
+      return nil
+    }
+    let rowids = feedIDs.map { $0.rowid }
+    let sql = "SELECT * FROM feed WHERE" + rowids.map {
+      " feed_id = \($0)"
+    }.joined(separator: " OR") + ";"
+    return sql
   }
 
   static func SQLToSelectEntryByGUID(_ guid: String) -> String {
-    return "SELECT * FROM entry_view WHERE guid = '\(guid)';"
+    return "SELECT * FROM entry_view WHERE entry_guid = '\(guid)';"
   }
 
   static func SQLToSelectEntries(by guids: [String]) -> String? {
     guard !guids.isEmpty else { return nil }
     return "SELECT * FROM entry_view WHERE" + guids.map {
-      " guid = '\($0)'"
+      " entry_guid = '\($0)'"
     }.joined(separator: " OR") + ";"
   }
 
-  // TODO: Test if entries are removed when their feeds are removed
-
-  static func SQLToRemoveFeedsWithFeedIDs(_ feedIDs: [Int]) -> String? {
+  static func SQLToRemoveFeeds(with feedIDs: [FeedID]) -> String? {
     guard !feedIDs.isEmpty else { return nil }
     let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
-      "\($0)"
+      "\($0.rowid)"
     }.joined(separator: ", ") + ");"
     return sql
   }
@@ -359,22 +359,18 @@ extension SQLFormatter {
     return "'\(s)'"
   }
 
-  // TODO: Ensure all strings pass through SQLStringFromString
-
   static func SQLToSelectFeedIDFromURLView(_ url: String) -> String {
     let s = SQLFormatter.SQLString(from: url)
-    return "SELECT feedid FROM url_view WHERE url = \(s);"
+    return "SELECT * FROM url_view WHERE url = \(s);"
   }
 
-  static func SQLToInsertFeedID(_ feedID: Int, forTerm term: String) -> String {
+  static func SQLToInsert(feedID: FeedID, for term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
-    return "INSERT OR REPLACE INTO search(feedID, term) VALUES(\(feedID), \(s));"
+    return "INSERT OR REPLACE INTO search(feed_id, term) VALUES(\(feedID.rowid), \(s));"
   }
 }
 
 // MARK: - Searching
-
-// TODO: Validate search term to avoid: "malformed MATCH expression: [\"*]"
 
 extension SQLFormatter {
 
@@ -404,7 +400,7 @@ extension SQLFormatter {
   /// Returns optional iTunes item from feed or entry row.
   static func iTunesItem(from row: SkullRow) -> ITunesItem? {
     guard
-      let iTunesID = row["guid"] as? Int ?? row["feed_guid"] as? Int,
+      let iTunesID = row["itunes_guid"] as? Int,
       let img100 = row["img100"] as? String,
       let img30 = row["img30"] as? String,
       let img60 = row["img60"] as? String,
@@ -419,13 +415,6 @@ extension SQLFormatter {
       img60: img60,
       img600: img600
     )
-  }
-
-  func subscription(from row: SkullRow) -> Subscription {
-    let feedID = row["feed_guid"] as! Int
-    let url = row["url"] as! String
-    let ts = date(from: row["ts"] as? String)
-    return Subscription(url: url, feedID: feedID, ts: ts)
   }
 
   func suggestionFromRow(_ row: SkullRow) throws -> Suggestion {
@@ -449,7 +438,7 @@ extension SQLFormatter {
 
   static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
-    let sql = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
+    let sql = "SELECT DISTINCT * FROM feed WHERE feed_id IN (" +
       "SELECT rowid FROM feed_fts " +
       "WHERE feed_fts MATCH \(s)) " +
       "ORDER BY ts DESC " +
@@ -459,7 +448,7 @@ extension SQLFormatter {
 
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
-    let sql = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
+    let sql = "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (" +
       "SELECT rowid FROM entry_fts " +
       "WHERE entry_fts MATCH \(s)) " +
       "ORDER BY updated DESC " +
@@ -469,7 +458,7 @@ extension SQLFormatter {
 
   static func SQLToDeleteSearch(for term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
-    return "DELETE FROM search WHERE term=\(s);"
+    return "DELETE FROM search WHERE term = \(s);"
   }
 
 }
@@ -498,20 +487,22 @@ extension SQLFormatter {
       throw FeedKitError.invalidEntryLocator(reason: "missing guid")
     }
 
-    let url = stringFromAny(entry.url)
-    let since = stringFromAny(entry.since)
+    let url = SQLString(from: entry.url)
+    let since = SQLString(from: entry.since)
     let guidStr = SQLFormatter.SQLString(from: guid)
 
-    return [
-      "INSERT OR REPLACE INTO entry(entry_guid, url, since) " +
-      "VALUES(\(guidStr), \(url), \(since));",
-
-      "INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\(guidStr));"
-    ].joined(separator: "\n");
+    return """
+    INSERT OR REPLACE INTO entry(
+      entry_guid, feed_url, since
+    ) VALUES(
+      \(guidStr), \(url), \(since)
+    );
+    INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\(guidStr));
+    """
   }
 
   func queuedLocator(from row: SkullRow) -> Queued {
-    let url = row["url"] as! String
+    let url = row["feed_url"] as! String
     let since = date(from: row["since"] as? String)!
     let guid = row["entry_guid"] as? String
     let locator = EntryLocator(url: url, since: since, guid: guid)
@@ -525,23 +516,42 @@ extension SQLFormatter {
 // MARK: - Subscribing
 
 extension SQLFormatter {
-  
+
+  // TODO: Write test
+
+  /// Returns a tuple of SQL strings from `subscription` properties.
+  func strings(from subscription: Subscription)
+    -> (String, String, String, String, String) {
+    let iTunesID = SQLString(from: subscription.iTunes?.iTunesID)
+    let img100 = SQLString(from: subscription.iTunes?.img100)
+    let img30 = SQLString(from: subscription.iTunes?.img30)
+    let img60 = SQLString(from: subscription.iTunes?.img60)
+    let img600 = SQLString(from: subscription.iTunes?.img600)
+    return (iTunesID, img100, img30, img60, img600)
+  }
+
   /// The SQL to fetch all feed subscriptions.
   static let SQLToSelectSubscriptions =
     "SELECT * from subscribed_feed_view;"
 
-  /// SQL to select GUIDs of unrelated feeds that can be safely deleted.
-  static let SQLToSelectZombieFeedGUIDs = "SELECT * from zombie_feed_guid_view;"
+  /// SQL to select URLs of unrelated feeds that can safely be deleted.
+  static let SQLToSelectZombieFeedURLs = "SELECT * from zombie_feed_url_view;"
 
   /// Returns SQL to replace `subscription`.
-  static func SQLToReplace(subscription: Subscription) -> String {
-    let guid = subscription.feedID
+  func SQLToReplace(subscription: Subscription) -> String {
     let url = SQLFormatter.SQLString(from: subscription.url)
 
-    return [
-      "INSERT OR REPLACE INTO feed(feed_guid, url) VALUES(\(guid), \(url));",
-      "INSERT OR REPLACE INTO subscribed_feed(feed_guid) VALUES(\(guid));"
-    ].joined(separator: "\n")
+    let (iTunesID, img100, img30, img60, img600) = strings(from: subscription)
+
+    let sql = """
+    INSERT OR REPLACE INTO feed(
+      feed_url, itunes_guid, img100, img30, img60, img600
+    ) VALUES(
+      \(url), \(iTunesID), \(img100), \(img30), \(img60), \(img600)
+    );
+    INSERT OR REPLACE INTO subscribed_feed(feed_url) VALUES(\(url));
+    """
+    return sql
   }
 
   /// Returns SQL to delete feed `subscriptions`.
@@ -549,8 +559,15 @@ extension SQLFormatter {
     guard !subscriptions.isEmpty else {
       return nil
     }
-    return "DELETE FROM subscribed_feed WHERE feed_guid IN(" +
-      subscriptions.map { String($0.feedID) }.joined(separator: ", ") + ");"
+    return "DELETE FROM subscribed_feed WHERE feed_url IN(" +
+      subscriptions.map { "'\(String($0.url))'"}.joined(separator: ", ") + ");"
+  }
+
+  func subscription(from row: SkullRow) -> Subscription {
+    let url = row["feed_url"] as! String
+    let iTunes = SQLFormatter.iTunesItem(from: row)
+    let ts = date(from: row["ts"] as? String)
+    return Subscription(url: url, iTunes: iTunes, ts: ts)
   }
 
 }
@@ -558,11 +575,12 @@ extension SQLFormatter {
 // MARK: - Syncing
 
 extension SQLFormatter {
-  
-  static var SQLToDeleteZombies =
-    "DELETE FROM record WHERE record_name IN (SELECT * FROM zombie_record_name_view);\n" +
-    "DELETE FROM feed WHERE feed_guid IN(SELECT * FROM zombie_feed_guid_view);\n" +
-    "DELETE FROM entry WHERE entry_guid IN(SELECT * FROM zombie_entry_guid_view);"
+
+  static var SQLToDeleteZombies = """
+  DELETE FROM record WHERE record_name IN (SELECT * FROM zombie_record_name_view);
+  DELETE FROM feed WHERE feed_url IN(SELECT * FROM zombie_feed_url_view);
+  DELETE FROM entry WHERE entry_guid IN(SELECT * FROM zombie_entry_guid_view);
+  """
 
   // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4
 
@@ -578,43 +596,54 @@ extension SQLFormatter {
   func SQLToReplace(synced: Synced) throws -> String {
     switch synced {
     case .subscription(let subscription, let record):
-      let feedID = stringFromAny(subscription.feedID)
-      let url = stringFromAny(subscription.url)
-      let ts = stringFromAny(subscription.ts)
+      let url = SQLString(from: subscription.url)
 
-      let recordName = stringFromAny(record.recordName)
-      let zoneName = stringFromAny(record.zoneName)
-      let tag = stringFromAny(record.changeTag)
+      let (iTunesID, img100, img30, img60, img600) = strings(from: subscription)
+      let ts = SQLString(from: subscription.ts)
 
-      return [
-        "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
-        "VALUES(\(recordName), \(zoneName), \(tag));",
+      let recordName = SQLString(from: record.recordName)
+      let zoneName = SQLString(from: record.zoneName)
+      let tag = SQLString(from: record.changeTag)
 
-        "INSERT OR REPLACE INTO feed(feed_guid, url) " +
-        "VALUES(\(feedID), \(url));",
+      let sql = """
+      INSERT OR REPLACE INTO record(
+        record_name, zone_name, change_tag
+      ) VALUES(
+        \(recordName), \(zoneName), \(tag)
+      );
 
-        "INSERT OR REPLACE INTO subscribed_feed(feed_guid, record_name, ts) " +
-        "VALUES(\(feedID), \(recordName), \(ts));"
-      ].joined(separator: "\n");
+      INSERT OR REPLACE INTO feed(
+        feed_url, itunes_guid, img100, img30, img60, img600
+      ) VALUES(
+        \(url), \(iTunesID), \(img100), \(img30), \(img60), \(img600)
+      );
+
+      INSERT OR REPLACE INTO subscribed_feed(
+        feed_url, record_name, ts
+      ) VALUES(
+        \(url), \(recordName), \(ts)
+      );
+      """
+      return sql
     case .entry(let locator, let queuedAt, let record):
       guard let locGuid = locator.guid else {
         throw FeedKitError.invalidEntryLocator(reason: "missing guid")
       }
-      let guid = stringFromAny(locGuid)
-      let url = stringFromAny(locator.url)
-      let since = stringFromAny(locator.since)
+      let guid = SQLString(from: locGuid)
+      let url = SQLString(from: locator.url)
+      let since = SQLString(from: locator.since)
 
-      let ts = stringFromAny(queuedAt)
+      let ts = SQLString(from: queuedAt)
 
-      let zoneName = stringFromAny(record.zoneName)
-      let recordName = stringFromAny(record.recordName)
-      let tag = stringFromAny(record.changeTag)
+      let zoneName = SQLString(from: record.zoneName)
+      let recordName = SQLString(from: record.recordName)
+      let tag = SQLString(from: record.changeTag)
 
       return [
         "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
         "VALUES(\(recordName), \(zoneName), \(tag));",
 
-        "INSERT OR REPLACE INTO entry(entry_guid, url, since) " +
+        "INSERT OR REPLACE INTO entry(entry_guid, feed_url, since) " +
         "VALUES(\(guid), \(url), \(since));",
 
         "INSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) " +

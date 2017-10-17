@@ -134,12 +134,11 @@ private final class FetchFeedsOperation: FeedKitOperation {
 
 extension UserLibrary: Subscribing {
   
-  public func subscribe(to urls: [String]) throws {
-    guard !urls.isEmpty else {
+  public func add(subscriptions: [Subscription]) throws {
+    guard !subscriptions.isEmpty else {
       return
     }
     
-    let subscriptions = urls.map { Subscription(url: $0) }
     try cache.add(subscriptions: subscriptions)
     
     for subscription in subscriptions {
@@ -173,12 +172,12 @@ extension UserLibrary: Subscribing {
     return op
   }
   
-  public func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void) {
+  public func has(subscription url: String, cb: @escaping (Bool, Error?) -> Void) {
     assert(Thread.isMainThread)
 
     operationQueue.addOperation {
       do {
-        let yes = try self.cache.has(feedID)
+        let yes = try self.cache.has(url)
         DispatchQueue.main.async { cb(yes, nil) }
       } catch {
         DispatchQueue.main.async { cb(false, error) }

@@ -58,6 +58,7 @@ public enum FeedKitError : Error {
   case noForceApplied
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
+  case unidentifiedFeed
 }
 
 extension FeedKitError: Equatable {
@@ -108,6 +109,15 @@ public protocol Imaginable {
   var image: String? { get }
 }
 
+public struct FeedID: Equatable {
+  let rowid: Int64
+  let url: String
+  
+  public static func ==(lhs: FeedID, rhs: FeedID) -> Bool {
+    return lhs.rowid == rhs.rowid
+  }
+}
+
 /// Feeds are the central object of this framework.
 ///
 /// The initializer is inconvenient for a reason: **it shouldn't be used
@@ -118,7 +128,6 @@ public protocol Imaginable {
 /// A feed is required to, at least, have `title` and `url`.
 public struct Feed: Cachable, Redirectable, Imaginable {
   public let author: String?
-  public let guid: Int
   public let iTunes: ITunesItem?
   public let image: String?
   public let link: String?
@@ -126,13 +135,7 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let summary: String?
   public let title: String
   public let ts: Date?
-
-  // TODO: Add guid: Int
-
-  /// The locally unique identifier of the feed, literally the `rowid` of the
-  /// feed table.
-  public let uid: Int?
-
+  public let uid: FeedID? // TODO: Rename to feedID
   public let updated: Date?
   public let url: String
 }
@@ -221,14 +224,7 @@ public struct Entry: Redirectable, Imaginable {
   public let feed: String
   public let feedImage: String?
   public let feedTitle: String?
-
-  /// Not the GUID from the RSS spec, but a globally—across feeds—unique
-  /// identifier for the entry, which is locally generated from the feed URL and
-  /// the GUID received from the remote service.
   public let guid: String
-
-  // TODO: Replace guid: String with uuid: Int to differentiate from RSS guid
-
   public let iTunes: ITunesItem?
   public let image: String?
   public let link: String?
@@ -700,32 +696,20 @@ public protocol SubscribeDelegate {
 
 /// A feed subscription.
 public struct Subscription {
-  public let feedID: Int
-  public let ts: Date?
   public let url: String
+  public let ts: Date?
+  public let iTunes: ITunesItem?
 
-  public init(url: String, feedID: Int, ts: Date?) {
+  public init(url: String, iTunes: ITunesItem? = nil, ts: Date? = nil) {
     self.url = url
-    self.feedID = feedID
+    self.iTunes = iTunes
     self.ts = ts
-  }
-
-  public init(url: String, feedID: Int) {
-    self.url = url
-    self.feedID = feedID
-    self.ts = nil
-  }
-
-  public init(url: String) {
-    self.feedID = djb2Hash(string: url)
-    self.url = url
-    self.ts = nil
   }
 }
 
 extension Subscription: Equatable {
   public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
-    return lhs.feedID == rhs.feedID
+    return lhs.url == rhs.url
   }
 }
 
@@ -733,7 +717,7 @@ public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
   func remove(subscriptions: [Subscription]) throws
 
-  func has(_ feedID: Int) throws -> Bool
+  func has(_ url: String) throws -> Bool
 
   func subscribed() throws -> [Subscription]
 }
@@ -741,7 +725,7 @@ public protocol SubscriptionCaching {
 public protocol Subscribing: Updating {
   var subscribeDelegate: SubscribeDelegate? { get set }
 
-  func subscribe(to urls: [String]) throws
+  func add(subscriptions: [Subscription]) throws
   func unsubscribe(from urls: [String]) throws
 
   func feeds(
@@ -749,7 +733,7 @@ public protocol Subscribing: Updating {
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 
-  func has(subscription feedID: Int, cb: @escaping (Bool, Error?) -> Void)
+  func has(subscription url: String, cb: @escaping (Bool, Error?) -> Void)
 
 }
 

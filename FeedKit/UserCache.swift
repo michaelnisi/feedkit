@@ -20,11 +20,13 @@ extension UserCache: SubscriptionCaching {
       return
     }
     
+    let fmt = sqlFormatter
+    
     try queue.sync {
       let sql = [
         "BEGIN;",
         subscriptions.map {
-          SQLFormatter.SQLToReplace(subscription: $0)
+          fmt.SQLToReplace(subscription: $0)
         }.joined(separator: "\n"),
         "COMMIT;"
       ].joined(separator: "\n")
@@ -71,8 +73,8 @@ extension UserCache: SubscriptionCaching {
     return try _subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
   }
   
-  public func has(_ feedID: Int) throws -> Bool {
-    return try subscribed().map { $0.feedID }.contains(feedID)
+  public func has(_ url: String) throws -> Bool {
+    return try subscribed().map { $0.url }.contains(url)
   }
 }
 

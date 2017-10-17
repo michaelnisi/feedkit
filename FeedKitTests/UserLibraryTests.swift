@@ -80,12 +80,14 @@ class UserLibraryTests: XCTestCase {
 extension UserLibraryTests {
   
   func testSubscribe() {
-    try! user.subscribe(to: [])
+    try! user.add(subscriptions: [])
     
     do {
-      try! user.subscribe(to: ["http://abc.de"])
+      let url = "http://abc.de"
+      let subscriptions = [Subscription(url: url)]
+      try! user.add(subscriptions: subscriptions)
       
-      let wanted = [Subscription(url: "http://abc.de")]
+      let wanted = subscriptions
       XCTAssertEqual(site.subscriptions, wanted)
     }
   }
@@ -94,23 +96,27 @@ extension UserLibraryTests {
     try! user.unsubscribe(from: [])
     
     do {
-      try! user.subscribe(to: ["http://abc.de"])
-      try! user.unsubscribe(from: ["http://abc.de"])
+      let url = "http://abc.de"
+      let subscriptions = [Subscription(url: url)]
+      try! user.add(subscriptions: subscriptions)
+      try! user.unsubscribe(from: [url])
       
       XCTAssertEqual(site.subscriptions, [])
     }
   }
   
   func testHasSubscription() {
-    try! user.subscribe(to: ["http://abc.de"])
+    let url = "http://abc.de"
+    let subscriptions = [Subscription(url: url)]
+    try! user.add(subscriptions: subscriptions)
     
     let exp = self.expectation(description: "has")
     
-    user.has(subscription: 123) { yes, error in
+    user.has(subscription: url) { yes, error in
       guard error == nil else {
         return XCTFail("should not error: \(error!)")
       }
-      XCTAssertFalse(yes)
+      XCTAssertTrue(yes)
       exp.fulfill()
     }
     
@@ -121,8 +127,8 @@ extension UserLibraryTests {
   
   func testFeeds() {
     let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
-    
-    try! user.subscribe(to: [url])
+    let subscriptions = [Subscription(url: url)]
+    try! user.add(subscriptions: subscriptions)
     
     let exp = self.expectation(description: "feeds")
     exp.expectedFulfillmentCount = 12
@@ -223,9 +229,7 @@ extension UserLibraryTests {
         switch er {
         case .missingEntries(let missing):
           func guids(lhs: EntryLocator, rhs: EntryLocator) -> Bool  {
-            let a = lhs.guid
-            let b = rhs.guid
-            return Int(a!)! < Int(b!)!
+            return lhs.guid!.hashValue < rhs.guid!.hashValue
           }
           
           let found = missing.sorted(by: guids)

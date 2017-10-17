@@ -12,44 +12,44 @@ pragma user_version = 1;
 begin immediate;
 
 create table if not exists record(
-  record_name text unique primary key,
+  record_name text primary key,
   zone_name text not null,
   change_tag text
 ) without rowid;
 
 create table if not exists entry(
-  entry_guid text unique primary key,
+  entry_guid text primary key,
   since datetime,
   title text,
-  url text not null
+  feed_url text not null
 ) without rowid;
 
 create table if not exists queued_entry(
-  entry_guid text unique primary key,
+  entry_guid text primary key,
   ts datetime default current_timestamp,
   record_name text unique
 ) without rowid;
 
 create table if not exists prev_entry(
-  entry_guid text unique primary key,
+  entry_guid text primary key,
   ts datetime default current_timestamp,
   record_name text unique
 ) without rowid;
 
 create table if not exists feed(
-  feed_guid integer primary key,
+  feed_url text primary key,
   img100 text,
   img30 text,
   img60 text,
   img600 text,
-  url text
-);
+  itunes_guid int unique
+) without rowid;
 
 create table if not exists subscribed_feed(
-  feed_guid integer primary key,
+  feed_url text primary key,
   record_name text unique,
   ts datetime default current_timestamp
-);
+) without rowid;
 
 create trigger if not exists record_ad after delete on record begin
   delete from queued_entry where record_name = old.record_name;
@@ -71,7 +71,7 @@ create trigger if not exists queued_entry_ad after delete on queued_entry begin
 end;
 
 create trigger if not exists feed_ad after delete on feed begin
-  delete from subscribed_feed where feed_guid = old.feed_guid;
+  delete from subscribed_feed where feed_url = old.feed_url;
 end;
 
 -- All queued entries, including iCloud meta-data if synced
@@ -80,7 +80,7 @@ create view if not exists queued_entry_view as
 select
   e.entry_guid,
   e.since,
-  e.url,
+  e.feed_url,
   qe.ts,
   r.change_tag,
   r.record_name
@@ -100,7 +100,7 @@ create view if not exists prev_entry_view as
 select
   e.entry_guid,
   e.since,
-  e.url,
+  e.feed_url,
   pe.ts,
   r.change_tag,
   r.record_name
@@ -125,13 +125,12 @@ select entry_guid from entry
 
 create view if not exists subscribed_feed_view as
 select
-  f.feed_guid,
-  f.url,
+  f.feed_url,
   sf.ts,
   r.change_tag,
   r.record_name
 from feed f
-  join subscribed_feed sf on sf.feed_guid = f.feed_guid
+  join subscribed_feed sf on sf.feed_url = f.feed_url
   left join record r on sf.record_name = r.record_name;
 
 -- Locally subscribed feeds, not synced yet
@@ -142,9 +141,9 @@ select * from subscribed_feed_view
 
 -- Unrelated zombie feeds
 
-create view if not exists zombie_feed_guid_view as
-select feed_guid from feed
-  except select feed_guid from subscribed_feed;
+create view if not exists zombie_feed_url_view as
+select feed_url from feed
+  except select feed_url from subscribed_feed;
 
 -- Unrelated zombie records
 

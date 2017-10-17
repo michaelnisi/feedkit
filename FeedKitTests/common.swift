@@ -181,10 +181,9 @@ func freshEntry(named name: String) throws -> Entry {
 /// A new test `Feed` distinguished by `name`.
 func freshFeed(named name: String) throws -> Feed {
   switch name {
-  case "thetalkshow":
+  case "thetalkshow", "gruber":
     return Feed(
       author: "Daring Fireball / John Gruber",
-      guid: -5013736692656448084,
       iTunes: ITunesItem(
         iTunesID: 528458508,
         img100: "abc",
@@ -205,7 +204,6 @@ func freshFeed(named name: String) throws -> Feed {
   case "roderickontheline":
     return Feed(
       author: "Merlin Mann",
-      guid: 8681604165851527081,
       iTunes: ITunesItem(
         iTunesID: 471418144,
         img100: "abc",

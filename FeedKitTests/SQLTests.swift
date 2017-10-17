@@ -64,14 +64,14 @@ final class SQLTests: XCTestCase {
     do { // feed
       let keys = ["img100", "img30", "img60", "img600"]
       var row = skullRow(keys)
-      row["guid"] = 123
+      row["itunes_guid"] = 123
       XCTAssertEqual(SQLFormatter.iTunesItem(from: row), wanted)
     }
     
     do { // entry
       let keys = ["img100", "img30", "img60", "img600"]
       var row = skullRow(keys)
-      row["feed_guid"] = 123
+      row["itunes_guid"] = 123
       XCTAssertEqual(SQLFormatter.iTunesItem(from: row), wanted)
     }
   }
@@ -83,9 +83,8 @@ final class SQLTests: XCTestCase {
     ]
     var row = skullRow(keys)
     
-    row["feed_guid"] = 456
-    row["guid"] = 123
-    row["uid"] = 0
+    row["itunes_guid"] = 123
+    row["feed_id"] = Int64(0)
     row["ts"] = "2016-06-06 06:00:00"
     
     let found = try! formatter.feedFromRow(row)
@@ -99,7 +98,6 @@ final class SQLTests: XCTestCase {
     )
     let wanted = Feed(
       author: "author",
-      guid: 456,
       iTunes: iTunes,
       image: "img",
       link: "link",
@@ -107,7 +105,7 @@ final class SQLTests: XCTestCase {
       summary: "summary",
       title: "title",
       ts: Date(timeIntervalSince1970: 1465192800),
-      uid: 0,
+      uid: FeedID(rowid: 0, url: "url"),
       updated: nil,
       url: "url"
     )
@@ -115,7 +113,6 @@ final class SQLTests: XCTestCase {
     XCTAssertEqual(found, wanted)
     
     XCTAssertEqual(found.author, wanted.author)
-    XCTAssertEqual(found.guid, wanted.guid)
     XCTAssertEqual(found.iTunes, wanted.iTunes)
     XCTAssertEqual(found.image, wanted.image)
     XCTAssertEqual(found.link, wanted.link)
@@ -146,20 +143,23 @@ final class SQLTests: XCTestCase {
   
   func testSQLToSelectEntryByGUID() {
     let found = SQLFormatter.SQLToSelectEntryByGUID("abc")
-    let wanted = "SELECT * FROM entry_view WHERE guid = 'abc';"
+    let wanted = "SELECT * FROM entry_view WHERE entry_guid = 'abc';"
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLToSelectEntriesByIntervals() {
-    let f = formatter.SQLToSelectEntriesByIntervals
-    XCTAssertNil(f([]))
     let findings = [
-      f([(1, Date(timeIntervalSince1970: 0))]),
-      f([(1, Date(timeIntervalSince1970: 0)), (2, Date(timeIntervalSince1970: 3600))])
+      formatter.SQLToSelectEntries(within: [
+        (FeedID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0))
+      ]),
+      formatter.SQLToSelectEntries(within: [
+        (FeedID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0)),
+        (FeedID(rowid: 2, url: "http://efg.hi"), Date(timeIntervalSince1970: 3600))
+      ])
     ]
     let wantings = [
-      "SELECT * FROM entry_view WHERE feedid = 1 AND updated > '1970-01-01 00:00:00' ORDER BY feedid, updated;",
-      "SELECT * FROM entry_view WHERE feedid = 1 AND updated > '1970-01-01 00:00:00' OR feedid = 2 AND updated > '1970-01-01 01:00:00' ORDER BY feedid, updated;"
+      "SELECT * FROM entry_view WHERE feed_id = 1 AND updated > '1970-01-01 00:00:00' ORDER BY feed_id, updated;",
+      "SELECT * FROM entry_view WHERE feed_id = 1 AND updated > '1970-01-01 00:00:00' OR feed_id = 2 AND updated > '1970-01-01 01:00:00' ORDER BY feed_id, updated;"
     ]
     for (i, wanted) in wantings.enumerated() {
       let found = findings[i]
@@ -169,8 +169,7 @@ final class SQLTests: XCTestCase {
 
   func testSQLToSelectRowsByIDs() {
     let tests = [
-      ("entry_view", SQLFormatter.SQLToSelectEntriesByEntryIDs),
-      ("feed_view", SQLFormatter.SQLToSelectFeedsByFeedIDs)
+      ("entry_view", SQLFormatter.SQLToSelectEntriesByEntryIDs)
     ]
     for t in tests {
       let (table, f) = t
@@ -180,8 +179,8 @@ final class SQLTests: XCTestCase {
         f([1,2,3])
       ]
       let wantings = [
-        "SELECT * FROM \(table) WHERE uid = 1;",
-        "SELECT * FROM \(table) WHERE uid = 1 OR uid = 2 OR uid = 3;"
+        "SELECT * FROM \(table) WHERE entry_id = 1;",
+        "SELECT * FROM \(table) WHERE entry_id = 1 OR entry_id = 2 OR entry_id = 3;"
       ]
       for (i, wanted) in wantings.enumerated() {
         let found = findings[i]
@@ -191,11 +190,14 @@ final class SQLTests: XCTestCase {
   }
 
   func testSQLToRemoveFeedsWithFeedIDs() {
-    let f = SQLFormatter.SQLToRemoveFeedsWithFeedIDs
-    XCTAssertNil(f([]))
+    let feedIDs = [
+      FeedID(rowid: 1, url: "http://abc.de"),
+      FeedID(rowid: 2, url: "http://fgh.ij"),
+      FeedID(rowid: 3, url: "http://klm.no")
+    ]
     let findings = [
-      f([1]),
-      f([1,2,3])
+      SQLFormatter.SQLToRemoveFeeds(with: Array(feedIDs.prefix(1))),
+      SQLFormatter.SQLToRemoveFeeds(with: feedIDs)
     ]
     let wantings = [
       "DELETE FROM feed WHERE rowid IN(1);",
@@ -209,12 +211,12 @@ final class SQLTests: XCTestCase {
 
   func testSQLToSelectFeedIDFromURLView() {
     let found = SQLFormatter.SQLToSelectFeedIDFromURLView("abc'")
-    let wanted = "SELECT feedid FROM url_view WHERE url = 'abc''';"
+    let wanted = "SELECT * FROM url_view WHERE url = 'abc''';"
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLFormatter() {
-    let f = formatter.stringFromAny
+    let f = formatter.SQLString
     let other = NSObject()
     let found = [
       f(nil),
@@ -246,27 +248,45 @@ final class SQLTests: XCTestCase {
 
   func testSQLToInsertFeed() {
     let feed = try! freshFeed(named: "thetalkshow")
-    let found = formatter.SQLToInsertFeed(feed)
+    let found = formatter.SQLToInsert(feed: feed)
     
-    let wanted = "INSERT INTO feed(author, feed_guid, guid, img, img100, img30, img60, img600, link, summary, title, updated, url) VALUES(\'Daring Fireball / John Gruber\', -5013736692656448084, 528458508, \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', \'abc\', \'def\', \'ghi\', \'jkl\', NULL, \'The director’s commentary track for Daring Fireball.\', \'The Talk Show With John Gruber\', \'2015-10-17 19:35:01\', \'http://daringfireball.net/thetalkshow/rss\');"
+    let wanted = """
+    INSERT INTO feed(
+      author, itunes_guid, img, img100, img30, img60, img600,
+      link, summary, title, updated, url
+    ) VALUES(
+      'Daring Fireball / John Gruber', 528458508, 'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg', 'abc', 'def', 'ghi', 'jkl',
+      NULL, 'The director’s commentary track for Daring Fireball.', 'The Talk Show With John Gruber', '2015-10-17 19:35:01', 'http://daringfireball.net/thetalkshow/rss'
+    );
+    """
     
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLToUpdateFeed() {
     let feed = try! freshFeed(named: "thetalkshow")
-    let found = formatter.SQLToUpdateFeed(feed, withID: 1)
+    let feedID = FeedID(rowid: 1, url: feed.url)
+    let found = formatter.SQLToUpdate(feed: feed, with: feedID)
     
-    let wanted = "UPDATE feed SET author = \'Daring Fireball / John Gruber\', feed_guid = -5013736692656448084, guid = 528458508, img = \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', img100 = \'abc\', img30 = \'def\', img60 = \'ghi\', img600 = \'jkl\', link = NULL, summary = \'The director’s commentary track for Daring Fireball.\', title = \'The Talk Show With John Gruber\', updated = \'2015-10-17 19:35:01\', url = \'http://daringfireball.net/thetalkshow/rss\' WHERE rowid = 1;"
+    let wanted = "UPDATE feed SET author = \'Daring Fireball / John Gruber\', itunes_guid = 528458508, img = \'http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg\', img100 = \'abc\', img30 = \'def\', img60 = \'ghi\', img600 = \'jkl\', link = NULL, summary = \'The director’s commentary track for Daring Fireball.\', title = \'The Talk Show With John Gruber\', updated = \'2015-10-17 19:35:01\', url = \'http://daringfireball.net/thetalkshow/rss\' WHERE feed_id = 1;"
     
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLToInsertEntry() {
     let entry = try! freshEntry(named: "thetalkshow")
-    let found = formatter.SQLToInsertEntry(entry, forFeedID: 1)
+    let feedID = FeedID(rowid: 1, url: entry.feed)
+    let found = formatter.SQLToInsert(entry: entry, for: feedID)
     
-    let wanted = "INSERT OR REPLACE INTO entry(author, duration, feedid, guid, img, length, link, subtitle, summary, title, type, updated, url) VALUES('Daring Fireball / John Gruber', 9185, 1, 'c596b134310d499b13651fed64597de2c9931179', 'http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png', 110282964, 'http://daringfireball.net/thetalkshow/2015/10/17/ep-133', 'Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.', 'Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.', 'Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell', 1, '2015-10-17 19:35:01', 'http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3');"
+    let wanted = """
+    INSERT OR REPLACE INTO entry(
+      author, duration, feed_id, entry_guid, img, length,
+      link, subtitle, summary, title, type, updated, url
+    ) VALUES(
+      'Daring Fireball / John Gruber', 9185, 1, 'c596b134310d499b13651fed64597de2c9931179', 'http://daringfireball.net/thetalkshow/graphics/df-logo-1000.png', 110282964,
+      'http://daringfireball.net/thetalkshow/2015/10/17/ep-133', 'Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.', 'Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.', 'Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell', 1, '2015-10-17 19:35:01', 'http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3'
+    );
+    """
     
     XCTAssertEqual(found, wanted)
   }
@@ -299,8 +319,7 @@ extension SQLTests {
   func testITunesItemFromRow() {
     do {
       let rows: [SkullRow] = [
-        ["guid": 123, "img100": "a", "img30": "b", "img60": "c", "img600": "d"],
-        ["feed_guid": 123, "img100": "a", "img30": "b", "img60": "c", "img600": "d"]
+        ["itunes_guid": 123, "img100": "a", "img30": "b", "img60": "c", "img600": "d"]
       ]
       
       for row in rows {
@@ -328,11 +347,13 @@ extension SQLTests {
   
   func testSQLToSelectSuggestionsForTerm() {
     let found = SQLFormatter.SQLToSelectSuggestionsForTerm("abc", limit: 5)
-    let wanted = "SELECT * FROM sug WHERE rowid IN (" +
-      "SELECT rowid FROM sug_fts " +
-      "WHERE term MATCH 'abc*') " +
-      "ORDER BY ts DESC " +
+    let wanted = [
+      "SELECT * FROM sug WHERE rowid IN (",
+      "SELECT rowid FROM sug_fts ",
+      "WHERE term MATCH 'abc*') ",
+      "ORDER BY ts DESC ",
       "LIMIT 5;"
+    ].joined()
     XCTAssertEqual(found, wanted)
   }
   
@@ -345,43 +366,50 @@ extension SQLTests {
   }
   
   func testSQLToInsertFeedIDForTerm() {
-    let found = SQLFormatter.SQLToInsertFeedID(1, forTerm: "abc")
-    let wanted = "INSERT OR REPLACE INTO search(feedID, term) VALUES(1, 'abc');"
+    let feedID = FeedID(rowid: 1, url: "http://abc.de")
+    let found = SQLFormatter.SQLToInsert(feedID: feedID, for: "abc")
+    let wanted = "INSERT OR REPLACE INTO search(feed_id, term) VALUES(1, 'abc');"
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectFeedsByTerm() {
     let found = SQLFormatter.SQLToSelectFeedsByTerm("abc", limit: 50)
-    let wanted = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
-      "SELECT rowid FROM search_fts " +
-      "WHERE term = 'abc') " +
+    let wanted = [
+      "SELECT DISTINCT * FROM search_view WHERE searchid IN (",
+      "SELECT rowid FROM search_fts ",
+      "WHERE term = 'abc') ",
       "LIMIT 50;"
+    ].joined()
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectFeedsMatchingTerm() {
     let found = SQLFormatter.SQLToSelectFeedsMatchingTerm("abc", limit: 3)
-    let wanted = "SELECT DISTINCT * FROM feed_view WHERE uid IN (" +
-      "SELECT rowid FROM feed_fts " +
-      "WHERE feed_fts MATCH 'abc*') " +
-      "ORDER BY ts DESC " +
+    let wanted = [
+      "SELECT DISTINCT * FROM feed WHERE feed_id IN (",
+      "SELECT rowid FROM feed_fts ",
+      "WHERE feed_fts MATCH 'abc*') ",
+      "ORDER BY ts DESC ",
       "LIMIT 3;"
+    ].joined()
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToSelectEntriesMatchingTerm() {
     let found = SQLFormatter.SQLToSelectEntries(matching: "abc", limit: 3)
-    let wanted = "SELECT DISTINCT * FROM entry_view WHERE uid IN (" +
-    "SELECT rowid FROM entry_fts " +
-    "WHERE entry_fts MATCH 'abc*') " +
-    "ORDER BY updated DESC " +
-    "LIMIT 3;"
+    let wanted = [
+      "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (",
+      "SELECT rowid FROM entry_fts ",
+      "WHERE entry_fts MATCH 'abc*') ",
+      "ORDER BY updated DESC ",
+      "LIMIT 3;"
+    ].joined()
     XCTAssertEqual(found, wanted)
   }
   
   func testSQLToDeleteSearchForTerm() {
     let found = SQLFormatter.SQLToDeleteSearch(for: "abc")
-    let wanted = "DELETE FROM search WHERE term='abc';"
+    let wanted = "DELETE FROM search WHERE term = 'abc';"
     XCTAssertEqual(found, wanted)
   }
   
@@ -405,7 +433,8 @@ extension SQLTests {
   func testSQLToReplaceSynced() {
     let zoneName = "queueZone"
     let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
-    let record = RecordMetadata(zoneName: zoneName, recordName: recordName, changeTag: "e")
+    let changeTag = "e"
+    let record = RecordMetadata(zoneName: zoneName, recordName: recordName, changeTag: changeTag)
     
     do {
       let loc = EntryLocator(url: "http://abc.de")
@@ -419,17 +448,35 @@ extension SQLTests {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
       let synced = Synced.entry(loc, ts, record)
       let found = try! formatter.SQLToReplace(synced: synced)
-      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(entry_guid, url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(entry_guid, feed_url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
       XCTAssertEqual(found, wanted)
     }
     
     do {
       let url = "http://abc.de"
-      let feedID = djb2Hash(string: url)
-      let s = Subscription(url: "http://abc.de", feedID: feedID, ts: ts)
+      let s = Subscription(url: url, iTunes: nil, ts: ts)
       let synced = Synced.subscription(s, record)
       let found = try! formatter.SQLToReplace(synced: synced)
-      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO feed(feed_guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(feed_guid, record_name, ts) VALUES(-601827014, \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'2016-06-06 06:00:00\');"
+      let wanted = """
+      INSERT OR REPLACE INTO record(
+        record_name, zone_name, change_tag
+      ) VALUES(
+        'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\'
+      );
+
+      INSERT OR REPLACE INTO feed(
+        feed_url, itunes_guid, img100, img30, img60, img600
+      ) VALUES(
+        'http://abc.de\', NULL, NULL, NULL, NULL, NULL
+      );
+
+      INSERT OR REPLACE INTO subscribed_feed(
+        feed_url, record_name, ts
+      ) VALUES(
+        'http://abc.de\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'2016-06-06 06:00:00\'
+      );
+      """
+
       XCTAssertEqual(found, wanted)
     }
   }
@@ -451,15 +498,24 @@ extension SQLTests {
   }
   
   func testSQLToSelectZombieFeedGUIDs() {
-    let wanted = "SELECT * from zombie_feed_guid_view;"
-    XCTAssertEqual(SQLFormatter.SQLToSelectZombieFeedGUIDs, wanted)
+    let wanted = "SELECT * from zombie_feed_url_view;"
+    XCTAssertEqual(SQLFormatter.SQLToSelectZombieFeedURLs, wanted)
   }
   
   func testSQLToReplaceSubscriptions() {
     do {
-      let s = Subscription(url: "http://abc.de")
-      let found = SQLFormatter.SQLToReplace(subscription: s)
-      let wanted = "INSERT OR REPLACE INTO feed(feed_guid, url) VALUES(-601827014, \'http://abc.de\');\nINSERT OR REPLACE INTO subscribed_feed(feed_guid) VALUES(-601827014);"
+      let url = "https://abc.de/rss"
+      let s = Subscription(url: url)
+      let found = formatter.SQLToReplace(subscription: s)
+      let (iTunesID, img100, img30, img60, img600) = ("NULL", "NULL", "NULL", "NULL", "NULL")
+      let wanted = """
+      INSERT OR REPLACE INTO feed(
+        feed_url, itunes_guid, img100, img30, img60, img600
+      ) VALUES(
+        '\(url)', \(iTunesID), \(img100), \(img30), \(img60), \(img600)
+      );
+      INSERT OR REPLACE INTO subscribed_feed(feed_url) VALUES('\(url)');
+      """
       XCTAssertEqual(found, wanted)
     }
   }
@@ -467,9 +523,10 @@ extension SQLTests {
   func testSQLToDeleteSubscriptions() {
     XCTAssertNil(SQLFormatter.SQLToDelete(subscriptions: []))
     
-    let subscriptions = [Subscription(url: "http://abc.de")]
+    let url = "http://abc.de"
+    let subscriptions = [Subscription(url: url)]
     let found = SQLFormatter.SQLToDelete(subscriptions: subscriptions)
-    let wanted = "DELETE FROM subscribed_feed WHERE feed_guid IN(-601827014);"
+    let wanted = "DELETE FROM subscribed_feed WHERE feed_url IN('\(url)');"
     XCTAssertEqual(found, wanted)
   }
   
@@ -508,7 +565,14 @@ extension SQLTests {
       let since = Date(timeIntervalSince1970: 1465192800) // 2016-06-06 06:00:00
       let locator = EntryLocator(url: url, since: since, guid: guid)
       let found = try! formatter.SQLToQueue(entry: locator)
-      let wanted = "INSERT OR REPLACE INTO entry(entry_guid, url, since) VALUES(\'12three\', \'abc.de\', \'2016-06-06 06:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\'12three\');"
+      let wanted = """
+      INSERT OR REPLACE INTO entry(
+        entry_guid, feed_url, since
+      ) VALUES(
+        '12three\', \'abc.de\', \'2016-06-06 06:00:00\'
+      );
+      INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\'12three\');
+      """
       XCTAssertEqual(found, wanted)
     }
   }
@@ -521,7 +585,7 @@ extension SQLTests {
     let url = "abc.de"
     
     row["entry_guid"] = guid
-    row["url"] = url
+    row["feed_url"] = url
     row["since"] = "2016-06-06 06:00:00" // UTC
     
     // This hassle of producing a timestamp is unnecessary, really, because 
