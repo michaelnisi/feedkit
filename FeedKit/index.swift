@@ -776,7 +776,7 @@ public protocol UserCacheSyncing: QueueCaching {
   func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
 
-  func zombieRecords() throws -> [String : String]
+  func zombieRecords() throws -> [(String, String)]
 
   func deleteZombies() throws
   // TODO: func deleteAll() throws

@@ -288,8 +288,8 @@ private final class FetchQueueOperation: FeedKitOperation {
       
       if error == nil {
         // If we aren‘t offline and the remote service is OK, we can remove
-        // missing entries. A specific feed‘s server might be offline for a
-        // second, while the remote cache is cold, but well, tough luck.
+        // missing entries. Although, a specific feed‘s server might be offline
+        // for a second, while the remote cache is cold, but well, tough luck.
         
         let found = dispatched.map { $0.guid }
         let wanted = locators.flatMap { $0.guid }

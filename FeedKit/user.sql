@@ -94,7 +94,7 @@ create view if not exists locally_queued_entry_view as
 select * from queued_entry_view
   where record_name is null;
 
--- prevly queued entries
+-- Previously queued entries
 
 create view if not exists prev_entry_view as
 select

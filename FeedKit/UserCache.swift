@@ -237,14 +237,13 @@ extension UserCache: UserCacheSyncing {
   }
   
   /// CloudKit record names of abandoned records by record zone names.
-  public func zombieRecords() throws -> [String : String] {
+  public func zombieRecords() throws -> [(String, String)] {
     var er: Error?
-    var records = [String : String]()
+    var records = [(String, String)]()
     
     let db = self.db
     
     try queue.sync {
-      // TODO: Update SQL to include zones
       let sql = SQLFormatter.SQLToSelectAbandonedRecords
       try db.query(sql) { error, row -> Int in
         guard error == nil else {
@@ -259,7 +258,7 @@ extension UserCache: UserCacheSyncing {
           return 1
         }
         
-        records[zone] = record
+        records.append((zone, record))
         
         return 0
       }

@@ -9,8 +9,8 @@
 import Foundation
 
 public enum QueueError: Error {
-  case alreadyInQueue(Int)
-  case notInQueue(Int)
+  case alreadyInQueue(Any)
+  case notInQueue(Any)
 }
 
 /// A destructive Sequence representing a queue, in which lets you navigate
@@ -45,7 +45,7 @@ public struct Queue<Item: Hashable> {
     let h = item.hashValue
     
     guard !contains(item) else {
-      throw QueueError.alreadyInQueue(h)
+      throw QueueError.alreadyInQueue(item)
     }
     
     itemsByHashValues[h] = item
@@ -67,7 +67,7 @@ public struct Queue<Item: Hashable> {
     let h = item.hashValue
     
     guard !contains(item) else {
-      throw QueueError.alreadyInQueue(h)
+      throw QueueError.alreadyInQueue(item)
     }
     
     itemsByHashValues[h] = item
