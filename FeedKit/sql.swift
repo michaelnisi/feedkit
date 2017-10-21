@@ -576,6 +576,10 @@ extension SQLFormatter {
 
 extension SQLFormatter {
 
+  static var SQLToDeleteRecords = """
+    DELETE FROM record;
+  """
+
   static var SQLToDeleteZombies = """
   DELETE FROM record WHERE record_name IN (SELECT * FROM zombie_record_name_view);
   DELETE FROM feed WHERE feed_url IN(SELECT * FROM zombie_feed_url_view);

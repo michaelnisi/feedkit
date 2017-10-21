@@ -287,9 +287,10 @@ private final class FetchQueueOperation: FeedKitOperation {
       }
       
       if error == nil {
-        // If we aren‘t offline and the remote service is OK, we can remove
-        // missing entries. Although, a specific feed‘s server might be offline
-        // for a second, while the remote cache is cold, but well, tough luck.
+        // If we aren‘t offline and the remote service is OK, as indicated by
+        // having no error here, we can go ahead and remove missing entries.
+        // Although, a specific feed‘s server might be offline for a second,
+        // while the remote cache is cold, but well, tough luck.
         
         let found = dispatched.map { $0.guid }
         let wanted = locators.flatMap { $0.guid }
@@ -300,11 +301,11 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
         
         do {
-          os_log("removing zombies: %{public}@", log: log, type: .debug,
+          os_log("remove missing entries: %{public}@", log: log, type: .debug,
                  String(describing: missing))
           try self.cache.remove(guids: missing)
         } catch {
-          os_log("failed to remove zombies: %{public}@", log: log, type: .error,
+          os_log("failed to remove missing: %{public}@", log: log, type: .error,
                  String(describing: error))
           
         }

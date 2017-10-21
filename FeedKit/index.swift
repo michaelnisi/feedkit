@@ -779,7 +779,7 @@ public protocol UserCacheSyncing: QueueCaching {
   func zombieRecords() throws -> [(String, String)]
 
   func deleteZombies() throws
-  // TODO: func deleteAll() throws
+  func toss() throws
 }
 
 // MARK: - Internal
