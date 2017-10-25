@@ -576,7 +576,7 @@ extension SQLFormatter {
 
 extension SQLFormatter {
 
-  static var SQLToDeleteRecords = """
+  static var SQLToDeleteFromUserTables = """
   DELETE FROM record;
   DELETE FROM entry;
   DELETE FROM queued_entry;
