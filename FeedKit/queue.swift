@@ -125,7 +125,7 @@ public struct Queue<Item: Hashable> {
   
   public mutating func skip(to item: Item) throws {
     guard contains(item) else {
-      throw QueueError.notInQueue(item.hashValue)
+      throw QueueError.notInQueue(item)
     }
     now = item.hashValue
   }
@@ -163,7 +163,7 @@ public struct Queue<Item: Hashable> {
     guard
       itemsByHashValues.removeValue(forKey: h) != nil,
       let i = hashValues.index(of: h) else {
-      throw QueueError.notInQueue(item.hashValue)
+      throw QueueError.notInQueue(item)
     }
     
     hashValues.remove(at: i)

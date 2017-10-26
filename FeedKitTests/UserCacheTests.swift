@@ -152,7 +152,7 @@ extension UserCacheTests {
   }
   
   func testZombieRecords() {
-    XCTAssertEqual(try! cache.zombieRecords(), [:])
+    XCTAssert(try! cache.zombieRecords().isEmpty)
   }
   
 }

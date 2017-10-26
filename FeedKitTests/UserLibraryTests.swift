@@ -286,8 +286,8 @@ extension UserLibraryTests {
         }
         
         switch er {
-        case .alreadyInQueue(let guid):
-          XCTAssertEqual(guid, entry.guid.hashValue)
+        case .alreadyInQueue(let found):
+          XCTAssertEqual(found as! Entry, entry)
         default:
           XCTFail("should be expected error")
         }
@@ -313,8 +313,8 @@ extension UserLibraryTests {
       }
       
       switch er {
-      case .notInQueue(let guid):
-        XCTAssertEqual(guid, entry.guid.hashValue)
+      case .notInQueue(let found):
+        XCTAssertEqual(found as! Entry, entry)
       default:
         XCTFail("should be expected error")
       }
