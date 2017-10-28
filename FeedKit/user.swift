@@ -243,20 +243,24 @@ private final class FetchQueueOperation: FeedKitOperation {
     guard !isCancelled, !locators.isEmpty else {
       return done()
     }
+    
+    var ended = false
 
     // Keeps track of already dispatched entries.
     var dispatched = [Entry]()
     
     op = browser.entries(locators, entriesBlock: { error, entries in
       assert(!Thread.isMainThread)
+      assert(!ended)
+      
       guard let guids = self.sortedIds else {
         fatalError("sorted guids required")
       }
       
-      var dict = [String : Entry]()
-      entries.forEach { dict[$0.guid] = $0 }
+      var entriesByGuids = [String : Entry]()
+      entries.forEach { entriesByGuids[$0.guid] = $0 }
       
-      let sorted: [Entry] = guids.flatMap { dict[$0] }
+      let sorted: [Entry] = guids.flatMap { entriesByGuids[$0] }
       
       do {
         try self.user.queue.append(items: sorted)
@@ -284,21 +288,16 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
+      ended = true
+      
       // Cleaning up, if we aren‘t offline and the remote service is OK, as
       // indicated by having no error here, we can go ahead and remove missing
       // entries. Although, a specific feed‘s server might be offline for a
       // second, while the remote cache is cold, but well, tough luck.
       if error == nil {
         let found = dispatched.map { $0.guid }
-  
-        guard !found.isEmpty else {
-          os_log("no entries with guids dispatched: not removing",
-                 log: log, type: .error)
-          return
-        }
-        
         let wanted = locators.flatMap { $0.guid }
-        let missing = wanted.filter { !found.contains($0) }
+        let missing = Array(Set(wanted).subtracting(found))
   
         guard !missing.isEmpty else {
           return
@@ -332,17 +331,14 @@ private final class FetchQueueOperation: FeedKitOperation {
         return
       }
       let queuedGuids = user.queue.map { $0.guid }
-      let a = Set(queuedGuids)
-      let b = Set(guids)
+      let guidsToRemove = Array(Set(queuedGuids).subtracting(guids))
       
-      let guidsToRemove = Array(a.subtracting(b))
+      var queuedEntriesByGuids = [String : Entry]()
+      user.queue.forEach { queuedEntriesByGuids[$0.guid] = $0 }
       
       for guid in guidsToRemove {
-        for entry in user.queue.reversed() {
-          if entry.guid == guid {
-            try! user.queue.remove(entry)
-            break
-          }
+        if let entry = queuedEntriesByGuids[guid] {
+          try! user.queue.remove(entry)
         }
       }
     }
