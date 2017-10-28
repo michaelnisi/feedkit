@@ -214,7 +214,8 @@ extension Enclosure : CustomStringConvertible {
   }
 }
 
-// TODO: Resolve image/feedImage confusion
+// TODO: Type alias guid to EntryGUID
+public typealias EntryGUID = String
 
 /// RSS item or Atom entry. In this domain we speak of `entry`.
 public struct Entry: Redirectable, Imaginable {
@@ -265,8 +266,6 @@ extension Entry: Hashable {
 public struct EntryLocator {
 
   public let url: String
-
-  // TODO: Type EntryLocator.since as TimeInterval to make it all value typed
 
   public let since: Date
 

@@ -11,7 +11,6 @@ import Foundation
 import Skull
 import os.log
 
-@available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// Confines `Queue` state dependency.
@@ -244,7 +243,8 @@ private final class FetchQueueOperation: FeedKitOperation {
     guard !isCancelled, !locators.isEmpty else {
       return done()
     }
-    
+
+    // Keeps track of already dispatched entries.
     var dispatched = [Entry]()
     
     op = browser.entries(locators, entriesBlock: { error, entries in
@@ -261,13 +261,11 @@ private final class FetchQueueOperation: FeedKitOperation {
       do {
         try self.user.queue.append(items: sorted)
       } catch {
-        if #available(iOS 10.0, *) {
-          os_log("already in queue: %{public}@", log: log,  type: .error,
-                 String(describing: error))
-        }
+        os_log("already in queue: %{public}@", log: log,  type: .error,
+               String(describing: error))
       }
       
-      let queuedEntries: [Entry] = self.user.queue.items.filter {
+      let queuedEntries: [Entry] = self.user.queue.filter {
         !dispatched.contains($0)
       }
       
@@ -286,16 +284,22 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
+      // Cleaning up, if we aren‘t offline and the remote service is OK, as
+      // indicated by having no error here, we can go ahead and remove missing
+      // entries. Although, a specific feed‘s server might be offline for a
+      // second, while the remote cache is cold, but well, tough luck.
       if error == nil {
-        // If we aren‘t offline and the remote service is OK, as indicated by
-        // having no error here, we can go ahead and remove missing entries.
-        // Although, a specific feed‘s server might be offline for a second,
-        // while the remote cache is cold, but well, tough luck.
-        
         let found = dispatched.map { $0.guid }
+  
+        guard !found.isEmpty else {
+          os_log("no entries with guids dispatched: not removing",
+                 log: log, type: .error)
+          return
+        }
+        
         let wanted = locators.flatMap { $0.guid }
         let missing = wanted.filter { !found.contains($0) }
-
+  
         guard !missing.isEmpty else {
           return
         }
@@ -319,9 +323,30 @@ private final class FetchQueueOperation: FeedKitOperation {
     super.cancel()
     op?.cancel()
   }
-  
+
   /// The sorted guids of the items in the queue.
-  private var sortedIds: [String]?
+  private var sortedIds: [String]? {
+    didSet {
+      guard let guids = sortedIds else {
+        // TODO: Remove all items from queue
+        return
+      }
+      let queuedGuids = user.queue.map { $0.guid }
+      let a = Set(queuedGuids)
+      let b = Set(guids)
+      
+      let guidsToRemove = Array(a.subtracting(b))
+      
+      for guid in guidsToRemove {
+        for entry in user.queue.reversed() {
+          if entry.guid == guid {
+            try! user.queue.remove(entry)
+            break
+          }
+        }
+      }
+    }
+  }
   
   override func start() {
     guard !isCancelled else {
