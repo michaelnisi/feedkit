@@ -62,7 +62,7 @@ public class LocalCache {
     let me = type(of: self)
     self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
     
-    self.sqlFormatter = SQLFormatter()
+    self.sqlFormatter = SQLFormatter.shared
     
     try open()
   }
