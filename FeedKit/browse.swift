@@ -11,10 +11,9 @@ import MangerKit
 import Ola
 import os.log
 
-@available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 
-/// Although I despise inheritance, this is an abstract `Operation` to be
+/// Although, I despise inheritance, this is an abstract `Operation` to be
 /// extended by operations used in the feed repository. It provides common
 /// properties for the, currently two: feed and entries; operations of the
 /// browsing API.
@@ -34,12 +33,7 @@ class BrowseOperation: SessionTaskOperation {
     
     self.target = {
       guard let q = OperationQueue.current?.underlyingQueue else {
-        // TODO: Target iOS 10
-        if #available(iOS 10.0, *) {
-          os_log("no underlying queue", log: log,  type: .error)
-        } else {
-          // Fallback on earlier versions
-        }
+        os_log("no underlying queue: targeting main", log: log)
         return DispatchQueue.main
       }
       return q
@@ -65,23 +59,6 @@ extension BrowseOperation {
 // MARK: Accessing Cached Items
 
 extension BrowseOperation {
-  
-  // In this file, we use static functions to expose some logic for testing.
-
-  /// Subtract two arrays of strings. Note that the order of the resulting array
-  /// is undefined.
-  ///
-  /// - Parameters:
-  ///   - a: An array of strings.
-  ///   - b: The array of strings to subtract from.
-  ///
-  /// - Returns: Strings from `a` that are not in `b`.
-  static func subtract(strings a: [String], from b: [String]) -> [String] {
-    let setA = Set(a)
-    let setB = Set(b)
-    let diff = setB.subtracting(setA)
-    return Array(diff)
-  }
   
   /// Find and return the newest item in the specified array of cachable items.
   /// Attention: this intentionally crashes if you pass an empty items array or
@@ -158,7 +135,7 @@ extension BrowseOperation {
     }
     
     let strings = cachedURLs + cachedEntryURLs
-    let notCachedURLs = subtract(strings: strings, from: urls)
+    let notCachedURLs = Array(Set(urls).subtracting(strings))
     
     if notCachedURLs.isEmpty {
       return (cachedItems, [], nil)
@@ -186,18 +163,32 @@ final class EntriesOperation: BrowseOperation {
 
   let locators: [EntryLocator]
 
+  // Identifiers of entries that already have been dispatched.
+  var dispatched = [String]() {
+    didSet {
+      os_log("dispatched: %@", log: log, type: .debug, dispatched)
+    }
+  }
+  
   /// Creates an entries operation with the specified cache, service, dispatch
   /// queue, and entry locators.
   ///
   /// Refer to `BrowseOperation` for more information.
   ///
-  /// - parameter locators: The selection of entries to fetch.
+  /// - Parameter locators: The selection of entries to fetch.
   init(cache: FeedCaching, svc: MangerService, locators: [EntryLocator]) {
+    os_log("fetching: %{public}@", log: log, type: .debug,
+           String(reflecting: locators))
+    
     self.locators = locators
+    
     super.init(cache: cache, svc: svc)
   }
 
   func done(_ error: Error? = nil) {
+    os_log("done: %{public}@", log: log, type: .debug,
+           error != nil ? String(reflecting: error) : "OK")
+    
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = self.entriesCompletionBlock {
       target.async {
@@ -213,8 +204,9 @@ final class EntriesOperation: BrowseOperation {
   ///
   /// - Parameters:
   ///   - locators: The locators of entries to request.
-  ///   - dispatched: Entries that have already been dispatched.
-  func request(_ locators: [EntryLocator], dispatched: [Entry]) throws {
+  func request(_ locators: [EntryLocator]) throws {
+    os_log("requesting: %{public}@", log: log, type: .debug, locators)
+    
     let reload = ttl == .none
 
     task = try svc.entries(locators, reload: reload) { error, payload in
@@ -225,20 +217,28 @@ final class EntriesOperation: BrowseOperation {
       guard error == nil else {
         return self.done(FeedKitError.serviceUnavailable(error: error!))
       }
+      
       guard payload != nil else {
+        os_log("no payload", log: log)
         return self.done()
       }
+      
+      os_log("received payload", log: log, type: .debug)
+      
       do {
         let (errors, receivedEntries) = serialize.entries(from: payload!)
+        
         if !errors.isEmpty {
-          if #available(iOS 10.0, *) {
-            os_log("invalid entries", log: log,  type: .error)
-          }
+          os_log("invalid entries: %{public}@", log: log,  type: .error, errors)
         }
+        os_log("received: %{public}@", log: log, type: .debug, receivedEntries)
 
-        let r = BrowseOperation.redirects(in: receivedEntries)
-        if !r.isEmpty {
-          let urls = r.reduce([String]()) { acc, entry in
+        let redirected = BrowseOperation.redirects(in: receivedEntries)
+        if !redirected.isEmpty {
+          os_log("removing redirected: %{public}@", log: log,
+                 String(reflecting: redirected))
+          
+          let urls = redirected.reduce([String]()) { acc, entry in
             guard let url = entry.originalURL, !acc.contains(url) else {
               return acc
             }
@@ -253,11 +253,11 @@ final class EntriesOperation: BrowseOperation {
           return self.done()
         }
 
-        // The cached entries, contrary to the wired entries, contain the
-        // feedTitle property. Also we should not dispatch more entries than
+        // The cached entries, contrary to the freshly received entries, have
+        // more properties. Also, we should not dispatch more entries than
         // those that actually have been requested. To match these requirements
-        // centrally, we retrieve our, freshly updated, entries from the cache,
-        // in the hopes that SQLite is fast enough.
+        // centrally, we retrieve the freshly updated entries from the cache,
+        // relying on SQLite’s speed.
 
         let (cached, missing) = try EntriesOperation.entries(
           in: self.cache, locators: self.locators, ttl: .infinity)
@@ -266,21 +266,20 @@ final class EntriesOperation: BrowseOperation {
           guard !missing.isEmpty else {
             return nil
           }
-          return FeedKitError.missingEntries(locators: locators)
+          return FeedKitError.missingEntries(locators: missing)
         }()
 
-        let entries = cached.filter() { entry in
-          !dispatched.contains(entry)
+        let entries = cached.filter {
+          !self.dispatched.contains($0.guid)
         }
         
         self.target.async() {
           cb(error, entries)
         }
+        self.dispatched = self.dispatched + entries.map { $0.guid }
         self.done()
       } catch FeedKitError.feedNotCached(let urls) {
-        if #available(iOS 10.0, *) {
-          os_log("feed not cached: %{public}@", log: log,  type: .error, urls)
-        }
+        os_log("feeds not cached: %{public}@", log: log, urls)
         self.done()
       } catch let er {
         self.done(er)
@@ -298,16 +297,17 @@ final class EntriesOperation: BrowseOperation {
 
       let (cached, missing) = try EntriesOperation.entries(
         in: cache, locators: locators, ttl: ttl.seconds)
+      
+      os_log("cached: %{public}@", log: log, type: .debug, cached)
+      os_log("missing: %{public}@", log: log, type: .debug, missing)
 
       guard !isCancelled else { return done() }
 
-      var dispatched = [Entry]()
-      
       if let cb = entriesBlock, !cached.isEmpty {
-        dispatched += cached
         target.async {
           cb(nil, cached)
         }
+        dispatched = cached.map { $0.guid }
       }
 
       guard !missing.isEmpty else {
@@ -317,10 +317,10 @@ final class EntriesOperation: BrowseOperation {
       if !reachable {
         done(FeedKitError.offline)
       } else {
-        try request(missing, dispatched: dispatched)
+        try request(missing)
       }
-    } catch let er {
-      done(er)
+    } catch {
+      done(error)
     }
   }
 }
@@ -732,15 +732,15 @@ extension FeedRepository: Browsing {
 
     dep.feedsBlock = { error, feeds in
       if let er = error {
-        // TODO: Pass error to entries operation
-        assert(false, "unhandled error: \(er)")
+        os_log("could not fetch feeds: %{public}@", log: log, type: .error,
+               String(reflecting: er))
       }
     }
 
     dep.feedsCompletionBlock = { error in
       if let er = error {
-        // TODO: Pass error to entries operation
-        assert(false, "unhandled error: \(er)")
+        os_log("could not fetch feeds: %{public}@", log: log, type: .error,
+               String(reflecting: er))
       }
     }
 

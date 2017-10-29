@@ -569,27 +569,5 @@ extension FeedRepositoryTests {
     }
   }
   
-  func testSubtractStringsFromStrings() {
-    let abc = ["a", "b", "c"]
-    let found = [
-      BrowseOperation.subtract(strings: abc, from: abc),
-      BrowseOperation.subtract(strings: abc, from: abc + ["d"]),
-      BrowseOperation.subtract(strings: abc, from: abc + ["d", "e", "f"]),
-      BrowseOperation.subtract(strings: ["a", "a"], from: abc),
-      BrowseOperation.subtract(strings: ["c", "c", "a", "a"], from: abc)
-    ]
-    let wanted = [
-      [],
-      ["d"],
-      ["d", "e", "f"],
-      ["b", "c"],
-      ["b"]
-    ]
-    for (i, b) in wanted.enumerated() {
-      let a = found[i]
-      XCTAssert(a == b || a == ["e", "f", "d"])
-    }
-  }
-  
 }
 

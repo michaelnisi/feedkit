@@ -244,14 +244,11 @@ private final class FetchQueueOperation: FeedKitOperation {
       return done()
     }
     
-    var ended = false
-
     // Keeps track of already dispatched entries.
     var dispatched = [Entry]()
     
     op = browser.entries(locators, entriesBlock: { error, entries in
       assert(!Thread.isMainThread)
-      assert(!ended)
       
       guard let guids = self.sortedIds else {
         fatalError("sorted guids required")
@@ -288,30 +285,31 @@ private final class FetchQueueOperation: FeedKitOperation {
         }
       }
       
-      ended = true
+      guard error == nil else {
+        return
+      }
       
       // Cleaning up, if we aren‘t offline and the remote service is OK, as
       // indicated by having no error here, we can go ahead and remove missing
       // entries. Although, a specific feed‘s server might be offline for a
       // second, while the remote cache is cold, but well, tough luck.
-      if error == nil {
-        let found = dispatched.map { $0.guid }
-        let wanted = locators.flatMap { $0.guid }
-        let missing = Array(Set(wanted).subtracting(found))
-  
-        guard !missing.isEmpty else {
-          return
-        }
+      
+      let found = dispatched.map { $0.guid }
+      let wanted = locators.flatMap { $0.guid }
+      let missing = Array(Set(wanted).subtracting(found))
+      
+      guard !missing.isEmpty else {
+        return
+      }
+      
+      do {
+        os_log("remove missing entries: %{public}@", log: log, type: .debug,
+               String(reflecting: missing))
+        try self.cache.remove(guids: missing)
+      } catch {
+        os_log("could not remove missing: %{public}@", log: log, type: .error,
+               error as CVarArg)
         
-        do {
-          os_log("remove missing entries: %{public}@", log: log, type: .debug,
-                 String(describing: missing))
-          try self.cache.remove(guids: missing)
-        } catch {
-          os_log("failed to remove missing: %{public}@", log: log, type: .error,
-                 String(describing: error))
-          
-        }
       }
     }
   }

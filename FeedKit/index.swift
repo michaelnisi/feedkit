@@ -245,7 +245,7 @@ extension Entry : Cachable {
 
 extension Entry : CustomStringConvertible {
   public var description: String {
-    return "Entry: \(title)"
+    return "Entry: { \(title), \(guid) }"
   }
 }
 
@@ -332,7 +332,13 @@ extension EntryLocator: Equatable {
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
     guard let title = self.title else {
-      return "EntryLocator: { url: \(url), guid: \(String(describing: guid)), since: \(since) }"
+      return """
+      EntryLocator: {
+        url: \(url),
+        guid: \(String(describing: guid)),
+        since: \(since)
+      }
+      """
     }
     return "EntryLocator: { \(title) }"
   }

@@ -13,7 +13,7 @@ public enum QueueError: Error {
   case notInQueue(Any)
 }
 
-// TODO: Make Queue more Array
+// TODO: Implement Collection
 
 /// A destructive Sequence representing a queue, in which lets you navigate
 /// back and forth within the contained items.
