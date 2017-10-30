@@ -650,6 +650,7 @@ public protocol QueueCaching {
   func previous() throws -> [Queued]
 }
 
+@available(*, deprecated)
 public protocol QueueDelegate {
   func queue(_ queue: Queueing, added: Entry)
   func queue(_ queue: Queueing, removedGUID: String)
@@ -658,25 +659,43 @@ public protocol QueueDelegate {
 public protocol Queueing {
   var queueDelegate: QueueDelegate? { get set }
 
-  func enqueue(entries: [Entry],
-               enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
+  func enqueue(
+    entries: [Entry],
+    enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
 
-  func dequeue(entry: Entry,
-               dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void))
-
-  @discardableResult func entries(
+  func dequeue(
+    entry: Entry,
+    dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void))
+  
+  @available(*, deprecated) @discardableResult func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+    ) -> Operation
+  
+  /// Delivers the user’s queue in groups, sorted by relevance, defined by the
+  /// time an item was enqueued. You might shuffle the sort order by removing
+  /// and re-adding items.
+  ///
+  /// - Parameters:
+  ///   - queuedBlock: Applied for each type of `Queued` item currently in the
+  ///     user’s queue.
+  ///   - queued: A group of sorted items in the queue.
+  ///   - queuedError: Optionally, an error.
+  ///   - queuedCompletionBlock: Applied when this operation completes.
+  ///   - error: An error if something went wrong.
+  @discardableResult func queued(
+    queuedBlock: @escaping (_ queued: [Queued], _ queuedError: Error?) -> Void,
+    queuedCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 
-  // The queue methods are synchronous, stunningly.
+  // The queue itself is in-memory and fast, thus the following queue methods
+  // can be synchronous.
 
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
   
   var isEmpty: Bool { get }
-
 }
 
 // MARK: - Updating

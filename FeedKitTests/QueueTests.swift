@@ -39,9 +39,17 @@ final class QueueTests: XCTestCase {
     XCTAssertEqual(Queue<Int>(items: items).current, 1)
   }
   
+  func testLiteral() {
+    let q: Queue = [1, 2, 3]
+    XCTAssertEqual(q, Queue<Int>(items: [1, 2, 3]))
+    XCTAssertEqual(q.current, 1)
+    XCTAssertEqual(q.nextUp, [2, 3])
+  }
+  
   func testSequence() {
     populate()
     XCTAssertEqual(queue.map { $0 }, items)
+    XCTAssertEqual(queue.filter { $0 > 4}, [5, 6, 7, 8])
   }
   
   func testAppend() {

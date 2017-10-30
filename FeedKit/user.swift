@@ -225,6 +225,9 @@ private final class FetchQueueOperation: FeedKitOperation {
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
+    os_log("done: %{public}@", log: log, type: .debug,
+           er != nil ? String(reflecting: er) : "OK")
+    
     if let cb = entriesCompletionBlock {
       target.async {
         cb(er)
@@ -239,35 +242,50 @@ private final class FetchQueueOperation: FeedKitOperation {
     op = nil
   }
   
+  // Identifiers of entries that already have been dispatched.
+  var dispatched = [String]() {
+    didSet {
+      os_log("dispatched: %@", log: log, type: .debug, dispatched)
+    }
+  }
+  
   private func fetchEntries(for locators: [EntryLocator]) {
-    guard !isCancelled, !locators.isEmpty else {
+    guard !isCancelled, !locators.isEmpty,
+      let guids = self.sortedIds else {
       return done()
     }
     
-    // Keeps track of already dispatched entries.
-    var dispatched = [Entry]()
+    // TODO: Accumulate entries deliver them in order
     
     op = browser.entries(locators, entriesBlock: { error, entries in
       assert(!Thread.isMainThread)
-      
-      guard let guids = self.sortedIds else {
-        fatalError("sorted guids required")
-      }
-      
-      var entriesByGuids = [String : Entry]()
-      entries.forEach { entriesByGuids[$0.guid] = $0 }
-      
-      let sorted: [Entry] = guids.flatMap { entriesByGuids[$0] }
+
+      let sorted: [Entry] = {
+        var entriesByGuids = [String : Entry]()
+        entries.forEach { entriesByGuids[$0.guid] = $0 }
+        return guids.flatMap { entriesByGuids[$0] }
+      }()
       
       do {
         try self.user.queue.append(items: sorted)
       } catch {
-        os_log("already in queue: %{public}@", log: log,  type: .error,
-               String(describing: error))
+        switch error {
+        case QueueError.alreadyInQueue(let entry as Entry):
+          os_log("already enqueued: %@", log: log, entry.title)
+        default:
+          fatalError("unhandled error: \(error)")
+        }
       }
       
+      var queuedGuids = [String]()
       let queuedEntries: [Entry] = self.user.queue.filter {
-        !dispatched.contains($0)
+        let guid = $0.guid
+        queuedGuids.append(guid)
+        return !self.dispatched.contains(guid)
+      }
+      
+      guard !queuedGuids.isEmpty else {
+        return
       }
       
       self.target.async { [weak self] in
@@ -277,7 +295,7 @@ private final class FetchQueueOperation: FeedKitOperation {
         cb(error, queuedEntries)
       }
       
-      dispatched = dispatched + queuedEntries
+      self.dispatched = self.dispatched + queuedGuids
     }) { error in
       defer {
         self.target.async { [weak self] in
@@ -292,12 +310,10 @@ private final class FetchQueueOperation: FeedKitOperation {
       // Cleaning up, if we aren‘t offline and the remote service is OK, as
       // indicated by having no error here, we can go ahead and remove missing
       // entries. Although, a specific feed‘s server might be offline for a
-      // second, while the remote cache is cold, but well, tough luck.
-      
-      let found = dispatched.map { $0.guid }
-      let wanted = locators.flatMap { $0.guid }
-      let missing = Array(Set(wanted).subtracting(found))
-      
+      // second, while the remote cache is cold, but well, tough luck. If no
+      // entries are missing, we are done.
+
+      let missing = Array(Set(guids).subtracting(self.dispatched))
       guard !missing.isEmpty else {
         return
       }
@@ -349,32 +365,37 @@ private final class FetchQueueOperation: FeedKitOperation {
     
     isExecuting = true
     
+    var queued: [Queued]!
     do {
-      let queued = try cache.queued()
-      
-      var guids = [String]()
-      
-      let locators: [EntryLocator] = queued.flatMap {
-        switch $0 {
-        case .entry(let locator, _):
-          guard let guid = locator.guid else {
-            fatalError("missing guid")
-          }
-          guids.append(guid)
-          return locator.including
-        }
-      }
-      
-      sortedIds = guids
-      
-      guard !isCancelled, !locators.isEmpty else {
-        return done()
-      }
-      
-      fetchEntries(for: locators)
+      queued = try cache.queued()
     } catch {
       done(but: error)
     }
+    
+    guard !isCancelled, !queued.isEmpty else {
+      return done()
+    }
+    
+    var guids = [String]()
+    
+    let locators: [EntryLocator] = queued.flatMap {
+      switch $0 {
+      case .entry(let locator, _):
+        guard let guid = locator.guid else {
+          fatalError("missing guid")
+        }
+        guids.append(guid)
+        return locator.including
+      }
+    }
+    
+    sortedIds = guids
+    
+    guard !isCancelled, !locators.isEmpty else {
+      return done()
+    }
+    
+    fetchEntries(for: locators)
   }
   
 }
@@ -382,6 +403,11 @@ private final class FetchQueueOperation: FeedKitOperation {
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the queue.
 extension UserLibrary: Queueing {
+  public func queued(queuedBlock: @escaping ([Queued], Error?) -> Void, queuedCompletionBlock: @escaping (Error?) -> Void) -> Operation {
+    // TODO: Write
+    return Operation()
+  }
+  
   
   public var isEmpty: Bool {
     return queue.isEmpty
