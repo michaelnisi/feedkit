@@ -9,37 +9,9 @@
 import XCTest
 @testable import FeedKit
 
-fileprivate class Site {
-  fileprivate var subscriptions = [Subscription]()
-}
-
-extension Site: SubscribeDelegate {
-  func queue(_ queue: Subscribing, added: Subscription) {
-    subscriptions.append(added)
-  }
-  
-  func queue(_ queue: Subscribing, removed: Subscription) {
-    guard let index = subscriptions.index(of: removed) else {
-      fatalError("unexpected subscription")
-    }
-    subscriptions.remove(at: index)
-  }
-}
-
-extension Site: QueueDelegate {
-  func queue(_ queue: Queueing, added: Entry) {
-    dump(added)
-  }
-  
-  func queue(_ queue: Queueing, removedGUID: String) {
-    dump(removedGUID)
-  }
-}
-
 class UserLibraryTests: XCTestCase {
   
   fileprivate var user: UserLibrary!
-  fileprivate var site: Site!
   
   override func setUp() {
     super.setUp()
@@ -53,20 +25,14 @@ class UserLibraryTests: XCTestCase {
       let queue = OperationQueue()
       queue.underlyingQueue = dq
       queue.maxConcurrentOperationCount = 1
-      
-      let site = Site()
-      
+
       let user = UserLibrary(cache: cache, browser: browser, queue: queue)
-      user.subscribeDelegate = site
-      user.queueDelegate = site
-      
+
       self.user = user
-      self.site = site
     }
   }
   
   override func tearDown() {
-    site = nil
     user = nil
     super.tearDown()
   }
@@ -86,9 +52,6 @@ extension UserLibraryTests {
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
       try! user.add(subscriptions: subscriptions)
-      
-      let wanted = subscriptions
-      XCTAssertEqual(site.subscriptions, wanted)
     }
   }
   
@@ -100,8 +63,6 @@ extension UserLibraryTests {
       let subscriptions = [Subscription(url: url)]
       try! user.add(subscriptions: subscriptions)
       try! user.unsubscribe(from: [url])
-      
-      XCTAssertEqual(site.subscriptions, [])
     }
   }
   
@@ -247,8 +208,6 @@ extension UserLibraryTests {
           XCTFail("should err expectedly")
         }
         
-        
-        
         // Receiving five missing entries error here, while still getting the
         // entries, because these are not the fetched ones, but those stored
         // in the queue. This means we are queueing invalid entries.
@@ -345,6 +304,40 @@ extension UserLibraryTests {
     
     waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
+    }
+  }
+  
+  func testQueued() {
+    let entries = try! entriesFromFile()
+    let entriesToQueue = Array(entries.prefix(5))
+    
+    do {
+      let exp = expectation(description: "enqueue")
+      
+      user.enqueue(entries: entriesToQueue) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { error in
+        XCTAssertNil(error)
+      }
+    }
+    
+    do {
+      let exp = expectation(description: "queued")
+      
+      user.queued(queuedBlock: { queued, error in
+        XCTAssertNil(error)
+        dump(queued)
+      }) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { error in
+        XCTAssertNil(error)
+      }
     }
   }
   

@@ -40,8 +40,7 @@ public final class UserLibrary: EntryQueueHost {
   /// The actual queue data structure. Starting off with an empty queue.
   fileprivate var queue = Queue<Entry>()
   
-  public var queueDelegate: QueueDelegate?
-  
+  // TODO: Replace with notifications
   public var subscribeDelegate: SubscribeDelegate?
   
   fileprivate func post(name: NSNotification.Name) {
@@ -400,35 +399,247 @@ private final class FetchQueueOperation: FeedKitOperation {
   
 }
 
-/// Coordinates the queue data structure, local persistence, and propagation of
-/// change events regarding the queue.
+private final class FKFetchQueueOperation: FeedKitOperation {
+  let browser: Browsing
+  let cache: QueueCaching
+  var user: EntryQueueHost
+  
+  let target: DispatchQueue
+  
+  init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
+    self.browser = browser
+    self.cache = cache
+    self.user = user
+    self.target = OperationQueue.current!.underlyingQueue!
+  }
+  
+  var page: FKPage?
+  
+  var entriesBlock: (([Entry], Error?) -> Void)?
+  var fetchQueueCompletionBlock: ((Error?) -> Void)?
+  
+  /// The browser operation, fetching the entries.
+  weak var op: Operation?
+  
+  private func done(but error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
+    os_log("done: %{public}@", log: log, type: .debug,
+           er != nil ? String(reflecting: er) : "OK")
+    
+    if let cb = fetchQueueCompletionBlock {
+      target.async {
+        cb(er)
+      }
+    }
+    
+    entriesBlock = nil
+    fetchQueueCompletionBlock = nil
+    
+    isFinished = true
+    op?.cancel()
+    op = nil
+  }
+  
+  private func fetchEntries(for locators: [EntryLocator]) {
+    guard !isCancelled, !locators.isEmpty,
+      let guids = self.sortedIds else {
+        return done()
+    }
+    
+    var acc = [Entry]()
+    
+    op = browser.entries(locators, entriesBlock: { error, entries in
+      assert(!Thread.isMainThread)
+      guard error == nil else {
+        fatalError("unhandled error: \(error!)")
+      }
+      acc = acc + entries
+    }) { error in
+      defer {
+        self.target.async { [weak self] in
+          self?.done(but: error)
+        }
+      }
+      
+      guard error == nil else {
+        return
+      }
+      
+      let sorted: [Entry] = {
+        var entriesByGuids = [String : Entry]()
+        acc.forEach { entriesByGuids[$0.guid] = $0 }
+        return guids.flatMap { entriesByGuids[$0] }
+      }()
+      
+      do {
+        try self.user.queue.append(items: sorted)
+      } catch {
+        switch error {
+        case QueueError.alreadyInQueue(let entry as Entry):
+          os_log("already enqueued: %@", log: log, entry.title)
+        default:
+          fatalError("unhandled error: \(error)")
+        }
+      }
+
+      self.target.async { [weak self] in
+        guard let cb = self?.entriesBlock else {
+          return
+        }
+        cb(sorted, error)
+      }
+      
+      // Cleaning up, if we aren‘t offline and the remote service is OK, as
+      // indicated by having no error here, we can go ahead and remove missing
+      // entries. Although, a specific feed‘s server might be offline for a
+      // second, while the remote cache is cold, but well, tough luck. If no
+      // entries are missing, we are done.
+      
+      let found = sorted.map { $0.guid }
+      let missing = Array(Set(guids).subtracting(found))
+      guard !missing.isEmpty else {
+        return
+      }
+      
+      do {
+        os_log("remove missing entries: %{public}@", log: log, type: .debug,
+               String(reflecting: missing))
+        try self.cache.remove(guids: missing)
+      } catch {
+        os_log("could not remove missing: %{public}@", log: log, type: .error,
+               error as CVarArg)
+        
+      }
+    }
+  }
+  
+  // MARK: FeedKitOperation
+  
+  override func cancel() {
+    super.cancel()
+    op?.cancel()
+  }
+  
+  /// The sorted guids of the items in the queue.
+  private var sortedIds: [String]? {
+    didSet {
+      guard let guids = sortedIds else {
+        // TODO: Remove all items from queue
+        return
+      }
+      let queuedGuids = user.queue.map { $0.guid }
+      let guidsToRemove = Array(Set(queuedGuids).subtracting(guids))
+      
+      var queuedEntriesByGuids = [String : Entry]()
+      user.queue.forEach { queuedEntriesByGuids[$0.guid] = $0 }
+      
+      for guid in guidsToRemove {
+        if let entry = queuedEntriesByGuids[guid] {
+          try! user.queue.remove(entry)
+        }
+      }
+    }
+  }
+  
+  override func start() {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    isExecuting = true
+    
+    var queued: [Queued]!
+    do {
+      queued = try cache.queued()
+    } catch {
+      done(but: error)
+    }
+    
+    guard !isCancelled, !queued.isEmpty else {
+      return done()
+    }
+    
+    var guids = [String]()
+    
+    let locators: [EntryLocator] = queued.flatMap {
+      switch $0 {
+      case .entry(let locator, _):
+        guard let guid = locator.guid else {
+          fatalError("missing guid")
+        }
+        guids.append(guid)
+        return locator.including
+      }
+    }
+    
+    sortedIds = guids
+    
+    guard !isCancelled, !locators.isEmpty else {
+      return done()
+    }
+    
+    fetchEntries(for: locators)
+  }
+  
+}
+
 extension UserLibrary: Queueing {
-  public func queued(queuedBlock: @escaping ([Queued], Error?) -> Void, queuedCompletionBlock: @escaping (Error?) -> Void) -> Operation {
-    // TODO: Write
-    return Operation()
+  
+  @discardableResult public func fetchQueue(
+    page: FKPage,
+    entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
+    fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation {
+    let op = FKFetchQueueOperation(browser: browser, cache: cache, user: self)
+    op.page = page
+    op.entriesBlock = entriesBlock
+    op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
+    operationQueue.addOperation(op)
+    return op
   }
   
-  
-  public var isEmpty: Bool {
-    return queue.isEmpty
+  @discardableResult public func queued(
+    queuedBlock: @escaping (_ queued: [Queued], _ queuedError: Error?) -> Void,
+    queuedCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation {
+    let cache = self.cache
+    
+    let op = BlockOperation {
+      var queued: [Queued]!
+      let target = OperationQueue.current!.underlyingQueue!
+      
+      do {
+        queued = try cache.queued()
+      } catch {
+        return target.async {
+          queuedCompletionBlock(error)
+        }
+      }
+      
+      var entries = [Queued]()
+      
+      for q in queued {
+        switch q {
+        case .entry:
+          entries.append(q)
+        }
+      }
+      
+      target.async {
+        queuedBlock(entries, nil)
+      }
+      
+      target.async {
+        queuedCompletionBlock(nil)
+      }
+    }
+    
+    operationQueue.addOperation(op)
+    
+    return op
   }
   
-  /// Fetches entries in a user‘s queue populating the `queue` object of this
-  /// `UserLibrary` instance. The `entriesBlock` receives the entries sorted, 
-  /// according to the queue, with best effort. Queue order may vary, dealing
-  /// with latency and unavailable entries.
-  ///
-  /// - Parameters:
-  ///   - entriesBlock: Applied zero, one, or two times passing fetched
-  /// and/or cached entries. The error is currently not in use.
-  ///   - entriesError: An optional error, specific to these entries.
-  ///   - entries: All or some of the requested entries.
-  ///
-  ///   - entriesCompletionBlock: The completion block is applied when
-  /// all entries have been dispatched.
-  ///   - error: The, optional, final error of this operation, as a whole.
-  ///
-  /// - Returns: Returns an executing `Operation`.
   @discardableResult public func entries(
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
@@ -440,7 +651,6 @@ extension UserLibrary: Queueing {
     return op
   }
   
-  /// Adds `entry` to the queue.
   public func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
@@ -463,7 +673,6 @@ extension UserLibrary: Queueing {
     }
   }
   
-  /// Removes `entry` from the queue.
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
@@ -482,32 +691,8 @@ extension UserLibrary: Queueing {
     }
   }
   
-  // MARK: Drafts
-  
-  /// An event handler for when an episode was paused, or finished, during 
-  /// playback.
-  private func played(entry: Entry, until time: CMTime) {
-    // TODO: Write
-  }
-  
-  // TODO: Fetch entry (maybe queued) at once (to replace contains)
-  
-  /// Fetch `entries` for `locators`, queued or not. If an entry is in the queue
-  /// its callback receives a timestamp `ts` of when it was enqueued.
-  private func entries(
-    for locators: [EntryLocator],
-    entryBlock: ((_ entry: Entry, _ ts: Date?) -> Void),
-    entryCompletionBlock: ((_ error: Error?) -> Void)) -> Operation {
-    return Operation()
-  }
-  
   // MARK: Queue
-  
-  // These synchronous methods are super fast (AP), but may not be consistent.
-  // https://en.wikipedia.org/wiki/CAP_theorem
-  
-  /// Returns `true` if `entry` has been enqueued, but unreliably, only looking
-  /// at the queue, this may fail if the queue hasn‘t been populated.
+
   public func contains(entry: Entry) -> Bool {
     return queue.contains(entry)
   }
@@ -518,6 +703,10 @@ extension UserLibrary: Queueing {
   
   public func previous() -> Entry? {
     return queue.backward()
+  }
+  
+  public var isEmpty: Bool {
+    return queue.isEmpty
   }
   
 }
