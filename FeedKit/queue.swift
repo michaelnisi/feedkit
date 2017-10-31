@@ -9,8 +9,8 @@
 import Foundation
 
 public enum QueueError: Error {
-  case alreadyInQueue(Any)
-  case notInQueue(Any)
+  case alreadyInQueue
+  case notInQueue
 }
 
 /// A destructive Sequence representing a queue, in which lets you navigate
@@ -45,7 +45,7 @@ public struct Queue<Item: Hashable> {
     let h = item.hashValue
     
     guard !contains(item) else {
-      throw QueueError.alreadyInQueue(item)
+      throw QueueError.alreadyInQueue
     }
     
     itemsByHashValues[h] = item
@@ -57,8 +57,16 @@ public struct Queue<Item: Hashable> {
   /// Prepends multiple `items` to the queue at once, in reverse order, so the
   /// order of `items` becomes the order of the head of the queue.
   public mutating func prepend(items: [Item]) throws {
+    var acc: Error?
     for item in items.reversed() {
-      try prepend(item)
+      do {
+        try prepend(item)
+      } catch {
+        acc = error
+      }
+    }
+    if let error = acc {
+      throw error
     }
   }
   
@@ -67,7 +75,7 @@ public struct Queue<Item: Hashable> {
     let h = item.hashValue
     
     guard !contains(item) else {
-      throw QueueError.alreadyInQueue(item)
+      throw QueueError.alreadyInQueue
     }
     
     itemsByHashValues[h] = item
@@ -78,8 +86,16 @@ public struct Queue<Item: Hashable> {
   
   /// Appends `items` as the tail of the queue.
   public mutating func append(items: [Item]) throws {
+    var acc: Error?
     for item in items {
-      try append(item)
+      do {
+        try append(item)
+      } catch {
+        acc = error
+      }
+    }
+    if let error = acc {
+      throw error
     }
   }
   
@@ -125,7 +141,7 @@ public struct Queue<Item: Hashable> {
   
   public mutating func skip(to item: Item) throws {
     guard contains(item) else {
-      throw QueueError.notInQueue(item)
+      throw QueueError.notInQueue
     }
     now = item.hashValue
   }
@@ -156,18 +172,20 @@ public struct Queue<Item: Hashable> {
   public func contains(_ item: Item) -> Bool {
     return hashValues.contains(item.hashValue)
   }
-
-  public mutating func remove(_ item: Item) throws {
-    let h = item.hashValue
-    
+  
+  mutating func removeItem(with hashValue: Int) throws {
     guard
-      itemsByHashValues.removeValue(forKey: h) != nil,
-      let i = hashValues.index(of: h) else {
-      throw QueueError.notInQueue(item)
+      itemsByHashValues.removeValue(forKey: hashValue) != nil,
+      let i = hashValues.index(of: hashValue) else {
+      throw QueueError.notInQueue
     }
     
     hashValues.remove(at: i)
-    if now == h { now = nil }
+    if now == hashValue { now = nil }
+  }
+
+  public mutating func remove(_ item: Item) throws {
+    try removeItem(with: item.hashValue)
   }
 }
 

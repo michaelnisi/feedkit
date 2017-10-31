@@ -147,9 +147,9 @@ extension UserLibraryTests {
   
   func testMissingEntries() {
     do {
-      let exp = expectation(description: "entries-1")
+      let exp = expectation(description: "initially fetching queue")
       
-      user.entries(entriesBlock: { error, entries in
+      user.fetchQueue(entriesBlock: { entries, error in
         XCTFail("should not call block")
       }) { error in
         XCTAssertNil(error)
@@ -178,17 +178,19 @@ extension UserLibraryTests {
     }
     
     do {
-      let exp = expectation(description: "entries-2")
+      let exp = expectation(description: "fetching queue")
       
       var acc = [Entry]()
       
-      user.entries(entriesBlock: { error, entries in
+      user.fetchQueue(entriesBlock: { entries, error in
         guard let er = error as? FeedKitError else {
           return XCTFail("should error")
         }
         
         switch er {
         case .missingEntries(let missing):
+          dump(missing)
+          
           func guids(lhs: EntryLocator, rhs: EntryLocator) -> Bool  {
             return lhs.guid!.hashValue < rhs.guid!.hashValue
           }
@@ -208,14 +210,14 @@ extension UserLibraryTests {
           XCTFail("should err expectedly")
         }
         
-        // Receiving five missing entries error here, while still getting the
-        // entries, because these are not the fetched ones, but those stored
-        // in the queue. This means we are queueing invalid entries.
-        
         acc.append(contentsOf: entries)
       }) { error in
         XCTAssertNil(error)
-        XCTAssertEqual(acc, entriesToQueue)
+        
+        // The missing entries, self-healingly, have been removed from the
+        // queue by now.
+        
+        XCTAssertEqual(acc, [], "should remove unavailable entries")
         
         print(acc.map { $0.enclosure?.url })
         
@@ -245,8 +247,8 @@ extension UserLibraryTests {
         }
         
         switch er {
-        case .alreadyInQueue(let found):
-          XCTAssertEqual(found as! Entry, entry)
+        case .alreadyInQueue:
+          break
         default:
           XCTFail("should be expected error")
         }
@@ -272,8 +274,8 @@ extension UserLibraryTests {
       }
       
       switch er {
-      case .notInQueue(let found):
-        XCTAssertEqual(found as! Entry, entry)
+      case .notInQueue:
+        break
       default:
         XCTFail("should be expected error")
       }
@@ -304,40 +306,6 @@ extension UserLibraryTests {
     
     waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
-    }
-  }
-  
-  func testQueued() {
-    let entries = try! entriesFromFile()
-    let entriesToQueue = Array(entries.prefix(5))
-    
-    do {
-      let exp = expectation(description: "enqueue")
-      
-      user.enqueue(entries: entriesToQueue) { error in
-        XCTAssertNil(error)
-        exp.fulfill()
-      }
-      
-      waitForExpectations(timeout: 10) { error in
-        XCTAssertNil(error)
-      }
-    }
-    
-    do {
-      let exp = expectation(description: "queued")
-      
-      user.queued(queuedBlock: { queued, error in
-        XCTAssertNil(error)
-        dump(queued)
-      }) { error in
-        XCTAssertNil(error)
-        exp.fulfill()
-      }
-      
-      waitForExpectations(timeout: 10) { error in
-        XCTAssertNil(error)
-      }
     }
   }
   

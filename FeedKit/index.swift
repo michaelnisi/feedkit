@@ -650,21 +650,6 @@ public protocol QueueCaching {
   func previous() throws -> [Queued]
 }
 
-public struct FKPage {
-  let offset: UInt
-  let end: UInt
-  
-  public init() {
-    self.offset = .min
-    self.end = .max
-  }
-  
-  public init(offset: UInt, end: UInt) {
-    self.offset = offset
-    self.end = end
-  }
-}
-
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s **Queue**.
 public protocol Queueing {
@@ -692,46 +677,8 @@ public protocol Queueing {
   ///
   /// - Returns: Returns an executing `Operation`.
   @discardableResult func fetchQueue(
-    page: FKPage,
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
-  ) -> Operation
-  
-  /// Fetches entries in a user‘s queue populating the `queue` object of this
-  /// `UserLibrary` instance. The `entriesBlock` receives the entries sorted,
-  /// according to the queue, with best effort. Queue order may vary, dealing
-  /// with latency and unavailable entries.
-  ///
-  /// - Parameters:
-  ///   - entriesBlock: Applied zero, one, or two times passing fetched
-  /// and/or cached entries. The error is currently not in use.
-  ///   - entriesError: An optional error, specific to these entries.
-  ///   - entries: All or some of the requested entries.
-  ///
-  ///   - entriesCompletionBlock: The completion block is applied when
-  /// all entries have been dispatched.
-  ///   - error: The, optional, final error of this operation, as a whole.
-  ///
-  /// - Returns: Returns an executing `Operation`.
-  @available(*, deprecated) @discardableResult func entries(
-    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
-  ) -> Operation
-  
-  /// Delivers the user’s queue in groups, sorted by relevance, defined by the
-  /// time an item was enqueued. You might shuffle the sort order by removing
-  /// and re-adding items.
-  ///
-  /// - Parameters:
-  ///   - queuedBlock: Applied for each type of `Queued` item currently in the
-  ///     user’s queue.
-  ///   - queued: A group of sorted items in the queue.
-  ///   - queuedError: Optionally, an error.
-  ///   - queuedCompletionBlock: Applied when this operation completes.
-  ///   - error: An error if something went wrong.
-  @available(*, deprecated) @discardableResult func queued(
-    queuedBlock: @escaping (_ queued: [Queued], _ queuedError: Error?) -> Void,
-    queuedCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 
   // MARK: Queue

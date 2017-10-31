@@ -63,6 +63,21 @@ final class QueueTests: XCTestCase {
     XCTAssertEqual(queue.nextUp, [4])
   }
   
+  func testAppendAlready() {
+    try! queue.append(1)
+    do {
+      try queue.append(items: [1, 2, 3])
+    } catch {
+      switch error {
+      case QueueError.alreadyInQueue:
+        break
+      default:
+        XCTFail("should be expected error")
+      }
+    }
+    XCTAssertEqual(queue.items, [1, 2, 3])
+  }
+  
   func testPrepend() {
     try! queue.prepend(4)
     XCTAssertEqual(queue.current, 4)
@@ -73,6 +88,21 @@ final class QueueTests: XCTestCase {
     XCTAssertEqual(queue.items, [3, 4])
     XCTAssertEqual(queue.nextUp, [])
     XCTAssertNil(queue.forward())
+  }
+  
+  func testPrependAlready() {
+    try! queue.append(3)
+    do {
+      try queue.prepend(items: [1, 2, 3])
+    } catch {
+      switch error {
+      case QueueError.alreadyInQueue:
+        break
+      default:
+        XCTFail("should be expected error")
+      }
+    }
+    XCTAssertEqual(queue.items, [1, 2, 3])
   }
   
   func testSkipTo() {
