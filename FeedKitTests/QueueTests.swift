@@ -39,6 +39,14 @@ final class QueueTests: XCTestCase {
     XCTAssertEqual(Queue<Int>(items: items).current, 1)
   }
   
+  func testRemoveAll() {
+    populate()
+    XCTAssertFalse(queue.isEmpty)
+    queue.removeAll()
+    XCTAssertTrue(queue.isEmpty)
+    XCTAssertNil(queue.current)
+  }
+  
   func testLiteral() {
     let q: Queue = [1, 2, 3]
     XCTAssertEqual(q, Queue<Int>(items: [1, 2, 3]))

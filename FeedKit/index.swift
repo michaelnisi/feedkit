@@ -646,9 +646,13 @@ public protocol QueueCaching {
   func add(entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
   
+  /// Removes all queued entries.
   func removeAll() throws
   
+  /// The user‘s queued entries, sorted by time queued.
   func queued() throws -> [Queued]
+  
+  /// Previously queued entries, limited to the most recent 25.
   func previous() throws -> [Queued]
 }
 
@@ -795,9 +799,12 @@ public protocol UserCacheSyncing: QueueCaching {
   func add(synced: [Synced]) throws
   func remove(recordNames: [String]) throws
 
+  /// The queued entries, which not have been synced and are only locally
+  /// cached, hence the name.
   func locallyQueued() throws -> [Queued]
   func locallySubscribed() throws -> [Subscription]
 
+  /// CloudKit record names of abandoned records by record zone names.
   func zombieRecords() throws -> [(String, String)]
 
   func deleteZombies() throws

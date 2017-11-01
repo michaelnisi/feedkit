@@ -57,6 +57,23 @@ extension UserCacheTests {
     }
   }
   
+  func testRemoveAll() {
+    do {
+      try! cache.add(entries: locators)
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      let found = try! cache.queued()
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      try! cache.removeAll()
+      let found = try! cache.queued()
+      let wanted = [Queued]()
+      XCTAssertEqual(found, wanted)
+    }
+    
+  }
+  
   func testRemoveEntries() {
     do {
       try! cache.add(entries: locators)

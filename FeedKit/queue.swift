@@ -13,8 +13,8 @@ public enum QueueError: Error {
   case notInQueue
 }
 
-/// A destructive Sequence representing a queue, in which lets you navigate
-/// back and forth within the contained items.
+/// A destructive Sequence representing a queue that lets you navigate back and
+/// forth within the contained items.
 public struct Queue<Item: Hashable> {
   
   /// The content.
@@ -196,17 +196,23 @@ public struct Queue<Item: Hashable> {
   }
 }
 
+// MARK: - Equatable
+
 extension Queue: Equatable {
   public static func ==(lhs: Queue, rhs: Queue) -> Bool {
     return lhs.items == rhs.items
   }
 }
 
+// MARK: - Sequence
+
 extension Queue: Sequence {
   public func makeIterator() -> IndexingIterator<Array<Item>> {
     return items.makeIterator()
   }
 }
+
+// MARK: - ExpressibleByArrayLiteral
 
 extension Queue: ExpressibleByArrayLiteral {
   public init(arrayLiteral elements: Element...) {

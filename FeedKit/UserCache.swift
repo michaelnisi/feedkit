@@ -82,7 +82,7 @@ extension UserCache: SubscriptionCaching {
 
 extension UserCache: QueueCaching {
   
-  public func _queued(sql: String) throws -> [Queued] {
+  private func queryForQueued(using sql: String) throws -> [Queued] {
     var er: Error?
     var locators = [Queued]()
     
@@ -114,14 +114,12 @@ extension UserCache: QueueCaching {
     return locators
   }
   
-  /// The user‘s queued entries, sorted by time queued.
   public func queued() throws -> [Queued] {
-    return try _queued(sql: SQLFormatter.SQLToSelectAllQueued)
+    return try queryForQueued(using: SQLFormatter.SQLToSelectAllQueued)
   }
   
-  /// Returns previously queued entries, limited to the most recent 25.
   public func previous() throws -> [Queued] {
-    return try _queued(sql: SQLFormatter.SQLToSelectAllPrevious)
+    return try queryForQueued(using: SQLFormatter.SQLToSelectAllPrevious)
   }
   
   public func removeAll() throws {
@@ -242,13 +240,11 @@ extension UserCache: UserCacheSyncing {
     }
   }
   
-  /// The queued entries, which not have been synced and are only locally
-  /// cached, hence the name.
   public func locallyQueued() throws -> [Queued] {
-    return try _queued(sql: SQLFormatter.SQLToSelectLocallyQueuedEntries)
+    return try queryForQueued(using:
+      SQLFormatter.SQLToSelectLocallyQueuedEntries)
   }
   
-  /// CloudKit record names of abandoned records by record zone names.
   public func zombieRecords() throws -> [(String, String)] {
     var er: Error?
     var records = [(String, String)]()
