@@ -432,7 +432,7 @@ extension FeedCache: SearchCaching {
       return (term, ts)
     } else {
       if !term.isEmpty {
-        let pre = term.characters.index(before: term.endIndex)
+        let pre = term.index(before: term.endIndex)
         let substring = String(term[..<pre])
         return subcached(substring, dict: dict)
       }

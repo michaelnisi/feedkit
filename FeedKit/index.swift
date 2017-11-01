@@ -618,6 +618,8 @@ public protocol Browsing: Caching {
 
 // MARK: - Queueing
 
+/// An item that can be in the user’s queue. At the moment these are just
+/// entries, but we might add seasons, etc.
 public enum Queued {
   case entry(EntryLocator, Date)
 }
@@ -642,6 +644,7 @@ extension Queued: Hashable {
   }
 }
 
+/// The local cache of the queue.
 public protocol QueueCaching {
   func add(entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
@@ -657,7 +660,7 @@ public protocol QueueCaching {
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
-/// change events regarding the user’s **Queue**.
+/// change events regarding the user’s queue.
 public protocol Queueing {
 
   /// Adds `entry` to the queue.
@@ -710,6 +713,7 @@ public protocol Updating {
   ///   - newData: `true` if new data has been received.
   ///   - error: An if something went wrong.
   func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
+  
 }
 
 // MARK: - Subscribing
@@ -782,16 +786,22 @@ public struct RecordMetadata {
   }
 }
 
-/// Enumerates data structures for synchronization with iCloud.
+public typealias FeedURL = String
+
+/// Enumerates data structures that are synchronized with iCloud.
 public enum Synced {
 
   /// A queued entry that has been synchronized with the iCloud database with
   /// these properties: entry locator, the time the entry was added to the
   /// queue, and CloudKit record metadata.
   case entry(EntryLocator, Date, RecordMetadata)
-
+  
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
+  
+  /// Just a feed to share iTunes GUID and URLs of pre-scaled images.
+//  case feed(FeedURL, ITunesItem, RecordMetadata)
+  
 }
 
 /// The user cache complies to this protocol for iCloud synchronization.

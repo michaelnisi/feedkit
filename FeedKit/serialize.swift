@@ -142,7 +142,7 @@ struct serialize {
     // Apparantly, people spam the iTunes author property. To ignore them, we
     // limit its length.
     
-    if let a = author, a.characters.count > 64 {
+    if let a = author, a.count > 64 {
       throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
     }
     

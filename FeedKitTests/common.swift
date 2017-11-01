@@ -17,7 +17,7 @@ import Ola
 
 func randomString(length: Int) -> String {
   let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-  let max = UInt32(chars.characters.count)
+  let max = UInt32(chars.count)
   var str = ""
   
   for _ in 0..<length {

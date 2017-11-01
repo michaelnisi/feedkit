@@ -428,7 +428,7 @@ extension FeedCacheTests {
 
     do {
       var term: String = ""
-      for c in "apple ".characters {
+      for c in "apple " {
         term.append(c)
         if let sugs = try! cache.suggestions(for: term, limit: 5) {
           XCTAssertEqual(sugs.count, terms.count)
@@ -488,7 +488,7 @@ extension FeedCacheTests {
     if let (found, _) = FeedCache.subcached(term, dict: cache) {
       XCTAssertEqual(found, wanted)
       if term.lengthOfBytes(using: String.Encoding.utf8) > 1 {
-        let pre = term.characters.index(before: term.endIndex)
+        let pre = term.index(before: term.endIndex)
         self.hit(String(term[..<pre]), wanted, cache)
       }
     } else {
