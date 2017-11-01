@@ -645,7 +645,9 @@ extension Queued: Hashable {
 public protocol QueueCaching {
   func add(entries: [EntryLocator]) throws
   func remove(guids: [String]) throws
-
+  
+  func removeAll() throws
+  
   func queued() throws -> [Queued]
   func previous() throws -> [Queued]
 }

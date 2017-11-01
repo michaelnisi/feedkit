@@ -33,6 +33,13 @@ public struct Queue<Item: Hashable> {
     }
   }}
   
+  /// Removes all items from the queue.
+  public mutating func removeAll() {
+    itemsByHashValues.removeAll()
+    now = nil
+    hashValues.removeAll()
+  }
+  
   public var isEmpty: Bool { get {
     return hashValues.isEmpty
   }}

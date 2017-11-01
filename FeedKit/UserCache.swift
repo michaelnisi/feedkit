@@ -124,6 +124,12 @@ extension UserCache: QueueCaching {
     return try _queued(sql: SQLFormatter.SQLToSelectAllPrevious)
   }
   
+  public func removeAll() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteQueued)
+    }
+  }
+  
   public func remove(guids: [String]) throws {
     var er: Error?
     

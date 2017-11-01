@@ -575,6 +575,8 @@ extension SQLFormatter {
 // MARK: - Syncing
 
 extension SQLFormatter {
+  
+  static var SQLToDeleteQueued = "DELETE FROM queued_entry;"
 
   static var SQLToDeleteFromUserTables = """
   DELETE FROM record;
