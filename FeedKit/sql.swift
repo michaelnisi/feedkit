@@ -554,13 +554,11 @@ extension SQLFormatter {
     return sql
   }
 
-  /// Returns SQL to delete feed `subscriptions`.
-  static func SQLToDelete(subscriptions: [Subscription]) -> String? {
-    guard !subscriptions.isEmpty else {
-      return nil
-    }
+  /// Returns SQL to delete subscriptions for `urls`.
+  static func SQLToDelete(subscribed urls: [FeedURL]) -> String {
     return "DELETE FROM subscribed_feed WHERE feed_url IN(" +
-      subscriptions.map { "'\(String($0.url))'"}.joined(separator: ", ") + ");"
+      urls.map { "'\($0)'"}.joined(separator: ", ") +
+    ");"
   }
 
   func subscription(from row: SkullRow) -> Subscription {

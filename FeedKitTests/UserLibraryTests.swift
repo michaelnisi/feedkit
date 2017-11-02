@@ -12,6 +12,7 @@ import XCTest
 class UserLibraryTests: XCTestCase {
   
   fileprivate var user: UserLibrary!
+  fileprivate var cache: UserCache!
   
   override func setUp() {
     super.setUp()
@@ -27,8 +28,9 @@ class UserLibraryTests: XCTestCase {
       queue.maxConcurrentOperationCount = 1
 
       let user = UserLibrary(cache: cache, browser: browser, queue: queue)
-
+      
       self.user = user
+      self.cache = cache
     }
   }
   
@@ -46,78 +48,119 @@ class UserLibraryTests: XCTestCase {
 extension UserLibraryTests {
   
   func testSubscribe() {
-    try! user.add(subscriptions: [])
+    XCTAssertThrowsError(try user.add(subscriptions: []) { _ in })
     
     do {
+      let exp = self.expectation(description: "subscribing")
+      
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
-      try! user.add(subscriptions: subscriptions)
+      
+      try! user.add(subscriptions: subscriptions) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
   
+  /// Subscribes to default feed and return subscriptions for testing.
+  @discardableResult
+  private func subscribe(addComplete: @escaping (Error?) -> Void) -> [Subscription] {
+    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+    let subscriptions = [Subscription(url: url)]
+    try! user.add(subscriptions: subscriptions, addComplete: addComplete)
+    return subscriptions
+  }
+  
   func testUnsubscribe() {
-    try! user.unsubscribe(from: [])
+    XCTAssertThrowsError(try user.unsubscribe(from: []))
     
     do {
-      let url = "http://abc.de"
-      let subscriptions = [Subscription(url: url)]
-      try! user.add(subscriptions: subscriptions)
-      try! user.unsubscribe(from: [url])
+      let exp = self.expectation(description: "subscribing")
+      
+      subscribe { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+    
+    do {
+      let exp = self.expectation(description: "unsubscribing")
+      
+      var cb: ((Error?) -> Void)? = { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+      try! user.unsubscribe(from: [url], unsubscribeComplete: cb)
+      cb = nil // stinker
+      
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+        XCTAssertFalse(self.user.has(subscription: url))
+      }
     }
   }
   
   func testHasSubscription() {
-    let url = "http://abc.de"
-    let subscriptions = [Subscription(url: url)]
-    try! user.add(subscriptions: subscriptions)
-    
-    let exp = self.expectation(description: "has")
-    
-    user.has(subscription: url) { yes, error in
-      guard error == nil else {
-        return XCTFail("should not error: \(error!)")
+    do {
+      let exp = self.expectation(description: "subscribing")
+      
+      subscribe { error in
+        XCTAssertNil(error)
+        exp.fulfill()
       }
-      XCTAssertTrue(yes)
-      exp.fulfill()
+      
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
     
-    self.waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+    do {
+      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+      self.measure {
+        XCTAssertTrue(user.has(subscription: url))
+      }
+      
     }
   }
   
   func testFeeds() {
-    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
-    let subscriptions = [Subscription(url: url)]
-    try! user.add(subscriptions: subscriptions)
-    
-    let exp = self.expectation(description: "feeds")
-    exp.expectedFulfillmentCount = 12
-    exp.assertForOverFulfill = true
-    
-    user.feeds(feedsBlock: { error, feeds in
-      let found = feeds.first!.url
-      let wanted = url
-      XCTAssertEqual(found, wanted)
-      exp.fulfill()
-    }) { error in
-      guard error == nil else {
-        return XCTFail("should not error: \(error!)")
-      }
-      exp.fulfill()
-    }
-    
-    for _ in 0..<10 {
-      user.feeds(feedsBlock: { error, feeds in
-        XCTFail()
-      }, feedsCompletionBlock: { error in
-        XCTAssertEqual(error as? FeedKitError, FeedKitError.cancelledByUser)
+    do {
+      let exp = self.expectation(description: "subscribing")
+      
+      subscribe { error in
+        XCTAssertNil(error)
         exp.fulfill()
-      }).cancel()
+      }
+      
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
     
-    self.waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+    do {
+      let exp = self.expectation(description: "fetching feeds")
+      
+      user.fetchFeeds(feedsBlock: { feeds, error in
+        let found = feeds.first!.url
+        let wanted = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+        XCTAssertEqual(found, wanted)
+      }) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
   

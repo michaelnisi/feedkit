@@ -521,11 +521,12 @@ extension SQLTests {
   }
   
   func testSQLToDeleteSubscriptions() {
-    XCTAssertNil(SQLFormatter.SQLToDelete(subscriptions: []))
+    XCTAssertEqual(
+      SQLFormatter.SQLToDelete(subscribed: []),
+      "DELETE FROM subscribed_feed WHERE feed_url IN();")
     
     let url = "http://abc.de"
-    let subscriptions = [Subscription(url: url)]
-    let found = SQLFormatter.SQLToDelete(subscriptions: subscriptions)
+    let found = SQLFormatter.SQLToDelete(subscribed: [url])
     let wanted = "DELETE FROM subscribed_feed WHERE feed_url IN('\(url)');"
     XCTAssertEqual(found, wanted)
   }

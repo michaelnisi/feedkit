@@ -59,6 +59,7 @@ public enum FeedKitError : Error {
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
   case unidentifiedFeed
+  case emptyArray
 }
 
 extension FeedKitError: Equatable {
@@ -693,6 +694,7 @@ public protocol Queueing {
   // MARK: Queue
   
   // These synchronous methods are super fast (AP), but may not be consistent.
+  // For example, to meaningfully use these, you must `fetchQueue` first.
   // https://en.wikipedia.org/wiki/CAP_theorem
 
   func contains(entry: Entry) -> Bool
@@ -716,21 +718,19 @@ public protocol Updating {
   
 }
 
-// MARK: - Subscribing
+// MARK: - Downloading
 
-@available(*, deprecated)
-public protocol SubscribeDelegate {
-  func queue(_ queue: Subscribing, added: Subscription)
-  func queue(_ queue: Subscribing, removed: Subscription)
-}
+// TODO: Design Downloading API
+
+// MARK: - Subscribing
 
 /// A feed subscription.
 public struct Subscription {
-  public let url: String
+  public let url: FeedURL
   public let ts: Date?
   public let iTunes: ITunesItem?
 
-  public init(url: String, iTunes: ITunesItem? = nil, ts: Date? = nil) {
+  public init(url: FeedURL, iTunes: ITunesItem? = nil, ts: Date? = nil) {
     self.url = url
     self.iTunes = iTunes
     self.ts = ts
@@ -743,28 +743,67 @@ extension Subscription: Equatable {
   }
 }
 
+extension Subscription: Hashable {
+  public var hashValue: Int {
+    get { return url.hashValue }
+  }
+}
+
 public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
-  func remove(subscriptions: [Subscription]) throws
+  func remove(urls: [FeedURL]) throws
 
   func has(_ url: String) throws -> Bool
 
   func subscribed() throws -> [Subscription]
 }
 
-public protocol Subscribing: Updating {
-  var subscribeDelegate: SubscribeDelegate? { get set }
+/// Mangages the user’s feed subscriptions.
+public protocol Subscribing {
+  
+  /// Adds `subscriptions` to the user’s library.
+  ///
+  /// - Parameters:
+  ///   - subscriptions: The subscriptions to add without timestamps.
+  ///   - addComplete: The completion block:
+  ///   - error: An error if something went wrong.
+  func add(
+    subscriptions: [Subscription],
+    addComplete: @escaping (_ error: Error?) -> Void) throws
+  
+  /// Unsubscribe from `urls`.
+  ///
+  /// - Parameters:
+  ///   - urls: The URLs of feeds to unsubscribe from.
+  ///   - unsubscribeComplete: The completion block:
+  ///   - error: An error if something went wrong.
+  func unsubscribe(
+    from urls: [FeedURL],
+    unsubscribeComplete: ((_ error: Error?) -> Void)?) throws
 
-  func add(subscriptions: [Subscription]) throws
-  func unsubscribe(from urls: [String]) throws
-
-  func feeds(
-    feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
+  /// Fetches the feeds currently subscribed.
+  ///
+  /// - Parameters:
+  ///   - feedsBlock: A block applied with the resulting feeds:
+  ///   - feeds: The subscribed feeds.
+  ///   - feedsError: Optionally, an error related to feed fetching.
+  ///
+  ///   - feedsCompletionBlock: The completion block of this operation:
+  ///   - error: An error if something went wrong with this operation.
+  func fetchFeeds(
+    feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
-
-  func has(subscription url: String, cb: @escaping (Bool, Error?) -> Void)
-
+  
+  /// Returns `true` if `url` is subscribed. You must `fetchFeeds` first, before
+  /// relying on this.
+  func has(subscription url: FeedURL) -> Bool
+  
+  // TODO: Move into cache, duh!
+  
+  /// Reloads in-memory cache of locally cached subscription URLs.
+  func synchronize()
+  
 }
 
 // MARK: - UserCaching

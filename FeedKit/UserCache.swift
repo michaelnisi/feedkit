@@ -35,16 +35,17 @@ extension UserCache: SubscriptionCaching {
     }
   }
   
-  public func remove(subscriptions: [Subscription]) throws {
+  public func remove(urls: [FeedURL]) throws {
+    guard !urls.isEmpty else {
+      return
+    }
+    
     try queue.sync {
-      guard let sql = SQLFormatter.SQLToDelete(subscriptions: subscriptions) else {
-        return
-      }
-      try db.exec(sql)
+      try db.exec(SQLFormatter.SQLToDelete(subscribed: urls))
     }
   }
   
-  fileprivate func _subscribed(sql: String) throws -> [Subscription] {
+  fileprivate func subscribed(sql: String) throws -> [Subscription] {
     return try queue.sync {
       var er: Error?
       var subscriptions = [Subscription]()
@@ -70,7 +71,7 @@ extension UserCache: SubscriptionCaching {
   }
   
   public func subscribed() throws -> [Subscription] {
-    return try _subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
+    return try subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
   }
   
   public func has(_ url: String) throws -> Bool {
@@ -278,7 +279,7 @@ extension UserCache: UserCacheSyncing {
   }
   
   public func locallySubscribed() throws -> [Subscription] {
-    return try _subscribed(sql: SQLFormatter.SQLToSelectLocallySubscribedFeeds)
+    return try subscribed(sql: SQLFormatter.SQLToSelectLocallySubscribedFeeds)
   }
   
 }

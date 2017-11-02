@@ -199,7 +199,7 @@ extension UserCacheTests {
   }
   
   func testRemoveSubscriptions() {
-    try! cache.remove(subscriptions: [])
+    try! cache.remove(urls: [])
     
     let url = "http:/abc.de"
     let s = Subscription(url: url)
@@ -214,7 +214,8 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.remove(subscriptions: subscriptions)
+      let urls = subscriptions.map { $0.url }
+      try! cache.remove(urls: urls)
       let found = try! cache.subscribed()
       let wanted = [Subscription]()
       XCTAssertEqual(found, wanted)

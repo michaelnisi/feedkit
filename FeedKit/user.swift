@@ -35,20 +35,15 @@ public final class UserLibrary: EntryQueueHost {
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
+    
+    synchronize()
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
   fileprivate var queue = Queue<Entry>()
   
-  // TODO: Replace with notifications
-  public var subscribeDelegate: SubscribeDelegate?
-  
-  fileprivate func post(name: NSNotification.Name) {
-    DispatchQueue.main.async {
-      NotificationCenter.default.post(name: name, object: self)
-    }
-  }
-  
+  /// The current subscribed URLs—to some extend.
+  fileprivate var subscriptions = Set<FeedURL>()
 }
 
 // MARK: - Subscribing
@@ -66,7 +61,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
     self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
   
-  var feedsBlock: ((Error?, [Feed]) -> Void)?
+  var feedsBlock: (([Feed], Error?) -> Void)?
   var feedsCompletionBlock: ((Error?) -> Void)?
   
   /// The browser operation, fetching the feeds.
@@ -97,7 +92,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
     op = browser.feeds(urls, feedsBlock: { error, feeds in
       if !self.isCancelled, let cb = self.feedsBlock {
         self.target.async {
-          cb(error, feeds)
+          cb(feeds, error)
         }
       }
     }) { error in
@@ -132,37 +127,78 @@ private final class FetchFeedsOperation: FeedKitOperation {
 
 extension UserLibrary: Subscribing {
   
-  public func add(subscriptions: [Subscription]) throws {
+  public func add(
+    subscriptions: [Subscription],
+    addComplete: @escaping (_ error: Error?) -> Void) throws {
     guard !subscriptions.isEmpty else {
-      return
+      throw FeedKitError.emptyArray
     }
     
-    try cache.add(subscriptions: subscriptions)
+    let cache = self.cache
     
-    for subscription in subscriptions {
-      subscribeDelegate?.queue(self, added: subscription)
+    operationQueue.addOperation {
+      let target = OperationQueue.current!.underlyingQueue!
+      
+      do {
+        try cache.add(subscriptions: subscriptions)
+        self.subscriptions.formUnion(subscriptions.map { $0.url })
+      } catch {
+        target.async {
+          addComplete(error)
+        }
+        return
+      }
+
+      target.async {
+        addComplete(nil)
+      }
+      
+      DispatchQueue.main.async {
+        // TODO: Post .FKSubscriptionsDidChange
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      }
     }
-    post(name: Notification.Name.FKQueueDidChange)
+
   }
   
-  public func unsubscribe(from urls: [String]) throws {
+  public func unsubscribe(
+    from urls: [FeedURL],
+    unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) throws {
     guard !urls.isEmpty else {
-      return
+      throw FeedKitError.emptyArray
     }
     
-    let subscriptions = urls.map { Subscription(url: $0) }
-    try cache.remove(subscriptions: subscriptions)
+    let cache = self.cache
     
-    for subscription in subscriptions {
-      subscribeDelegate?.queue(self, removed: subscription)
+    operationQueue.addOperation {
+      let target = OperationQueue.current!.underlyingQueue!
+      
+      do {
+        try cache.remove(urls: urls)
+        self.subscriptions.subtract(urls)
+      } catch {
+        target.async {
+          unsubscribeComplete?(error)
+        }
+        return
+      }
+      
+      target.async {
+        unsubscribeComplete?(nil)
+      }
+      
+      DispatchQueue.main.async {
+        // TODO: Post .FKSubscriptionsDidChange
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      }
     }
-    post(name: Notification.Name.FKSubscriptionsDidChange)
   }
   
-  /// The subscribed feeds of the user.
-  @discardableResult public func feeds(
-    feedsBlock: @escaping (Error?, [Feed]) -> Void,
-    feedsCompletionBlock: @escaping (Error?) -> Void) -> Operation {
+  @discardableResult
+  public func fetchFeeds(
+    feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
+    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation {
     let op = FetchFeedsOperation(browser: browser, cache: cache)
     op.feedsBlock = feedsBlock
     op.feedsCompletionBlock = feedsCompletionBlock
@@ -170,15 +206,22 @@ extension UserLibrary: Subscribing {
     return op
   }
   
-  public func has(subscription url: String, cb: @escaping (Bool, Error?) -> Void) {
-    assert(Thread.isMainThread)
-
-    operationQueue.addOperation {
+  public func has(subscription url: FeedURL) -> Bool {
+    return subscriptions.contains(url)
+  }
+  
+  public func synchronize() {
+    DispatchQueue.global(qos: .utility).async {
       do {
-        let yes = try self.cache.has(url)
-        DispatchQueue.main.async { cb(yes, nil) }
+        let s = try self.cache.subscribed()
+        let subscribed = Set(s.map { $0.url })
+      
+        let unsubscribed = self.subscriptions.subtracting(subscribed)
+        self.subscriptions.subtract(unsubscribed)
+        self.subscriptions.formUnion(subscribed)
       } catch {
-        DispatchQueue.main.async { cb(false, error) }
+        os_log("failed to reload subscriptions", log: log, type: .error,
+               error as CVarArg)
       }
     }
   }
@@ -438,7 +481,8 @@ private final class FKFetchQueueOperation: FeedKitOperation {
 
 extension UserLibrary: Queueing {
   
-  @discardableResult public func fetchQueue(
+  @discardableResult
+  public func fetchQueue(
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
@@ -472,7 +516,9 @@ extension UserLibrary: Queueing {
       
       enqueueCompletionBlock(nil)
       
-      self.post(name: Notification.Name.FKQueueDidChange)
+      DispatchQueue.main.async {
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      }
     }
   }
   
@@ -493,7 +539,9 @@ extension UserLibrary: Queueing {
       
       dequeueCompletionBlock(nil)
       
-      self.post(name: Notification.Name.FKQueueDidChange)
+      DispatchQueue.main.async {
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      }
     }
   }
   
