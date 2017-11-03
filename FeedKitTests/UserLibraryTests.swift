@@ -9,6 +9,8 @@
 import XCTest
 @testable import FeedKit
 
+// TODO: Review callbacks and notifications
+
 class UserLibraryTests: XCTestCase {
   
   fileprivate var user: UserLibrary!
@@ -51,9 +53,9 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "subscribing")
       
-      NotificationCenter.default.addObserver(
+      let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
-        object: nil,
+        object: self.user,
         queue: nil) { notification in
         exp.fulfill()
       }
@@ -66,6 +68,7 @@ extension UserLibraryTests {
       }
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
+        NotificationCenter.default.removeObserver(obs)
       }
     }
   }
@@ -85,36 +88,45 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "subscribing")
       
+      let obs = NotificationCenter.default.addObserver(
+        forName: .FKSubscriptionsDidChange,
+        object: self.user,
+        queue: nil) { notification in
+        exp.fulfill()
+      }
+      
       subscribe { error in
         XCTAssertNil(error)
-        exp.fulfill()
       }
       
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
+        NotificationCenter.default.removeObserver(obs)
       }
     }
     
     do {
       let exp = self.expectation(description: "unsubscribing")
+      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
       
-      NotificationCenter.default.addObserver(
+      let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
-        object: nil,
+        object: self.user,
         queue: nil) { notification in
+        XCTAssertFalse(self.user.has(subscription: url))
         exp.fulfill()
       }
       
       var cb: ((Error?) -> Void)? = { error in
         XCTAssertNil(error)
       }
-      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+      
       try! user.unsubscribe(from: [url], unsubscribeComplete: cb)
       cb = nil // stinker
       
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
-        XCTAssertFalse(self.user.has(subscription: url))
+        NotificationCenter.default.removeObserver(obs)
       }
     }
   }
@@ -290,9 +302,9 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "enqueueing")
     
-    NotificationCenter.default.addObserver(
+    let obs = NotificationCenter.default.addObserver(
       forName: .FKQueueDidChange,
-      object: nil,
+      object: self.user,
       queue: nil) { notification in
       exp.fulfill()
     }
@@ -317,6 +329,7 @@ extension UserLibraryTests {
     
     waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
+      NotificationCenter.default.removeObserver(obs)
     }
   }
   
@@ -364,11 +377,13 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "dequeueing")
       
-      NotificationCenter.default.addObserver(
+      let obs = NotificationCenter.default.addObserver(
         forName: .FKQueueDidChange,
         object: nil,
         queue: nil) { notification in
-        exp.fulfill()
+        DispatchQueue.main.async {
+          exp.fulfill()
+        }
       }
       
       user.dequeue(entry: entry) { error in
@@ -377,6 +392,7 @@ extension UserLibraryTests {
       
       waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
+        NotificationCenter.default.removeObserver(obs)
       }
     }
   }

@@ -658,6 +658,10 @@ public protocol QueueCaching {
   
   /// Previously queued entries, limited to the most recent 25.
   func previous() throws -> [Queued]
+  
+  /// Returns `true` if the enty with `guid` is currently contained in the
+  /// locally cached queue.
+  func hasQueued(guid: EntryGUID) throws -> Bool
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
@@ -808,11 +812,13 @@ public protocol Subscribing {
 
 // MARK: - UserCaching
 
+/// Caches user data, queue and subscriptions, locally.
 public protocol UserCaching: QueueCaching, SubscriptionCaching {}
 
 // MARK: - Syncing
 
-/// Encapsulates `CKRecord` data to **avoid CloudKit dependency**.
+/// Encapsulates `CKRecord` data to **avoid CloudKit dependency within
+/// FeedKit** framework.
 public struct RecordMetadata {
   let zoneName: String
   let recordName: String
@@ -837,15 +843,15 @@ public enum Synced {
   
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
-  
-  /// Just a feed to share iTunes GUID and URLs of pre-scaled images.
-//  case feed(FeedURL, ITunesItem, RecordMetadata)
-  
 }
 
-/// The user cache complies to this protocol for iCloud synchronization.
+/// The user cache complies to this protocol to allow iCloud synchronization.
 public protocol UserCacheSyncing: QueueCaching {
+  
+  /// Saves `synced`, synchronized user items, to the local cache.
   func add(synced: [Synced]) throws
+  
+  /// Removes records with `recordNames` from the local cache.
   func remove(recordNames: [String]) throws
 
   /// The queued entries, which not have been synced and are only locally
@@ -857,7 +863,10 @@ public protocol UserCacheSyncing: QueueCaching {
   func zombieRecords() throws -> [(String, String)]
 
   func deleteZombies() throws
+  
+  /// Deletes the local cache, entirely.
   func toss() throws
+  
 }
 
 // MARK: - Internal

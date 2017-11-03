@@ -133,6 +133,7 @@ extension UserCacheTests {
   func testAddSynced() {
     let synced = freshSynced()
     try! cache.add(synced: synced)
+    XCTAssertTrue(try! cache.hasQueued(guid: "abc"))
   }
   
   func testRemoveSynced() {

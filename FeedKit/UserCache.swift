@@ -173,6 +173,16 @@ extension UserCache: QueueCaching {
     }
   }
   
+  public func hasQueued(guid: EntryGUID) throws -> Bool {
+    let guids: [EntryGUID] = try queued().map {
+      switch $0 {
+      case .entry(let locator, _):
+        return locator.guid!
+      }
+    }
+    return guids.contains(guid)
+  }
+  
 }
 
 // MARK: - UserCacheSyncing

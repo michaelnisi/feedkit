@@ -155,7 +155,7 @@ extension UserLibrary: Subscribing {
       
       DispatchQueue.main.async {
         NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: nil)
+          name: .FKSubscriptionsDidChange, object: self)
       }
     }
 
@@ -189,7 +189,7 @@ extension UserLibrary: Subscribing {
       
       DispatchQueue.main.async {
         NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: nil)
+          name: .FKSubscriptionsDidChange, object: self)
       }
     }
   }
@@ -517,7 +517,7 @@ extension UserLibrary: Queueing {
       enqueueCompletionBlock(nil)
       
       DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
       }
     }
   }
@@ -529,18 +529,25 @@ extension UserLibrary: Queueing {
     
     operationQueue.addOperation {
       assert(!Thread.isMainThread)
+      let target = OperationQueue.current!.underlyingQueue!
+      
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
         try self.cache.remove(guids: [guid])
       } catch {
-        return dequeueCompletionBlock(error)
+        target.async {
+          dequeueCompletionBlock(error)
+        }
+        return
       }
       
-      dequeueCompletionBlock(nil)
-      
       DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
+      }
+      
+      target.async {
+        dequeueCompletionBlock(nil)
       }
     }
   }
