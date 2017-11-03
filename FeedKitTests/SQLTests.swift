@@ -420,7 +420,8 @@ extension SQLTests {
 extension SQLTests {
   
   func testSQLToDeleteRecords() {
-    XCTAssertNil(SQLFormatter.SQLToDeleteRecords(with: []))
+    XCTAssertEqual(SQLFormatter.SQLToDeleteRecords(with: []),
+      "DELETE FROM record WHERE record_name IN();")
     XCTAssertEqual(SQLFormatter.SQLToDeleteRecords(with: ["abc", "def"]),
       "DELETE FROM record WHERE record_name IN('abc', 'def');")
   }

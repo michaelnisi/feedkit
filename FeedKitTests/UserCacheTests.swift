@@ -131,12 +131,14 @@ extension UserCacheTests {
   }
   
   func testAddSynced() {
+    XCTAssertThrowsError(try cache.add(synced: []))
     let synced = freshSynced()
     try! cache.add(synced: synced)
     XCTAssertTrue(try! cache.hasQueued(guid: "abc"))
   }
   
   func testRemoveSynced() {
+    XCTAssertThrowsError(try cache.remove(recordNames: []))
     let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
     let recordNames = [recordName]
     try! cache.remove(recordNames: recordNames)
@@ -159,14 +161,67 @@ extension UserCacheTests {
     XCTAssertEqual(found, wanted)
   }
   
+  func testQueuedViaSync() {
+    XCTAssertEqual(try! cache.queued(), [])
+    
+    do {
+      let locator = locators.first!
+      let uuidString = UUID().uuidString
+      let record = RecordMetadata(
+        zoneName: "abc", recordName: uuidString, changeTag: "a")
+      let ts = Date()
+      let synced = Synced.entry(locator, ts, record)
+      
+      try! cache.add(synced: [synced])
+
+      XCTAssertEqual(try! cache.locallyQueued(), [])
+      
+      let queued = Queued.entry(locator, ts)
+      XCTAssertEqual(try! cache.queued(), [queued])
+    }
+  }
+  
   func testLocallySubscribed() {
+    XCTAssertEqual(try! cache.locallySubscribed(), [])
+    
     let s = Subscription(url: "http:/abc.de")
     let subscriptions = [s]
-    try! cache.add(subscriptions: subscriptions)
     
-    let found = try! cache.locallySubscribed()
-    let wanted = subscriptions
-    XCTAssertEqual(found, wanted)
+    do {
+      try! cache.add(subscriptions: subscriptions)
+      
+      let found = try! cache.locallySubscribed()
+      let wanted = subscriptions
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let uuidString = UUID().uuidString
+      let record = RecordMetadata(
+        zoneName: "abc", recordName: uuidString, changeTag: "a")
+      let synced = Synced.subscription(s, record)
+      
+      try! cache.add(synced: [synced])
+      
+      XCTAssertEqual(try! cache.locallySubscribed(), [])
+    }
+  }
+  
+  func testSubscribedViaSync() {
+    XCTAssertEqual(try! cache.subscribed(), [])
+    
+    do {
+      let subscription = Subscription(url: "http:/abc.de")
+      let uuidString = UUID().uuidString
+      let record = RecordMetadata(
+        zoneName: "abc", recordName: uuidString, changeTag: "a")
+      let synced = Synced.subscription(subscription, record)
+      
+      try! cache.add(synced: [synced])
+      
+      XCTAssertEqual(try! cache.locallySubscribed(), [])
+      XCTAssertEqual(try! cache.subscribed(), [subscription])
+    }
   }
   
   func testZombieRecords() {

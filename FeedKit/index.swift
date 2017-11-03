@@ -671,12 +671,12 @@ public protocol Queueing {
   /// Adds `entry` to the queue.
   func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void))
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
 
   /// Removes `entry` from the queue.
   func dequeue(
     entry: Entry,
-    dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void))
+    dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
   
   /// Fetches entries in the user‘s queue, populating the `queue` object of this
   /// `UserLibrary` instance.
@@ -855,13 +855,17 @@ public protocol UserCacheSyncing: QueueCaching {
   func remove(recordNames: [String]) throws
 
   /// The queued entries, which not have been synced and are only locally
-  /// cached, hence the name.
+  /// cached, hence the name. Push these items with the next sync.
   func locallyQueued() throws -> [Queued]
+  
+  /// Returns subscriptions that haven’t been synchronized with iCloud yet, and
+  /// are only cached locally so far. Push these items with the next sync.
   func locallySubscribed() throws -> [Subscription]
 
   /// CloudKit record names of abandoned records by record zone names.
   func zombieRecords() throws -> [(String, String)]
 
+  /// Unrelated items in the cache, which can be removed soon.
   func deleteZombies() throws
   
   /// Deletes the local cache, entirely.

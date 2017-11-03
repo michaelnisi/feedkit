@@ -497,34 +497,41 @@ extension UserLibrary: Queueing {
   
   public func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
     guard !entries.isEmpty else {
-      return enqueueCompletionBlock(nil)
+      throw FeedKitError.emptyCollection
     }
     
     os_log("enqueueing", log: log, type: .debug)
     
     operationQueue.addOperation {
       assert(!Thread.isMainThread)
+      let target = OperationQueue.current!.underlyingQueue!
+      
       do {
         try self.queue.prepend(items: entries)
         let locators = entries.map { EntryLocator(entry: $0) }
         try self.cache.add(entries: locators)
       } catch {
-        return enqueueCompletionBlock(error)
+        target.async {
+          enqueueCompletionBlock?(error)
+        }
+        return
       }
-      
-      enqueueCompletionBlock(nil)
       
       DispatchQueue.main.async {
         NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
+      }
+      
+      target.async {
+        enqueueCompletionBlock?(nil)
       }
     }
   }
   
   public func dequeue(
     entry: Entry,
-    dequeueCompletionBlock: @escaping ((_ error: Error?) -> Void)) {
+    dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
     os_log("dequeueing", log: log, type: .debug)
     
     operationQueue.addOperation {
@@ -537,7 +544,7 @@ extension UserLibrary: Queueing {
         try self.cache.remove(guids: [guid])
       } catch {
         target.async {
-          dequeueCompletionBlock(error)
+          dequeueCompletionBlock?(error)
         }
         return
       }
@@ -547,12 +554,12 @@ extension UserLibrary: Queueing {
       }
       
       target.async {
-        dequeueCompletionBlock(nil)
+        dequeueCompletionBlock?(nil)
       }
     }
   }
   
-  // MARK: Queue
+  // MARK: Synchronous queue methods
 
   public func contains(entry: Entry) -> Bool {
     return queue.contains(entry)

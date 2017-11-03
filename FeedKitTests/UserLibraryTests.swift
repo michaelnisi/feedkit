@@ -10,6 +10,7 @@ import XCTest
 @testable import FeedKit
 
 // TODO: Review callbacks and notifications
+// TODO: Think about removing the callback, where possible
 
 class UserLibraryTests: XCTestCase {
   
@@ -55,17 +56,17 @@ extension UserLibraryTests {
       
       let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
-        object: self.user,
+        object: nil,
         queue: nil) { notification in
+        assert(Thread.isMainThread)
         exp.fulfill()
       }
       
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
       
-      try! user.add(subscriptions: subscriptions) { error in
-        XCTAssertNil(error)
-      }
+      try! user.add(subscriptions: subscriptions)
+      
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
         NotificationCenter.default.removeObserver(obs)
@@ -92,6 +93,7 @@ extension UserLibraryTests {
         forName: .FKSubscriptionsDidChange,
         object: self.user,
         queue: nil) { notification in
+        assert(Thread.isMainThread)
         exp.fulfill()
       }
       
@@ -114,6 +116,7 @@ extension UserLibraryTests {
         object: self.user,
         queue: nil) { notification in
         XCTAssertFalse(self.user.has(subscription: url))
+        assert(Thread.isMainThread)
         exp.fulfill()
       }
       
@@ -232,7 +235,7 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "enqueue")
       
-      user.enqueue(entries: entriesToQueue) { error in
+      try! user.enqueue(entries: entriesToQueue) { error in
         XCTAssertNil(error)
         exp.fulfill()
       }
@@ -306,14 +309,15 @@ extension UserLibraryTests {
       forName: .FKQueueDidChange,
       object: self.user,
       queue: nil) { notification in
+      assert(Thread.isMainThread)
       exp.fulfill()
     }
     
-    user.enqueue(entries: [entry]) { error in
+    try! user.enqueue(entries: [entry]) { error in
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
       
-      self.user.enqueue(entries: [entry]) { error in
+      try! self.user.enqueue(entries: [entry]) { error in
         guard let er = error as? QueueError else {
           return XCTFail("should err")
         }
@@ -363,14 +367,22 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "enqueueing")
       
-      user.enqueue(entries: [entry]) { error in
+      let obs = NotificationCenter.default.addObserver(
+        forName: .FKQueueDidChange,
+        object: nil,
+        queue: nil) { notification in
+        assert(Thread.isMainThread)
+        exp.fulfill()
+      }
+      
+      try! user.enqueue(entries: [entry]) { error in
         XCTAssertNil(error)
         XCTAssertTrue(self.user.contains(entry: entry))
-        exp.fulfill()
       }
       
       waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
+        NotificationCenter.default.removeObserver(obs)
       }
     }
     
@@ -381,9 +393,8 @@ extension UserLibraryTests {
         forName: .FKQueueDidChange,
         object: nil,
         queue: nil) { notification in
-        DispatchQueue.main.async {
-          exp.fulfill()
-        }
+        assert(Thread.isMainThread)
+        exp.fulfill()
       }
       
       user.dequeue(entry: entry) { error in
@@ -402,7 +413,7 @@ extension UserLibraryTests {
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueue")
-    user.enqueue(entries: [entry]) { error in
+    try! user.enqueue(entries: [entry]) { error in
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
       

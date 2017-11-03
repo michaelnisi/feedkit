@@ -593,10 +593,7 @@ extension SQLFormatter {
 
   // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4
 
-  static func SQLToDeleteRecords(with names: [String]) -> String? {
-    guard !names.isEmpty else {
-      return nil
-    }
+  static func SQLToDeleteRecords(with names: [String]) -> String {
     return "DELETE FROM record WHERE record_name IN(" + names.map {
       "'\($0)'"
     }.joined(separator: ", ") + ");"

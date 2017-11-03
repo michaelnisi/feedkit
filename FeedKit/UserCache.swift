@@ -203,7 +203,7 @@ extension UserCache: UserCacheSyncing {
   
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
-      return
+      throw FeedKitError.emptyCollection
     }
     
     var er: Error?
@@ -230,24 +230,11 @@ extension UserCache: UserCacheSyncing {
   
   public func remove(recordNames: [String]) throws {
     guard !recordNames.isEmpty else {
-      return
+      throw FeedKitError.emptyCollection
     }
     
-    var er: Error?
-    
-    queue.sync {
-      guard let sql = SQLFormatter.SQLToDeleteRecords(with: recordNames) else {
-        return
-      }
-      do {
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteRecords(with: recordNames))
     }
   }
   
