@@ -59,7 +59,7 @@ public enum FeedKitError : Error {
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
   case unidentifiedFeed
-  case emptyArray
+  case emptyCollection 
 }
 
 extension FeedKitError: Equatable {
@@ -765,17 +765,17 @@ public protocol Subscribing {
   ///
   /// - Parameters:
   ///   - subscriptions: The subscriptions to add without timestamps.
-  ///   - addComplete: The completion block:
+  ///   - addComplete: An optional completion block:
   ///   - error: An error if something went wrong.
   func add(
     subscriptions: [Subscription],
-    addComplete: @escaping (_ error: Error?) -> Void) throws
+    addComplete: ((_ error: Error?) -> Void)?) throws
   
   /// Unsubscribe from `urls`.
   ///
   /// - Parameters:
   ///   - urls: The URLs of feeds to unsubscribe from.
-  ///   - unsubscribeComplete: The completion block:
+  ///   - unsubscribeComplete: An optional completion block:
   ///   - error: An error if something went wrong.
   func unsubscribe(
     from urls: [FeedURL],

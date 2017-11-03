@@ -192,9 +192,9 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
+      XCTAssertNotNil(found.first?.ts)
       
       XCTAssert(try! cache.has(url))
-      XCTAssertNotNil(found.first?.ts)
     }
   }
   
@@ -210,6 +210,7 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
+      
       XCTAssert(try! cache.has(url))
     }
     
@@ -219,6 +220,7 @@ extension UserCacheTests {
       let found = try! cache.subscribed()
       let wanted = [Subscription]()
       XCTAssertEqual(found, wanted)
+      
       XCTAssertFalse(try! cache.has(url))
     }
     

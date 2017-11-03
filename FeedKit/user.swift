@@ -129,9 +129,9 @@ extension UserLibrary: Subscribing {
   
   public func add(
     subscriptions: [Subscription],
-    addComplete: @escaping (_ error: Error?) -> Void) throws {
+    addComplete: ((_ error: Error?) -> Void)? = nil) throws {
     guard !subscriptions.isEmpty else {
-      throw FeedKitError.emptyArray
+      throw FeedKitError.emptyCollection
     }
     
     let cache = self.cache
@@ -144,18 +144,18 @@ extension UserLibrary: Subscribing {
         self.subscriptions.formUnion(subscriptions.map { $0.url })
       } catch {
         target.async {
-          addComplete(error)
+          addComplete?(error)
         }
         return
       }
 
       target.async {
-        addComplete(nil)
+        addComplete?(nil)
       }
       
       DispatchQueue.main.async {
-        // TODO: Post .FKSubscriptionsDidChange
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+        NotificationCenter.default.post(
+          name: .FKSubscriptionsDidChange, object: nil)
       }
     }
 
@@ -165,7 +165,7 @@ extension UserLibrary: Subscribing {
     from urls: [FeedURL],
     unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) throws {
     guard !urls.isEmpty else {
-      throw FeedKitError.emptyArray
+      throw FeedKitError.emptyCollection
     }
     
     let cache = self.cache
@@ -188,8 +188,8 @@ extension UserLibrary: Subscribing {
       }
       
       DispatchQueue.main.async {
-        // TODO: Post .FKSubscriptionsDidChange
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+        NotificationCenter.default.post(
+          name: .FKSubscriptionsDidChange, object: nil)
       }
     }
   }
@@ -211,7 +211,7 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize() {
-    DispatchQueue.global(qos: .utility).async {
+    DispatchQueue.global(qos: .background).async {
       do {
         let s = try self.cache.subscribed()
         let subscribed = Set(s.map { $0.url })

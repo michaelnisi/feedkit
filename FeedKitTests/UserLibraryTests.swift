@@ -43,22 +43,26 @@ class UserLibraryTests: XCTestCase {
 
 // MARK: - Subscribing
 
-// TODO: Check that notifications are being sent
-
 extension UserLibraryTests {
   
   func testSubscribe() {
-    XCTAssertThrowsError(try user.add(subscriptions: []) { _ in })
+    XCTAssertThrowsError(try user.add(subscriptions: []))
     
     do {
       let exp = self.expectation(description: "subscribing")
+      
+      NotificationCenter.default.addObserver(
+        forName: .FKSubscriptionsDidChange,
+        object: nil,
+        queue: nil) { notification in
+        exp.fulfill()
+      }
       
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
       
       try! user.add(subscriptions: subscriptions) { error in
         XCTAssertNil(error)
-        exp.fulfill()
       }
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
@@ -94,9 +98,15 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "unsubscribing")
       
+      NotificationCenter.default.addObserver(
+        forName: .FKSubscriptionsDidChange,
+        object: nil,
+        queue: nil) { notification in
+        exp.fulfill()
+      }
+      
       var cb: ((Error?) -> Void)? = { error in
         XCTAssertNil(error)
-        exp.fulfill()
       }
       let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
       try! user.unsubscribe(from: [url], unsubscribeComplete: cb)
@@ -278,7 +288,14 @@ extension UserLibraryTests {
     let entry = try! freshEntry(named: "thetalkshow")
     XCTAssertFalse(user.contains(entry: entry))
     
-    let exp = expectation(description: "enqueue")
+    let exp = expectation(description: "enqueueing")
+    
+    NotificationCenter.default.addObserver(
+      forName: .FKQueueDidChange,
+      object: nil,
+      queue: nil) { notification in
+      exp.fulfill()
+    }
     
     user.enqueue(entries: [entry]) { error in
       XCTAssertNil(error)
@@ -295,8 +312,6 @@ extension UserLibraryTests {
         default:
           XCTFail("should be expected error")
         }
-        
-        exp.fulfill()
       }
     }
     
@@ -309,25 +324,60 @@ extension UserLibraryTests {
     let entry = try! freshEntry(named: "thetalkshow")
     XCTAssertFalse(user.contains(entry: entry))
     
-    let exp = expectation(description: "dequeue")
+    do {
+      let exp = expectation(description: "dequeueing not enqueued")
     
-    user.dequeue(entry: entry) { error in
-      guard let er = error as? QueueError else {
-        return XCTFail("should err")
+      user.dequeue(entry: entry) { error in
+        guard let er = error as? QueueError else {
+          return XCTFail("should err")
+        }
+        
+        switch er {
+        case .notInQueue:
+          break
+        default:
+          XCTFail("should be expected error")
+        }
+        
+        exp.fulfill()
       }
       
-      switch er {
-      case .notInQueue:
-        break
-      default:
-        XCTFail("should be expected error")
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
       }
-      
-      exp.fulfill()
     }
     
-    waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+    do {
+      let exp = expectation(description: "enqueueing")
+      
+      user.enqueue(entries: [entry]) { error in
+        XCTAssertNil(error)
+        XCTAssertTrue(self.user.contains(entry: entry))
+        exp.fulfill()
+      }
+      
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+    
+    do {
+      let exp = expectation(description: "dequeueing")
+      
+      NotificationCenter.default.addObserver(
+        forName: .FKQueueDidChange,
+        object: nil,
+        queue: nil) { notification in
+        exp.fulfill()
+      }
+      
+      user.dequeue(entry: entry) { error in
+        XCTAssertNil(error)
+      }
+      
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
   
