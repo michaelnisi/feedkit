@@ -184,7 +184,7 @@ extension UserCacheTests {
   func testLocallySubscribed() {
     XCTAssertEqual(try! cache.locallySubscribed(), [])
     
-    let s = Subscription(url: "http:/abc.de")
+    let s = Subscription(url: "http://abc.de")
     let subscriptions = [s]
     
     do {
@@ -211,7 +211,7 @@ extension UserCacheTests {
     XCTAssertEqual(try! cache.subscribed(), [])
     
     do {
-      let subscription = Subscription(url: "http:/abc.de")
+      let subscription = Subscription(url: "http://abc.de")
       let uuidString = UUID().uuidString
       let record = RecordMetadata(
         zoneName: "abc", recordName: uuidString, changeTag: "a")
@@ -225,7 +225,30 @@ extension UserCacheTests {
   }
   
   func testZombieRecords() {
-    XCTAssert(try! cache.zombieRecords().isEmpty)
+    let recordName = UUID().uuidString
+    let record = RecordMetadata(
+      zoneName: "abc", recordName: recordName, changeTag: "a")
+    
+    do {
+      let subscription = Subscription(url: "http://abc.de")
+      let synced = Synced.subscription(subscription, record)
+      try! cache.add(synced: [synced])
+      XCTAssertEqual(try! cache.locallySubscribed(), [])
+      XCTAssertEqual(try! cache.subscribed(), [subscription])
+    }
+    
+    do {
+      try! cache.remove(urls: ["http://abc.de"])
+      let found = try! cache.zombieRecords().first!
+      let wanted = (record.zoneName, record.recordName)
+      XCTAssertEqual(found.0, wanted.0)
+      XCTAssertEqual(found.1, wanted.1)
+    }
+    
+    do {
+      try! cache.deleteZombies()
+      XCTAssertTrue(try! cache.zombieRecords().isEmpty)
+    }
   }
   
 }

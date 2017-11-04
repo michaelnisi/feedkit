@@ -862,10 +862,18 @@ public protocol UserCacheSyncing: QueueCaching {
   /// are only cached locally so far. Push these items with the next sync.
   func locallySubscribed() throws -> [Subscription]
 
-  /// CloudKit record names of abandoned records by record zone names.
+  /// CloudKit record names of abandoned records by record zone names. These are
+  /// records not referenced by queued or previously queued entries, and not
+  /// referenced by subscribed feeds. If this collection isn’t empty, items have
+  /// been removed from the cache waiting to be synchronized. Include these in
+  /// every push.
   func zombieRecords() throws -> [(String, String)]
 
-  /// Unrelated items in the cache, which can be removed soon.
+  /// Deletes unrelated items from the cache. After records have been deleted in
+  /// iCloud, and these have been synchronized with the local cache, entries
+  /// and feeds might be left without links to their, now deleted, records. This
+  /// method deletes those entries and feeds, it also deletes zombie records,
+  /// not having links in the other direction. Run this after each sync.
   func deleteZombies() throws
   
   /// Deletes the local cache, entirely.
