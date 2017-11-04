@@ -224,7 +224,7 @@ extension UserCacheTests {
     }
   }
   
-  func testZombieRecords() {
+  func testCleaningUp() {
     let recordName = UUID().uuidString
     let record = RecordMetadata(
       zoneName: "abc", recordName: recordName, changeTag: "a")
@@ -247,6 +247,15 @@ extension UserCacheTests {
     
     do {
       try! cache.deleteZombies()
+      XCTAssertTrue(try! cache.zombieRecords().isEmpty)
+    }
+    
+    do {
+      try! cache.toss()
+      XCTAssertEqual(try! cache.queued(), [])
+      XCTAssertEqual(try! cache.locallyQueued(), [])
+      XCTAssertEqual(try! cache.subscribed(), [])
+      XCTAssertEqual(try! cache.locallySubscribed(), [])
       XCTAssertTrue(try! cache.zombieRecords().isEmpty)
     }
   }
