@@ -739,6 +739,12 @@ public struct Subscription {
     self.iTunes = iTunes
     self.ts = ts
   }
+  
+  public init(feed: Feed) {
+    self.url = feed.url
+    self.iTunes = feed.iTunes
+    self.ts = nil
+  }
 }
 
 extension Subscription: Equatable {
@@ -763,7 +769,7 @@ public protocol SubscriptionCaching {
 }
 
 /// Mangages the user’s feed subscriptions.
-public protocol Subscribing {
+public protocol Subscribing: Updating {
   
   /// Adds `subscriptions` to the user’s library.
   ///
