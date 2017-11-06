@@ -251,9 +251,12 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.toss()
+      try! cache.removeQueue()
       XCTAssertEqual(try! cache.queued(), [])
       XCTAssertEqual(try! cache.locallyQueued(), [])
+      XCTAssertTrue(try! cache.zombieRecords().isEmpty)
+      
+      try! cache.removeLibrary()
       XCTAssertEqual(try! cache.subscribed(), [])
       XCTAssertEqual(try! cache.locallySubscribed(), [])
       XCTAssertTrue(try! cache.zombieRecords().isEmpty)

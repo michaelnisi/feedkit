@@ -189,9 +189,15 @@ extension UserCache: QueueCaching {
 
 extension UserCache: UserCacheSyncing {
   
-  public func toss() throws {
+  public func removeQueue() throws {
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToDeleteFromUserTables)
+      try db.exec(SQLFormatter.SQLToRemoveQueue)
+    }
+  }
+  
+  public func removeLibrary() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToRemoveLibrary)
     }
   }
   

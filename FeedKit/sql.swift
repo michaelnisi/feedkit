@@ -575,20 +575,24 @@ extension SQLFormatter {
 extension SQLFormatter {
   
   static var SQLToDeleteQueued = "DELETE FROM queued_entry;"
-
-  static var SQLToDeleteFromUserTables = """
-  DELETE FROM record;
+  
+  static var SQLToRemoveLibrary = """
+  DELETE FROM feed;
+  DELETE FROM subscribed_feed;
+  DELETE FROM record WHERE record_name IN (SELECT record_name FROM zombie_record_name_view);
+  """
+  
+  static var SQLToRemoveQueue = """
   DELETE FROM entry;
   DELETE FROM queued_entry;
   DELETE FROM prev_entry;
-  DELETE FROM feed;
-  DELETE FROM subscribed_feed;
+  DELETE FROM record WHERE record_name IN (SELECT record_name FROM zombie_record_name_view);
   """
 
   static var SQLToDeleteZombies = """
-  DELETE FROM record WHERE record_name IN (SELECT * FROM zombie_record_name_view);
-  DELETE FROM feed WHERE feed_url IN(SELECT * FROM zombie_feed_url_view);
-  DELETE FROM entry WHERE entry_guid IN(SELECT * FROM zombie_entry_guid_view);
+  DELETE FROM record WHERE record_name IN (SELECT record_name FROM zombie_record_name_view);
+  DELETE FROM feed WHERE feed_url IN(SELECT feed_url FROM zombie_feed_url_view);
+  DELETE FROM entry WHERE entry_guid IN(SELECT entry_guid FROM zombie_entry_guid_view);
   """
 
   // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4

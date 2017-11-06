@@ -828,12 +828,25 @@ public protocol UserCaching: QueueCaching, SubscriptionCaching {}
 public struct RecordMetadata {
   let zoneName: String
   let recordName: String
-  let changeTag: String
+  let changeTag: String?
 
-  public init(zoneName: String, recordName: String, changeTag: String) {
+  public init(zoneName: String, recordName: String, changeTag: String? = nil) {
     self.zoneName = zoneName
     self.recordName = recordName
     self.changeTag = changeTag
+  }
+}
+
+extension RecordMetadata: Equatable {
+  public static func ==(lhs: RecordMetadata, rhs: RecordMetadata) -> Bool {
+    guard
+      lhs.zoneName == rhs.zoneName,
+      lhs.recordName == rhs.recordName,
+      lhs.changeTag == rhs.changeTag
+      else {
+      return false
+    }
+    return true
   }
 }
 
@@ -849,6 +862,20 @@ public enum Synced {
   
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
+}
+
+extension Synced: Equatable {
+  public static func ==(lhs: Synced, rhs: Synced) -> Bool {
+    switch (lhs, rhs) {
+    case (.entry(let lloc, let lts, let lrec), .entry(let rloc, let rts, let rrec)):
+      return lloc == rloc && lts == rts && lrec == rrec
+    case (.subscription(let ls, let lrec), .subscription(let rs, let rrec)):
+      return ls == rs && lrec == rrec
+    case (.entry, _),
+         (.subscription, _):
+      return false
+    }
+  }
 }
 
 /// The user cache complies to this protocol to allow iCloud synchronization.
@@ -882,9 +909,11 @@ public protocol UserCacheSyncing: QueueCaching {
   /// not having links in the other direction. Run this after each sync.
   func deleteZombies() throws
   
-  /// Deletes the local cache, entirely.
-  func toss() throws
+  /// Deletes all queue data.
+  func removeQueue() throws
   
+  /// Deletes all library data.
+  func removeLibrary() throws
 }
 
 // MARK: - Internal
