@@ -16,15 +16,15 @@ public extension Notification.Name {
 
   /// Posted when a remote request has been started.
   static var FKRemoteRequest =
-    NSNotification.Name(rawValue: "FeedKitRemoteRequest")
+    NSNotification.Name("FeedKitRemoteRequest")
 
   /// Posted when a remote response has been received.
   static var FKRemoteResponse =
-    NSNotification.Name(rawValue: "FeedKitRemoteResponse")
+    NSNotification.Name("FeedKitRemoteResponse")
 
   /// Posted after the users‘s subscriptions have been changed.
   public static var FKSubscriptionsDidChange =
-    NSNotification.Name(rawValue: "FeedKitSubscriptionsDidChange")
+    NSNotification.Name("FeedKitSubscriptionsDidChange")
 
   /// Posted after the user‘s queue has been changed.
   public static var FKQueueDidChange =
@@ -59,7 +59,7 @@ public enum FeedKitError : Error {
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
   case unidentifiedFeed
-  case emptyCollection 
+  case emptyCollection // TODO: Remove emptyCollection error
 }
 
 extension FeedKitError: Equatable {
@@ -809,9 +809,8 @@ public protocol Subscribing: Updating {
   /// relying on this.
   func has(subscription url: FeedURL) -> Bool
   
-  // TODO: Move into cache, duh!
-  
-  /// Reloads in-memory cache of locally cached subscription URLs.
+  /// Asynchronously reloads in-memory cache of locally cached subscription
+  /// URLs in the background, returning right away.
   func synchronize()
   
 }

@@ -8,6 +8,7 @@
 
 import Foundation
 import Skull
+import os.log
 
 public class UserCache: LocalCache, UserCaching {}
 
@@ -208,8 +209,9 @@ extension UserCache: UserCacheSyncing {
   }
   
   public func add(synced: [Synced]) throws {
+    os_log("aborting attempt to add empty array", type: .debug)
     guard !synced.isEmpty else {
-      throw FeedKitError.emptyCollection
+      return
     }
     
     var er: Error?
@@ -236,7 +238,8 @@ extension UserCache: UserCacheSyncing {
   
   public func remove(recordNames: [String]) throws {
     guard !recordNames.isEmpty else {
-      throw FeedKitError.emptyCollection
+      os_log("aborting attempt to remove empty array", type: .debug)
+      return
     }
     
     try queue.sync {
