@@ -415,6 +415,32 @@ extension SQLTests {
   
 }
 
+// MARK: - Integrating iTunes Metadata
+
+extension SQLTests {
+  
+  func testSQLToUpdate() {
+    let iTunes = ITunesItem(
+      iTunesID: 123,
+      img100: "img100", img30: "img30", img60: "img60", img600: "img600")
+    
+    let url = "http://abc.de"
+    
+    let wanted = """
+    UPDATE feed SET \
+    itunes_guid = \(iTunes.iTunesID), \
+    img100 = '\(iTunes.img100)', \
+    img30 = '\(iTunes.img30)', \
+    img60 = '\(iTunes.img60)', \
+    img600 = '\(iTunes.img600)' \
+    WHERE url = '\(url)';
+    """
+    let found = formatter.SQLToUpdate(iTunes: iTunes, where: url)
+    XCTAssertEqual(found, wanted)
+  }
+  
+}
+
 // MARK: - Syncing
 
 extension SQLTests {

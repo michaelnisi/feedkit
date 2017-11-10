@@ -558,9 +558,8 @@ public protocol FeedCaching: Caching {
 
   func remove(_ urls: [String]) throws
   
-  // TODO: Add url to ITunesItem
-  // TODO: Update iTunes items
-  // func update(iTunes: [ITunesItem]) throws
+  /// Integrates iTunes metadata from `subscriptions`.
+  func integrateMetadata(from subscriptions: [Subscription]) throws
 }
 
 // MARK: - SearchCaching

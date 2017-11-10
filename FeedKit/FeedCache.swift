@@ -198,8 +198,23 @@ extension FeedCache {
 // MARK: - FeedCaching
 
 extension FeedCache: FeedCaching {
+
+  public func integrateMetadata(from subscriptions: [Subscription]) throws {
+    let fmt = sqlFormatter
+    
+    try queue.sync {
+      let sql = subscriptions.reduce([String]()) { acc, s in
+        guard let iTunes = s.iTunes else {
+          return acc
+        }
+        return acc + [fmt.SQLToUpdate(iTunes: iTunes, where: s.url)]
+      }.joined(separator: "\n")
+      
+      try self.db.exec(sql)
+    }
+  }
   
-  /// Update feeds in the cache. Feeds that are not cached yet are inserted.
+  /// Update feeds in the cache. Feeds that are not cached yet get inserted.
   ///
   /// - Parameter feeds: The feeds to insert or update.
   ///

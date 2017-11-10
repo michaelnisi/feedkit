@@ -103,10 +103,6 @@ private final class FetchFeedsOperation: FeedKitOperation {
       }
       
       self.browser.integrateMetadata(from: subscriptions) { error in
-        guard error == nil else {
-          fatalError(error as! String)
-        }
-        os_log("** integrated metadata")
         self.done(error)
       }
     }
@@ -503,13 +499,25 @@ extension UserLibrary: Queueing {
     op.entriesBlock = entriesBlock
     op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
     
-    // TODO: Evaluate preformance hit of using this dependency here
-    // TODO: Make callback blocks optional
-    // TODO: Rename FetchFeedsOperation to FKFetchSubscribedFeedsOperation
+    // Synced data from iCloud might contain additional information, we don’t
+    // have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
+    // pre-scaled images. Especially those smaller images are of interest to us,
+    // because they make a palpable difference for the user. With this operation
+    // dependency, we are integrating this data into our feed repo.
     
     let dep = FetchFeedsOperation(browser: browser, cache: cache)
-    dep.feedsBlock = { feeds, error in }
-    dep.feedsCompletionBlock = { error in }
+    dep.feedsBlock = { feeds, error in
+      if let er = error {
+        os_log("problems fetching subscribed feeds: %{public}@",
+               log: log, type: .error, String(describing: er))
+      }
+    }
+    dep.feedsCompletionBlock = { error in
+      if let er = error {
+        os_log("failed to integrate metadata %{public}@",
+               log: log, type: .error, String(describing: er))
+      }
+    }
     
     op.addDependency(dep)
     

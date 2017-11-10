@@ -568,6 +568,32 @@ extension SQLFormatter {
 
 }
 
+// MARK: - Integrating iTunes Metadata
+
+extension SQLFormatter {
+  
+  func SQLToUpdate(iTunes: ITunesItem, where feedURL: String) -> String {
+    let itunes_guid = SQLString(from: iTunes.iTunesID)
+    let img100 = SQLString(from: iTunes.img100)
+    let img30 = SQLString(from: iTunes.img30)
+    let img60 = SQLString(from: iTunes.img60)
+    let img600 = SQLString(from: iTunes.img600)
+    
+    let url = SQLString(from: feedURL)
+    
+    return """
+    UPDATE feed SET \
+    itunes_guid = \(itunes_guid), \
+    img100 = \(img100), \
+    img30 = \(img30), \
+    img60 = \(img60), \
+    img600 = \(img600) \
+    WHERE url = \(url);
+    """
+  }
+  
+}
+
 // MARK: - Syncing
 
 extension SQLFormatter {
@@ -667,5 +693,5 @@ extension SQLFormatter {
 
   static let SQLToSelectLocallySubscribedFeeds =
     "SELECT * FROM locally_subscribed_feed_view;"
-
+  
 }

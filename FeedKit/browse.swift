@@ -608,9 +608,22 @@ extension FeedRepository: Browsing {
     from subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)?
   ) -> Void {
+    let cache = self.cache
+    
     queue.addOperation {
       guard let target = OperationQueue.current?.underlyingQueue else {
         return
+      }
+      
+      do {
+        try cache.integrateMetadata(from: subscriptions)
+      } catch {
+        guard let cb = completionBlock else {
+          return
+        }
+        target.async {
+          cb(error)
+        }
       }
       
       guard let cb = completionBlock else {
@@ -623,7 +636,6 @@ extension FeedRepository: Browsing {
     }
   }
   
-
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
   /// callback block might get called multiple times. Each iteration providing
   /// groups of feeds as they become available. The order of these feeds and
