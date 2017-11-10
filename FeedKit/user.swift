@@ -84,11 +84,13 @@ private final class FetchFeedsOperation: FeedKitOperation {
     op = nil
   }
   
-  private func fetchFeeds(at urls: [String]) {
-    guard !isCancelled, !urls.isEmpty else {
+  private func fetchFeeds(of subscriptions: [Subscription]) {
+    guard !isCancelled, !subscriptions.isEmpty else {
       return done()
     }
     
+    let urls = subscriptions.map { $0.url }
+
     op = browser.feeds(urls, feedsBlock: { error, feeds in
       if !self.isCancelled, let cb = self.feedsBlock {
         self.target.async {
@@ -96,7 +98,17 @@ private final class FetchFeedsOperation: FeedKitOperation {
         }
       }
     }) { error in
-      self.done(error)
+      guard error == nil else {
+        return self.done(error)
+      }
+      
+      self.browser.integrateMetadata(from: subscriptions) { error in
+        guard error == nil else {
+          fatalError(error as! String)
+        }
+        os_log("** integrated metadata")
+        self.done(error)
+      }
     }
   }
   
@@ -116,8 +128,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
     
     do {
       let subscriptions = try cache.subscribed()
-      let urls = subscriptions.map { $0.url }
-      fetchFeeds(at: urls)
+      fetchFeeds(of: subscriptions)
     } catch {
       done(error)
     }
@@ -213,12 +224,12 @@ extension UserLibrary: Subscribing {
   public func synchronize() {
     DispatchQueue.global(qos: .background).async {
       do {
-        let s = try self.cache.subscribed()
-        let subscribed = Set(s.map { $0.url })
-      
-        let unsubscribed = self.subscriptions.subtracting(subscribed)
+        let subscribed = try self.cache.subscribed()
+        
+        let urls = Set(subscribed.map { $0.url })
+        let unsubscribed = self.subscriptions.subtracting(urls)
         self.subscriptions.subtract(unsubscribed)
-        self.subscriptions.formUnion(subscribed)
+        self.subscriptions.formUnion(urls)
       } catch {
         os_log("failed to reload subscriptions", log: log, type: .error,
                error as CVarArg)
@@ -491,7 +502,20 @@ extension UserLibrary: Queueing {
     let op = FKFetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
     op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
+    
+    // TODO: Evaluate preformance hit of using this dependency here
+    // TODO: Make callback blocks optional
+    // TODO: Rename FetchFeedsOperation to FKFetchSubscribedFeedsOperation
+    
+    let dep = FetchFeedsOperation(browser: browser, cache: cache)
+    dep.feedsBlock = { feeds, error in }
+    dep.feedsCompletionBlock = { error in }
+    
+    op.addDependency(dep)
+    
     operationQueue.addOperation(op)
+    operationQueue.addOperation(dep)
+    
     return op
   }
   

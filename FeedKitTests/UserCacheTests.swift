@@ -131,14 +131,12 @@ extension UserCacheTests {
   }
   
   func testAddSynced() {
-    XCTAssertThrowsError(try cache.add(synced: []))
     let synced = freshSynced()
     try! cache.add(synced: synced)
     XCTAssertTrue(try! cache.hasQueued(guid: "abc"))
   }
   
   func testRemoveSynced() {
-    XCTAssertThrowsError(try cache.remove(recordNames: []))
     let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
     let recordNames = [recordName]
     try! cache.remove(recordNames: recordNames)
@@ -271,19 +269,41 @@ extension UserCacheTests {
   
   func testAddSubscriptions() {
     try! cache.add(subscriptions: [])
-    
-    let url = "http:/abc.de"
-    let s = Subscription(url: url)
-    let subscriptions = [s]
-    
-    XCTAssertFalse(try! cache.has(url))
-    
+
     do {
+      let url = "http://abc.de"
+      let s = Subscription(url: url)
+      let subscriptions = [s]
+      
+      XCTAssertFalse(try! cache.has(url))
+      
       try! cache.add(subscriptions: subscriptions)
       let found = try! cache.subscribed()
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
       XCTAssertNotNil(found.first?.ts)
+      
+      XCTAssert(try! cache.has(url))
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let iTunes = ITunesItem(
+        iTunesID: 123, img100: "img100", img30: "img30", img60: "img60",
+        img600: "img600")
+      let s = Subscription(url: url, iTunes: iTunes)
+      let subscriptions = [s]
+      
+      XCTAssertTrue(try! cache.has(url))
+      
+      try! cache.add(subscriptions: subscriptions)
+      let found = try! cache.subscribed()
+      let wanted = subscriptions
+      XCTAssertEqual(found.count, wanted.count)
+      XCTAssertEqual(found, wanted)
+      XCTAssertNotNil(found.first?.ts)
+      
+      XCTAssertEqual(found.first?.iTunes, wanted.first?.iTunes)
       
       XCTAssert(try! cache.has(url))
     }

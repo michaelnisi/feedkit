@@ -600,9 +600,29 @@ public final class FeedRepository: RemoteRepository {
 
 }
 
-extension FeedRepository: Browsing {
+// MARK: - Browsing
 
-  // TODO: Add force parameter to feeds()
+extension FeedRepository: Browsing {
+  
+  public  func integrateMetadata(
+    from subscriptions: [Subscription],
+    completionBlock: ((_ error: Error?) -> Void)?
+  ) -> Void {
+    queue.addOperation {
+      guard let target = OperationQueue.current?.underlyingQueue else {
+        return
+      }
+      
+      guard let cb = completionBlock else {
+        return
+      }
+      
+      target.async {
+        cb(nil)
+      }
+    }
+  }
+  
 
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
   /// callback block might get called multiple times. Each iteration providing

@@ -517,8 +517,6 @@ extension SQLFormatter {
 
 extension SQLFormatter {
 
-  // TODO: Write test
-
   /// Returns a tuple of SQL strings from `subscription` properties.
   func strings(from subscription: Subscription)
     -> (String, String, String, String, String) {

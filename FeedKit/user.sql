@@ -108,7 +108,7 @@ from entry e
   join prev_entry pe on pe.entry_guid = e.entry_guid
   left join record r on pe.record_name = r.record_name;
 
--- prevly queued entries that not have been synced yet
+-- Previously queued entries that not have been synced yet
 
 create view if not exists locally_prev_entry_view as
 select * from prev_entry_view
@@ -126,9 +126,14 @@ select entry_guid from entry
 create view if not exists subscribed_feed_view as
 select
   f.feed_url,
-  sf.ts,
+  f.img100,
+  f.img30,
+  f.img60,
+  f.img600,
+  f.itunes_guid,
   r.change_tag,
-  r.record_name
+  r.record_name,
+  sf.ts
 from feed f
   join subscribed_feed sf on sf.feed_url = f.feed_url
   left join record r on sf.record_name = r.record_name;

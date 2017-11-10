@@ -557,6 +557,10 @@ public protocol FeedCaching: Caching {
   func entries(_ guids: [String]) throws -> [Entry]
 
   func remove(_ urls: [String]) throws
+  
+  // TODO: Add url to ITunesItem
+  // TODO: Update iTunes items
+  // func update(iTunes: [ITunesItem]) throws
 }
 
 // MARK: - SearchCaching
@@ -614,6 +618,12 @@ public protocol Browsing: Caching {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
+  
+  /// Integrates metadata from `subscriptions`.
+  func integrateMetadata(
+    from subscriptions: [Subscription],
+    completionBlock: ((_ error: Error?) -> Void)?
+  ) -> Void
 
 }
 
