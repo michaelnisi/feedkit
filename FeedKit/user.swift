@@ -90,19 +90,28 @@ private final class FetchFeedsOperation: FeedKitOperation {
     }
     
     let urls = subscriptions.map { $0.url }
+    
+    var acc = [Feed]()
 
     op = browser.feeds(urls, feedsBlock: { error, feeds in
-      if !self.isCancelled, let cb = self.feedsBlock {
-        self.target.async {
-          cb(feeds, error)
-        }
+      guard !self.isCancelled else {
+        return
+      }
+      
+      acc = acc + feeds
+
+      self.target.async {
+        self.feedsBlock?(feeds, error)
       }
     }) { error in
-      guard error == nil else {
+      guard !self.isCancelled, error == nil else {
         return self.done(error)
       }
       
-      self.browser.integrateMetadata(from: subscriptions) { error in
+      let urls = acc.flatMap { $0.iTunes == nil ? $0.url : nil }
+      let missing = subscriptions.filter { urls.contains($0.url) }
+
+      self.browser.integrateMetadata(from: missing) { error in
         self.done(error)
       }
     }

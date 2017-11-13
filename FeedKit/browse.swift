@@ -608,6 +608,9 @@ extension FeedRepository: Browsing {
     from subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)?
   ) -> Void {
+    os_log("integrating metadata from: %{public}@", log: log, type: .debug,
+           String(describing: subscriptions))
+    
     let cache = self.cache
     
     queue.addOperation {
