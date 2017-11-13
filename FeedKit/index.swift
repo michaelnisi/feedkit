@@ -541,7 +541,9 @@ public enum CacheTTL {
 
 // MARK: - Caching
 
+/// A common protocol for local caching.
 public protocol Caching {
+  /// Flushes any dispensable resources to save memory.
   func flush() throws
 }
 
@@ -579,17 +581,40 @@ public protocol SearchCaching: Caching {
 
 /// The search API of the FeedKit framework.
 public protocol Searching: Caching {
+  
+  /// Search for feeds by term using locally cached data requested from a remote
+  /// service. This method falls back on cached data if the remote call fails;
+  /// the failure is reported by passing an error in the completion block.
+  ///
+  /// - Parameters:
+  ///   - term: The term to search for.
+  ///   - perFindGroupBlock: The block to receive finds.
+  ///   - searchCompletionBlock: The block to execute after the search
+  /// is complete.
+  ///
+  /// - returns: The, already executing, operation.
   @discardableResult func search(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     searchCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 
+  /// Get lexicographical suggestions for a search term combining locally cached
+  /// and remote data.
+  ///
+  /// - Parameters:
+  ///   - term: The term to search for.
+  ///   - perFindGroupBlock: The block to receive finds, called once
+  ///   per find group as enumerated in `Find`.
+  ///   - completionBlock: A block called when the operation has finished.
+  ///
+  /// - Returns: The executing operation.
   @discardableResult func suggest(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     suggestCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
+  
 }
 
 // MARK: - Browsing
@@ -1044,7 +1069,7 @@ class SessionTaskOperation: FeedKitOperation {
   /// you might set this to `false` to be more effective.
   var reachable: Bool = true
 
-  /// The maximal age, `CacheTTL.Long`, of cached items.
+  /// The maximal age, `CacheTTL.long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
 
   func post(name: NSNotification.Name) {

@@ -10,9 +10,6 @@ import Foundation
 import Skull
 import os.log
 
-// MARK: - Logging
-
-@available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "serialize")
 
 /// Returns a new URL string with lowercased scheme and host, the path remains
@@ -98,6 +95,9 @@ struct serialize {
     )
   }
   
+  /// Arbitrary date watershed, 1990-01-01 00:00:00 +0000.
+  static var watershed = TimeInterval(31557600 * 20)
+  
   /// Create and return a foundation date from a universal timestamp in
   /// milliseconds, contained in a a dictionary, matching a specified key. If the
   /// dictionary does not contain a value for the key or the value cannot be used
@@ -106,16 +106,25 @@ struct serialize {
   /// - Parameters:
   ///   - dictionary: The dictionary to look at.
   ///   - key: The key of a potential UTC timestamp in milliseconds.
+  ///   - ts: The oldest valid date.
   ///
   /// - Returns: The date or `nil`.
-  static func date(from dictionary: [String : Any], withKey key: String) -> Date? {
+  static func date(
+    from dictionary: [String : Any],
+    forKey key: String,
+    newer ts: TimeInterval = serialize.watershed
+  ) -> Date? {
     guard let ms = dictionary[key] as? NSNumber else {
       return nil
     }
     let s = serialize.timeIntervalFromJS(ms)
-    guard s > 0 else {
+    
+    guard s > ts else { // > 1989
+      os_log("** ignoring date: %{public}@", log: log, type: .debug,
+             String(describing: dictionary))
       return nil
     }
+    
     return Date(timeIntervalSince1970: s)
   }
   
@@ -151,8 +160,8 @@ struct serialize {
     let link = json["link"] as? String
     let summary = json["summary"] as? String
     let originalURL = json["originalURL"] as? String
-    let updated = serialize.date(from: json, withKey: "updated")
-    
+    let updated = serialize.date(from: json, forKey: "updated")
+  
     return Feed(
       author: author,
       iTunes: iTunes,
@@ -251,7 +260,7 @@ struct serialize {
       throw FeedKitError.invalidEntry(reason: "missing id: \(feed)")
     }
 
-    let updated = serialize.date(from: json, withKey: "updated") ??
+    let updated = serialize.date(from: json, forKey: "updated") ??
       Date(timeIntervalSince1970: 0)
     
     let author = json["author"] as? String

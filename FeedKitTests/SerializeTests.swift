@@ -69,14 +69,19 @@ final class SerializeTests: XCTestCase {
   func testDateFromDictionary() {
     let k = "key"
     
-    XCTAssertNil(serialize.date(from: [k: -1], withKey: k))
-    XCTAssertNil(serialize.date(from: [k: -0], withKey: k))
-    XCTAssertNotNil(serialize.date(from: [k: 1], withKey: k))
+    XCTAssertNil(serialize.date(from: [k: -1], forKey: k))
+    XCTAssertNil(serialize.date(from: [k: -0], forKey: k))
+    XCTAssertNil(serialize.date(from: [k: 1], forKey: k))
+    XCTAssertNil(serialize.date(from: [String : AnyObject](), forKey: k))
+    XCTAssertNil(serialize.date(from: [k: 1000], forKey: k))
     
-    XCTAssertNil(serialize.date(from: [String : AnyObject](), withKey: k))
+    let found = Date(timeIntervalSince1970: serialize.watershed).description
+    XCTAssertEqual(found, "1990-01-01 00:00:00 +0000")
     
-    XCTAssertEqual(Date(timeIntervalSince1970: 1),
-                   serialize.date(from: [k: 1000], withKey: k)!)
+    XCTAssertNil(serialize.date(from: [k: serialize.watershed], forKey: k))
+    
+    let newer = serialize.watershed * 1000 + 1
+    XCTAssertNotNil(serialize.date(from: [k: newer], forKey: k))
   }
 
   func testFeedImagesFromDictionary() {

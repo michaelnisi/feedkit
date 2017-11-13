@@ -11,9 +11,6 @@ import FanboyKit
 import Ola
 import os.log
 
-// MARK: - Logging
-
-@available(iOS 10.0, *)
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
 
 /// An abstract class to be extended by search repository operations.
@@ -32,12 +29,10 @@ private class SearchRepoOperation: SessionTaskOperation {
   ///   - svc: The remote search service to use.
   ///   - term: The term to search—or get suggestions—for; it can be any
   ///   string.
-  ///   - target: The target queue on which to submit callbacks.
   init(
     cache: SearchCaching,
     svc: FanboyService,
-    term: String,
-    target: DispatchQueue
+    term: String
   ) {
     self.cache = cache
     self.originalTerm = term
@@ -46,21 +41,20 @@ private class SearchRepoOperation: SessionTaskOperation {
     let trimmed = replaceWhitespaces(in: term.lowercased(), with: " ")
     
     self.term = trimmed
-    self.target = target
+    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
 }
 
+// MARK: - Searching
+
 /// An operation for searching feeds and entries.
 private final class SearchOperation: SearchRepoOperation {
-
-  // MARK: Callbacks
 
   var perFindGroupBlock: ((Error?, [Find]) -> Void)?
 
   var searchCompletionBlock: ((Error?) -> Void)?
 
-  // MARK: Internals
-
+  /// `FeedKitError.cancelledByUser` overrides passed errors.
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     if let cb = searchCompletionBlock {
@@ -79,12 +73,10 @@ private final class SearchOperation: SearchRepoOperation {
   /// back on stale feeds in stock. Finally, end the operation after applying
   /// the callback. Passing empty stock makes no sense.
   ///
-  /// - parameter stock: Stock of stale feeds to fall back on.
+  /// - Parameter stock: Stock of stale feeds to fall back on.
   fileprivate func request(_ stock: [Feed]? = nil) throws {
-
-    // Capturing self as unowned here to crash when we've mistakenly ended the
+    // Capturing self as unowned to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
-
     task = try svc.search(term: term) { [unowned self] payload, error in
       self.post(name: Notification.Name.FKRemoteResponse)
 
@@ -119,9 +111,7 @@ private final class SearchOperation: SearchRepoOperation {
         let (errors, feeds) = serialize.feeds(from: payload!)
 
         if !errors.isEmpty {
-          if #available(iOS 10.0, *) {
-            os_log("JSON parse errors: %{public}@", log: log,  type: .error, errors)
-          }
+          os_log("JSON parse errors: %{public}@", log: log,  type: .error, errors)
         }
 
         try self.cache.update(feeds: feeds, for: self.term)
@@ -162,22 +152,31 @@ private final class SearchOperation: SearchRepoOperation {
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
 
-      guard let ts = FeedCache.medianTS(cached) else { return done() }
+      guard let ts = FeedCache.medianTS(cached) else {
+        return done()
+      }
+      
+      let shouldRefresh = FeedCache.stale(ts, ttl: CacheTTL.long.seconds)
 
-      if !FeedCache.stale(ts, ttl: ttl.seconds) {
-        guard let cb = perFindGroupBlock else { return done() }
+      if shouldRefresh {
+        try request(cached)
+      } else {
+        guard let cb = perFindGroupBlock else {
+          return done()
+        }
         let finds = cached.map { Find.foundFeed($0) }
         target.sync {
           cb(nil, finds)
         }
         return done()
       }
-      try request(cached)
     } catch let er {
       done(er)
     }
   }
 }
+
+// MARK: - Suggesting
 
 private func recentSearchesForTerm(
   _ term: String,
@@ -236,18 +235,12 @@ func suggestionsFromTerms(_ terms: [String]) -> [Suggestion] {
   return terms.map { Suggestion(term: $0, ts: nil) }
 }
 
-// TODO: Put original search term first
-
 // An operation to get search suggestions.
 private final class SuggestOperation: SearchRepoOperation {
-
-  // MARK: Callbacks
 
   var perFindGroupBlock: ((Error?, [Find]) -> Void)?
 
   var suggestCompletionBlock: ((Error?) -> Void)?
-
-  // MARK: State
 
   /// A set of finds that have been dispatched by this operation.
   var dispatched = Set<Find>()
@@ -257,8 +250,6 @@ private final class SuggestOperation: SearchRepoOperation {
 
   /// This is `true` if a remote request is required, the default.
   var requestRequired: Bool = true
-
-  // MARK: Internals
 
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ?  FeedKitError.cancelledByUser : error
@@ -407,13 +398,15 @@ private final class SuggestOperation: SearchRepoOperation {
   }
 }
 
+// MARK: - Accessing Search and Suggestions
+
 /// The search repository provides a search API orchestrating remote services
 /// and persistent caching.
 public final class SearchRepository: RemoteRepository, Searching {
   let cache: SearchCaching
   let svc: FanboyService
 
-  /// Initialize and return a new search repository object.
+  /// Initializes and returns a new search repository object.
   ///
   /// - Parameters:
   ///   - cache: The search cache.
@@ -432,87 +425,40 @@ public final class SearchRepository: RemoteRepository, Searching {
     super.init(queue: queue, probe: probe)
   }
 
-  fileprivate func addOperation(_ op: SearchRepoOperation) -> Operation {
+  /// Configures and adds `operation` to the queue, returns executing operation.
+  fileprivate func execute(_ operation: SearchRepoOperation) -> Operation {
     let r = reachable()
-    let term = op.term
+    let term = operation.term
     let status = svc.client.status
-
-    op.reachable = r
-    op.ttl = timeToLive(term, force: false, reachable: r, status: status)
-
-    queue.addOperation(op)
-
-    return op
+    
+    operation.reachable = r
+    operation.ttl = timeToLive(term, force: false, reachable: r, status: status)
+    
+    queue.addOperation(operation)
+    
+    return operation
   }
 
-  /// Search for feeds by term using locally cached data requested from a remote
-  /// service. This method falls back on cached data if the remote call fails;
-  /// the failure is reported by passing an error in the completion block.
-  ///
-  /// - Parameters:
-  ///   - term: The term to search for.
-  ///   - perFindGroupBlock: The block to receive finds.
-  ///   - searchCompletionBlock: The block to execute after the search
-  /// is complete.
-  ///
-  /// - returns: The, already executing, operation.
   public func search(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     searchCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
-    let op = SearchOperation(
-      cache: cache,
-      svc: svc,
-      term: term,
-      target: DispatchQueue.main
-    )
+    let op = SearchOperation(cache: cache, svc: svc, term: term)
     op.perFindGroupBlock = perFindGroupBlock
     op.searchCompletionBlock = searchCompletionBlock
-
-    return addOperation(op)
+    return execute(op)
   }
 
-  /// Get lexicographical suggestions for a search term combining locally cached
-  /// and remote data.
-  ///
-  /// - Parameters:
-  ///   - term: The term to search for.
-  ///   - perFindGroupBlock: The block to receive finds, called once
-  ///   per find group as enumerated in `Find`.
-  ///   - completionBlock: A block called when the operation has finished.
-  ///
-  /// - Returns: The executing operation.
   public func suggest(
     _ term: String,
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     suggestCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation {
-
-    // TODO: Check connectivity
-
-    if let (_, _) = svc.client.status {
-      // TODO: Remember recent timeout and back off (somehow)
-    }
-
-    // Same tasks apply for search, of course.
-    //
-    // Oh! I just realized, it’s already there, via probe—read this code. It
-    // looks, to me, at the moment at least, as if the searching implementation
-    // is superior to browsing. This would explain the comment, I’ve stumbled
-    // upon recently, demanding to combine sync and async like in search.
-
-    let op = SuggestOperation(
-      cache: cache,
-      svc: svc,
-      term: term,
-      target: DispatchQueue.main
-    )
-
+    let op = SuggestOperation(cache: cache, svc: svc, term: term)
     op.perFindGroupBlock = perFindGroupBlock
     op.suggestCompletionBlock = suggestCompletionBlock
-
-    return addOperation(op)
+    return execute(op)
   }
 }
 

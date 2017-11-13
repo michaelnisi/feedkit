@@ -134,7 +134,7 @@ extension LocalCache {
   ///
   /// - Parameters:
   ///   - items: The cachable items of which to locate the median.
-  ///   - sorting: To skip the sorting but lose warranty of correctness.
+  ///   - sorting: To skip the sorting, but lose warranty of correctness.
   ///
   /// - Returns: The median timestamp of these cachable items; or nil, if you pass
   /// an empty array.

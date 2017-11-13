@@ -8,6 +8,7 @@
 
 import Foundation
 import Skull
+import os.log
 
 // MARK: - Stateful Formatting
 
@@ -114,9 +115,15 @@ final class SQLFormatter {
     let link = SQLString(from: feed.link)
     let summary = SQLString(from: feed.summary)
     let title = SQLString(from: feed.title)
+    
+    if feed.updated == nil || feed.updated == Date(timeIntervalSince1970: 0) {
+      os_log("** warning: overriding date: %{public}@", type: .debug,
+             String(reflecting: feed))
+    }
+    
     let updated = SQLString(from: feed.updated)
     let url = SQLString(from: feed.url)
-
+    
     let props = [
       ("author", author),
       ("itunes_guid", guid),
@@ -133,9 +140,9 @@ final class SQLFormatter {
     ]
 
     // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
-    // contain URLs of the prescaled images. We don’t want to explicitly
-    // set these to 'NULL'.
-    let kept = ["itunes_guid", "img100", "img30", "img60", "img600"]
+    // contain URLs of the prescaled images. Also, it might provide no updated
+    // date. We don’t want to explicitly override these with 'NULL'.
+    let kept = ["itunes_guid", "img100", "img30", "img60", "img600", "updated"]
 
     let vars = props.reduce([String]()) { acc, prop in
       let (name, value) = prop
@@ -146,6 +153,9 @@ final class SQLFormatter {
       return acc + [col]
 
     }.joined(separator: ", ")
+    
+    // This works only for updates, of course. Receiving from iTunes, we replace
+    // feeds and, thus, lose data previous data, which is consequent.
 
     let sql = "UPDATE feed SET \(vars) WHERE feed_id = \(feedID.rowid);"
 
@@ -213,7 +223,7 @@ final class SQLFormatter {
     let ts = date(from: row["ts"] as? String)
     let uid = try feedID(from: row)
     let updated = date(from: row["updated"] as? String)
-
+    
     guard let url = row["url"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing url")
     }
