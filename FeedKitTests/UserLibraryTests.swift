@@ -257,8 +257,6 @@ extension UserLibraryTests {
         
         switch er {
         case .missingEntries(let missing):
-          dump(missing)
-          
           func guids(lhs: EntryLocator, rhs: EntryLocator) -> Bool  {
             return lhs.guid!.hashValue < rhs.guid!.hashValue
           }
