@@ -12,6 +12,8 @@ import Nuke
 import UIKit
 import os.log
 
+fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+
 // Typealiasing Nuke.Cache to prevent collision with FeedKit.Cache.
 typealias ImageCache = Nuke.Cache
 
@@ -55,12 +57,14 @@ private struct Scale: Processing {
   }
   
   private func imageWithRoundedCorners(from image: UIImage) -> UIImage {
-    UIGraphicsBeginImageContextWithOptions(size, false, 0)
+    UIGraphicsBeginImageContextWithOptions(size, true, 0)
+    
+    let ctx = UIGraphicsGetCurrentContext()!
+    
+    UIColor.white.setFill()
+    ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
     
     let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
-    
-    // TODO: Consider drawing a light border around images
-    
     let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
     UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius).addClip()
     image.draw(in: rect)
@@ -137,25 +141,14 @@ fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 
 public final class ImageRepository: Images {
   
-  private static var images_log: OSLog?
-  
-  // TODO: Remove Singleton object
-  
   public static var shared: Images = ImageRepository()
   
   fileprivate let preheater = Nuke.Preheater()
   
-  public init() {
-//    ImageRepository.images_log = OSLog(
-//      subsystem: "ink.codes.feedkit", category: "images")
-  }
-  
   /// Synchronously loads an image for the specificied item and size.
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
-    if let log = ImageRepository.images_log {
-      os_log("image for: %{public}@", log: log,  type: .debug,
-             String(describing: item))
-    }
+    os_log("image for: %{public}@", log: log,  type: .debug,
+           String(describing: item))
     
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
@@ -195,18 +188,15 @@ public final class ImageRepository: Images {
     for item: Imaginable,
     into imageView: UIImageView,
     quality: ImageQuality? = nil) {
-    if let log = ImageRepository.images_log {
-      os_log("image for: %{public}@", log: log,  type: .debug,
-             String(describing: item.iTunes))
-    }
+
+    os_log("image for: %{public}@", log: log,  type: .debug,
+           String(describing: item))
     
     let size = imageView.frame.size
     
     guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {
-      if let log = ImageRepository.images_log {
-        os_log("no image: %{public}@", log: log,  type: .error,
-               String(describing: item))
-      }
+      os_log("no image: %{public}@", log: log,  type: .error,
+             String(describing: item))
       return
     }
 
@@ -219,10 +209,8 @@ public final class ImageRepository: Images {
       
       guard let v = view else { return }
       
-      if let log = ImageRepository.images_log {
-        os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
-               url as CVarArg, size as CVarArg)
-      }
+      os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
+             url as CVarArg, size as CVarArg)
       
       Nuke.loadImage(with: req, into: v, handler: cb)
     }
