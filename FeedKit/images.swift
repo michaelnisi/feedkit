@@ -139,6 +139,8 @@ fileprivate func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
   return urlToLoad(from: item, for: CGSize(width: wanted, height: wanted))
 }
 
+/// Provides images. Images are cached, including their rounded corners, making
+/// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
   
   public static var shared: Images = ImageRepository()
