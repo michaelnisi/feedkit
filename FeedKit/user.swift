@@ -246,13 +246,126 @@ extension UserLibrary: Subscribing {
 
 // MARK: - Updating
 
+private final class FKUpdateQueueOperation: FeedKitOperation {
+  
+  let browser: Browsing
+  let cache: UserCaching
+  let target: DispatchQueue
+
+  init(browser: Browsing, cache: UserCaching) {
+    self.browser = browser
+    self.cache = cache
+    
+    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
+  }
+  
+  var updateQueueCompletionBlock: ((_ newData: Bool, _ error: Error?) -> Void)?
+  
+  weak var op: Operation?
+  
+  private func done(newData: Bool = false, error: Error? = nil) {
+    let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
+    if let cb = updateQueueCompletionBlock {
+      target.async {
+        cb(newData, er)
+      }
+    }
+    
+    updateQueueCompletionBlock = nil
+    
+    isFinished = true
+    op?.cancel()
+  }
+  
+  private func queuedLocators() throws -> [EntryLocator] {
+    let queued = try self.cache.queued()
+    return try queued.reduce([EntryLocator]()) { acc, q in
+      switch q {
+      case .entry(let loc, _):
+        let url = loc.url
+        
+        guard try cache.has(url) else {
+          return acc
+        }
+        
+        let range = EntryLocator(url: url, since: loc.since)
+        return acc + [range]
+      }
+    }
+  }
+  
+  private func guidsToIgnore() throws -> [String] {
+    let previous = try self.cache.previous()
+    return previous.flatMap {
+      switch $0 {
+      case .entry(let loc, _):
+        return loc.guid
+      }
+    }
+  }
+  
+  private func fetchEntries(with locators: [EntryLocator], ignoring guids: [String]) {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    var acc = [Entry]()
+    
+    op = self.browser.entries(locators, entriesBlock: { error, entries in
+      guard error == nil else {
+        fatalError("unhandled error: \(String(describing: error))")
+      }
+      acc.append(contentsOf: entries)
+    }) { error in
+      
+      guard !self.isCancelled, error == nil else {
+        return self.done(newData: false, error: error)
+      }
+      
+      do {
+        let fresh = try acc.filter {
+          let guid = $0.guid
+          return try self.cache.hasQueued(guid: guid) && !guids.contains(guid)
+        }
+        guard !fresh.isEmpty else {
+          return self.done(newData: false, error: error)
+        }
+        let locators: [EntryLocator] = fresh.map { EntryLocator(entry: $0) }
+        try self.cache.add(entries: locators)
+        self.done(newData: true, error: nil)
+      } catch {
+        return self.done(newData: false, error: error)
+      }
+    }
+  }
+  
+  override func start() {
+    guard !isCancelled else {
+      return done()
+    }
+    
+    isExecuting = true
+    
+    do {
+      let locators = try queuedLocators()
+      let guids = try guidsToIgnore()
+      done(newData: true, error: nil)
+    } catch {
+      done(newData: false, error: error)
+    }
+  }
+}
+
 extension UserLibrary: Updating {
 
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     os_log("updating", log: log,  type: .info)
-    // TODO: Implement updating of subscribed feeds
-    updateComplete(true, nil)
+    
+    let op = FKUpdateQueueOperation(browser: browser, cache: cache)
+    op.updateQueueCompletionBlock = updateComplete
+    operationQueue.addOperation(op)
   }
   
 }

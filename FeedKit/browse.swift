@@ -783,8 +783,8 @@ extension FeedRepository: Browsing {
 
     op.addDependency(dep)
 
-    queue.addOperation(dep)
     queue.addOperation(op)
+    queue.addOperation(dep)
 
     return op
   }
