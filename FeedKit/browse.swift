@@ -146,6 +146,10 @@ extension BrowseOperation {
 
 }
 
+protocol Locating {
+  var locators: [EntryLocator] { get }
+}
+
 // MARK: - Entries
 
 /// Comply with MangerKit API to enable using the remote service.
@@ -161,7 +165,23 @@ final class EntriesOperation: BrowseOperation {
 
   // MARK: State
 
-  let locators: [EntryLocator]
+  var _locators: [EntryLocator]?
+  
+  lazy var locators: [EntryLocator] = {
+    guard let locs = _locators else {
+      let found = dependencies.reduce([EntryLocator]()) { acc, dep in
+        switch dep {
+        case let op as Locating:
+          return acc + op.locators
+        default:
+          return acc
+        }
+      }
+      _locators = found
+      return found
+    }
+    return locs
+  }()
 
   // Identifiers of entries that already have been dispatched.
   var dispatched = [String]() {
@@ -180,7 +200,7 @@ final class EntriesOperation: BrowseOperation {
     os_log("fetching: %{public}@", log: log, type: .debug,
            String(reflecting: locators))
     
-    self.locators = locators
+    self._locators = locators
     
     super.init(cache: cache, svc: svc)
   }

@@ -9,9 +9,6 @@
 import XCTest
 @testable import FeedKit
 
-// TODO: Review callbacks and notifications
-// TODO: Think about removing the callback, where possible
-
 class UserLibraryTests: XCTestCase {
   
   fileprivate var user: UserLibrary!
@@ -49,7 +46,15 @@ class UserLibraryTests: XCTestCase {
 extension UserLibraryTests {
   
   func testSubscribe() {
-    XCTAssertThrowsError(try user.add(subscriptions: []))
+    do {
+      let exp = self.expectation(description: "subscribing empty list")
+      
+      try! user.add(subscriptions: []) { error in
+        XCTAssertFalse(Thread.isMainThread)
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+    }
     
     do {
       let exp = self.expectation(description: "subscribing")
@@ -84,8 +89,6 @@ extension UserLibraryTests {
   }
   
   func testUnsubscribe() {
-    XCTAssertThrowsError(try user.unsubscribe(from: []))
-    
     do {
       let exp = self.expectation(description: "subscribing")
       
@@ -98,12 +101,23 @@ extension UserLibraryTests {
       }
       
       subscribe { error in
+        XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
       }
       
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
         NotificationCenter.default.removeObserver(obs)
+      }
+    }
+    
+    do {
+      let exp = self.expectation(description: "unsubscribing empty list")
+      
+      try! user.unsubscribe(from: []) { error in
+        XCTAssertFalse(Thread.isMainThread)
+        XCTAssertNil(error)
+        exp.fulfill()
       }
     }
     
@@ -121,6 +135,7 @@ extension UserLibraryTests {
       }
       
       var cb: ((Error?) -> Void)? = { error in
+        XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
       }
       

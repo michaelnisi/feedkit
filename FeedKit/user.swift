@@ -52,13 +52,10 @@ private final class FetchFeedsOperation: FeedKitOperation {
   
   let browser: Browsing
   let cache: SubscriptionCaching
-  let target: DispatchQueue
   
   init(browser: Browsing, cache: SubscriptionCaching) {
     self.browser = browser
     self.cache = cache
-    
-    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
   
   var feedsBlock: (([Feed], Error?) -> Void)?
@@ -71,7 +68,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
     if let cb = feedsCompletionBlock {
-      target.async {
+      DispatchQueue.global().async {
         cb(er)
       }
     }
@@ -100,7 +97,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
       
       acc = acc + feeds
 
-      self.target.async {
+      DispatchQueue.global().async {
         self.feedsBlock?(feeds, error)
       }
     }) { error in
@@ -147,25 +144,26 @@ extension UserLibrary: Subscribing {
     subscriptions: [Subscription],
     addComplete: ((_ error: Error?) -> Void)? = nil) throws {
     guard !subscriptions.isEmpty else {
-      throw FeedKitError.emptyCollection
+      DispatchQueue.global().async {
+        addComplete?(nil)
+      }
+      return
     }
     
     let cache = self.cache
     
     operationQueue.addOperation {
-      let target = OperationQueue.current!.underlyingQueue!
-      
       do {
         try cache.add(subscriptions: subscriptions)
         self.subscriptions.formUnion(subscriptions.map { $0.url })
       } catch {
-        target.async {
+        DispatchQueue.global().async {
           addComplete?(error)
         }
         return
       }
 
-      target.async {
+      DispatchQueue.global().async {
         addComplete?(nil)
       }
       
@@ -180,28 +178,27 @@ extension UserLibrary: Subscribing {
   public func unsubscribe(
     from urls: [FeedURL],
     unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) throws {
+    func done(_ error: Error? = nil) -> Void {
+      DispatchQueue.global().async {
+        unsubscribeComplete?(error)
+      }
+    }
+    
     guard !urls.isEmpty else {
-      throw FeedKitError.emptyCollection
+      return done()
     }
     
     let cache = self.cache
     
     operationQueue.addOperation {
-      let target = OperationQueue.current!.underlyingQueue!
-      
       do {
         try cache.remove(urls: urls)
         self.subscriptions.subtract(urls)
       } catch {
-        target.async {
-          unsubscribeComplete?(error)
-        }
-        return
+        return done(error)
       }
       
-      target.async {
-        unsubscribeComplete?(nil)
-      }
+      done()
       
       DispatchQueue.main.async {
         NotificationCenter.default.post(
@@ -354,15 +351,11 @@ private final class FKFetchQueueOperation: FeedKitOperation {
   let browser: Browsing
   let cache: QueueCaching
   var user: EntryQueueHost
-  
-  let target: DispatchQueue
-  
+
   init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
     self.browser = browser
     self.cache = cache
     self.user = user
-    
-    self.target = OperationQueue.current!.underlyingQueue!
   }
   
   var entriesBlock: (([Entry], Error?) -> Void)?
@@ -378,7 +371,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
            er != nil ? String(reflecting: er) : "OK")
     
     if let cb = fetchQueueCompletionBlock {
-      target.async {
+      DispatchQueue.global().async {
         cb(er)
       }
     }
@@ -387,6 +380,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
     fetchQueueCompletionBlock = nil
     
     isFinished = true
+    
     op?.cancel()
     op = nil
   }
@@ -471,7 +465,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
       acc = acc + entries
     }) { error in
       defer {
-        self.target.async { [weak self] in
+        DispatchQueue.global().async { [weak self] in
           self?.done(but: error)
         }
       }
@@ -506,7 +500,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
       os_log("entries in queue: %{public}@", log: log, type: .debug,
              String(reflecting: entries))
       
-      self.target.async { [weak self] in
+      DispatchQueue.global().async { [weak self] in
         guard let cb = self?.entriesBlock else {
           return
         }
@@ -631,21 +625,21 @@ extension UserLibrary: Queueing {
     entries: [Entry],
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
     guard !entries.isEmpty else {
-      throw FeedKitError.emptyCollection
+      DispatchQueue.global().async {
+        enqueueCompletionBlock?(nil)
+      }
+      return
     }
     
     os_log("enqueueing", log: log, type: .debug)
     
     operationQueue.addOperation {
-      assert(!Thread.isMainThread)
-      let target = OperationQueue.current!.underlyingQueue!
-      
       do {
         try self.queue.prepend(items: entries)
         let locators = entries.map { EntryLocator(entry: $0) }
         try self.cache.add(entries: locators)
       } catch {
-        target.async {
+        DispatchQueue.global().async {
           enqueueCompletionBlock?(error)
         }
         return
@@ -655,7 +649,7 @@ extension UserLibrary: Queueing {
         NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
       }
       
-      target.async {
+      DispatchQueue.global().async {
         enqueueCompletionBlock?(nil)
       }
     }
@@ -667,15 +661,12 @@ extension UserLibrary: Queueing {
     os_log("dequeueing", log: log, type: .debug)
     
     operationQueue.addOperation {
-      assert(!Thread.isMainThread)
-      let target = OperationQueue.current!.underlyingQueue!
-      
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
         try self.cache.remove(guids: [guid])
       } catch {
-        target.async {
+        DispatchQueue.global().async {
           dequeueCompletionBlock?(error)
         }
         return
@@ -685,7 +676,7 @@ extension UserLibrary: Queueing {
         NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
       }
       
-      target.async {
+      DispatchQueue.global().async {
         dequeueCompletionBlock?(nil)
       }
     }

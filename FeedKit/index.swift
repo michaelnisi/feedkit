@@ -59,7 +59,6 @@ public enum FeedKitError : Error {
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
   case unidentifiedFeed
-  case emptyCollection // TODO: Remove emptyCollection error
 }
 
 extension FeedKitError: Equatable {
