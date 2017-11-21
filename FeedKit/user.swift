@@ -30,7 +30,7 @@ public final class UserLibrary: EntryQueueHost {
   /// - Parameters:
   ///   - cache: The cache to store user data locallly.
   ///   - browser: The browser to access feeds and entries.
-  ///   - queue: A serial operation queue to execute operations on.
+  ///   - queue: A serial operation queue to execute operations in order.
   public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
     self.cache = cache
     self.browser = browser
@@ -245,7 +245,7 @@ extension UserLibrary: Subscribing {
 
 extension UserLibrary: Updating {
   
-  private static func guidsToIgnore(cache: UserCaching) throws -> [String] {
+  private static func guidsToIgnore(cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
     return previous.flatMap {
       switch $0 {
@@ -254,19 +254,36 @@ extension UserLibrary: Updating {
       }
     }
   }
-
+  
+  // TODO: Free from dependencies for solid testing
+  
   private static func queuedLocators(cache: UserCaching) throws -> [EntryLocator] {
     let queued = try cache.queued()
+    
+    var datesByURL = [String: Date]()
+    
     return try queued.reduce([EntryLocator]()) { acc, q in
       switch q {
       case .entry(let loc, _):
         let url = loc.url
+        let since = loc.since
         
         guard try cache.has(url) else {
           return acc
         }
-        
-        let range = EntryLocator(url: url, since: loc.since)
+
+        if let prev = datesByURL[url] {
+          if prev > since {
+            return acc
+          } else {
+            let range = EntryLocator(url: url, since: since)
+            datesByURL[url] = since
+            return acc.filter { $0.url != url } + [range]
+          }
+        }
+
+        let range = EntryLocator(url: url, since: since)
+        datesByURL[url] = since
         return acc + [range]
       }
     }
@@ -275,6 +292,8 @@ extension UserLibrary: Updating {
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     os_log("updating", log: log,  type: .info)
+    
+    let forcing = true
     
     var locatingError: Error?
     var locators: [EntryLocator]?
@@ -285,6 +304,9 @@ extension UserLibrary: Updating {
       do {
         locators = try UserLibrary.queuedLocators(cache: cache)
         guids = try UserLibrary.guidsToIgnore(cache: cache)
+        
+        let urls = locators!.map { $0.url }
+        assert(urls.count == Set(urls).count)
       } catch {
         locatingError = error
       }
@@ -298,7 +320,7 @@ extension UserLibrary: Updating {
       }
       
       var acc = [Entry]()
-      browser.entries(locs, entriesBlock: { error, entries in
+      browser.entries(locs, force: forcing, entriesBlock: { error, entries in
         guard error == nil else {
           os_log("faulty entries: %{public}@", log: log, type: .error,
                  error! as CVarArg)
@@ -370,11 +392,14 @@ private final class FKFetchQueueOperation: FeedKitOperation {
     os_log("done: %{public}@", log: log, type: .debug,
            er != nil ? String(reflecting: er) : "OK")
     
-    if let cb = fetchQueueCompletionBlock {
-      DispatchQueue.global().async {
-        cb(er)
-      }
-    }
+//    if let cb = fetchQueueCompletionBlock {
+//      DispatchQueue.global().async {
+//        cb(er)
+//      }
+//    }
+    
+
+    fetchQueueCompletionBlock?(er)
     
     entriesBlock = nil
     fetchQueueCompletionBlock = nil

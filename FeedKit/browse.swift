@@ -33,11 +33,14 @@ class BrowseOperation: SessionTaskOperation {
     
     self.target = {
       guard let q = OperationQueue.current?.underlyingQueue else {
-        os_log("no underlying queue: targeting main", log: log)
+        // TODO: Replace .main with .global()
+        // TODO: Move target into FeedKitOperation
         return DispatchQueue.main
       }
       return q
     }()
+    
+    os_log("** target: %@", log: log, type: .debug, self.target.label)
   }
 }
 
