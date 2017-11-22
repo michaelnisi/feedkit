@@ -291,7 +291,7 @@ extension UserLibrary: Updating {
   }
   
   /// Returns entries in `entries` of `subscriptions`, which are newer than
-  /// the subscription of their containing feed.
+  /// the subscription date of their containing feed.
   ///
   /// - Parameters:
   ///   - entries: The source entries to use.
@@ -299,9 +299,9 @@ extension UserLibrary: Updating {
   ///
   /// - Returns: A subset of `entries` with entries newer than their according
   /// subscriptions.
-  static func latest(
+  static func newer(
     from entries: [Entry],
-    of subscriptions: Set<Subscription>) -> [Entry] {
+    than subscriptions: Set<Subscription>) -> [Entry] {
     // A dictionary of dates by URLs for quick lookup.
     var datesByURLs = [FeedURL: Date]()
     for s in subscriptions {
@@ -312,8 +312,8 @@ extension UserLibrary: Updating {
     }
 
     return entries.filter {
-      if let ts = datesByURLs[$0.url], $0.updated > ts {
-        return true
+      if let ts = datesByURLs[$0.url] {
+        return $0.updated > ts
       }
       return false
     }
@@ -377,7 +377,7 @@ extension UserLibrary: Updating {
           }
         }
         
-        let latest = UserLibrary.latest(from: acc, of: Set(subscriptions))
+        let latest = UserLibrary.newer(from: acc, than: Set(subscriptions))
         
         do {
           try self.enqueue(entries: latest) { error in

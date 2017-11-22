@@ -209,13 +209,31 @@ extension UserLibraryTests {
 // MARK: - Updating
 
 extension UserLibraryTests {
-  
-  func testLocatorsToUpdate() {
-    XCTFail("should test")
-  }
-  
+
   func testLatestEntriesUsingSubscriptions() {
-    XCTFail("should test")
+    let entries = try! entriesFromFile()
+    let urls = Set(entries.map { $0.url })
+    
+    do {
+      let subscriptions = Set(urls.map { Subscription(url: $0) })
+      let found = UserLibrary.newer(from: entries, than: subscriptions)
+      XCTAssertEqual(found, [])
+    }
+    
+    do {
+      let ts = Date(timeIntervalSince1970:
+        serialize.timeIntervalFromJS(1445572800000)
+      )
+      let subscriptions: Set<Subscription> = [
+        Subscription(url: "http://feeds.wnyc.org/newyorkerradiohour", ts: ts)
+      ]
+      let found = UserLibrary.newer(from: entries, than: subscriptions)
+      XCTAssertEqual(found.count, 1)
+      XCTAssertEqual(found.first!.title,
+      """
+      Episode Two: Amy Schumer, Jorge Ramos, and the Search for a Lost Father
+      """)
+    }
   }
   
   func testUpdate() {
