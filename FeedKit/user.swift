@@ -255,57 +255,73 @@ extension UserLibrary: Updating {
     }
   }
   
-  // TODO: Free from dependencies for solid testing
-  
-  private static func queuedLocators(cache: UserCaching) throws -> [EntryLocator] {
-    let queued = try cache.queued()
+  /// Returns the locators to update from `queued` items, while subscribed to
+  /// to `subscriptions`.
+  static func locatorsToUpdate(
+    from queued: [Queued],
+    with subscriptions: [FeedURL]) -> [EntryLocator] {
+    var latestByURL = [FeedURL: EntryLocator]()
     
-    var datesByURL = [String: Date]()
-    
-    return try queued.reduce([EntryLocator]()) { acc, q in
+    for q in queued {
       switch q {
       case .entry(let loc, _):
-        let url = loc.url
-        let since = loc.since
-        
-        guard try cache.has(url) else {
-          return acc
+        guard subscriptions.contains(loc.url) else {
+          continue
         }
-
-        if let prev = datesByURL[url] {
-          if prev > since {
-            return acc
-          } else {
-            let range = EntryLocator(url: url, since: since)
-            datesByURL[url] = since
-            return acc.filter { $0.url != url } + [range]
+        
+        if let latest = latestByURL[loc.url] {
+          if latest.since > loc.since { // newer wins
+            continue
           }
         }
-
-        let range = EntryLocator(url: url, since: since)
-        datesByURL[url] = since
-        return acc + [range]
+        
+        latestByURL[loc.url] = EntryLocator(url: loc.url, since: loc.since)
       }
     }
+    
+    return latestByURL.flatMap { $0.value }
+  }
+  
+  private static func queuedLocators(
+    from cache: QueueCaching,
+    with subscriptions: [Subscription]) throws -> [EntryLocator] {
+    let queued = try cache.queued()
+    let urls = subscriptions.map { $0.url }
+    return locatorsToUpdate(from: queued, with: urls)
+  }
+  
+  static func latest(
+    from entries: [Entry],
+    using subscriptions: [Subscription]) -> [Entry] {
+    // TODO: Keep newer than subscription
+    return entries
   }
   
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     os_log("updating", log: log,  type: .info)
     
+    let cache = self.cache
     let forcing = true
     
     var locatingError: Error?
-    var locators: [EntryLocator]?
-    var guids: [String]?
     
-    let cache = self.cache
+    // Locating results: subscriptions, locators, and ignored GUIDs; where the
+    // subscriptions are used for the request and to filter the fetched entries
+    // before enqueuing them in the completion block below.
+    
+    var subscriptions: [Subscription]!
+    var locators: [EntryLocator]!
+    var ignored: [String]!
+    
     let locating = BlockOperation {
       do {
-        locators = try UserLibrary.queuedLocators(cache: cache)
-        guids = try UserLibrary.guidsToIgnore(cache: cache)
+        subscriptions = try cache.subscribed()
+        locators = try UserLibrary.queuedLocators(from: cache, with: subscriptions)
+        ignored = try UserLibrary.guidsToIgnore(cache: cache)
         
-        let urls = locators!.map { $0.url }
+        // TODO: Remove this uniqueness check
+        let urls = locators.map { $0.url }
         assert(urls.count == Set(urls).count)
       } catch {
         locatingError = error
@@ -313,21 +329,21 @@ extension UserLibrary: Updating {
     }
     
     func fetchEntries() {
-      guard locatingError == nil, let locs = locators, !locs.isEmpty else {
+      guard locatingError == nil, !locators.isEmpty else {
         return DispatchQueue.global().async {
           updateComplete(false, locatingError)
         }
       }
       
       var acc = [Entry]()
-      browser.entries(locs, force: forcing, entriesBlock: { error, entries in
+      browser.entries(locators, force: forcing, entriesBlock: { error, entries in
         guard error == nil else {
           os_log("faulty entries: %{public}@", log: log, type: .error,
                  error! as CVarArg)
           return
         }
         
-        guard let ignored = guids else {
+        guard !ignored.isEmpty else {
           return acc.append(contentsOf: entries)
         }
         
@@ -339,8 +355,10 @@ extension UserLibrary: Updating {
           }
         }
         
+        let latest = UserLibrary.latest(from: acc, using: subscriptions)
+        
         do {
-          try self.enqueue(entries: acc) { error in
+          try self.enqueue(entries: latest) { error in
             DispatchQueue.global().async {
               updateComplete(true, error)
             }

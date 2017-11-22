@@ -373,7 +373,7 @@ extension EntryLocator {
 
   /// Removes doublets with the same GUID and merges locators with similar
   /// URLs into a single locator with the longest time-to-live for that URL.
-  static func reduce(_ locators: [EntryLocator]) -> [EntryLocator] {
+  static func reduce(_ locators: [EntryLocator], expanding: Bool = true) -> [EntryLocator] {
     guard !locators.isEmpty else {
       return []
     }
@@ -401,9 +401,15 @@ extension EntryLocator {
     }
 
     var withoutGuids = [EntryLocator]()
+    
+    let areInIncreasingOrder: (EntryLocator, EntryLocator) -> Bool = {
+      return expanding ?
+        { $0.since < $1.since } :
+        { $0.since > $1.since }
+    }()
 
     for it in withoutGuidsByUrl {
-      let sorted = it.value.sorted { $0.since < $1.since }
+      let sorted = it.value.sorted(by: areInIncreasingOrder)
       guard let loc = sorted.first else {
         continue
       }

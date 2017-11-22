@@ -210,6 +210,14 @@ extension UserLibraryTests {
 
 extension UserLibraryTests {
   
+  func testLocatorsToUpdate() {
+    XCTFail("should test")
+  }
+  
+  func testLatestEntriesUsingSubscriptions() {
+    XCTFail("should test")
+  }
+  
   func testUpdate() {
     do {
       let exp = expectation(description: "update")
