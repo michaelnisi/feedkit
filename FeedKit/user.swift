@@ -341,10 +341,6 @@ extension UserLibrary: Updating {
         subscriptions = try cache.subscribed()
         locators = try UserLibrary.queuedLocators(from: cache, with: subscriptions)
         ignored = try UserLibrary.guidsToIgnore(cache: cache)
-        
-        // TODO: Remove this uniqueness check
-        let urls = locators.map { $0.url }
-        assert(urls.count == Set(urls).count)
       } catch {
         locatingError = error
       }
@@ -393,8 +389,8 @@ extension UserLibrary: Updating {
       }
     }
     
-    // Assuming our custom serial queue: 'ink.codes.feekit.user'.
     let q = operationQueue.underlyingQueue!
+    assert(q.label == "ink.codes.feedkit.user")
     
     locating.completionBlock = {
       q.async {
@@ -432,14 +428,11 @@ private final class FKFetchQueueOperation: FeedKitOperation {
     os_log("done: %{public}@", log: log, type: .debug,
            er != nil ? String(reflecting: er) : "OK")
     
-//    if let cb = fetchQueueCompletionBlock {
-//      DispatchQueue.global().async {
-//        cb(er)
-//      }
-//    }
-    
-
-    fetchQueueCompletionBlock?(er)
+    if let cb = fetchQueueCompletionBlock {
+      DispatchQueue.global().async {
+        cb(er)
+      }
+    }
     
     entriesBlock = nil
     fetchQueueCompletionBlock = nil
