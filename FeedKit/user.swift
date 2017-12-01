@@ -324,12 +324,11 @@ extension UserLibrary: Updating {
     os_log("updating", log: log,  type: .info)
     
     let cache = self.cache
-    let forcing = true
     
     var locatingError: Error?
     
     // Results of the locating operation: subscriptions, locators, and ignored
-    // GUIDs; where the subscriptions are used for the request and to filter
+    // (GUIDs); where subscriptions are used for the request and to filter
     // the fetched entries before enqueuing them in the completion block below.
     
     var subscriptions: [Subscription]!
@@ -339,6 +338,7 @@ extension UserLibrary: Updating {
     let locating = BlockOperation {
       do {
         subscriptions = try cache.subscribed()
+        os_log("subscriptions: %{public}@", log: log, type: .debug, subscriptions)
         locators = try UserLibrary.queuedLocators(from: cache, with: subscriptions)
         ignored = try UserLibrary.guidsToIgnore(cache: cache)
       } catch {
@@ -354,10 +354,10 @@ extension UserLibrary: Updating {
       }
       
       var acc = [Entry]()
-      browser.entries(locators, force: forcing, entriesBlock: { error, entries in
+      browser.entries(locators, force: true, entriesBlock: { error, entries in
         guard error == nil else {
           os_log("faulty entries: %{public}@", log: log, type: .error,
-                 error! as CVarArg)
+                 String(describing: error))
           return
         }
         

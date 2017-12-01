@@ -749,21 +749,27 @@ public protocol Queueing {
 
 // MARK: - Updating
 
+/// Updating subscribed feeds.
 public protocol Updating {
   
-  /// Hits the server to update entries of subscribed feeds.
+  /// Fetch the latest entries of subscribed feeds from the server.
   ///
   /// - Parameters:
   ///   - updateComplete: The completion block to apply when done.
   ///   - newData: `true` if new data has been received.
-  ///   - error: An error, maybe.
+  ///   - error: Optionally, an error if anything went wrong.
   func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
   
 }
 
 // MARK: - Downloading
 
-// TODO: Design Downloading API
+/// Downloading fresh episodes and managing media files.
+public protocol Downloading {
+ 
+  // TODO: Design Downloading API
+  
+}
 
 // MARK: - Subscribing
 

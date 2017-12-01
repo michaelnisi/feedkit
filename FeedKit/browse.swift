@@ -39,8 +39,6 @@ class BrowseOperation: SessionTaskOperation {
       }
       return q
     }()
-    
-    os_log("** target: %@", log: log, type: .debug, self.target.label)
   }
 }
 
@@ -200,8 +198,7 @@ final class EntriesOperation: BrowseOperation {
   ///
   /// - Parameter locators: The selection of entries to fetch.
   init(cache: FeedCaching, svc: MangerService, locators: [EntryLocator]) {
-    os_log("fetching: %{public}@", log: log, type: .debug,
-           String(reflecting: locators))
+    os_log("EntriesOperation: %{public}@", log: log, type: .debug, locators)
     
     self._locators = locators
     
