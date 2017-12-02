@@ -109,7 +109,7 @@ private final class FetchFeedsOperation: FeedKitOperation {
       let missing = subscriptions.filter { urls.contains($0.url) }
 
       self.browser.integrateMetadata(from: missing) { error in
-        self.done(error)
+        self.done(error) 
       }
     }
   }

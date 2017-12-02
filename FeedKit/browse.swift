@@ -638,23 +638,18 @@ extension FeedRepository: Browsing {
         return
       }
       
+      var er: Error?
+      
+      defer {
+        target.async {
+          completionBlock?(er)
+        }
+      }
+      
       do {
         try cache.integrateMetadata(from: subscriptions)
       } catch {
-        guard let cb = completionBlock else {
-          return
-        }
-        target.async {
-          cb(error)
-        }
-      }
-      
-      guard let cb = completionBlock else {
-        return
-      }
-      
-      target.async {
-        cb(nil)
+        er = error
       }
     }
   }
