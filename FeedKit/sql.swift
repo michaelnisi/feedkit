@@ -139,24 +139,20 @@ final class SQLFormatter {
       ("url", url)
     ]
 
-    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t
-    // contain URLs of the prescaled images. Also, it might provide no updated
-    // date. We don’t want to explicitly override these with 'NULL'.
-    let kept = ["itunes_guid", "img100", "img30", "img60", "img600", "updated"]
+    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t contain
+    // URLs of the prescaled images. Also, it might provide no last updated
+    // timestamp. We don’t want to explicitly override these with 'NULL'.
+    let k = ["itunes_guid", "img100", "img30", "img60", "img600", "updated"]
 
     let vars = props.reduce([String]()) { acc, prop in
       let (name, value) = prop
-      let keep = kept.contains(name)
+      let keep = k.contains(name)
       guard let col = column(name: name, value: value, keep: keep) else {
         return acc
       }
       return acc + [col]
-
     }.joined(separator: ", ")
     
-    // This works only for updates, of course. Receiving from iTunes, we replace
-    // feeds and, thus, lose data previous data, which is consequent.
-
     let sql = "UPDATE feed SET \(vars) WHERE feed_id = \(feedID.rowid);"
 
     return sql

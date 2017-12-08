@@ -48,6 +48,12 @@ public final class UserLibrary: EntryQueueHost {
 
 // MARK: - Subscribing
 
+
+/// Synced data from iCloud might contain additional information, we don’t
+/// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
+/// pre-scaled images. Especially those smaller images are of interest to us,
+/// because they make a palpable difference for the user. With this operation
+/// dependency, we are integrating this data into our feed repo.
 private final class FetchFeedsOperation: FeedKitOperation {
   
   let browser: Browsing
@@ -650,12 +656,6 @@ extension UserLibrary: Queueing {
     let op = FKFetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
     op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
-    
-    // Synced data from iCloud might contain additional information, we don’t
-    // have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
-    // pre-scaled images. Especially those smaller images are of interest to us,
-    // because they make a palpable difference for the user. With this operation
-    // dependency, we are integrating this data into our feed repo.
     
     let dep = FetchFeedsOperation(browser: browser, cache: cache)
     dep.feedsBlock = { feeds, error in

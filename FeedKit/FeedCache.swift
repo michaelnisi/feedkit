@@ -10,15 +10,6 @@ import Foundation
 import Skull
 import os.log
 
-// TODO: Compare NSValue vs StructValue
-
-class StructValue<T>: NSObject {
-  let value: T
-  init(_ value: T) {
-    self.value = value
-  }
-}
-
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 
 public final class FeedCache: LocalCache {
@@ -29,14 +20,14 @@ public final class FeedCache: LocalCache {
   // TODO: Replace noSearch Dictionary with NSCache
   fileprivate var noSearch = [String : Date]()
   
-  fileprivate var feedIDsCache = NSCache<NSString, StructValue<FeedID>>()
+  fileprivate var feedIDsCache = NSCache<NSString, ValueObject<FeedID>>()
   
   fileprivate func cachedFeedID(for url: String) -> FeedID? {
     return feedIDsCache.object(forKey: url as NSString)?.value
   }
   
   fileprivate func cache(feedID: FeedID, for url: String) -> FeedID {
-    let obj = StructValue<FeedID>(feedID)
+    let obj = ValueObject<FeedID>(feedID)
     feedIDsCache.setObject(obj, forKey: url as NSString)
     return feedID
   }
@@ -200,21 +191,24 @@ extension FeedCache {
 extension FeedCache: FeedCaching {
 
   public func integrateMetadata(from subscriptions: [Subscription]) throws {
-    let fmt = sqlFormatter
-    
     try queue.sync {
       let sql = subscriptions.reduce([String]()) { acc, s in
         guard let iTunes = s.iTunes else {
           return acc
         }
-        return acc + [fmt.SQLToUpdate(iTunes: iTunes, where: s.url)]
+        return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes, where: s.url)]
       }.joined(separator: "\n")
       
       try self.db.exec(sql)
     }
   }
   
-  /// Update feeds in the cache. Feeds that are not cached yet get inserted.
+  /// Updates feeds in the cache, while new feeds are inserted.
+  ///
+  /// Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
+  /// removed. These doublets may occure, after the feed URL has changed while
+  /// the iTunes GUID stayed the same. Just inserting such a feed would result
+  /// in a unique constraint failure in the database.
   ///
   /// - Parameter feeds: The feeds to insert or update.
   ///
@@ -223,41 +217,45 @@ extension FeedCache: FeedCaching {
     return try queue.sync {
       let sql = try feeds.reduce([String]()) { acc, feed in
         do {
-          let feedID = try self.feedID(for: feed.url)
-          return acc + [self.sqlFormatter.SQLToUpdate(feed: feed, with: feedID)]
+          let id = try feedID(for: feed.url)
+          return acc + [sqlFormatter.SQLToUpdate(feed: feed, with: id)]
         } catch FeedKitError.feedNotCached {
           guard let guid = feed.iTunes?.iTunesID else {
-            return acc + [self.sqlFormatter.SQLToInsert(feed: feed)]
+            return acc + [sqlFormatter.SQLToInsert(feed: feed)]
           }
-          
-          // Removing feed with this guid before inserting, to avoid doublets
-          // if the feed URL changed while the iTunes GUID stayed the same,
-          // leading to a unique constraint failure:
-          //
-          // unhandled error: Skull: 19: UNIQUE constraint failed: feed.guid
-          
-          os_log("replacing feed with iTunes guid: %{public}@",
-                 log: log, type: .debug, String(describing: guid))
-
-          // TODO: Use feedID to remove feed
-          
           return acc + [
             SQLFormatter.toRemoveFeed(with: guid),
-            self.sqlFormatter.SQLToInsert(feed: feed)
+            sqlFormatter.SQLToInsert(feed: feed)
           ]
         }
-        }.joined(separator: "\n")
+      }.joined(separator: "\n")
       
-      try self.db.exec(sql)
+      do {
+        try db.exec(sql)
+      } catch {
+        switch error {
+        case SkullError.sqliteError(let code, let message):
+          guard code == 19 else {
+            break
+          }
+          os_log("inconsistent database: %@", log: log, type: .error, message)
+          // TODO: Handle UNIQUE constraint failed
+          break
+        default:
+          break
+        }
+        throw error
+      }
     }
   }
   
   /// Retrieve feeds from the cache identified by their URLs.
   ///
-  /// - Parameter urls: An array of feed URL strings.
+  /// - Parameter urls: An array of feed URL strings. Passing empty `urls` is
+  /// considered a programming error and will crash.
   ///
   /// - Returns: An array of feeds currently in the cache.
-  func feedIDsForURLs(_ urls: [String]) throws -> [String : FeedID]? {
+  func feedIDs(matching urls: [String]) throws -> [String : FeedID]? {
     assert(!urls.isEmpty)
     
     var result = [String : FeedID]()
@@ -266,9 +264,7 @@ extension FeedCache: FeedCaching {
         let feedID = try self.feedID(for: url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
-        if #available(iOS 10.0, *) {
-          os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
-        }
+        os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
       }
     }
     
@@ -282,7 +278,7 @@ extension FeedCache: FeedCaching {
   /// Returns feeds for `urls` or an empty array.
   public func feeds(_ urls: [String]) throws -> [Feed] {
     return try queue.sync {
-      guard let dicts = try self.feedIDsForURLs(urls) else {
+      guard let dicts = try self.feedIDs(matching: urls) else {
         return []
       }
       let feedIDs = dicts.map { $0.1 }
@@ -353,7 +349,7 @@ extension FeedCache: FeedCaching {
     return try queue.sync {
       let urls = locators.map { $0.url }
       
-      guard let feedIDsByURLs = try self.feedIDsForURLs(urls) else {
+      guard let feedIDsByURLs = try self.feedIDs(matching: urls) else {
         return []
       }
       
@@ -410,7 +406,7 @@ extension FeedCache: FeedCaching {
   /// - Parameter urls: The URL strings of the feeds to remove.
   public func remove(_ urls: [String]) throws {
     try queue.sync {
-      guard let dicts = try self.feedIDsForURLs(urls) else { return }
+      guard let dicts = try self.feedIDs(matching: urls) else { return }
       let feedIDs = dicts.map { $0.1 }
       guard let sql = SQLFormatter.SQLToRemoveFeeds(with: feedIDs) else {
         throw FeedKitError.sqlFormatting

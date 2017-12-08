@@ -11,6 +11,14 @@ import Ola
 import Patron
 import os.log
 
+/// Wraps a value into an `NSObject`.
+class ValueObject<T>: NSObject {
+  let value: T
+  init(_ value: T) {
+    self.value = value
+  }
+}
+
 /// Adds this framework‘s notification names.
 public extension Notification.Name {
 

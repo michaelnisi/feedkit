@@ -125,7 +125,7 @@ private final class SearchOperation: SearchRepoOperation {
         self.target.sync() {
           cb(nil, finds)
         }
-      } catch let error {
+      } catch {
         er = error
       }
     }
