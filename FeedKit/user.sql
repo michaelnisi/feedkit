@@ -19,9 +19,9 @@ create table if not exists record(
 
 create table if not exists entry(
   entry_guid text primary key,
+  feed_url text not null,
   since datetime,
-  title text,
-  feed_url text not null
+  title text
 ) without rowid;
 
 create table if not exists queued_entry(
@@ -42,7 +42,8 @@ create table if not exists feed(
   img30 text,
   img60 text,
   img600 text,
-  itunes_guid int unique
+  itunes_guid int unique,
+  title text
 ) without rowid;
 
 create table if not exists subscribed_feed(
@@ -81,6 +82,7 @@ select
   e.entry_guid,
   e.since,
   e.feed_url,
+  e.title,
   qe.ts,
   r.change_tag,
   r.record_name
@@ -99,8 +101,9 @@ select * from queued_entry_view
 create view if not exists prev_entry_view as
 select
   e.entry_guid,
-  e.since,
   e.feed_url,
+  e.since,
+  e.title,
   pe.ts,
   r.change_tag,
   r.record_name
@@ -131,6 +134,7 @@ select
   f.img60,
   f.img600,
   f.itunes_guid,
+  f.title,
   r.change_tag,
   r.record_name,
   sf.ts
