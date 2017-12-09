@@ -239,7 +239,7 @@ extension FeedCache: FeedCaching {
             break
           }
           os_log("inconsistent database: %@", log: log, type: .error, message)
-          // TODO: Handle UNIQUE constraint failed
+          // TODO: Handle Skull: 19: UNIQUE constraint failed: feed.itunes_guid
           break
         default:
           break

@@ -444,9 +444,9 @@ final class FeedsOperation: BrowseOperation {
 
   /// Request feeds and update the cache.
   ///
-  /// - parameter urls: The URLs of the feeds to request.
-  /// - parameter stale: The stale feeds to eventually fall back on if the
-  /// remote request fails.
+  /// - Parameters:
+  ///   - urls: The URLs of the feeds to request.
+  ///   - stale: The stale feeds to fall back on if the remote request fails.
   fileprivate func request(_ urls: [String], stale: [Feed]) throws {
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 

@@ -11,6 +11,9 @@ import Foundation
 import Skull
 import os.log
 
+// TODO: Integrate HTTP redirects
+// TODO: Review update
+
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// Confines `Queue` state dependency.
@@ -704,7 +707,7 @@ extension UserLibrary: Queueing {
       }
       
       DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
       }
       
       DispatchQueue.global().async {
@@ -731,7 +734,7 @@ extension UserLibrary: Queueing {
       }
       
       DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
       }
       
       DispatchQueue.global().async {
