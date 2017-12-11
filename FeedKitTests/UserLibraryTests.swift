@@ -27,7 +27,7 @@ class UserLibraryTests: XCTestCase {
       queue.underlyingQueue = dq
       queue.maxConcurrentOperationCount = 1
 
-      let user = UserLibrary(cache: cache, browser: browser, queue: queue)
+      let user = UserLibrary.init(cache: cache, browser: browser, queue: queue)
       
       self.user = user
       self.cache = cache
@@ -36,6 +36,7 @@ class UserLibraryTests: XCTestCase {
   
   override func tearDown() {
     user = nil
+    cache = nil
     super.tearDown()
   }
   
@@ -221,6 +222,7 @@ extension UserLibraryTests {
     }
     
     do {
+      // 2015-10-23T04:00:00.000Z
       let ts = Date(timeIntervalSince1970:
         serialize.timeIntervalFromJS(1445572800000)
       )
@@ -229,10 +231,9 @@ extension UserLibraryTests {
       ]
       let found = UserLibrary.newer(from: entries, than: subscriptions)
       XCTAssertEqual(found.count, 1)
-      XCTAssertEqual(found.first!.title,
-      """
-      Episode Two: Amy Schumer, Jorge Ramos, and the Search for a Lost Father
-      """)
+      XCTAssertEqual(
+        found.first!.title,
+        "Episode Two: Amy Schumer, Jorge Ramos, and the Search for a Lost Father")
     }
   }
   
@@ -346,7 +347,7 @@ extension UserLibraryTests {
     
     let obs = NotificationCenter.default.addObserver(
       forName: .FKQueueDidChange,
-      object: self.user,
+      object: nil,
       queue: nil) { notification in
       assert(Thread.isMainThread)
       exp.fulfill()

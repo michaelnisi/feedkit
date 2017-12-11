@@ -8,41 +8,45 @@
 
 import Foundation
 import Skull
+import os.log
 
 // MARK: - SQLite Database Super Class
 
 /// Abstract super class for embedded (SQLite) databases.
-public class LocalCache {
+public class LocalCache: Caching {
   
   fileprivate let schema: String
   
   var url: URL?
   
-  let db: Skull
+  var _db: Skull?
+  
+  /// Returns a open database.
+  var db: Skull {
+    get {
+      guard _db != nil else {
+        do {
+          _db = try open()
+        } catch {
+          os_log("could not open database: %{public}@", type: .error, error as CVarArg)
+          fatalError("could not open database")
+        }
+        return _db!
+      }
+      return _db!
+    }
+  }
   
   /// Strictly submit to this serial queue to serialize database (write)-access.
   let queue: DispatchQueue
   
   let sqlFormatter: SQLFormatter
   
-  fileprivate func open() throws {
-    var er: Error?
-    
-    let db = self.db
-    let schema = self.schema
-    
-    queue.sync {
-      do {
-        let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
-    }
+  fileprivate func open() throws -> Skull {
+    let freshDB = try Skull(url)
+    let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
+    try freshDB.exec(sql)
+    return freshDB
   }
   
   /// Initializes a newly created cache.
@@ -54,29 +58,22 @@ public class LocalCache {
     self.schema = schema
     self.url = url
     
-    // Comment-in to remove all database files at start-up.
-//    if let p = url { try FileManager.default.removeItem(at: p) }
-    
-    self.db = try Skull(url)
-    
     let me = type(of: self)
     self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
     
     self.sqlFormatter = SQLFormatter.shared
-    
-    try open()
   }
-  
-  fileprivate func close() throws {
-    try db.close()
-  }
-  
-  deinit {
-    try! db.close()
-  }
-  
+
   public func flush() throws {
-    try db.flush()
+    try queue.sync {
+      try self._db?.flush()
+    }
+  }
+  
+  public func closeDatabase() {
+    queue.sync {
+      self._db = nil
+    }
   }
 }
 
