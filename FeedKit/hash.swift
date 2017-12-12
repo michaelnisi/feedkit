@@ -22,3 +22,5 @@ public func djb2Hash32(string: String) -> Int32 {
     ($0 << 5) &+ $0 &+ Int32($1)
   })
 }
+
+// TODO: Move file into Playback framework, where it’s used

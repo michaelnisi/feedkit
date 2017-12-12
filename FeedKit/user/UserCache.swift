@@ -124,6 +124,28 @@ extension UserCache: QueueCaching {
     return try queryForQueued(using: SQLFormatter.SQLToSelectAllPrevious)
   }
   
+  public func all() throws -> [Queued] {
+    let prev = try previous()
+    let current = try queued()
+    let all = Set(prev + current)
+    return Array(all)
+  }
+  
+  public func latest() throws -> [EntryLocator] {
+    var latestByFeeds = [FeedURL: EntryLocator]()
+    let items = try all()
+    for item in items {
+      if case .entry(let loc, _) = item {
+        if let lhs = latestByFeeds[loc.url], lhs.since > loc.since {
+          continue // keep newer
+        } else {
+          latestByFeeds[loc.url] = loc
+        }
+      }
+    }
+    return Array(latestByFeeds.values)
+  }
+  
   public func removeAll() throws {
     try queue.sync {
       try db.exec(SQLFormatter.SQLToDeleteQueued)

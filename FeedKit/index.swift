@@ -698,7 +698,11 @@ extension Queued: Hashable {
 
 /// The local cache of the queue.
 public protocol QueueCaching {
+  
+  /// Enqueues `entries`.
   func add(entries: [EntryLocator]) throws
+  
+  /// Dequeues entries with `guids`.
   func remove(guids: [String]) throws
   
   /// Removes all queued entries.
@@ -710,9 +714,16 @@ public protocol QueueCaching {
   /// Previously queued entries, limited to the most recent 25.
   func previous() throws -> [Queued]
   
+  /// All, current and previously queued, entries.
+  func all() throws -> [Queued]
+  
+  /// The latest entry locators, one per feed, of current and previous entries.
+  func latest() throws -> [EntryLocator]
+  
   /// Returns `true` if the enty with `guid` is currently contained in the
   /// locally cached queue.
   func hasQueued(guid: EntryGUID) throws -> Bool
+  
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of

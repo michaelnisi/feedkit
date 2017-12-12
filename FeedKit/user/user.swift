@@ -252,6 +252,8 @@ extension UserLibrary: Subscribing {
 
 // MARK: - Updating
 
+// TOOD: Write UpdateOperation
+
 extension UserLibrary: Updating {
   
   private static func guidsToIgnore(cache: QueueCaching) throws -> [String] {
@@ -294,9 +296,9 @@ extension UserLibrary: Updating {
   private static func queuedLocators(
     from cache: QueueCaching,
     with subscriptions: [Subscription]) throws -> [EntryLocator] {
-    let queued = try cache.queued()
+    let latest = try cache.latest()
     let urls = subscriptions.map { $0.url }
-    return locatorsToUpdate(from: queued, with: urls)
+    return latest.filter { urls.contains($0.url) }
   }
   
   /// Returns entries in `entries` of `subscriptions`, which are newer than
