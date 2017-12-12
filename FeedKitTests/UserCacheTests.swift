@@ -55,6 +55,17 @@ extension UserCacheTests {
       let found = try! cache.locallyQueued()
       XCTAssertEqual(found, wanted)
     }
+    
+    do {
+      let all = try! cache.all()
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      XCTAssertEqual(all, wanted)
+    }
+    
+    do {
+      let latest = try! cache.latest()
+      XCTAssertEqual(latest, locators)
+    }
   }
   
   func testRemoveAll() {
@@ -70,6 +81,18 @@ extension UserCacheTests {
       let found = try! cache.queued()
       let wanted = [Queued]()
       XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let all = try! cache.all()
+      let wanted = locators.map { Queued.entry($0, Date()) }
+      XCTAssertEqual(all, wanted)
+    }
+    
+    do {
+      let latest = try! cache.latest()
+      XCTAssertEqual(latest, locators)
+      dump(latest)
     }
     
   }
@@ -109,7 +132,7 @@ extension UserCacheTests {
       XCTAssert(found.isEmpty)
     }
   }
-
+  
 }
 
 // MARK: - UserCacheSyncing
