@@ -81,8 +81,6 @@ public class LocalCache: Caching {
 
 extension LocalCache {
   
-  // TODO: Move slice utitlity function into LocalCache super class
-  
   /// Slices an array into fixed sized arrays.
   ///
   /// - Parameters:

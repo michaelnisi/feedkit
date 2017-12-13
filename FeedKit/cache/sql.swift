@@ -506,17 +506,20 @@ extension SQLFormatter {
     INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\(guidStr));
     """
   }
-
-  func queuedLocator(from row: SkullRow) -> Queued {
+  
+  func entryLocator(from row: SkullRow) -> EntryLocator {
     let url = row["feed_url"] as! String
     let since = date(from: row["since"] as? String)!
     let guid = row["entry_guid"] as? String
-    let locator = EntryLocator(url: url, since: since, guid: guid)
+    return EntryLocator(url: url, since: since, guid: guid)
+  }
 
+  func queuedLocator(from row: SkullRow) -> Queued {
+    let locator = entryLocator(from: row)
     let ts = date(from: row["ts"] as? String)!
-
     return Queued.entry(locator, ts)
   }
+  
 }
 
 // MARK: - Subscribing

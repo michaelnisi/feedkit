@@ -124,6 +124,13 @@ select entry_guid from entry
   except select entry_guid from queued_entry
   except select entry_guid from prev_entry;
 
+-- Latest entries per feed
+
+create view if not exists latest_entry_view as
+select * from entry
+  group by feed_url
+  order by max(since);
+
 -- Subscribed feeds
 
 create view if not exists subscribed_feed_view as
@@ -165,13 +172,5 @@ create view if not exists zombie_record_name_view as
 create view if not exists zombie_record_view as
 select r.record_name, r.zone_name from record r
   join zombie_record_name_view zrnv on r.record_name = zrnv.record_name;
-
--- Additional key-value store for arbitrary small blobs
-
-create table if not exists kv(
-  key text primary key,
-  ts datetime default current_timestamp,
-  value blob
-) without rowid;
 
 commit;

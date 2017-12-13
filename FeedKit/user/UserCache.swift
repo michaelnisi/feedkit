@@ -132,18 +132,36 @@ extension UserCache: QueueCaching {
   }
   
   public func latest() throws -> [EntryLocator] {
-    var latestByFeeds = [FeedURL: EntryLocator]()
-    let items = try all()
-    for item in items {
-      if case .entry(let loc, _) = item {
-        if let other = latestByFeeds[loc.url], other.since > loc.since {
-          continue // keep other, it’s newer
-        } else {
-          latestByFeeds[loc.url] = loc
+    var er: Error?
+    var locators = [EntryLocator]()
+    
+    let fmt = self.sqlFormatter
+    
+    queue.sync {
+      do {
+        let sql = "select * from latest_entry_view;"
+        try db.query(sql) { skullError, row -> Int in
+          guard skullError == nil else {
+            er = skullError
+            return 1
+          }
+          guard let r = row else {
+            return 0
+          }
+          let locator = fmt.entryLocator(from: r)
+          locators.append(locator)
+          return 0
         }
+      } catch {
+        er = error
       }
     }
-    return Array(latestByFeeds.values)
+    
+    if let error = er {
+      throw error
+    }
+    
+    return locators
   }
   
   public func removeAll() throws {
