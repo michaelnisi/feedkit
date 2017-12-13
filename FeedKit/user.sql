@@ -75,6 +75,13 @@ create trigger if not exists feed_ad after delete on feed begin
   delete from subscribed_feed where feed_url = old.feed_url;
 end;
 
+-- Latest entries per feed
+
+create view if not exists latest_entry_view as
+select * from entry
+  group by feed_url
+  order by max(since);
+
 -- All queued entries, including iCloud meta-data if synced
 
 create view if not exists queued_entry_view as
@@ -123,13 +130,6 @@ create view if not exists zombie_entry_guid_view as
 select entry_guid from entry
   except select entry_guid from queued_entry
   except select entry_guid from prev_entry;
-
--- Latest entries per feed
-
-create view if not exists latest_entry_view as
-select * from entry
-  group by feed_url
-  order by max(since);
 
 -- Subscribed feeds
 
