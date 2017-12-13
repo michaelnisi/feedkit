@@ -41,6 +41,36 @@ final class UserCacheTests: XCTestCase {
 
 extension UserCacheTests {
   
+  func testLatest() {
+    let urls = ["http://abc.de", "http://fgh.ijk"]
+    let locators = urls.reduce([EntryLocator]()) { acc, url in
+      var tmp = acc
+      for index in 1...5 {
+        if url == "http://abc.de" && index == 5 {
+          continue
+        }
+        let since = Date(timeIntervalSince1970: Double(index) * 10)
+        let guid = "\(url)/\(index)"
+        let loc = EntryLocator(url: url, since: since, guid: guid)
+        tmp.append(loc)
+      }
+      return tmp
+    }
+  
+    try! cache.add(entries: locators)
+  
+    let found = try! cache.latest()
+    let a = urls.last!
+    let b = urls.first!
+    let since = Date(timeIntervalSince1970: 50)
+    
+    let wanted = [
+      EntryLocator(url: a, since: since, guid: "\(a)/5"),
+      EntryLocator(url: b, since: since, guid: "\(b)/4")
+    ]
+    XCTAssertEqual(found, wanted)
+  }
+  
   func testAddEntries() {
     try! cache.add(entries: locators)
 

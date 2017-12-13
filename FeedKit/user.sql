@@ -78,9 +78,10 @@ end;
 -- Latest entries per feed
 
 create view if not exists latest_entry_view as
-select * from entry
+select * from (select * from entry
   group by feed_url
-  order by max(since);
+  order by max(since)
+) order by since desc;
 
 -- All queued entries, including iCloud meta-data if synced
 
