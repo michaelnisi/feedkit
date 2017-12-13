@@ -256,44 +256,17 @@ extension UserLibrary: Subscribing {
 
 extension UserLibrary: Updating {
   
-  private static func guidsToIgnore(cache: QueueCaching) throws -> [String] {
+  private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
     return previous.flatMap {
-      switch $0 {
-      case .entry(let loc, _):
+      if case .entry(let loc, _) = $0 {
         return loc.guid
       }
+      return nil
     }
   }
   
-  /// Returns the locators to update from `queued` items, while subscribed to
-  /// to `subscriptions`.
-  static func locatorsToUpdate(
-    from queued: [Queued],
-    with subscriptions: [FeedURL]) -> [EntryLocator] {
-    var latestByURL = [FeedURL: EntryLocator]()
-    
-    for q in queued {
-      switch q {
-      case .entry(let loc, _):
-        guard subscriptions.contains(loc.url) else {
-          continue
-        }
-        
-        if let latest = latestByURL[loc.url] {
-          if latest.since > loc.since { // newer wins
-            continue
-          }
-        }
-        
-        latestByURL[loc.url] = EntryLocator(url: loc.url, since: loc.since)
-      }
-    }
-    
-    return latestByURL.flatMap { $0.value }
-  }
-  
-  private static func queuedLocators(
+  private static func locatorsForUpdating(
     from cache: QueueCaching,
     with subscriptions: [Subscription]) throws -> [EntryLocator] {
     let latest = try cache.latest()
@@ -309,11 +282,11 @@ extension UserLibrary: Updating {
   ///   - subscriptions: A set of subscriptions to compare against.
   ///
   /// - Returns: A subset of `entries` with entries newer than their according
-  /// subscriptions.
+  /// subscriptions. Entries of missing subscriptions are not included.
   static func newer(
     from entries: [Entry],
     than subscriptions: Set<Subscription>) -> [Entry] {
-    // A dictionary of dates by URLs for quick lookup.
+    // A dictionary of dates by subscription URLs for quick lookup.
     var datesByURLs = [FeedURL: Date]()
     for s in subscriptions {
       guard let ts = s.ts else {
@@ -323,10 +296,10 @@ extension UserLibrary: Updating {
     }
 
     return entries.filter {
-      if let ts = datesByURLs[$0.url] {
-        return $0.updated > ts
+      guard let ts = datesByURLs[$0.url] else {
+        return false
       }
-      return false
+      return $0.updated > ts
     }
   }
   
@@ -336,29 +309,39 @@ extension UserLibrary: Updating {
     
     let cache = self.cache
     
+    /// Results of the locating operation: subscriptions, locators, and ignored
+    /// (GUIDs); where subscriptions are used for the request and to filter
+    /// the fetched entries before enqueuing them in the completion block below.
+    struct LocatingResult {
+      let subscriptions: [Subscription]
+      let locators: [EntryLocator]
+      let ignored: [String]
+      
+      init(cache: UserCaching) throws {
+        self.subscriptions = try cache.subscribed()
+        self.locators = try UserLibrary.locatorsForUpdating(
+          from: cache, with: subscriptions)
+        self.ignored = try UserLibrary.previousGUIDs(from: cache)
+      }
+    }
+    
     var locatingError: Error?
-    
-    // Results of the locating operation: subscriptions, locators, and ignored
-    // (GUIDs); where subscriptions are used for the request and to filter
-    // the fetched entries before enqueuing them in the completion block below.
-    
-    var subscriptions: [Subscription]!
-    var locators: [EntryLocator]!
-    var ignored: [String]!
+    var locatingResult: LocatingResult?
     
     let locating = BlockOperation {
       do {
-        subscriptions = try cache.subscribed()
-        os_log("subscriptions: %{public}@", log: log, type: .debug, subscriptions)
-        locators = try UserLibrary.queuedLocators(from: cache, with: subscriptions)
-        ignored = try UserLibrary.guidsToIgnore(cache: cache)
+        locatingResult = try LocatingResult(cache: cache)
       } catch {
         locatingError = error
       }
     }
     
     func fetchEntries() {
-      guard locatingError == nil, !locators.isEmpty else {
+      guard locatingError == nil,
+        let locators = locatingResult?.locators,
+        !locators.isEmpty,
+        let ignored = locatingResult?.ignored,
+        let subscriptions = locatingResult?.subscriptions else {
         return DispatchQueue.global().async {
           updateComplete(false, locatingError)
         }

@@ -214,7 +214,7 @@ public final class ImageRepository: Images {
       os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
              url as CVarArg, size as CVarArg)
       
-      Nuke.loadImage(with: req, into: v, handler: cb)
+      Manager.shared.loadImage(with: req, into: v, handler: cb)
     }
     
     if let smallURL = urlToPreload(from: item, for: size) {

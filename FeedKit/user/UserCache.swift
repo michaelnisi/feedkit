@@ -136,8 +136,8 @@ extension UserCache: QueueCaching {
     let items = try all()
     for item in items {
       if case .entry(let loc, _) = item {
-        if let lhs = latestByFeeds[loc.url], lhs.since > loc.since {
-          continue // keep newer
+        if let other = latestByFeeds[loc.url], other.since > loc.since {
+          continue // keep other, it’s newer
         } else {
           latestByFeeds[loc.url] = loc
         }
