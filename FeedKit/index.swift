@@ -704,10 +704,16 @@ public protocol QueueCaching {
   func add(entries: [EntryLocator]) throws
 
   /// Removes queued entries with `guids`.
-  func removeQueued(matching guids: [String]) throws
+  func removeQueued(_ guids: [String]) throws
 
   /// Removes all queued entries.
   func removeQueued() throws
+  
+  /// Removes previously queued entries from the cache.
+  func removePrevious() throws
+  
+  /// Removes all entries, previous and currently queued, from the cache.
+  func removeAll() throws
 
   /// Removes stale, all but the latest, previously queued entries.
   func removeStalePrevious() throws
@@ -722,9 +728,9 @@ public protocol QueueCaching {
   /// first—of current and previous entries.
   func newest() throws -> [EntryLocator]
 
-  /// Returns `true` if the enty with `guid` is currently contained in the
+  /// Returns `true` if the entry with `guid` is currently contained in the
   /// locally cached queue.
-  func hasQueued(guid: EntryGUID) throws -> Bool
+  func contains(_ guid: EntryGUID) throws -> Bool
 
 }
 

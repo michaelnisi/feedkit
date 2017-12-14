@@ -175,7 +175,8 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.removeQueued(matching: ["123"])
+      let guids = locators.map { $0.guid! }
+      try! cache.removeQueued(guids)
       let found = try! cache.queued()
       XCTAssert(found.isEmpty)
     }
@@ -218,7 +219,8 @@ extension UserCacheTests {
   func testAddSynced() {
     let synced = freshSynced()
     try! cache.add(synced: synced)
-    XCTAssertTrue(try! cache.hasQueued(guid: "abc"))
+    let guid = "abc"
+    XCTAssertTrue(try! cache.contains(guid))
   }
   
   func testRemoveSynced() {

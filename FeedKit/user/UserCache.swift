@@ -83,7 +83,7 @@ extension UserCache: SubscriptionCaching {
 // MARK: - QueueCaching
 
 extension UserCache: QueueCaching {
-  
+
   private func queryForQueued(using sql: String) throws -> [Queued] {
     var er: Error?
     var locators = [Queued]()
@@ -182,12 +182,12 @@ extension UserCache: QueueCaching {
     }
   }
   
-  func remove(matching guids: [String]) throws {
+  private func remove(_ guids: [String]) throws {
     guard !guids.isEmpty else {
       return
     }
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToDelete(where: guids))
+      try db.exec(SQLFormatter.SQLToDeleteFromEntry(where: guids))
     }
   }
   
@@ -196,16 +196,16 @@ extension UserCache: QueueCaching {
     guard !guids.isEmpty else {
       return
     }
-    try remove(matching: guids)
+    try remove(guids)
   }
   
   public func removeQueued() throws {
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToDeleteQueued)
+      try db.exec(SQLFormatter.SQLToDeleteFromQueuedEntry)
     }
   }
   
-  public func removeQueued(matching guids: [String]) throws {
+  public func removeQueued(_ guids: [String]) throws {
     var er: Error?
     
     queue.sync {
@@ -221,6 +221,18 @@ extension UserCache: QueueCaching {
     
     if let error = er {
       throw error
+    }
+  }
+  
+  public func removePrevious() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteFromPrevEntry)
+    }
+  }
+  
+  public func removeAll() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteFromEntry)
     }
   }
   
@@ -249,7 +261,7 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func hasQueued(guid: EntryGUID) throws -> Bool {
+  public func contains(_ guid: EntryGUID) throws -> Bool {
     let guids: [EntryGUID] = try queued().map {
       switch $0 {
       case .entry(let locator, _):

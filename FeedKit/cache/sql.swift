@@ -479,7 +479,7 @@ extension SQLFormatter {
   static let SQLToSelectAllPrevious =
     "SELECT * FROM prev_entry_view ORDER BY ts DESC;"
   
-  static func SQLToDelete(where guids: [String]) -> String {
+  static func SQLToDeleteFromEntry(where guids: [String]) -> String {
     return "DELETE FROM entry WHERE entry_guid IN(" + guids.map {
       "'\($0)'"
     }.joined(separator: ", ") + ");"
@@ -613,7 +613,11 @@ extension SQLFormatter {
 
 extension SQLFormatter {
   
-  static var SQLToDeleteQueued = "DELETE FROM queued_entry;"
+  static var SQLToDeleteFromQueuedEntry = "DELETE FROM queued_entry;"
+  
+  static var SQLToDeleteFromPrevEntry = "DELETE FROM prev_entry;"
+  
+  static var SQLToDeleteFromEntry = "DELETE FROM entry;"
   
   static var SQLToRemoveLibrary = """
   DELETE FROM feed;

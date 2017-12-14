@@ -574,11 +574,13 @@ extension SQLTests {
   }
 
   func testSQLToSelectAllQueued() {
-    XCTAssertEqual(SQLFormatter.SQLToSelectAllQueued, "SELECT * FROM queued_entry_view ORDER BY ts DESC;")
+    XCTAssertEqual(SQLFormatter.SQLToSelectAllQueued,
+                   "SELECT * FROM queued_entry_view ORDER BY ts DESC;")
   }
   
   func testSQLToSelectAllPrevious() {
-    XCTAssertEqual(SQLFormatter.SQLToSelectAllPrevious, "SELECT * FROM prev_entry_view ORDER BY ts DESC LIMIT 25;")
+    XCTAssertEqual(SQLFormatter.SQLToSelectAllPrevious,
+                   "SELECT * FROM prev_entry_view ORDER BY ts DESC;")
   }
   
   func testSQLToQueueEntry() {
