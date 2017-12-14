@@ -477,7 +477,13 @@ extension SQLFormatter {
     "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
 
   static let SQLToSelectAllPrevious =
-    "SELECT * FROM prev_entry_view ORDER BY ts DESC LIMIT 25;"
+    "SELECT * FROM prev_entry_view ORDER BY ts DESC;"
+  
+  static func SQLToDelete(where guids: [String]) -> String {
+    return "DELETE FROM entry WHERE entry_guid IN(" + guids.map {
+      "'\($0)'"
+    }.joined(separator: ", ") + ");"
+  }
 
   static func SQLToUnqueue(guids: [String]) -> String? {
     guard !guids.isEmpty else {

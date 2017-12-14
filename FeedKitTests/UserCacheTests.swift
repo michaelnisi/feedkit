@@ -59,16 +59,18 @@ extension UserCacheTests {
   
     try! cache.add(entries: locators)
   
-    let found = try! cache.newest()
-    let a = urls.last!
-    let b = urls.first!
-    let since = Date(timeIntervalSince1970: 50)
-    
-    let wanted = [
-      EntryLocator(url: a, since: since, guid: "\(a)/5"),
-      EntryLocator(url: b, since: since, guid: "\(b)/4")
-    ]
-    XCTAssertEqual(found, wanted)
+    do {
+      let found = try! cache.newest()
+      let a = urls.last!
+      let b = urls.first!
+      let since = Date(timeIntervalSince1970: 50)
+      
+      let wanted = [
+        EntryLocator(url: a, since: since, guid: "\(a)/5"),
+        EntryLocator(url: b, since: since, guid: "\(b)/4")
+      ]
+      XCTAssertEqual(found, wanted)
+    }
     
     do {
       try! cache.removeQueued()
@@ -83,6 +85,21 @@ extension UserCacheTests {
         "http://fgh.ijk/4"
       ]
       XCTAssertEqual(wanted, found, "should exclude latest of each")
+    }
+    
+    do {
+      try! cache.removeStalePrevious()
+      let prev = try! cache.previous()
+      XCTAssertEqual(prev.count, 2)
+      let found: [EntryLocator] = prev.flatMap {
+        if case .entry(let loc, _) = $0 {
+          return loc
+        }
+        return nil
+      }
+      XCTAssertEqual(found.count, 2)
+      let wanted = Array(try! cache.newest().reversed())
+      XCTAssertEqual(found, wanted)
     }
   }
   
@@ -158,7 +175,7 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.remove(guids: ["123"])
+      try! cache.removeQueued(matching: ["123"])
       let found = try! cache.queued()
       XCTAssert(found.isEmpty)
     }

@@ -182,12 +182,21 @@ extension UserCache: QueueCaching {
     }
   }
   
+  func remove(matching guids: [String]) throws {
+    guard !guids.isEmpty else {
+      return
+    }
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDelete(where: guids))
+    }
+  }
+  
   public func removeStalePrevious() throws {
     let guids = try stalePreviousGUIDs()
     guard !guids.isEmpty else {
       return
     }
-    // TODO: Remove entry locators
+    try remove(matching: guids)
   }
   
   public func removeQueued() throws {
@@ -196,7 +205,7 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func remove(guids: [String]) throws {
+  public func removeQueued(matching guids: [String]) throws {
     var er: Error?
     
     queue.sync {

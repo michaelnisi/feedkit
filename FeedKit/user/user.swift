@@ -485,7 +485,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
         try user.queue.removeItem(with: guid.hashValue)
       }
       
-      try cache.remove(guids: missing)
+      try cache.removeQueued(matching: missing)
     } catch {
       os_log("could not remove missing: %{public}@", log: log, type: .error,
              error as CVarArg)
@@ -711,7 +711,7 @@ extension UserLibrary: Queueing {
       do {
         try self.queue.remove(entry)
         let guid = entry.guid
-        try self.cache.remove(guids: [guid])
+        try self.cache.removeQueued(matching: [guid])
       } catch {
         DispatchQueue.global().async {
           dequeueCompletionBlock?(error)

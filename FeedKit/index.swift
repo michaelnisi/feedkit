@@ -703,8 +703,8 @@ public protocol QueueCaching {
   /// having to provide the actual entry.
   func add(entries: [EntryLocator]) throws
 
-  /// Dequeues entries with `guids`.
-  func remove(guids: [String]) throws
+  /// Removes queued entries with `guids`.
+  func removeQueued(matching guids: [String]) throws
 
   /// Removes all queued entries.
   func removeQueued() throws
@@ -712,14 +712,11 @@ public protocol QueueCaching {
   /// Removes stale, all but the latest, previously queued entries.
   func removeStalePrevious() throws
 
-  /// The user‘s queued entries, sorted by time queued.
+  /// The user‘s queued entries, in descending order by time queued.
   func queued() throws -> [Queued]
 
-  /// Previously queued entries, limited to the most recent 25.
+  /// Previously queued entries, in descending order by time dequeued.
   func previous() throws -> [Queued]
-
-  /// All, current and previously queued, entries.
-  func all() throws -> [Queued]
 
   /// The newest entry locators—one per feed, sorted by publishing date, newest
   /// first—of current and previous entries.
