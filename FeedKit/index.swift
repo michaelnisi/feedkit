@@ -120,7 +120,7 @@ public protocol Imaginable {
 public struct FeedID: Equatable {
   let rowid: Int64
   let url: String
-  
+
   public static func ==(lhs: FeedID, rhs: FeedID) -> Bool {
     return lhs.rowid == rhs.rowid
   }
@@ -409,7 +409,7 @@ extension EntryLocator {
     }
 
     var withoutGuids = [EntryLocator]()
-    
+
     let areInIncreasingOrder: (EntryLocator, EntryLocator) -> Bool = {
       return expanding ?
         { $0.since < $1.since } :
@@ -556,10 +556,10 @@ public enum CacheTTL {
 
 /// Housekeeping for local caching.
 public protocol Caching {
-  
+
   /// Flushes any dispensable resources to save memory.
   func flush() throws
-  
+
   /// Closes any underlying database files.
   func closeDatabase()
 }
@@ -576,7 +576,7 @@ public protocol FeedCaching {
   func entries(_ guids: [String]) throws -> [Entry]
 
   func remove(_ urls: [String]) throws
-  
+
   /// Integrates iTunes metadata from `subscriptions`.
   func integrateMetadata(from subscriptions: [Subscription]) throws
 }
@@ -598,7 +598,7 @@ public protocol SearchCaching {
 
 /// The search API of the FeedKit framework.
 public protocol Searching {
-  
+
   /// Search for feeds by term using locally cached data requested from a remote
   /// service. This method falls back on cached data if the remote call fails;
   /// the failure is reported by passing an error in the completion block.
@@ -631,7 +631,7 @@ public protocol Searching {
     perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
     suggestCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
 }
 
 // MARK: - Browsing
@@ -659,7 +659,7 @@ public protocol Browsing {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   /// Integrates metadata from `subscriptions`.
   func integrateMetadata(
     from subscriptions: [Subscription],
@@ -698,36 +698,37 @@ extension Queued: Hashable {
 
 /// The local cache of the queue.
 public protocol QueueCaching {
-  
-  /// Enqueues `entries`.
+
+  /// Enqueues `entries`, as locators, so you cann enqueue without
+  /// having to provide the actual entry.
   func add(entries: [EntryLocator]) throws
-  
+
   /// Dequeues entries with `guids`.
   func remove(guids: [String]) throws
-  
+
   /// Removes all queued entries.
-  func removeAll() throws
-  
+  func removeQueued() throws
+
   /// Removes stale, all but the latest, previously queued entries.
   func removeStalePrevious() throws
-  
+
   /// The user‘s queued entries, sorted by time queued.
   func queued() throws -> [Queued]
-  
+
   /// Previously queued entries, limited to the most recent 25.
   func previous() throws -> [Queued]
-  
+
   /// All, current and previously queued, entries.
   func all() throws -> [Queued]
-  
+
   /// The newest entry locators—one per feed, sorted by publishing date, newest
   /// first—of current and previous entries.
   func newest() throws -> [EntryLocator]
-  
+
   /// Returns `true` if the enty with `guid` is currently contained in the
   /// locally cached queue.
   func hasQueued(guid: EntryGUID) throws -> Bool
-  
+
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
@@ -743,7 +744,7 @@ public protocol Queueing {
   func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
-  
+
   /// Fetches entries in the user‘s queue, populating the `queue` object of this
   /// `UserLibrary` instance.
   ///
@@ -762,7 +763,7 @@ public protocol Queueing {
   ) -> Operation
 
   // MARK: Queue
-  
+
   // These synchronous methods are super fast (AP), but may not be consistent.
   // For example, to meaningfully use these, you must `fetchQueue` first.
   // https://en.wikipedia.org/wiki/CAP_theorem
@@ -770,7 +771,7 @@ public protocol Queueing {
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
-  
+
   var isEmpty: Bool { get }
 }
 
@@ -778,7 +779,7 @@ public protocol Queueing {
 
 /// Updating subscribed feeds.
 public protocol Updating {
-  
+
   /// Fetch the latest entries of subscribed feeds from the server.
   ///
   /// - Parameters:
@@ -786,17 +787,17 @@ public protocol Updating {
   ///   - newData: `true` if new data has been received.
   ///   - error: Optionally, an error if anything went wrong.
   func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
-  
+
 }
 
 // MARK: - Downloading
 
 /// Downloading fresh episodes and managing media files.
 public protocol Downloading {
- 
+
   // TODO: Design Downloading API
   // - background first, like Updating
-  
+
 }
 
 // MARK: - Subscribing
@@ -812,7 +813,7 @@ public struct Subscription {
     self.iTunes = iTunes
     self.ts = ts
   }
-  
+
   public init(feed: Feed) {
     self.url = feed.url
     self.iTunes = feed.iTunes
@@ -843,7 +844,7 @@ public protocol SubscriptionCaching {
 
 /// Mangages the user’s feed subscriptions.
 public protocol Subscribing: Updating {
-  
+
   /// Adds `subscriptions` to the user’s library.
   ///
   /// - Parameters:
@@ -853,7 +854,7 @@ public protocol Subscribing: Updating {
   func add(
     subscriptions: [Subscription],
     addComplete: ((_ error: Error?) -> Void)?) throws
-  
+
   /// Unsubscribe from `urls`.
   ///
   /// - Parameters:
@@ -877,15 +878,15 @@ public protocol Subscribing: Updating {
     feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
-  
+
   /// Returns `true` if `url` is subscribed. You must `fetchFeeds` first, before
   /// relying on this.
   func has(subscription url: FeedURL) -> Bool
-  
+
   /// Asynchronously reloads the in-memory cache of locally cached subscription
   /// URLs, in the background, returning right away.
   func synchronize()
-  
+
 }
 
 // MARK: - UserCaching
@@ -931,7 +932,7 @@ public enum Synced {
   /// these properties: entry locator, the time the entry was added to the
   /// queue, and CloudKit record metadata.
   case entry(EntryLocator, Date, RecordMetadata)
-  
+
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
 }
@@ -952,17 +953,17 @@ extension Synced: Equatable {
 
 /// The user cache complies to this protocol to allow iCloud synchronization.
 public protocol UserCacheSyncing: QueueCaching {
-  
+
   /// Saves `synced`, synchronized user items, to the local cache.
   func add(synced: [Synced]) throws
-  
+
   /// Removes records with `recordNames` from the local cache.
   func remove(recordNames: [String]) throws
 
   /// The queued entries, which not have been synced and are only locally
   /// cached, hence the name. Push these items with the next sync.
   func locallyQueued() throws -> [Queued]
-  
+
   /// Returns subscriptions that haven’t been synchronized with iCloud yet, and
   /// are only cached locally so far. Push these items with the next sync.
   func locallySubscribed() throws -> [Subscription]
@@ -980,10 +981,10 @@ public protocol UserCacheSyncing: QueueCaching {
   /// method deletes those entries and feeds, it also deletes zombie records,
   /// not having links in the other direction. Run this after each sync.
   func deleteZombies() throws
-  
+
   /// Deletes all queue data.
   func removeQueue() throws
-  
+
   /// Deletes all library data.
   func removeLibrary() throws
 }

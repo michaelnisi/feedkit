@@ -574,7 +574,7 @@ private final class FKFetchQueueOperation: FeedKitOperation {
     didSet {
       guard let guids = sortedIds else {
         user.queue.removeAll()
-        try! cache.removeAll() // redundant
+        try! cache.removeQueued() // redundant
         return
       }
       let queuedGuids = user.queue.map { $0.guid }

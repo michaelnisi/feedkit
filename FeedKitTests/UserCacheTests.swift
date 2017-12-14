@@ -71,7 +71,7 @@ extension UserCacheTests {
     XCTAssertEqual(found, wanted)
     
     do {
-      try! cache.removeAll()
+      try! cache.removeQueued()
       let found = try! cache.stalePreviousGUIDs()
       let wanted = [
         "http://abc.de/1",
@@ -122,7 +122,7 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.removeAll()
+      try! cache.removeQueued()
       let found = try! cache.queued()
       let wanted = [Queued]()
       XCTAssertEqual(found, wanted)

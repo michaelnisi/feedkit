@@ -190,7 +190,7 @@ extension UserCache: QueueCaching {
     // TODO: Remove entry locators
   }
   
-  public func removeAll() throws {
+  public func removeQueued() throws {
     try queue.sync {
       try db.exec(SQLFormatter.SQLToDeleteQueued)
     }
