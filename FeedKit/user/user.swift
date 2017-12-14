@@ -729,6 +729,8 @@ extension UserLibrary: Queueing {
     }
   }
   
+  // TODO: Review synchronous user queue methods
+  
   // MARK: Synchronous queue methods
 
   public func contains(entry: Entry) -> Bool {

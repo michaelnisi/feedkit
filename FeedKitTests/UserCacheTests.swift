@@ -110,6 +110,8 @@ extension UserCacheTests {
       let wanted = locators.map { Queued.entry($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
+      let guid = locators.first?.guid
+      XCTAssertTrue(try! cache.contains(guid!))
     }
     
     do {
@@ -136,6 +138,8 @@ extension UserCacheTests {
       let wanted = locators.map { Queued.entry($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
+      let guid = locators.first?.guid
+      XCTAssertTrue(try! cache.contains(guid!))
     }
     
     do {
@@ -143,6 +147,8 @@ extension UserCacheTests {
       let found = try! cache.queued()
       let wanted = [Queued]()
       XCTAssertEqual(found, wanted)
+      let guid = locators.first?.guid
+      XCTAssertFalse(try! cache.contains(guid!))
     }
     
     do {

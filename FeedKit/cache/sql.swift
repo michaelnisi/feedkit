@@ -472,6 +472,10 @@ extension SQLFormatter {
 // MARK: - Queueing
 
 extension SQLFormatter {
+  
+  static let SQLToSelectStalePrevious = "SELECT * FROM stale_prev_entry_guid_view;"
+  
+  static let SQLToSelectAllLatest = "SELECT * FROM latest_entry_view;"
 
   static let SQLToSelectAllQueued =
     "SELECT * FROM queued_entry_view ORDER BY ts DESC;"
@@ -483,6 +487,10 @@ extension SQLFormatter {
     return "DELETE FROM entry WHERE entry_guid IN(" + guids.map {
       "'\($0)'"
     }.joined(separator: ", ") + ");"
+  }
+  
+  static func SQLToSelectQueued(where guid: String) -> String {
+    return "SELECT * FROM queued_entry WHERE entry_guid = '\(guid)';"
   }
 
   static func SQLToUnqueue(guids: [String]) -> String? {

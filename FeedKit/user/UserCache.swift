@@ -85,35 +85,32 @@ extension UserCache: SubscriptionCaching {
 extension UserCache: QueueCaching {
 
   private func queryForQueued(using sql: String) throws -> [Queued] {
-    var er: Error?
-    var locators = [Queued]()
-    
-    let fmt = self.sqlFormatter
-    
-    queue.sync {
+    return try queue.sync {
+      var acc = [Queued]()
+
       do {
-        try db.query(sql) { skullError, row -> Int in
-          guard skullError == nil else {
-            er = skullError
+        var queryError: SkullError?
+        try db.query(sql) { error, row -> Int in
+          guard error == nil else {
+            queryError = error
             return 1
           }
           guard let r = row else {
             return 0
           }
-          let locator = fmt.queuedLocator(from: r)
-          locators.append(locator)
+          let locator = sqlFormatter.queuedLocator(from: r)
+          acc.append(locator)
           return 0
         }
+        guard queryError == nil else {
+          throw queryError!
+        }
       } catch {
-        er = error
+        throw error
       }
+      
+      return acc
     }
-    
-    if let error = er {
-      throw error
-    }
-    
-    return locators
   }
   
   public func queued() throws -> [Queued] {
@@ -132,53 +129,47 @@ extension UserCache: QueueCaching {
   }
   
   public func newest() throws -> [EntryLocator] {
-    var er: Error?
-    var locators = [EntryLocator]()
-    
-    let fmt = self.sqlFormatter
-    
-    queue.sync {
-      do {
-        let sql = "select * from latest_entry_view;"
-        try db.query(sql) { skullError, row -> Int in
-          guard skullError == nil else {
-            er = skullError
-            return 1
-          }
-          guard let r = row else {
-            return 0
-          }
-          let locator = fmt.entryLocator(from: r)
-          locators.append(locator)
+    return try queue.sync {
+      var dbError: SkullError?
+      var acc = [EntryLocator]()
+      try db.query(SQLFormatter.SQLToSelectAllLatest) { error, row -> Int in
+        guard error == nil else {
+          dbError = error
+          return 1
+        }
+        guard let r = row else {
           return 0
         }
-      } catch {
-        er = error
+        let locator = sqlFormatter.entryLocator(from: r)
+        acc.append(locator)
+        return 0
       }
+      guard dbError == nil else {
+        throw dbError!
+      }
+      return acc
     }
-    
-    if let error = er {
-      throw error
-    }
-    
-    return locators
   }
   
   func stalePreviousGUIDs() throws -> [String] {
     return try queue.sync {
-      var guids = [String]()
-      let sql = "select * from stale_prev_entry_guid_view;"
-      try db.exec(sql) { error, row in
+      var dbError: SkullError?
+      var acc = [String]()
+      try db.exec(SQLFormatter.SQLToSelectStalePrevious) { error, row in
         guard error == nil else {
-          fatalError("\(error!)")
+          dbError = error
+          return 1
         }
         guard let guid = row["entry_guid"] else {
           return 1
         }
-        guids.append(guid)
+        acc.append(guid)
         return 0
       }
-      return guids
+      guard dbError == nil else {
+        throw dbError!
+      }
+      return acc
     }
   }
   
@@ -209,6 +200,7 @@ extension UserCache: QueueCaching {
     var er: Error?
     
     queue.sync {
+      // TODO: Remove optional
       guard let sql = SQLFormatter.SQLToUnqueue(guids: guids) else {
         return
       }
@@ -237,38 +229,35 @@ extension UserCache: QueueCaching {
   }
   
   public func add(entries: [EntryLocator]) throws {
-    var er: Error?
-    
-    let fmt = self.sqlFormatter
-    
-    queue.sync {
-      do {
-        let sql = try entries.reduce([String]()) { acc, loc in
-          guard er == nil else {
-            return acc
-          }
-          let sql = try fmt.SQLToQueue(entry: loc)
-          return acc + [sql]
-        }.joined(separator: "\n")
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
-    }
-    
-    if let error = er {
-      throw error
+    try queue.sync {
+      let sql = try entries.reduce([String]()) { acc, loc in
+        let token = try sqlFormatter.SQLToQueue(entry: loc)
+        return acc + [token]
+      }.joined(separator: "\n")
+      try db.exec(sql)
     }
   }
   
   public func contains(_ guid: EntryGUID) throws -> Bool {
-    let guids: [EntryGUID] = try queued().map {
-      switch $0 {
-      case .entry(let locator, _):
-        return locator.guid!
+    return try queue.sync {
+      var dbError: SkullError?
+      var yes = false
+      try db.exec(SQLFormatter.SQLToSelectQueued(where: guid)) { error, row in
+        guard error == nil else {
+          dbError = error
+          return 1
+        }
+        guard let found = row["entry_guid"] else {
+          return 0
+        }
+        yes = found == guid
+        return 0
       }
+      guard dbError == nil else {
+        throw dbError!
+      }
+      return yes
     }
-    return guids.contains(guid)
   }
   
 }

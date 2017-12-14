@@ -727,6 +727,9 @@ public protocol QueueCaching {
   /// The newest entry locators—one per feed, sorted by publishing date, newest
   /// first—of current and previous entries.
   func newest() throws -> [EntryLocator]
+  
+  /// All previously and currently queued items in no specific order.
+  func all() throws -> [Queued]
 
   /// Returns `true` if the entry with `guid` is currently contained in the
   /// locally cached queue.
