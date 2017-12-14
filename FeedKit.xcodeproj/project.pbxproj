@@ -147,7 +147,6 @@
 			children = (
 				4EF5E0EA1E9136D200A95D3D /* FeedKit.h */,
 				4C3485B11977C2BD008A6B53 /* index.swift */,
-				4ED2D6BA1F960C41000DA71B /* hash.swift */,
 				4C996FFB1FDF952900E0FA30 /* cache */,
 				4C996FFA1FDF951300E0FA30 /* browse */,
 				4C996FF91FDF93FE00E0FA30 /* user */,
@@ -161,8 +160,6 @@
 			isa = PBXGroup;
 			children = (
 				4C3485991977C236008A6B53 /* Info.plist */,
-				4ED56CEB1F32DB4300BEC83C /* cache.sql */,
-				4E49B7371F07A524004668FD /* user.sql */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -200,6 +197,7 @@
 		4C996FF91FDF93FE00E0FA30 /* user */ = {
 			isa = PBXGroup;
 			children = (
+				4E49B7371F07A524004668FD /* user.sql */,
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
 				4E2AEB641F59666D004BC34A /* UserCache.swift */,
 				4C74A6E31F06BC6500951796 /* queue.swift */,
@@ -211,6 +209,7 @@
 		4C996FFA1FDF951300E0FA30 /* browse */ = {
 			isa = PBXGroup;
 			children = (
+				4ED56CEB1F32DB4300BEC83C /* cache.sql */,
 				4C0549D41A8BDD5700104B3E /* browse.swift */,
 				4CCC8C981C0598F100120D07 /* search.swift */,
 				4CA3D31D1A89E78900CA58E9 /* serialize.swift */,
@@ -222,6 +221,7 @@
 		4C996FFB1FDF952900E0FA30 /* cache */ = {
 			isa = PBXGroup;
 			children = (
+				4ED2D6BA1F960C41000DA71B /* hash.swift */,
 				4C372BF81A08133F00D22A9A /* cache.swift */,
 				4CDA594A1BDF4E8B00EA7780 /* sql.swift */,
 			);

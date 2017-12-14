@@ -13,6 +13,9 @@ import os.log
 
 // TODO: Integrate HTTP redirects
 // TODO: Review update
+// TODO: Extract operations
+// TODO: Prepare sync of latest previous entries
+// TODO: Leverage user code directory for more clarity
 
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
@@ -252,8 +255,6 @@ extension UserLibrary: Subscribing {
 
 // MARK: - Updating
 
-// TOOD: Write UpdateOperation
-
 extension UserLibrary: Updating {
   
   private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
@@ -269,7 +270,7 @@ extension UserLibrary: Updating {
   private static func locatorsForUpdating(
     from cache: QueueCaching,
     with subscriptions: [Subscription]) throws -> [EntryLocator] {
-    let latest = try cache.latest()
+    let latest = try cache.newest()
     let urls = subscriptions.map { $0.url }
     return latest.filter { urls.contains($0.url) }
   }

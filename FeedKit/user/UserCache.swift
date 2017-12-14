@@ -131,7 +131,7 @@ extension UserCache: QueueCaching {
     return Array(all)
   }
   
-  public func latest() throws -> [EntryLocator] {
+  public func newest() throws -> [EntryLocator] {
     var er: Error?
     var locators = [EntryLocator]()
     
@@ -162,6 +162,32 @@ extension UserCache: QueueCaching {
     }
     
     return locators
+  }
+  
+  func stalePreviousGUIDs() throws -> [String] {
+    return try queue.sync {
+      var guids = [String]()
+      let sql = "select * from stale_prev_entry_guid_view;"
+      try db.exec(sql) { error, row in
+        guard error == nil else {
+          fatalError("\(error!)")
+        }
+        guard let guid = row["entry_guid"] else {
+          return 1
+        }
+        guids.append(guid)
+        return 0
+      }
+      return guids
+    }
+  }
+  
+  public func removeStalePrevious() throws {
+    let guids = try stalePreviousGUIDs()
+    guard !guids.isEmpty else {
+      return
+    }
+    // TODO: Remove entry locators
   }
   
   public func removeAll() throws {

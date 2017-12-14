@@ -40,8 +40,8 @@ final class UserCacheTests: XCTestCase {
 // MARK: - QueueCaching
 
 extension UserCacheTests {
-  
-  func testLatest() {
+
+  func testNewest() {
     let urls = ["http://abc.de", "http://fgh.ijk"]
     let locators = urls.reduce([EntryLocator]()) { acc, url in
       var tmp = acc
@@ -59,7 +59,7 @@ extension UserCacheTests {
   
     try! cache.add(entries: locators)
   
-    let found = try! cache.latest()
+    let found = try! cache.newest()
     let a = urls.last!
     let b = urls.first!
     let since = Date(timeIntervalSince1970: 50)
@@ -69,6 +69,21 @@ extension UserCacheTests {
       EntryLocator(url: b, since: since, guid: "\(b)/4")
     ]
     XCTAssertEqual(found, wanted)
+    
+    do {
+      try! cache.removeAll()
+      let found = try! cache.stalePreviousGUIDs()
+      let wanted = [
+        "http://abc.de/1",
+        "http://abc.de/2",
+        "http://abc.de/3",
+        "http://fgh.ijk/1",
+        "http://fgh.ijk/2",
+        "http://fgh.ijk/3",
+        "http://fgh.ijk/4"
+      ]
+      XCTAssertEqual(wanted, found, "should exclude latest of each")
+    }
   }
   
   func testAddEntries() {
@@ -93,7 +108,7 @@ extension UserCacheTests {
     }
     
     do {
-      let latest = try! cache.latest()
+      let latest = try! cache.newest()
       XCTAssertEqual(latest, locators)
     }
   }
@@ -120,7 +135,7 @@ extension UserCacheTests {
     }
     
     do {
-      let latest = try! cache.latest()
+      let latest = try! cache.newest()
       XCTAssertEqual(latest, locators)
       dump(latest)
     }

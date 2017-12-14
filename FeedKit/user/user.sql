@@ -75,7 +75,7 @@ create trigger if not exists feed_ad after delete on feed begin
   delete from subscribed_feed where feed_url = old.feed_url;
 end;
 
--- Latest entries per feed
+-- Latest entries, queued and dequeued, per feed
 
 create view if not exists latest_entry_view as
 select * from (select * from entry
@@ -118,6 +118,19 @@ select
 from entry e
   join prev_entry pe on pe.entry_guid = e.entry_guid
   left join record r on pe.record_name = r.record_name;
+
+-- Latest of previously queued entries, per feed
+
+create view if not exists latest_prev_entry_view as
+select * from prev_entry_view
+  group by feed_url
+  order by max(since);
+
+-- GUIDs of older, not the latest, previously queued entries
+
+create view if not exists stale_prev_entry_guid_view as
+select entry_guid from prev_entry
+  except select entry_guid from latest_prev_entry_view;
 
 -- Previously queued entries that not have been synced yet
 
