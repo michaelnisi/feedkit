@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-protocol EntryRequest {
+protocol RequestingEntries {
   var error: Error? { get }
   var locators: [EntryLocator]? { get }
 }
@@ -42,7 +42,7 @@ extension PrepareUpdateOperation {
   }
 }
 
-final class PrepareUpdateOperation: Operation, EntryRequest {
+final class PrepareUpdateOperation: Operation, RequestingEntries {
   private(set) var error: Error?
   private(set) var locators: [EntryLocator]?
   
