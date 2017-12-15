@@ -75,7 +75,9 @@ extension UserCache: SubscriptionCaching {
     return try subscribed(sql: SQLFormatter.SQLToSelectSubscriptions)
   }
   
-  public func has(_ url: String) throws -> Bool {
+  public func isSubscribed(_ url: FeedURL) throws -> Bool {
+    // TODO: Make this more efficient
+    // ... reading the whole table each time? Come on!
     return try subscribed().map { $0.url }.contains(url)
   }
 }
@@ -89,10 +91,10 @@ extension UserCache: QueueCaching {
       var acc = [Queued]()
 
       do {
-        var queryError: SkullError?
+        var dbError: SkullError?
         try db.query(sql) { error, row -> Int in
           guard error == nil else {
-            queryError = error
+            dbError = error
             return 1
           }
           guard let r = row else {
@@ -102,8 +104,8 @@ extension UserCache: QueueCaching {
           acc.append(locator)
           return 0
         }
-        guard queryError == nil else {
-          throw queryError!
+        guard dbError == nil else {
+          throw dbError!
         }
       } catch {
         throw error
@@ -238,7 +240,7 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func contains(_ guid: EntryGUID) throws -> Bool {
+  public func isQueued(_ guid: EntryGUID) throws -> Bool {
     return try queue.sync {
       var dbError: SkullError?
       var yes = false

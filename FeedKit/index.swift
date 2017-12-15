@@ -731,9 +731,9 @@ public protocol QueueCaching {
   /// All previously and currently queued items in no specific order.
   func all() throws -> [Queued]
 
-  /// Returns `true` if the entry with `guid` is currently contained in the
-  /// locally cached queue.
-  func contains(_ guid: EntryGUID) throws -> Bool
+  /// Checks if an entry with `guid` is currently contained in the locally
+  /// cached queue.
+  func isQueued(_ guid: EntryGUID) throws -> Bool
 
 }
 
@@ -843,7 +843,7 @@ public protocol SubscriptionCaching {
   func add(subscriptions: [Subscription]) throws
   func remove(urls: [FeedURL]) throws
 
-  func has(_ url: String) throws -> Bool
+  func isSubscribed(_ url: FeedURL) throws -> Bool
 
   func subscribed() throws -> [Subscription]
 }

@@ -21,15 +21,16 @@ public class LocalCache: Caching {
   
   var _db: Skull?
   
-  /// Returns a open database.
+  /// An open database connection or a crashed program.
   var db: Skull {
     get {
       guard _db != nil else {
         do {
           _db = try open()
         } catch {
-          os_log("could not open database: %{public}@", type: .error, error as CVarArg)
-          fatalError("could not open database")
+          os_log("could not open database: %{public}@", type: .error,
+                 error as CVarArg)
+          fatalError(String(describing: error))
         }
         return _db!
       }
@@ -37,7 +38,8 @@ public class LocalCache: Caching {
     }
   }
   
-  /// Strictly submit to this serial queue to serialize database (write)-access.
+  /// Strictly submit all blocks, accessing the database, to this serial queue
+  /// to serialize database access.
   let queue: DispatchQueue
   
   let sqlFormatter: SQLFormatter

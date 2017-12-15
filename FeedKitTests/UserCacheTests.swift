@@ -111,7 +111,7 @@ extension UserCacheTests {
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
       let guid = locators.first?.guid
-      XCTAssertTrue(try! cache.contains(guid!))
+      XCTAssertTrue(try! cache.isQueued(guid!))
     }
     
     do {
@@ -139,7 +139,7 @@ extension UserCacheTests {
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
       let guid = locators.first?.guid
-      XCTAssertTrue(try! cache.contains(guid!))
+      XCTAssertTrue(try! cache.isQueued(guid!))
     }
     
     do {
@@ -148,7 +148,7 @@ extension UserCacheTests {
       let wanted = [Queued]()
       XCTAssertEqual(found, wanted)
       let guid = locators.first?.guid
-      XCTAssertFalse(try! cache.contains(guid!))
+      XCTAssertFalse(try! cache.isQueued(guid!))
     }
     
     do {
@@ -226,7 +226,7 @@ extension UserCacheTests {
     let synced = freshSynced()
     try! cache.add(synced: synced)
     let guid = "abc"
-    XCTAssertTrue(try! cache.contains(guid))
+    XCTAssertTrue(try! cache.isQueued(guid))
   }
   
   func testRemoveSynced() {
@@ -368,7 +368,7 @@ extension UserCacheTests {
       let s = Subscription(url: url)
       let subscriptions = [s]
       
-      XCTAssertFalse(try! cache.has(url))
+      XCTAssertFalse(try! cache.isSubscribed(url))
       
       try! cache.add(subscriptions: subscriptions)
       let found = try! cache.subscribed()
@@ -376,7 +376,7 @@ extension UserCacheTests {
       XCTAssertEqual(found, wanted)
       XCTAssertNotNil(found.first?.ts)
       
-      XCTAssert(try! cache.has(url))
+      XCTAssert(try! cache.isSubscribed(url))
     }
     
     do {
@@ -387,7 +387,7 @@ extension UserCacheTests {
       let s = Subscription(url: url, iTunes: iTunes)
       let subscriptions = [s]
       
-      XCTAssertTrue(try! cache.has(url))
+      XCTAssertTrue(try! cache.isSubscribed(url))
       
       try! cache.add(subscriptions: subscriptions)
       let found = try! cache.subscribed()
@@ -398,7 +398,7 @@ extension UserCacheTests {
       
       XCTAssertEqual(found.first?.iTunes, wanted.first?.iTunes)
       
-      XCTAssert(try! cache.has(url))
+      XCTAssert(try! cache.isSubscribed(url))
     }
   }
   
@@ -415,7 +415,7 @@ extension UserCacheTests {
       let wanted = subscriptions
       XCTAssertEqual(found, wanted)
       
-      XCTAssert(try! cache.has(url))
+      XCTAssert(try! cache.isSubscribed(url))
     }
     
     do {
@@ -425,7 +425,7 @@ extension UserCacheTests {
       let wanted = [Subscription]()
       XCTAssertEqual(found, wanted)
       
-      XCTAssertFalse(try! cache.has(url))
+      XCTAssertFalse(try! cache.isSubscribed(url))
     }
     
   }
