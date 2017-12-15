@@ -9,11 +9,6 @@
 import Foundation
 import os.log
 
-protocol RequestingEntries {
-  var error: Error? { get }
-  var locators: [EntryLocator]? { get }
-}
-
 extension PrepareUpdateOperation {
   
   /// Merges `locators` with `subscriptions`, where the timestamps found in
@@ -44,7 +39,7 @@ extension PrepareUpdateOperation {
 
 final class PrepareUpdateOperation: Operation, RequestingEntries {
   private(set) var error: Error?
-  private(set) var locators: [EntryLocator]?
+  private(set) var locators = [EntryLocator]()
   
   fileprivate let cache: UserCaching
   
@@ -57,7 +52,7 @@ final class PrepareUpdateOperation: Operation, RequestingEntries {
       let subscriptions = try cache.subscribed()
       let latest = try cache.newest()
       self.locators = PrepareUpdateOperation.merge(latest, with: subscriptions)
-      os_log("** prepared: %{public}@", log: UserLog.log, type: .debug, locators!)
+      os_log("** prepared: %{public}@", log: UserLog.log, type: .debug, locators)
     } catch {
       self.error = error
     }

@@ -203,13 +203,20 @@ extension UserLibrary: Updating {
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     os_log("updating", log: UserLog.log,  type: .info)
     
-    let op = PrepareUpdateOperation(cache: cache)
-    operationQueue.addOperation(op)
-    op.completionBlock = {
+    let prepare = PrepareUpdateOperation(cache: cache)
+
+    let fetch = browser.makeEntriesOperation()
+    fetch.addDependency(prepare)
+    
+    fetch.completionBlock = {
       DispatchQueue.global().async {
         updateComplete(false, nil)
       }
     }
+    
+
+    operationQueue.addOperation(fetch)
+    operationQueue.addOperation(prepare)
   }
   
   public func old_update(

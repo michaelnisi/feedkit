@@ -640,6 +640,8 @@ public protocol Searching {
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
+  
+  func makeEntriesOperation() -> Operation
 
   @discardableResult func feeds(
     _ urls: [String],
