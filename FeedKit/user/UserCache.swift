@@ -76,9 +76,26 @@ extension UserCache: SubscriptionCaching {
   }
   
   public func isSubscribed(_ url: FeedURL) throws -> Bool {
-    // TODO: Make this more efficient
-    // ... reading the whole table each time? Come on!
-    return try subscribed().map { $0.url }.contains(url)
+    return try queue.sync {
+      var dbError: SkullError?
+      var yes = false
+      let sql = SQLFormatter.SQLToSelectSubscription(where: url)
+      try db.exec(sql) { error, row in
+        guard error == nil else {
+          dbError = error
+          return 1
+        }
+        guard let found = row["feed_url"] else {
+          return 0
+        }
+        yes = found == url
+        return 0
+      }
+      guard dbError == nil else {
+        throw dbError!
+      }
+      return yes
+    }
   }
 }
 
@@ -199,22 +216,12 @@ extension UserCache: QueueCaching {
   }
   
   public func removeQueued(_ guids: [String]) throws {
-    var er: Error?
-    
-    queue.sync {
-      // TODO: Remove optional
-      guard let sql = SQLFormatter.SQLToUnqueue(guids: guids) else {
-        return
-      }
-      do {
-        try db.exec(sql)
-      } catch {
-        er = error
-      }
+    guard !guids.isEmpty else {
+      return
     }
-    
-    if let error = er {
-      throw error
+
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToUnqueue(guids: guids))
     }
   }
   

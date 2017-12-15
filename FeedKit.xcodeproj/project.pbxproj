@@ -13,6 +13,7 @@
 		4C74A6E41F06BC6500951796 /* queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E31F06BC6500951796 /* queue.swift */; };
 		4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E51F07953300951796 /* UserCacheTests.swift */; };
 		4C996FFE1FDF97AB00E0FA30 /* UpdateQueueOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C996FFD1FDF97AB00E0FA30 /* UpdateQueueOperation.swift */; };
+		4C9970001FE389F800E0FA30 /* UserSQL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C996FFF1FE389F800E0FA30 /* UserSQL.swift */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
 		4CDA594B1BDF4E8B00EA7780 /* sql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA594A1BDF4E8B00EA7780 /* sql.swift */; };
@@ -70,6 +71,7 @@
 		4C7B0F971C1DC20E0085A88B /* search.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = search.json; sourceTree = "<group>"; };
 		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
 		4C996FFD1FDF97AB00E0FA30 /* UpdateQueueOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateQueueOperation.swift; sourceTree = "<group>"; };
+		4C996FFF1FE389F800E0FA30 /* UserSQL.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSQL.swift; sourceTree = "<group>"; };
 		4CA3B2BD1A068BC80072E0C4 /* FeedCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedCacheTests.swift; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 			isa = PBXGroup;
 			children = (
 				4E49B7371F07A524004668FD /* user.sql */,
+				4C996FFF1FE389F800E0FA30 /* UserSQL.swift */,
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
 				4E2AEB641F59666D004BC34A /* UserCache.swift */,
 				4C74A6E31F06BC6500951796 /* queue.swift */,
@@ -373,6 +376,7 @@
 				4C372BF91A08133F00D22A9A /* cache.swift in Sources */,
 				4C3485B21977C2BD008A6B53 /* index.swift in Sources */,
 				4E2AEB651F59666D004BC34A /* UserCache.swift in Sources */,
+				4C9970001FE389F800E0FA30 /* UserSQL.swift in Sources */,
 				4CCC8C991C0598F100120D07 /* search.swift in Sources */,
 				4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */,
 				4C74A6E41F06BC6500951796 /* queue.swift in Sources */,

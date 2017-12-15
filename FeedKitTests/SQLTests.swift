@@ -565,11 +565,13 @@ extension SQLTests {
 extension SQLTests {
   
   func testSQLToUnqueue() {
-    XCTAssertNil(SQLFormatter.SQLToUnqueue(guids: []))
+    XCTAssertEqual(SQLFormatter.SQLToUnqueue(guids: []),
+                   "DELETE FROM queued_entry WHERE entry_guid IN();")
 
     let guids = ["12three", "45six"]
     let found = SQLFormatter.SQLToUnqueue(guids: guids)
-    let wanted = "DELETE FROM queued_entry WHERE entry_guid IN('12three', '45six');"
+    let wanted =
+    "DELETE FROM queued_entry WHERE entry_guid IN('12three', '45six');"
     XCTAssertEqual(found, wanted)
   }
 
