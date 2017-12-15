@@ -128,8 +128,8 @@ extension SQLFormatter {
   func subscription(from row: SkullRow) -> Subscription {
     let url = row["feed_url"] as! String
     let iTunes = SQLFormatter.iTunesItem(from: row)
-    let ts = date(from: row["ts"] as? String)
-    return Subscription(url: url, iTunes: iTunes, ts: ts)
+    let ts = date(from: row["ts"] as? String)!
+    return Subscription(url: url, ts: ts, iTunes: iTunes)
   }
   
 }

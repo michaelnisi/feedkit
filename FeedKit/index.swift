@@ -811,19 +811,19 @@ public protocol Downloading {
 /// A feed subscription.
 public struct Subscription {
   public let url: FeedURL
-  public let ts: Date?
+  public let ts: Date
   public let iTunes: ITunesItem?
 
-  public init(url: FeedURL, iTunes: ITunesItem? = nil, ts: Date? = nil) {
+  public init(url: FeedURL, ts: Date? = nil, iTunes: ITunesItem? = nil) {
     self.url = url
+    self.ts = ts ?? Date()
     self.iTunes = iTunes
-    self.ts = ts
   }
 
   public init(feed: Feed) {
     self.url = feed.url
+    self.ts = Date()
     self.iTunes = feed.iTunes
-    self.ts = nil
   }
 }
 

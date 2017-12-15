@@ -25,7 +25,7 @@ public final class UserLibrary: EntryQueueHost {
   fileprivate let browser: Browsing
   fileprivate let operationQueue: OperationQueue
   
-  /// Creates a fresh EntryQueue object.
+  /// Makes a fresh `UserLibrary` object.
   ///
   /// - Parameters:
   ///   - cache: The cache to store user data locallly.
@@ -42,7 +42,7 @@ public final class UserLibrary: EntryQueueHost {
   /// The actual queue data structure. Starting off with an empty queue.
   internal var queue = Queue<Entry>()
   
-  /// The current subscribed URLs—to some extend.
+  /// A synchronized list of subscribed URLs for quick in-memory access.
   fileprivate var subscriptions = Set<FeedURL>()
 }
 
@@ -188,10 +188,7 @@ extension UserLibrary: Updating {
     // A dictionary of dates by subscription URLs for quick lookup.
     var datesByURLs = [FeedURL: Date]()
     for s in subscriptions {
-      guard let ts = s.ts else {
-        continue
-      }
-      datesByURLs[s.url] = ts
+      datesByURLs[s.url] = s.ts
     }
 
     return entries.filter {
@@ -203,6 +200,19 @@ extension UserLibrary: Updating {
   }
   
   public func update(
+    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
+    os_log("updating", log: UserLog.log,  type: .info)
+    
+    let op = PrepareUpdateOperation(cache: cache)
+    operationQueue.addOperation(op)
+    op.completionBlock = {
+      DispatchQueue.global().async {
+        updateComplete(false, nil)
+      }
+    }
+  }
+  
+  public func old_update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
     os_log("updating", log: UserLog.log,  type: .info)
     

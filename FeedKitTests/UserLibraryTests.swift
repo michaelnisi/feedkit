@@ -249,6 +249,25 @@ extension UserLibraryTests {
       }
     }
   }
+  
+  func testPrepareUpdate() {
+    do {
+      let locators = [EntryLocator]()
+      let subscriptions = [Subscription]()
+      let found = PrepareUpdateOperation.merge(locators, with: subscriptions)
+      XCTAssertEqual(found, [])
+    }
+    
+    do {
+      let locators = [EntryLocator]()
+      let url = "http://abc.de"
+      let ts = Date.init(timeIntervalSince1970: 0)
+      let subscriptions = [Subscription(url: url, ts: ts)]
+      let found = PrepareUpdateOperation.merge(locators, with: subscriptions)
+      let wanted = [EntryLocator(url: url, since: ts)]
+      XCTAssertEqual(found, wanted)
+    }
+  }
 }
 
 // MARK: - Queueing

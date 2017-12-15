@@ -481,7 +481,7 @@ extension SQLTests {
     
     do {
       let url = "http://abc.de"
-      let s = Subscription(url: url, iTunes: nil, ts: ts)
+      let s = Subscription(url: url, ts: ts, iTunes: nil)
       let synced = Synced.subscription(s, record)
       let found = try! formatter.SQLToReplace(synced: synced)
       let wanted = """
