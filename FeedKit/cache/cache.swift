@@ -115,18 +115,6 @@ extension LocalCache {
     return slices
   }
   
-  /// Returns `true` if the specified timestamp is older than the specified time
-  /// to live.
-  ///
-  /// - Parameters:
-  ///   - ts: The timestamp to check if it's older than the specified ttl.
-  ///   - ttl: The maximal age to allow.
-  ///
-  /// - Returns: `true` if the timestamp is older than the maximal age.
-  static func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
-    return ts.timeIntervalSinceNow + ttl < 0
-  }
-  
   /// Returns the median timestamp of the specified cachable items.
   ///
   /// - Parameters:

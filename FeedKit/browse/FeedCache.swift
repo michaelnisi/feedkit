@@ -189,6 +189,56 @@ extension FeedCache {
 // MARK: - FeedCaching
 
 extension FeedCache: FeedCaching {
+  
+  /// Queries the local `cache` for entries and returns a tuple of cached
+  /// entries and unfullfilled entry `locators`, if any.
+  ///
+  /// - Parameters:
+  ///   - locators: The selection of entries to fetch.
+  ///   - ttl: The maximum age of entries to use.
+  ///
+  /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
+  ///
+  /// - Throws: Might throw database errors.
+  public func fulfill(locators: [EntryLocator], ttl: TimeInterval) throws
+    -> ([Entry], [EntryLocator]) {
+    let optimized = EntryLocator.reduce(locators)
+    
+    let guids = optimized.flatMap { $0.guid }
+    let resolved = try entries(guids)
+    
+    guard resolved.count < optimized.count else {
+      return (resolved, [])
+    }
+    
+    let resguids = resolved.map { $0.guid }
+    
+    let unresolved = optimized.filter {
+      guard let guid = $0.guid else { return true }
+      return !resguids.contains(guid)
+    }
+    
+    let items = try entries(within: unresolved) + resolved
+    let unresolvedURLs = unresolved.map { $0.url }
+    
+    let (cached, stale, needed) =
+      FeedCache.subtract(items: items, from: unresolvedURLs, with: ttl)
+    assert(stale.isEmpty, "entries cannot be stale")
+    
+    let neededLocators: [EntryLocator] = optimized.filter {
+      let urls = needed ?? []
+      if let guid = $0.guid {
+        return !resguids.contains(guid) || urls.contains($0.url)
+      }
+      return urls.contains($0.url)
+    }
+    
+    guard neededLocators != optimized else {
+      return ([], neededLocators)
+    }
+    
+    return (cached, neededLocators)
+  }
 
   public func integrateMetadata(from subscriptions: [Subscription]) throws {
     try queue.sync {

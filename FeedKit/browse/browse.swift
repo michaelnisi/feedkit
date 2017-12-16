@@ -11,7 +11,8 @@ import MangerKit
 import Ola
 import os.log
 
-struct BrowseLog {
+/// The static structure of the browse category.
+struct Browse {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 }
 
@@ -57,96 +58,6 @@ extension BrowseOperation {
     }
   }
   
-}
-
-// MARK: Accessing Cached Items
-
-extension BrowseOperation {
-  
-  /// Find and return the newest item in the specified array of cachable items.
-  /// Attention: this intentionally crashes if you pass an empty items array or
-  /// if one of the items doesn't bear a timestamp.
-  ///
-  /// - Parameter items: The cachable items to iterate and compare.
-  ///
-  /// - Returns: The item with the latest timestamp.
-  static func latest<T: Cachable> (_ items: [T]) -> T {
-    return items.sorted {
-      return $0.ts!.compare($1.ts! as Date) == .orderedDescending
-      }.first!
-  }
-  
-  /// Find out which URLs still need to be consulted, after items have been
-  /// received from the cache, while respecting a maximal time cached items stay
-  /// valid (ttl) before becoming stale.
-  ///
-  /// The stale items are also returned, because they might be used to fall back
-  /// on, in case something goes wrong further down the road.
-  ///
-  /// Because **entries never become stale**, this function collects and adds them
-  /// to the cached items array. Other item types, like feeds, are checked for
-  /// their age and put in the cached items or, respectively, the stale items
-  /// array.
-  ///
-  /// URLs of stale items, as well as URLs not present in the specified items
-  /// array, are added to the URLs array. Finally the latest entry of each feed is
-  /// checked for its age and, if stale, its feed URL is added to the URLs.
-  ///
-  /// - Parameters:
-  ///   - items: An array of items from the cache.
-  ///   - urls: The originally requested URLs.
-  ///   - ttl: The maximal age of cached items before they’re stale.
-  ///
-  /// - Returns: A tuple of cached items, stale items, and URLs still to consult.
-  static func subtract<T: Cachable> (
-    items: [T], from urls: [String], with ttl: TimeInterval)
-    -> ([T], [T], [String]?) {
-    guard !items.isEmpty else {
-      return ([], [], urls)
-    }
-    
-    var cachedItems = [T]()
-    var staleItems = [T]()
-    
-    var entries = [Entry]()
-    
-    let cachedURLs = items.reduce([String]()) { acc, item in
-      if let entry = item as? Entry {
-        entries.append(entry)
-        cachedItems.append(item)
-        return acc
-      }
-      if !FeedCache.stale(item.ts!, ttl: ttl) {
-        cachedItems.append(item)
-        return acc + [item.url]
-      } else {
-        staleItems.append(item)
-        return acc
-      }
-    }
-    
-    var cachedEntryURLs = [String]()
-    for url in urls {
-      let feed = entries.filter { $0.feed == url }
-      guard !feed.isEmpty else {
-        break
-      }
-      let entry = latest(feed)
-      if !FeedCache.stale(entry.ts!, ttl: ttl) {
-        cachedEntryURLs.append(entry.feed)
-      }
-    }
-    
-    let strings = cachedURLs + cachedEntryURLs
-    let notCachedURLs = Array(Set(urls).subtracting(strings))
-    
-    if notCachedURLs.isEmpty {
-      return (cachedItems, [], nil)
-    } else {
-      return (cachedItems, staleItems, notCachedURLs)
-    }
-  }
-
 }
 
 // MARK: - Feeds
@@ -334,7 +245,7 @@ extension FeedsOperation {
   static func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
     ) throws -> ([Feed], [Feed], [String]?) {
     let items = try cache.feeds(urls)
-    let t = BrowseOperation.subtract(items: items, from: urls, with: ttl)
+    let t = FeedCache.subtract(items: items, from: urls, with: ttl)
     return t
   }
 
@@ -375,7 +286,7 @@ extension FeedRepository: Browsing {
     from subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)?
   ) -> Void {
-    os_log("integrating metadata from: %{public}@", log: BrowseLog.log, type: .debug,
+    os_log("integrating metadata from: %{public}@", log: Browse.log, type: .debug,
            String(describing: subscriptions))
     
     let cache = self.cache
@@ -537,14 +448,14 @@ extension FeedRepository: Browsing {
 
     dep.feedsBlock = { error, feeds in
       if let er = error {
-        os_log("could not fetch feeds: %{public}@", log: BrowseLog.log, type: .error,
+        os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
                String(reflecting: er))
       }
     }
 
     dep.feedsCompletionBlock = { error in
       if let er = error {
-        os_log("could not fetch feeds: %{public}@", log: BrowseLog.log, type: .error,
+        os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
                String(reflecting: er))
       }
     }

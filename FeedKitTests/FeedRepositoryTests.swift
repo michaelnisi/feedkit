@@ -497,7 +497,7 @@ extension FeedRepositoryTests {
     do {
       let locators = [EntryLocator]()
       let (entries, missing) =
-        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+        try! cache.fulfill(locators: locators, ttl: age)
       
       // TODO: Rename to: entries(in: cache, with: locators, under: age)
       
@@ -509,7 +509,7 @@ extension FeedRepositoryTests {
       let locator = EntryLocator(url: url)
       let locators = [locator, locator]
       let (entries, missing) =
-        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+        try! cache.fulfill(locators: locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [locator])
@@ -522,7 +522,7 @@ extension FeedRepositoryTests {
         older
       ]
       let (entries, missing) =
-        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+        try! cache.fulfill(locators: locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [older], "should merge locators")
@@ -533,7 +533,7 @@ extension FeedRepositoryTests {
       let locator = EntryLocator(url: url, guid: guid)
       let locators = [locator, locator]
       let (entries, missing) =
-        try! EntriesOperation.entries(in: cache, locators: locators, ttl: age)
+        try! cache.fulfill(locators: locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [locator], "should be unique")
@@ -552,10 +552,10 @@ extension FeedRepositoryTests {
     let b = Thing(url: "def", ts: Date(timeIntervalSince1970: 3600))
     let c = Thing(url: "ghi", ts: Date(timeIntervalSince1970: 7200))
     let found = [
-      BrowseOperation.latest([a, b, c]),
-      BrowseOperation.latest([c, b, a]),
-      BrowseOperation.latest([a, c, b]),
-      BrowseOperation.latest([b, c, a])
+      FeedCache.latest([a, b, c]),
+      FeedCache.latest([c, b, a]),
+      FeedCache.latest([a, c, b]),
+      FeedCache.latest([b, c, a])
     ]
     let wanted = [
       c,

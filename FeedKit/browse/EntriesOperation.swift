@@ -49,23 +49,12 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
   lazy var locators: [EntryLocator] = {
     guard let locs = _locators else {
-
-      var reqError: Error?
-
       let found = dependencies.reduce([EntryLocator]()) { acc, dep in
         if case let req as ProvidingLocators = dep {
-          guard req.error == nil else {
-            reqError = req.error
-            return acc
-          }
+          // TODO: Handle request error
           return acc + req.locators
         }
         return acc
-      }
-
-      guard reqError == nil, !found.isEmpty else {
-        done(reqError)
-        return []
       }
 
       _locators = found
@@ -78,7 +67,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   // Identifiers of entries that already have been dispatched.
   var dispatched = [String]() {
     didSet {
-      os_log("dispatched: %@", log: BrowseLog.log, type: .debug, dispatched)
+      os_log("dispatched: %@", log: Browse.log, type: .debug, dispatched)
     }
   }
 
@@ -94,7 +83,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   }
 
   func done(_ error: Error? = nil) {
-    os_log("done: %{public}@", log: BrowseLog.log, type: .debug,
+    os_log("done: %{public}@", log: Browse.log, type: .debug,
            error != nil ? String(reflecting: error) : "OK")
 
     let er = isCancelled ? FeedKitError.cancelledByUser : error
@@ -113,7 +102,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   /// - Parameters:
   ///   - locators: The locators of entries to request.
   func request(_ locators: [EntryLocator]) throws {
-    os_log("requesting: %{public}@", log: BrowseLog.log, type: .debug, locators)
+    os_log("requesting: %{public}@", log: Browse.log, type: .debug, locators)
 
     let reload = ttl == .none
 
@@ -127,23 +116,23 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
       }
 
       guard payload != nil else {
-        os_log("no payload", log: BrowseLog.log)
+        os_log("no payload", log: Browse.log)
         return self.done()
       }
 
-      os_log("received payload", log: BrowseLog.log, type: .debug)
+      os_log("received payload", log: Browse.log, type: .debug)
 
       do {
         let (errors, receivedEntries) = serialize.entries(from: payload!)
 
         if !errors.isEmpty {
-          os_log("invalid entries: %{public}@", log: BrowseLog.log,  type: .error, errors)
+          os_log("invalid entries: %{public}@", log: Browse.log,  type: .error, errors)
         }
-        os_log("received: %{public}@", log: BrowseLog.log, type: .debug, receivedEntries)
+        os_log("received: %{public}@", log: Browse.log, type: .debug, receivedEntries)
 
         let redirected = BrowseOperation.redirects(in: receivedEntries)
         if !redirected.isEmpty {
-          os_log("removing redirected: %{public}@", log: BrowseLog.log,
+          os_log("removing redirected: %{public}@", log: Browse.log,
                  String(reflecting: redirected))
 
           let urls = redirected.reduce([String]()) { acc, entry in
@@ -167,8 +156,8 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         // centrally, we retrieve the freshly updated entries from the cache,
         // relying on SQLite’s speed.
 
-        let (cached, missing) = try EntriesOperation.entries(
-          in: self.cache, locators: self.locators, ttl: .infinity)
+        let (cached, missing) = try self.cache.fulfill(
+          locators: self.locators, ttl: .infinity)
 
         let error: FeedKitError? = {
           guard !missing.isEmpty else {
@@ -187,7 +176,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         self.dispatched = self.dispatched + entries.map { $0.guid }
         self.done()
       } catch FeedKitError.feedNotCached(let urls) {
-        os_log("feeds not cached: %{public}@", log: BrowseLog.log, urls)
+        os_log("feeds not cached: %{public}@", log: Browse.log, urls)
         self.done()
       } catch let er {
         self.done(er)
@@ -199,18 +188,17 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     guard !isCancelled else { return done() }
     isExecuting = true
 
-    os_log("EntriesOperation: start: %{public}@", log: BrowseLog.log,
+    os_log("EntriesOperation: start: %{public}@", log: Browse.log,
            type: .debug, locators)
 
     do {
       let target = self.target
       let entriesBlock = self.entriesBlock
 
-      let (cached, missing) = try EntriesOperation.entries(
-        in: cache, locators: locators, ttl: ttl.seconds)
+      let (cached, missing) = try cache.fulfill(locators: locators, ttl: ttl.seconds)
 
-      os_log("cached: %{public}@", log: BrowseLog.log, type: .debug, cached)
-      os_log("missing: %{public}@", log: BrowseLog.log, type: .debug, missing)
+      os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
+      os_log("missing: %{public}@", log: Browse.log, type: .debug, missing)
 
       guard !isCancelled else { return done() }
 
@@ -234,61 +222,4 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
       done(error)
     }
   }
-}
-
-// MARK: Accessing Cached Entries
-
-extension EntriesOperation {
-
-  /// Queries the local `cache` for entries and returns a tuple of cached
-  /// entries and unfullfilled entry `locators`, if any.
-  ///
-  /// - Parameters:
-  ///   - cache: The cache object to retrieve entries from.
-  ///   - locators: The selection of entries to fetch.
-  ///   - ttl: The maximum age of entries to use.
-  ///
-  /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
-  ///
-  /// - Throws: Might throw database errors.
-  static func entries(in cache: FeedCaching, locators: [EntryLocator], ttl: TimeInterval)
-    throws -> ([Entry], [EntryLocator]) {
-      let optimized = EntryLocator.reduce(locators)
-
-      let guids = optimized.flatMap { $0.guid }
-      let resolved = try cache.entries(guids)
-
-      guard resolved.count < optimized.count else {
-        return (resolved, [])
-      }
-
-      let resguids = resolved.map { $0.guid }
-
-      let unresolved = optimized.filter {
-        guard let guid = $0.guid else { return true }
-        return !resguids.contains(guid)
-      }
-
-      let items = try cache.entries(within: unresolved) + resolved
-      let unresolvedURLs = unresolved.map { $0.url }
-
-      let (cached, stale, needed) =
-        BrowseOperation.subtract(items: items, from: unresolvedURLs, with: ttl)
-      assert(stale.isEmpty, "entries cannot be stale")
-
-      let neededLocators: [EntryLocator] = optimized.filter {
-        let urls = needed ?? []
-        if let guid = $0.guid {
-          return !resguids.contains(guid) || urls.contains($0.url)
-        }
-        return urls.contains($0.url)
-      }
-
-      guard neededLocators != optimized else {
-        return ([], neededLocators)
-      }
-
-      return (cached, neededLocators)
-  }
-
 }
