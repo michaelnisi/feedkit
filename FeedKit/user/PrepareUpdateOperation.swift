@@ -10,7 +10,7 @@ import Foundation
 import os.log
 
 extension PrepareUpdateOperation {
-  
+
   /// Merges `locators` with `subscriptions`, where the timestamps found in
   /// `locators` override those in `subscriptions`.
   static func merge(
@@ -27,26 +27,26 @@ extension PrepareUpdateOperation {
     return subscriptions.map {
       let url = $0.url
       let ts = $0.ts
-      
+
       if let prev = datesByURLs[url], prev > ts {
         return EntryLocator(url: url, since: prev)
       }
-      
+
       return EntryLocator(url: url, since: ts)
     }
   }
 }
 
-final class PrepareUpdateOperation: Operation, RequestingEntries {
+final class PrepareUpdateOperation: Operation, ProvidingLocators {
   private(set) var error: Error?
   private(set) var locators = [EntryLocator]()
-  
+
   fileprivate let cache: UserCaching
-  
+
   init(cache: UserCaching) {
     self.cache = cache
   }
-  
+
   override func main() {
     do {
       let subscriptions = try cache.subscribed()
