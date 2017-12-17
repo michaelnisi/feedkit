@@ -130,24 +130,15 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         }
         os_log("received: %{public}@", log: Browse.log, type: .debug, receivedEntries)
 
-        let redirected = Entry.redirects(in: receivedEntries)
-        if !redirected.isEmpty {
-          os_log("removing redirected: %{public}@", log: Browse.log,
-                 String(reflecting: redirected))
-
-          let urls = redirected.reduce([String]()) { acc, entry in
-            guard let url = entry.originalURL, !acc.contains(url) else {
-              return acc
-            }
-            return acc + [url]
-          }
+        let r = Entry.redirects(in: receivedEntries)
+        if !r.isEmpty {
+          let urls = r.map { $0.originalURL! }
           try self.cache.remove(urls)
         }
 
         try self.cache.update(entries: receivedEntries)
 
-        // TODO: Not correct, cb is not mandatory
-        guard let cb = self.entriesBlock, !receivedEntries.isEmpty else {
+        guard !receivedEntries.isEmpty else {
           return self.done()
         }
 
@@ -174,7 +165,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
           self.entries.formUnion(fresh)
         }
         
-        if !fresh.isEmpty || error != nil {
+        if (!fresh.isEmpty || error != nil), let cb = self.entriesBlock {
           self.target.async() {
             cb(error, fresh)
           }

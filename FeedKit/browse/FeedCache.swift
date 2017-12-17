@@ -357,7 +357,7 @@ extension FeedCache: FeedCaching {
     guard !entries.isEmpty else {
       return
     }
-    
+
     try queue.sync {
       var unidentified = [String]()
       
