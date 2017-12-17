@@ -43,24 +43,29 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
 
-  // MARK: State
+  private func findLocators() throws -> [EntryLocator] {
+    var found = Set<EntryLocator>()
+    for dep in dependencies {
+      if case let req as ProvidingLocators = dep {
+        guard req.error == nil else {
+          throw req.error!
+        }
+        found.formUnion(req.locators)
+      }
+    }
+    return Array(found)
+  }
 
   var _locators: [EntryLocator]?
-
   lazy var locators: [EntryLocator] = {
     guard let locs = _locators else {
-      let found = dependencies.reduce([EntryLocator]()) { acc, dep in
-        if case let req as ProvidingLocators = dep {
-          // TODO: Handle request error
-          return acc + req.locators
-        }
-        return acc
+      do {
+        _locators = try findLocators()
+      } catch {
+        self.error = error
       }
-
-      _locators = found
-      return found
+      return _locators!
     }
-
     return locs
   }()
 
@@ -81,17 +86,17 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
            error != nil ? error! as CVarArg : "ok")
 
     let er = isCancelled ? FeedKitError.cancelledByUser : error
-    
+
     defer {
       entriesBlock = nil
       entriesCompletionBlock = nil
       isFinished = true
     }
-    
+
     guard let cb = self.entriesCompletionBlock else {
       return
     }
-    
+
     target.async {
       cb(er)
     }
@@ -160,11 +165,11 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         let fresh = cached.filter {
           !self.entries.contains($0)
         }
-        
+
         if !fresh.isEmpty {
           self.entries.formUnion(fresh)
         }
-        
+
         if (!fresh.isEmpty || error != nil), let cb = self.entriesBlock {
           self.target.async() {
             cb(error, fresh)
@@ -182,15 +187,17 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   }
 
   override func start() {
-    guard !isCancelled else { return done() }
+    guard !isCancelled, error == nil, !locators.isEmpty else {
+      return done(error)
+    }
     isExecuting = true
 
     do {
       os_log("trying cache: %{public}@", log: Browse.log,
              type: .debug, locators)
-      
+
       let (cached, missing) = try cache.fulfill(locators, ttl: ttl.seconds)
-      
+
       guard !isCancelled else { return done() }
 
       os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
