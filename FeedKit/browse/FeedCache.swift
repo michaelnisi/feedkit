@@ -200,7 +200,7 @@ extension FeedCache: FeedCaching {
   /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
   ///
   /// - Throws: Might throw database errors.
-  public func fulfill(locators: [EntryLocator], ttl: TimeInterval) throws
+  public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
     -> ([Entry], [EntryLocator]) {
     let optimized = EntryLocator.reduce(locators)
     

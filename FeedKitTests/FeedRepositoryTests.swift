@@ -497,7 +497,7 @@ extension FeedRepositoryTests {
     do {
       let locators = [EntryLocator]()
       let (entries, missing) =
-        try! cache.fulfill(locators: locators, ttl: age)
+        try! cache.fulfill(locators, ttl: age)
       
       // TODO: Rename to: entries(in: cache, with: locators, under: age)
       
@@ -509,7 +509,7 @@ extension FeedRepositoryTests {
       let locator = EntryLocator(url: url)
       let locators = [locator, locator]
       let (entries, missing) =
-        try! cache.fulfill(locators: locators, ttl: age)
+        try! cache.fulfill(locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [locator])
@@ -522,7 +522,7 @@ extension FeedRepositoryTests {
         older
       ]
       let (entries, missing) =
-        try! cache.fulfill(locators: locators, ttl: age)
+        try! cache.fulfill(locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [older], "should merge locators")
@@ -533,7 +533,7 @@ extension FeedRepositoryTests {
       let locator = EntryLocator(url: url, guid: guid)
       let locators = [locator, locator]
       let (entries, missing) =
-        try! cache.fulfill(locators: locators, ttl: age)
+        try! cache.fulfill(locators, ttl: age)
       
       XCTAssertTrue(entries.isEmpty)
       XCTAssertEqual(missing, [locator], "should be unique")

@@ -23,7 +23,7 @@ protocol ProvidingLocators {
 
 protocol ProvidingEntries {
   var error: Error? { get }
-  var entries: [Entry] { get }
+  var entries: Set<Entry> { get }
 }
 
 // MARK: - Entries
@@ -33,10 +33,10 @@ extension EntryLocator: MangerQuery {}
 
 final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
-  // MARK: Providing Entries
+  // MARK: ProvidingEntries
 
   private(set) var error: Error?
-  private(set) var entries = [Entry]()
+  private(set) var entries = Set<Entry>()
 
   // MARK: Callbacks
 
@@ -64,13 +64,6 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     return locs
   }()
 
-  // Identifiers of entries that already have been dispatched.
-  var dispatched = [String]() {
-    didSet {
-      os_log("dispatched: %@", log: Browse.log, type: .debug, dispatched)
-    }
-  }
-
   /// Creates an entries operation with the specified cache, service, dispatch
   /// queue, and entry locators.
   ///
@@ -82,19 +75,26 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     super.init(cache: cache, svc: svc)
   }
 
+  /// If we have been cancelled, it’s OK to just say `done()` and be done.
   func done(_ error: Error? = nil) {
     os_log("done: %{public}@", log: Browse.log, type: .debug,
-           error != nil ? String(reflecting: error) : "OK")
+           error != nil ? error! as CVarArg : "ok")
 
     let er = isCancelled ? FeedKitError.cancelledByUser : error
-    if let cb = self.entriesCompletionBlock {
-      target.async {
-        cb(er)
-      }
+    
+    defer {
+      entriesBlock = nil
+      entriesCompletionBlock = nil
+      isFinished = true
     }
-    entriesBlock = nil
-    entriesCompletionBlock = nil
-    isFinished = true
+    
+    guard let cb = self.entriesCompletionBlock else {
+      return
+    }
+    
+    target.async {
+      cb(er)
+    }
   }
 
   /// Request all entries of listed feed URLs remotely.
@@ -146,6 +146,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
         try self.cache.update(entries: receivedEntries)
 
+        // TODO: Not correct, cb is not mandatory
         guard let cb = self.entriesBlock, !receivedEntries.isEmpty else {
           return self.done()
         }
@@ -156,8 +157,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         // centrally, we retrieve the freshly updated entries from the cache,
         // relying on SQLite’s speed.
 
-        let (cached, missing) = try self.cache.fulfill(
-          locators: self.locators, ttl: .infinity)
+        let (cached, missing) = try self.cache.fulfill(self.locators, ttl: .infinity)
 
         let error: FeedKitError? = {
           guard !missing.isEmpty else {
@@ -166,14 +166,20 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
           return FeedKitError.missingEntries(locators: missing)
         }()
 
-        let entries = cached.filter {
-          !self.dispatched.contains($0.guid)
+        let fresh = cached.filter {
+          !self.entries.contains($0)
+        }
+        
+        if !fresh.isEmpty {
+          self.entries.formUnion(fresh)
+        }
+        
+        if !fresh.isEmpty || error != nil {
+          self.target.async() {
+            cb(error, fresh)
+          }
         }
 
-        self.target.async() {
-          cb(error, entries)
-        }
-        self.dispatched = self.dispatched + entries.map { $0.guid }
         self.done()
       } catch FeedKitError.feedNotCached(let urls) {
         os_log("feeds not cached: %{public}@", log: Browse.log, urls)
@@ -192,21 +198,20 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
            type: .debug, locators)
 
     do {
-      let target = self.target
-      let entriesBlock = self.entriesBlock
-
-      let (cached, missing) = try cache.fulfill(locators: locators, ttl: ttl.seconds)
+      let (cached, missing) = try cache.fulfill(locators, ttl: ttl.seconds)
 
       os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
       os_log("missing: %{public}@", log: Browse.log, type: .debug, missing)
 
       guard !isCancelled else { return done() }
 
-      if let cb = entriesBlock, !cached.isEmpty {
-        target.async {
-          cb(nil, cached)
+      if !cached.isEmpty {
+        entries.formUnion(cached)
+        if let cb = entriesBlock {
+          target.async {
+            cb(nil, cached)
+          }
         }
-        dispatched = cached.map { $0.guid }
       }
 
       guard !missing.isEmpty else {

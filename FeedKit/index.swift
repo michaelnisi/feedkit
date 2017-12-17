@@ -11,6 +11,14 @@ import Ola
 import Patron
 import os.log
 
+// TODO: Add categories:
+// - repo
+// - operation
+// - core
+// maybe:
+// - net
+// - io
+
 /// Wraps a value into an `NSObject`.
 class ValueObject<T>: NSObject {
   let value: T
@@ -524,34 +532,6 @@ extension Find: Hashable {
   }
 }
 
-/// Enumerate default time-to-live intervals used for caching.
-///
-/// - None: Zero seconds.
-/// - Short: One hour.
-/// - Medium: Eight hours.
-/// - Long: 24 hours.
-/// - Forever: Infinity.
-public enum CacheTTL {
-  case none
-  case short
-  case medium
-  case long
-  case forever
-
-  /// The time-to-live interval in seconds.
-  var seconds: TimeInterval {
-    get {
-      switch self {
-      case .none: return 0
-      case .short: return 3600
-      case .medium: return 28800
-      case .long: return 86400
-      case .forever: return Double.infinity
-      }
-    }
-  }
-}
-
 // MARK: - Caching
 
 /// Housekeeping for local caching.
@@ -590,7 +570,7 @@ public protocol FeedCaching {
   /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
   ///
   /// - Throws: Might throw database errors.
-  func fulfill(locators: [EntryLocator], ttl: TimeInterval) throws
+  func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
     -> ([Entry], [EntryLocator])
 }
 

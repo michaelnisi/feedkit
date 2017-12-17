@@ -10,7 +10,35 @@ import Foundation
 import Skull
 import os.log
 
-// MARK: - SQLite Database Super Class
+/// Enumerate default time-to-live intervals used for caching.
+///
+/// - None: Zero seconds.
+/// - Short: One hour.
+/// - Medium: Eight hours.
+/// - Long: 24 hours.
+/// - Forever: Infinity.
+public enum CacheTTL {
+  case none
+  case short
+  case medium
+  case long
+  case forever
+  
+  /// The time-to-live interval in seconds.
+  var seconds: TimeInterval {
+    get {
+      switch self {
+      case .none: return 0
+      case .short: return 3600
+      case .medium: return 28800
+      case .long: return 86400
+      case .forever: return Double.infinity
+      }
+    }
+  }
+}
+
+// MARK: - Caching
 
 /// Abstract super class for embedded (SQLite) databases.
 public class LocalCache: Caching {
