@@ -95,7 +95,7 @@ final class FeedsOperation: BrowseOperation {
         
         assert(errors.isEmpty, "unhandled errors: \(errors)")
         
-        let r = BrowseOperation.redirects(in: feeds)
+        let r = Entry.redirects(in: feeds)
         if !r.isEmpty {
           let urls = r.map { $0.originalURL! }
           try cache.remove(urls)

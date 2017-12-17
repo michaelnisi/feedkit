@@ -95,6 +95,20 @@ public protocol Redirectable {
   var originalURL: String? { get }
 }
 
+extension Redirectable {
+
+  /// Filters and returns `items` with redirected URLs.
+  static func redirects(in items: [Redirectable]) -> [Redirectable] {
+    return items.filter {
+      guard let originalURL = $0.originalURL, originalURL != $0.url else {
+        return false
+      }
+      return true
+    }
+  }
+  
+}
+
 // Additional per podcast information, aquired via iTunes search, entirely
 // optional. Especially `guid` isn’t used in this framework. We identify
 // feeds by URLs.

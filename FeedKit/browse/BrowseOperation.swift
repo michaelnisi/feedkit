@@ -31,18 +31,3 @@ class BrowseOperation: SessionTaskOperation {
     self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
 }
-
-// MARK: HTTP
-
-extension BrowseOperation {
-  
-  static func redirects(in items: [Redirectable]) -> [Redirectable] {
-    return items.filter {
-      guard let originalURL = $0.originalURL, originalURL != $0.url else {
-        return false
-      }
-      return true
-    }
-  }
-  
-}

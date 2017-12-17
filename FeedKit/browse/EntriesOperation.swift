@@ -130,7 +130,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         }
         os_log("received: %{public}@", log: Browse.log, type: .debug, receivedEntries)
 
-        let redirected = BrowseOperation.redirects(in: receivedEntries)
+        let redirected = Entry.redirects(in: receivedEntries)
         if !redirected.isEmpty {
           os_log("removing redirected: %{public}@", log: Browse.log,
                  String(reflecting: redirected))
@@ -194,16 +194,16 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     guard !isCancelled else { return done() }
     isExecuting = true
 
-    os_log("EntriesOperation: start: %{public}@", log: Browse.log,
-           type: .debug, locators)
-
     do {
+      os_log("trying cache: %{public}@", log: Browse.log,
+             type: .debug, locators)
+      
       let (cached, missing) = try cache.fulfill(locators, ttl: ttl.seconds)
+      
+      guard !isCancelled else { return done() }
 
       os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
       os_log("missing: %{public}@", log: Browse.log, type: .debug, missing)
-
-      guard !isCancelled else { return done() }
 
       if !cached.isEmpty {
         entries.formUnion(cached)
