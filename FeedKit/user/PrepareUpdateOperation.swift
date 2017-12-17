@@ -52,7 +52,7 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
       let subscriptions = try cache.subscribed()
       let latest = try cache.newest()
       self.locators = PrepareUpdateOperation.merge(latest, with: subscriptions)
-      os_log("** prepared: %{public}@", log: UserLog.log, type: .debug, locators)
+      os_log("** prepared: %{public}@", log: User.log, type: .debug, locators)
     } catch {
       self.error = error
     }

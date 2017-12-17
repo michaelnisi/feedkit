@@ -14,7 +14,7 @@ import os.log
 // TODO: Integrate HTTP redirects
 // TODO: Review update
 
-struct UserLog {
+struct User {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 }
 
@@ -143,7 +143,7 @@ extension UserLibrary: Subscribing {
         self.subscriptions.subtract(unsubscribed)
         self.subscriptions.formUnion(urls)
       } catch {
-        os_log("failed to reload subscriptions", log: UserLog.log, type: .error,
+        os_log("failed to reload subscriptions", log: User.log, type: .error,
                error as CVarArg)
       }
     }
@@ -201,7 +201,7 @@ extension UserLibrary: Updating {
   
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: UserLog.log,  type: .info)
+    os_log("updating", log: User.log,  type: .info)
     
     let prepare = PrepareUpdateOperation(cache: cache)
 
@@ -221,7 +221,7 @@ extension UserLibrary: Updating {
   
   public func old_update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: UserLog.log,  type: .info)
+    os_log("updating", log: User.log,  type: .info)
     
     let cache = self.cache
     
@@ -266,7 +266,7 @@ extension UserLibrary: Updating {
       var acc = [Entry]()
       browser.entries(locators, force: true, entriesBlock: { error, entries in
         guard error == nil else {
-          os_log("faulty entries: %{public}@", log: UserLog.log, type: .error,
+          os_log("faulty entries: %{public}@", log: User.log, type: .error,
                  String(describing: error))
           return
         }
@@ -322,7 +322,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    os_log("fetching", log: UserLog.log, type: .debug)
+    os_log("fetching", log: User.log, type: .debug)
     
     let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
@@ -332,13 +332,13 @@ extension UserLibrary: Queueing {
     dep.feedsBlock = { feeds, error in
       if let er = error {
         os_log("problems fetching subscribed feeds: %{public}@",
-               log: UserLog.log, type: .error, String(describing: er))
+               log: User.log, type: .error, String(describing: er))
       }
     }
     dep.feedsCompletionBlock = { error in
       if let er = error {
         os_log("failed to integrate metadata %{public}@",
-               log: UserLog.log, type: .error, String(describing: er))
+               log: User.log, type: .error, String(describing: er))
       }
     }
     
@@ -360,7 +360,7 @@ extension UserLibrary: Queueing {
       return
     }
     
-    os_log("enqueueing", log: UserLog.log, type: .debug)
+    os_log("enqueueing", log: User.log, type: .debug)
     
     operationQueue.addOperation {
       do {
@@ -387,7 +387,7 @@ extension UserLibrary: Queueing {
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    os_log("dequeueing", log: UserLog.log, type: .debug)
+    os_log("dequeueing", log: User.log, type: .debug)
     
     operationQueue.addOperation {
       do {

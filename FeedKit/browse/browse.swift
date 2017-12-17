@@ -11,7 +11,7 @@ import MangerKit
 import Ola
 import os.log
 
-/// The static structure of the browse category.
+/// A static structure representing the browse directory.
 struct Browse {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 }

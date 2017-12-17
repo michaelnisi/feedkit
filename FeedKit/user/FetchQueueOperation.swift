@@ -34,7 +34,7 @@ final class FetchQueueOperation: FeedKitOperation {
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
-    os_log("done: %{public}@", log: UserLog.log, type: .debug,
+    os_log("done: %{public}@", log: User.log, type: .debug,
            er != nil ? String(reflecting: er) : "OK")
     
     if let cb = fetchQueueCompletionBlock {
@@ -87,12 +87,12 @@ final class FetchQueueOperation: FeedKitOperation {
       with: entries, for: guids, respecting: error)
     
     guard !missing.isEmpty else {
-      os_log("queue complete", log: UserLog.log, type: .debug)
+      os_log("queue complete", log: User.log, type: .debug)
       return user.queue.items
     }
     
     do {
-      os_log("remove missing entries: %{public}@", log: UserLog.log, type: .debug,
+      os_log("remove missing entries: %{public}@", log: User.log, type: .debug,
              String(reflecting: missing))
       
       for guid in missing {
@@ -101,7 +101,7 @@ final class FetchQueueOperation: FeedKitOperation {
       
       try cache.removeQueued(missing)
     } catch {
-      os_log("could not remove missing: %{public}@", log: UserLog.log, type: .error,
+      os_log("could not remove missing: %{public}@", log: User.log, type: .error,
              error as CVarArg)
     }
     
@@ -125,7 +125,7 @@ final class FetchQueueOperation: FeedKitOperation {
       }
       
       guard !entries.isEmpty else {
-        os_log("no entries", log: UserLog.log)
+        os_log("no entries", log: User.log)
         return
       }
       
@@ -148,14 +148,14 @@ final class FetchQueueOperation: FeedKitOperation {
       }()
       
       do {
-        os_log("appending: %{public}@", log: UserLog.log, type: .debug,
+        os_log("appending: %{public}@", log: User.log, type: .debug,
                String(reflecting: sorted))
         
         try self.user.queue.append(items: sorted)
       } catch {
         switch error {
         case QueueError.alreadyInQueue:
-          os_log("already in queue", log: UserLog.log)
+          os_log("already in queue", log: User.log)
         default:
           fatalError("unhandled error: \(error)")
         }
@@ -164,7 +164,7 @@ final class FetchQueueOperation: FeedKitOperation {
       let entries = self.queuedEntries(
         with: sorted, for: guids, respecting: accError)
       
-      os_log("entries in queue: %{public}@", log: UserLog.log, type: .debug,
+      os_log("entries in queue: %{public}@", log: User.log, type: .debug,
              String(reflecting: entries))
       
       DispatchQueue.global().async { [weak self] in
