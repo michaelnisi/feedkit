@@ -21,395 +21,336 @@ struct User {
   static let queue = OperationQueue()
 }
 
-/// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
-/// and queue.
-public final class UserLibrary: EntryQueueHost {
-  fileprivate let cache: UserCaching
-  fileprivate let browser: Browsing
-  fileprivate let operationQueue: OperationQueue
-  
-  /// Makes a fresh `UserLibrary` object.
-  ///
-  /// - Parameters:
-  ///   - cache: The cache to store user data locallly.
-  ///   - browser: The browser to access feeds and entries.
-  ///   - queue: A serial operation queue to execute operations in order.
-  public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
-    self.cache = cache
-    self.browser = browser
-    self.operationQueue = queue
-    
-    synchronize()
-  }
-  
-  /// The actual queue data structure. Starting off with an empty queue.
-  internal var queue = Queue<Entry>()
-  
-  /// A synchronized list of subscribed URLs for quick in-memory access.
-  fileprivate var subscriptions = Set<FeedURL>()
+// MARK: - Queueing
+
+/// An item that can be in the user’s queue. At the moment these are just
+/// entries, but we might add seasons, etc.
+public enum Queued {
+  case entry(EntryLocator, Date)
 }
 
-// MARK: - Subscribing
+extension Queued: Equatable {
+  static public func ==(lhs: Queued, rhs: Queued) -> Bool {
+    switch (lhs, rhs) {
+    case (.entry(let a, _), .entry(let b, _)):
+      return a == b
+    }
+  }
+}
 
-extension UserLibrary: Subscribing {
-  
-  public func add(
-    subscriptions: [Subscription],
-    addComplete: ((_ error: Error?) -> Void)? = nil) throws {
-    guard !subscriptions.isEmpty else {
-      DispatchQueue.global().async {
-        addComplete?(nil)
+extension Queued: Hashable {
+  public var hashValue: Int {
+    get {
+      switch self {
+      case .entry(let locator, _):
+        return locator.hashValue
       }
-      return
     }
-    
-    let cache = self.cache
-    
-    operationQueue.addOperation {
-      do {
-        try cache.add(subscriptions: subscriptions)
-        self.subscriptions.formUnion(subscriptions.map { $0.url })
-      } catch {
-        DispatchQueue.global().async {
-          addComplete?(error)
-        }
-        return
-      }
+  }
+}
 
-      DispatchQueue.global().async {
-        addComplete?(nil)
-      }
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: self)
-      }
-    }
+/// Cache the user`s queue locallly.
+public protocol QueueCaching {
+  
+  /// Enqueues `entries`, as locators, so you cann enqueue without
+  /// having to provide the actual entry.
+  func add(entries: [EntryLocator]) throws
+  
+  /// Removes queued entries with `guids`.
+  func removeQueued(_ guids: [String]) throws
+  
+  /// Removes all queued entries.
+  func removeQueued() throws
+  
+  /// Removes previously queued entries from the cache.
+  func removePrevious() throws
+  
+  /// Removes all entries, previous and currently queued, from the cache.
+  func removeAll() throws
+  
+  /// Removes stale, all but the latest, previously queued entries.
+  func removeStalePrevious() throws
+  
+  /// The user‘s queued entries, in descending order by time queued.
+  func queued() throws -> [Queued]
+  
+  /// Previously queued entries, in descending order by time dequeued.
+  func previous() throws -> [Queued]
+  
+  /// The newest entry locators—one per feed, sorted by publishing date, newest
+  /// first—of current and previous entries.
+  func newest() throws -> [EntryLocator]
+  
+  /// All previously and currently queued items in no specific order.
+  func all() throws -> [Queued]
+  
+  /// Checks if an entry with `guid` is currently contained in the locally
+  /// cached queue.
+  func isQueued(_ guid: EntryGUID) throws -> Bool
+  
+}
 
-  }
-  
-  public func unsubscribe(
-    from urls: [FeedURL],
-    unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) throws {
-    func done(_ error: Error? = nil) -> Void {
-      DispatchQueue.global().async {
-        unsubscribeComplete?(error)
-      }
-    }
-    
-    guard !urls.isEmpty else {
-      return done()
-    }
-    
-    let cache = self.cache
-    
-    operationQueue.addOperation {
-      do {
-        try cache.remove(urls: urls)
-        self.subscriptions.subtract(urls)
-      } catch {
-        return done(error)
-      }
-      
-      done()
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: self)
-      }
-    }
-  }
-  
-  @discardableResult
-  public func fetchFeeds(
-    feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
-    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
-  ) -> Operation {
-    let op = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
-    op.feedsBlock = feedsBlock
-    op.feedsCompletionBlock = feedsCompletionBlock
-    operationQueue.addOperation(op)
-    return op
-  }
-  
-  public func has(subscription url: FeedURL) -> Bool {
-    return subscriptions.contains(url)
-  }
-  
-  public func synchronize() {
-    DispatchQueue.global(qos: .background).async {
-      do {
-        let subscribed = try self.cache.subscribed()
-        
-        let urls = Set(subscribed.map { $0.url })
-        let unsubscribed = self.subscriptions.subtracting(urls)
-        self.subscriptions.subtract(unsubscribed)
-        self.subscriptions.formUnion(urls)
-      } catch {
-        os_log("failed to reload subscriptions", log: User.log, type: .error,
-               error as CVarArg)
-      }
-    }
-  }
+/// Confines `Queue` state dependency.
+protocol EntryQueueHost {
+  var queue: Queue<Entry> { get set }
+}
 
+/// Coordinates the queue data structure, local persistence, and propagation of
+/// change events regarding the user’s queue.
+public protocol Queueing {
+  
+  /// Adds `entry` to the queue.
+  func enqueue(
+    entries: [Entry],
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
+  
+  /// Removes `entry` from the queue.
+  func dequeue(
+    entry: Entry,
+    dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
+  
+  /// Fetches entries in the user‘s queue, populating the `queue` object of this
+  /// `UserLibrary` instance.
+  ///
+  /// - Parameters:
+  ///   - entriesBlock: The entries block:
+  ///   - entriesError: An optional error, specific to entries.
+  ///   - entries: All or some of the requested entries.
+  ///
+  ///   - fetchQueueCompletionBlock: The completion block:
+  ///   - error: Optionally, an error for this operation.
+  ///
+  /// - Returns: Returns an executing `Operation`.
+  @discardableResult func fetchQueue(
+    entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
+    fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation
+  
+  // MARK: Queue
+  
+  // These synchronous methods are super fast (AP), but may not be consistent.
+  // For example, to meaningfully use these, you must `fetchQueue` first.
+  // https://en.wikipedia.org/wiki/CAP_theorem
+  
+  func contains(entry: Entry) -> Bool
+  func next() -> Entry?
+  func previous() -> Entry?
+  
+  var isEmpty: Bool { get }
 }
 
 // MARK: - Updating
 
-extension UserLibrary: Updating {
+/// Updating subscribed feeds.
+public protocol Updating {
   
-  private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
-    let previous = try cache.previous()
-    return previous.flatMap {
-      if case .entry(let loc, _) = $0 {
-        return loc.guid
-      }
-      return nil
-    }
-  }
-  
-  private static func locatorsForUpdating(
-    from cache: QueueCaching,
-    with subscriptions: [Subscription]) throws -> [EntryLocator] {
-    let latest = try cache.newest()
-    let urls = subscriptions.map { $0.url }
-    return latest.filter { urls.contains($0.url) }
-  }
-  
-  /// Returns entries in `entries` of `subscriptions`, which are newer than
-  /// the subscription date of their containing feed.
+  /// Fetch the latest entries of subscribed feeds from the server.
   ///
   /// - Parameters:
-  ///   - entries: The source entries to use.
-  ///   - subscriptions: A set of subscriptions to compare against.
+  ///   - updateComplete: The completion block to apply when done.
+  ///   - newData: `true` if new data has been received.
+  ///   - error: Optionally, an error if anything went wrong.
+  func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
+  
+}
+
+// MARK: - Downloading
+
+/// Downloading fresh episodes and managing media files.
+public protocol Downloading {
+  
+  // TODO: Design Downloading API
+  // - background first, like Updating
+  
+}
+
+// MARK: - Subscribing
+
+/// A feed subscription.
+public struct Subscription {
+  public let url: FeedURL
+  public let ts: Date
+  public let iTunes: ITunesItem?
+  
+  public init(url: FeedURL, ts: Date? = nil, iTunes: ITunesItem? = nil) {
+    self.url = url
+    self.ts = ts ?? Date()
+    self.iTunes = iTunes
+  }
+  
+  public init(feed: Feed) {
+    self.url = feed.url
+    self.ts = Date()
+    self.iTunes = feed.iTunes
+  }
+}
+
+extension Subscription: Equatable {
+  public static func ==(lhs: Subscription, rhs: Subscription) -> Bool {
+    return lhs.url == rhs.url
+  }
+}
+
+extension Subscription: Hashable {
+  public var hashValue: Int {
+    get { return url.hashValue }
+  }
+}
+
+public protocol SubscriptionCaching {
+  func add(subscriptions: [Subscription]) throws
+  func remove(urls: [FeedURL]) throws
+  
+  func isSubscribed(_ url: FeedURL) throws -> Bool
+  
+  func subscribed() throws -> [Subscription]
+}
+
+/// Mangages the user’s feed subscriptions.
+public protocol Subscribing: Updating {
+  
+  /// Adds `subscriptions` to the user’s library.
   ///
-  /// - Returns: A subset of `entries` with entries newer than their according
-  /// subscriptions. Entries of missing subscriptions are not included.
-  static func newer(
-    from entries: [Entry],
-    than subscriptions: Set<Subscription>) -> [Entry] {
-    // A dictionary of dates by subscription URLs for quick lookup.
-    var datesByURLs = [FeedURL: Date]()
-    for s in subscriptions {
-      datesByURLs[s.url] = s.ts
-    }
+  /// - Parameters:
+  ///   - subscriptions: The subscriptions to add without timestamps.
+  ///   - addComplete: An optional completion block:
+  ///   - error: An error if something went wrong.
+  func add(
+    subscriptions: [Subscription],
+    addComplete: ((_ error: Error?) -> Void)?) throws
+  
+  /// Unsubscribe from `urls`.
+  ///
+  /// - Parameters:
+  ///   - urls: The URLs of feeds to unsubscribe from.
+  ///   - unsubscribeComplete: An optional completion block:
+  ///   - error: An error if something went wrong.
+  func unsubscribe(
+    from urls: [FeedURL],
+    unsubscribeComplete: ((_ error: Error?) -> Void)?) throws
+  
+  /// Fetches the feeds currently subscribed.
+  ///
+  /// - Parameters:
+  ///   - feedsBlock: A block applied with the resulting feeds:
+  ///   - feeds: The subscribed feeds.
+  ///   - feedsError: Optionally, an error related to feed fetching.
+  ///
+  ///   - feedsCompletionBlock: The completion block of this operation:
+  ///   - error: An error if something went wrong with this operation.
+  func fetchFeeds(
+    feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
+    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
+    ) -> Operation
+  
+  /// Returns `true` if `url` is subscribed. You must `fetchFeeds` first, before
+  /// relying on this.
+  func has(subscription url: FeedURL) -> Bool
+  
+  /// Asynchronously reloads the in-memory cache of locally cached subscription
+  /// URLs, in the background, returning right away.
+  func synchronize()
+  
+}
 
-    return entries.filter {
-      guard let ts = datesByURLs[$0.url] else {
+// MARK: - UserCaching
+
+/// Caches user data, queue and subscriptions, locally.
+public protocol UserCaching: QueueCaching, SubscriptionCaching {}
+
+// MARK: - Syncing
+
+/// Encapsulates `CKRecord` data to **avoid CloudKit dependency within
+/// FeedKit** framework.
+public struct RecordMetadata {
+  let zoneName: String
+  let recordName: String
+  let changeTag: String?
+  
+  public init(zoneName: String, recordName: String, changeTag: String? = nil) {
+    self.zoneName = zoneName
+    self.recordName = recordName
+    self.changeTag = changeTag
+  }
+}
+
+extension RecordMetadata: Equatable {
+  public static func ==(lhs: RecordMetadata, rhs: RecordMetadata) -> Bool {
+    guard
+      lhs.zoneName == rhs.zoneName,
+      lhs.recordName == rhs.recordName,
+      lhs.changeTag == rhs.changeTag
+      else {
         return false
-      }
-      return $0.updated > ts
     }
+    return true
   }
-  
-  public func update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: User.log,  type: .info)
-    
-    let prepare = PrepareUpdateOperation(cache: cache)
+}
 
-    let fetch = browser.makeEntriesOperation()
-    fetch.addDependency(prepare)
-    
-    let enqueue = EnqueueOperation(user: self, cache: cache)
-    enqueue.addDependency(fetch)
-
-    operationQueue.addOperation(enqueue)
-    operationQueue.addOperation(fetch)
-    operationQueue.addOperation(prepare)
-    
-    enqueue.completionBlock = {
-      DispatchQueue.global().async {
-        updateComplete(false, nil)
-      }
-    }
-    
-  }
+/// Enumerates data structures that are synchronized with iCloud.
+public enum Synced {
   
-  public func old_update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: User.log,  type: .info)
-    
-    let cache = self.cache
-    
-    /// Results of the locating operation: subscriptions, locators, and ignored
-    /// (GUIDs); where subscriptions are used for the request and to filter
-    /// the fetched entries before enqueuing them in the completion block below.
-    struct LocatingResult {
-      let subscriptions: [Subscription]
-      let locators: [EntryLocator]
-      let ignored: [String]
-      
-      init(cache: UserCaching) throws {
-        self.subscriptions = try cache.subscribed()
-        self.locators = try UserLibrary.locatorsForUpdating(
-          from: cache, with: subscriptions)
-        self.ignored = try UserLibrary.previousGUIDs(from: cache)
-      }
+  /// A queued entry that has been synchronized with the iCloud database with
+  /// these properties: entry locator, the time the entry was added to the
+  /// queue, and CloudKit record metadata.
+  case entry(EntryLocator, Date, RecordMetadata)
+  
+  /// A synchronized feed subscription.
+  case subscription(Subscription, RecordMetadata)
+}
+
+extension Synced: Equatable {
+  public static func ==(lhs: Synced, rhs: Synced) -> Bool {
+    switch (lhs, rhs) {
+    case (.entry(let lloc, let lts, let lrec), .entry(let rloc, let rts, let rrec)):
+      return lloc == rloc && lts == rts && lrec == rrec
+    case (.subscription(let ls, let lrec), .subscription(let rs, let rrec)):
+      return ls == rs && lrec == rrec
+    case (.entry, _),
+         (.subscription, _):
+      return false
     }
-    
-    var locatingError: Error?
-    var locatingResult: LocatingResult?
-    
-    let locating = BlockOperation {
-      do {
-        locatingResult = try LocatingResult(cache: cache)
-      } catch {
-        locatingError = error
-      }
-    }
-    
-    func fetchEntries() {
-      guard locatingError == nil,
-        let locators = locatingResult?.locators,
-        !locators.isEmpty,
-        let ignored = locatingResult?.ignored,
-        let subscriptions = locatingResult?.subscriptions else {
-        return DispatchQueue.global().async {
-          updateComplete(false, locatingError)
-        }
-      }
-      
-      var acc = [Entry]()
-      browser.entries(locators, force: true, entriesBlock: { error, entries in
-        guard error == nil else {
-          os_log("faulty entries: %{public}@", log: User.log, type: .error,
-                 String(describing: error))
-          return
-        }
-        
-        guard !ignored.isEmpty else {
-          return acc.append(contentsOf: entries)
-        }
-        
-        acc = acc + entries.filter { !ignored.contains($0.guid) }
-      }) { error in
-        guard error == nil else {
-          return DispatchQueue.global().async {
-            updateComplete(false, error)
-          }
-        }
-        
-        let latest = UserLibrary.newer(from: acc, than: Set(subscriptions))
-        
-        do {
-          try self.enqueue(entries: latest) { error in
-            DispatchQueue.global().async {
-              updateComplete(true, error)
-            }
-          }
-        } catch {
-          DispatchQueue.global().async {
-            updateComplete(false, error)
-          }
-        }
-      }
-    }
-    
-    let q = operationQueue.underlyingQueue!
-    assert(q.label == "ink.codes.feedkit.user")
-    
-    locating.completionBlock = {
-      q.async {
-        fetchEntries()
-      }
-    }
-    
-    operationQueue.addOperation(locating)
   }
+}
+
+/// Sychronizes with iCloud.
+public protocol UserCacheSyncing: QueueCaching {
+  
+  /// Saves `synced`, synchronized user items, to the local cache.
+  func add(synced: [Synced]) throws
+  
+  /// Removes records with `recordNames` from the local cache.
+  func remove(recordNames: [String]) throws
+  
+  /// The queued entries, which not have been synced and are only locally
+  /// cached, hence the name. Push these items with the next sync.
+  func locallyQueued() throws -> [Queued]
+  
+  /// Returns subscriptions that haven’t been synchronized with iCloud yet, and
+  /// are only cached locally so far. Push these items with the next sync.
+  func locallySubscribed() throws -> [Subscription]
+  
+  /// CloudKit record names of abandoned records by record zone names. These are
+  /// records not referenced by queued or previously queued entries, and not
+  /// referenced by subscribed feeds. If this collection isn’t empty, items have
+  /// been removed from the cache waiting to be synchronized. Include these in
+  /// every push.
+  func zombieRecords() throws -> [(String, String)]
+  
+  /// Deletes unrelated items from the cache. After records have been deleted in
+  /// iCloud, and these have been synchronized with the local cache, entries
+  /// and feeds might be left without links to their, now deleted, records. This
+  /// method deletes those entries and feeds, it also deletes zombie records,
+  /// not having links in the other direction. Run this after each sync.
+  func deleteZombies() throws
+  
+  /// Deletes all queue data.
+  func removeQueue() throws
+  
+  /// Deletes all library data.
+  func removeLibrary() throws
   
 }
 
-// MARK: - Queueing
 
-extension UserLibrary: Queueing {
-  
-  @discardableResult
-  public func fetchQueue(
-    entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
-    fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
-  ) -> Operation {
-    os_log("fetching", log: User.log, type: .debug)
-    
-    let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
-    op.entriesBlock = entriesBlock
-    op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
-    
-    let dep = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
-    dep.feedsBlock = { feeds, error in
-      if let er = error {
-        os_log("problems fetching subscribed feeds: %{public}@",
-               log: User.log, type: .error, String(describing: er))
-      }
-    }
-    dep.feedsCompletionBlock = { error in
-      if let er = error {
-        os_log("failed to integrate metadata %{public}@",
-               log: User.log, type: .error, String(describing: er))
-      }
-    }
-    
-    op.addDependency(dep)
-    
-    operationQueue.addOperation(op)
-    operationQueue.addOperation(dep)
-    
-    return op
-  }
-  
-  public func enqueue(
-    entries: [Entry],
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
-    let op = EnqueueOperation(user: self, cache: cache, entries: entries)
-    op.enqueueCompletionBlock = enqueueCompletionBlock
-    User.queue.addOperation(op)
-  }
-  
-  public func dequeue(
-    entry: Entry,
-    dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    os_log("dequeueing", log: User.log, type: .debug)
-    
-    operationQueue.addOperation {
-      do {
-        try self.queue.remove(entry)
-        let guids = [entry.guid]
-        try self.cache.removeQueued(guids)
-      } catch {
-        DispatchQueue.global().async {
-          dequeueCompletionBlock?(error)
-        }
-        return
-      }
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-      }
-      
-      DispatchQueue.global().async {
-        dequeueCompletionBlock?(nil)
-      }
-    }
-  }
-  
-  // TODO: Review synchronous user queue methods
-  
-  // MARK: Synchronous queue methods
 
-  public func contains(entry: Entry) -> Bool {
-    return queue.contains(entry)
-  }
-  
-  public func next() -> Entry? {
-    return queue.forward()
-  }
-  
-  public func previous() -> Entry? {
-    return queue.backward()
-  }
-  
-  public var isEmpty: Bool {
-    return queue.isEmpty
-  }
-  
-}

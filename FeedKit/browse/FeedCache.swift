@@ -190,6 +190,8 @@ extension FeedCache {
 
 extension FeedCache: FeedCaching {
   
+  // TOOD: Review FeedCaching.fulfill()
+  
   /// Queries the local `cache` for entries and returns a tuple of cached
   /// entries and unfullfilled entry `locators`, if any.
   ///
@@ -203,7 +205,6 @@ extension FeedCache: FeedCaching {
   public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
     -> ([Entry], [EntryLocator]) {
     let optimized = EntryLocator.reduce(locators)
-    
     let guids = optimized.flatMap { $0.guid }
     let resolved = try entries(guids)
     
@@ -214,7 +215,9 @@ extension FeedCache: FeedCaching {
     let resguids = resolved.map { $0.guid }
     
     let unresolved = optimized.filter {
-      guard let guid = $0.guid else { return true }
+      guard let guid = $0.guid else {
+        return true 
+      }
       return !resguids.contains(guid)
     }
     

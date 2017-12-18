@@ -9,11 +9,6 @@
 import Foundation
 import os.log
 
-/// Confines `Queue` state dependency.
-protocol EntryQueueHost {
-  var queue: Queue<Entry> { get set }
-}
-
 final class FetchQueueOperation: FeedKitOperation {
   let browser: Browsing
   let cache: QueueCaching

@@ -137,6 +137,11 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         // those that actually have been requested. To match these requirements
         // centrally, we retrieve the freshly updated entries from the cache,
         // relying on SQLite’s speed.
+        
+        // TODO: Review
+        
+        // Range locators, without guids, as used while updating the Queue,
+        // apparently don’t work here. I get ([], [locators]).
 
         let (cached, missing) = try self.cache.fulfill(self.locators, ttl: .infinity)
 
