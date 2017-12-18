@@ -13,9 +13,12 @@ import os.log
 
 // TODO: Integrate HTTP redirects
 // TODO: Review update
+// TODO: Rethink operation queues
+// TODO: Wrap update in a UpdateQueueOperation
 
 struct User {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+  static let queue = OperationQueue()
 }
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
@@ -208,15 +211,19 @@ extension UserLibrary: Updating {
     let fetch = browser.makeEntriesOperation()
     fetch.addDependency(prepare)
     
-    fetch.completionBlock = {
+    let enqueue = EnqueueOperation(user: self, cache: cache)
+    enqueue.addDependency(fetch)
+
+    operationQueue.addOperation(enqueue)
+    operationQueue.addOperation(fetch)
+    operationQueue.addOperation(prepare)
+    
+    enqueue.completionBlock = {
       DispatchQueue.global().async {
         updateComplete(false, nil)
       }
     }
     
-
-    operationQueue.addOperation(fetch)
-    operationQueue.addOperation(prepare)
   }
   
   public func old_update(
@@ -353,35 +360,9 @@ extension UserLibrary: Queueing {
   public func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
-    guard !entries.isEmpty else {
-      DispatchQueue.global().async {
-        enqueueCompletionBlock?(nil)
-      }
-      return
-    }
-    
-    os_log("enqueueing", log: User.log, type: .debug)
-    
-    operationQueue.addOperation {
-      do {
-        try self.queue.prepend(items: entries)
-        let locators = entries.map { EntryLocator(entry: $0) }
-        try self.cache.add(entries: locators)
-      } catch {
-        DispatchQueue.global().async {
-          enqueueCompletionBlock?(error)
-        }
-        return
-      }
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-      }
-      
-      DispatchQueue.global().async {
-        enqueueCompletionBlock?(nil)
-      }
-    }
+    let op = EnqueueOperation(user: self, cache: cache, entries: entries)
+    op.enqueueCompletionBlock = enqueueCompletionBlock
+    User.queue.addOperation(op)
   }
   
   public func dequeue(

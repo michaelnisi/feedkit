@@ -11,21 +11,6 @@ import MangerKit
 import Ola
 import os.log
 
-protocol ProvidingReachability{
-  var error: Error? { get }
-  var status: OlaStatus { get }
-}
-
-protocol ProvidingLocators {
-  var error: Error? { get }
-  var locators: [EntryLocator]  { get }
-}
-
-protocol ProvidingEntries {
-  var error: Error? { get }
-  var entries: Set<Entry> { get }
-}
-
 // MARK: - Entries
 
 /// Comply with MangerKit API to enable using the remote service.
