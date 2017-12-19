@@ -589,6 +589,18 @@ extension FeedCacheTests {
 
 // MARK: - Utilities
 
+private struct Item: Cachable {
+  let url: FeedURL
+  let ts: Date?
+  let id: Int
+}
+
+extension Item: Equatable {
+  static func ==(lhs: Item, rhs: Item) -> Bool {
+    return lhs.id == rhs.id
+  }
+}
+
 extension FeedCacheTests {
   
   func testSubtract() {
@@ -617,6 +629,22 @@ extension FeedCacheTests {
       XCTAssertEqual(found.0, wanted.0)
       XCTAssertEqual(found.1, wanted.1)
       XCTAssertEqual(found.2!, wanted.2)
+    }
+
+    do {
+      let items = [
+        Item(url: "http://abc.de", ts: Date(), id: 0)
+      ]
+      let ttl = TimeInterval.infinity
+      let url = "http://abc.de"
+      let urls = [url]
+      let wanted: ([Item], [Item]) = {
+        return (items, [])
+      }()
+      let found = FeedCache.subtract(items, from: urls, with: ttl)
+      XCTAssertEqual(found.0, wanted.0)
+      XCTAssertEqual(found.1, wanted.1)
+      XCTAssertNil(found.2)
     }
   }
   

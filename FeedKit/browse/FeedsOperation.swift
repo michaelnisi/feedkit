@@ -135,8 +135,10 @@ final class FeedsOperation: BrowseOperation {
       let cache = self.cache
       let feedsBlock = self.feedsBlock
       
-      let (cached, stale, urlsToRequest) =
-        try FeedsOperation.feeds(in: cache, with: urls, within: ttl.seconds)
+      let items = try cache.feeds(urls)
+      let (cached, stale, urlsToRequest) = FeedCache.subtract(
+        items, from: urls, with: ttl.seconds
+      )
       
       guard !isCancelled else { return done() }
       
@@ -175,27 +177,3 @@ final class FeedsOperation: BrowseOperation {
   }
 }
 
-// MARK: Accessing Cached Feeds
-
-extension FeedsOperation {
-  
-  /// Retrieve feeds with the provided URLs from the cache and return a tuple
-  /// containing cached feeds, stale feeds, and URLs of feeds currently not in
-  /// the cache.
-  ///
-  /// - Parameters:
-  ///   - cache: The cache to query.
-  ///   - urls: An array of feed URLs.
-  ///   - ttl: The limiting time stamp, a moment in the past.
-  ///
-  /// - Throws: May throw SQLite errors via Skull.
-  ///
-  /// - Returns: A tuple of cached feeds, stale feeds, and uncached URLs.
-  static func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
-    ) throws -> ([Feed], [Feed], [String]?) {
-    let items = try cache.feeds(urls)
-    let t = FeedCache.subtract(items, from: urls, with: ttl)
-    return t
-  }
-  
-}

@@ -138,15 +138,6 @@ extension FeedRepositoryTests {
     }
   }
   
-  func testFeedsFromCache() {
-    let (cached, stale, notCached) = try! FeedsOperation.feeds(
-      in: cache, with: urls, within: CacheTTL.long.seconds)
-    
-    XCTAssert(cached.isEmpty)
-    XCTAssert(stale.isEmpty)
-    XCTAssertEqual(notCached!, urls)
-  }
-  
   // TODO: Review this test
   
   func testCachedFeeds() {
