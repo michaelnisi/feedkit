@@ -75,29 +75,28 @@ extension FeedCaching {
     return ts.timeIntervalSinceNow + ttl < 0
   }
   
-  /// Find out which URLs still need to be consulted, after items have been
+  /// Figures out which URLs still need to be consulted, after items have been
   /// received from the cache, respecting a maximal time cached items stay
   /// valid (ttl) before becoming stale.
   ///
-  /// The stale items are also returned, because they might be used to fall back
-  /// on, in case something goes wrong further down the road.
+  /// Stale items are also returned, because they might useful to fall back on,
+  /// in case the resulting request to refresh them fails.
   ///
-  /// Because **entries never become stale**, this function collects and adds them
-  /// to the cached items array. Other item types, like feeds, are checked for
-  /// their age and put in the cached items or, respectively, the stale items
-  /// array.
+  /// Because **entries don’t really get stale**, this function collects and
+  /// adds them to the cached items array. Other item types, like feeds, are
+  /// checked for their age and put in the cached items or, respectively, the
+  /// stale items array.
   ///
-  /// URLs of stale items, as well as URLs not present in the specified items
-  /// array, are added to the URLs array. Finally the latest entry of each feed is
-  /// checked for its age and, if stale, its feed URL is added to the needed
-  /// URLs.
+  /// URLs of stale items, as well as URLs not represented in `items`, get added
+  /// to the URLs array. Finally the latest entry of each feed is checked for
+  /// its age and, if stale, its feed URL is added to the needed URLs.
   ///
   /// - Parameters:
   ///   - items: An array of items from the cache.
   ///   - urls: The originally requested URLs.
   ///   - ttl: The maximal age of cached items before they’re stale.
   ///
-  /// - Returns: A tuple of cached items, stale items, and URLs still to consult.
+  /// - Returns: A tuple of cached items, stale items, and URLs still needed.
   public static func subtract<T: Cachable> (
     _ items: [T], from urls: [String], with ttl: TimeInterval
   ) -> ([T], [T], [String]?) {
@@ -128,9 +127,7 @@ extension FeedCaching {
         return acc
       }
     }
-    
-    // TODO: What’s wrong with filter?
-    
+
     let cachedEntryURLs = urls.filter {
       guard let entries = entriesByURLs[$0], !entries.isEmpty else {
         return false
@@ -138,26 +135,10 @@ extension FeedCaching {
       let entry = latest(entries)
       return !stale(entry.ts!, ttl: ttl)
     }
-    
-//    var cachedEntryURLs = [String]()
-//    for url in urls {
-//      guard let entries = entriesByURLs[url], !entries.isEmpty else {
-//        continue
-//      }
-//      let entry = latest(entries)
-//      if !stale(entry.ts!, ttl: ttl) {
-//        cachedEntryURLs.append(entry.feed)
-//      }
-//    }
-    
-    let found = cachedURLs + cachedEntryURLs
-    os_log("""
-    subtracting: {
-      wanted: %{public}@,
-      found: %{public}@,
-    }
-    """, log: Cache.log, type: .debug, urls, found)
-    let notCachedURLs = Array(Set(urls).subtracting(found))
+
+    let notCachedURLs = Array(Set(urls).subtracting(
+      cachedURLs + cachedEntryURLs
+    ))
     
     if notCachedURLs.isEmpty {
       return (cachedItems, [], nil)
