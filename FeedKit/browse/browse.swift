@@ -100,7 +100,7 @@ extension FeedCaching {
   /// - Returns: A tuple of cached items, stale items, and URLs still to consult.
   public static func subtract<T: Cachable> (
     _ items: [T], from urls: [String], with ttl: TimeInterval
-    ) -> ([T], [T], [String]?) {
+  ) -> ([T], [T], [String]?) {
     guard !items.isEmpty else {
       return ([], [], urls)
     }
@@ -108,11 +108,15 @@ extension FeedCaching {
     var cachedItems = [T]()
     var staleItems = [T]()
     
-    var entries = [Entry]()
+    var entriesByURLs = [FeedURL: [Entry]]()
     
     let cachedURLs = items.reduce([String]()) { acc, item in
       if let entry = item as? Entry {
-        entries.append(entry)
+        let url = entry.feed
+        if entriesByURLs[url] == nil {
+          entriesByURLs[url] = [Entry]()
+        }
+        entriesByURLs[url]?.append(entry)
         cachedItems.append(item)
         return acc
       }
@@ -125,20 +129,35 @@ extension FeedCaching {
       }
     }
     
-    var cachedEntryURLs = [String]()
-    for url in urls {
-      let feed = entries.filter { $0.feed == url }
-      guard !feed.isEmpty else {
-        break
+    // TODO: What’s wrong with filter?
+    
+    let cachedEntryURLs = urls.filter {
+      guard let entries = entriesByURLs[$0], !entries.isEmpty else {
+        return false
       }
-      let entry = latest(feed)
-      if !stale(entry.ts!, ttl: ttl) {
-        cachedEntryURLs.append(entry.feed)
-      }
+      let entry = latest(entries)
+      return !stale(entry.ts!, ttl: ttl)
     }
     
-    let strings = cachedURLs + cachedEntryURLs
-    let notCachedURLs = Array(Set(urls).subtracting(strings))
+//    var cachedEntryURLs = [String]()
+//    for url in urls {
+//      guard let entries = entriesByURLs[url], !entries.isEmpty else {
+//        continue
+//      }
+//      let entry = latest(entries)
+//      if !stale(entry.ts!, ttl: ttl) {
+//        cachedEntryURLs.append(entry.feed)
+//      }
+//    }
+    
+    let found = cachedURLs + cachedEntryURLs
+    os_log("""
+    subtracting: {
+      wanted: %{public}@,
+      found: %{public}@,
+    }
+    """, log: Cache.log, type: .debug, urls, found)
+    let notCachedURLs = Array(Set(urls).subtracting(found))
     
     if notCachedURLs.isEmpty {
       return (cachedItems, [], nil)
