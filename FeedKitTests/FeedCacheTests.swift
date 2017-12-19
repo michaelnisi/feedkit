@@ -592,7 +592,32 @@ extension FeedCacheTests {
 extension FeedCacheTests {
   
   func testSubtract() {
-    XCTFail("should be tested")
+    do {
+      let items = [Entry]()
+      let ttl = TimeInterval.infinity
+      let urls = [String]()
+      let wanted: ([Entry], [Entry], [String]?) = {
+        return ([], [], nil)
+      }()
+      let found = FeedCache.subtract(items, from: urls, with: ttl)
+      XCTAssertEqual(found.0, wanted.0)
+      XCTAssertEqual(found.1, wanted.1)
+      XCTAssertNil(found.2)
+    }
+    
+    do {
+      let items = [Entry]()
+      let ttl = TimeInterval.infinity
+      let url = "http://abc.de"
+      let urls = [url]
+      let wanted: ([Entry], [Entry], [String]) = {
+        return ([], [], urls)
+      }()
+      let found = FeedCache.subtract(items, from: urls, with: ttl)
+      XCTAssertEqual(found.0, wanted.0)
+      XCTAssertEqual(found.1, wanted.1)
+      XCTAssertEqual(found.2!, wanted.2)
+    }
   }
   
   func testSliceElements() {

@@ -14,7 +14,12 @@ struct Cache {
   static var log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 }
 
-// MARK: - Caching
+/// Cachable objects, currently feeds and entries, must adopt this protocol,
+/// which requires a globally unique resource locator (url) and a timestamp (ts).
+public protocol Cachable {
+  var ts: Date? { get }
+  var url: FeedURL { get }
+}
 
 /// Housekeeping for local caching.
 public protocol Caching {

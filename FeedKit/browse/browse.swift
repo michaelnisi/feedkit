@@ -97,11 +97,11 @@ extension FeedCaching {
   ///   - ttl: The maximal age of cached items before they’re stale.
   ///
   /// - Returns: A tuple of cached items, stale items, and URLs still needed.
-  public static func subtract<T: Cachable> (
+  static func subtract<T: Cachable> (
     _ items: [T], from urls: [String], with ttl: TimeInterval
   ) -> ([T], [T], [String]?) {
     guard !items.isEmpty else {
-      return ([], [], urls)
+      return ([], [], urls.isEmpty ? nil : urls)
     }
     
     var cachedItems = [T]()

@@ -85,13 +85,6 @@ extension FeedKitError: Equatable {
   }
 }
 
-/// Cachable objects, currently feeds and entries, must adopt this protocol,
-/// which requires a globally unique resource locator (url) and a timestamp (ts).
-public protocol Cachable {
-  var ts: Date? { get }
-  var url: String { get }
-}
-
 public protocol Redirectable {
   var url: String { get }
   var originalURL: String? { get }
