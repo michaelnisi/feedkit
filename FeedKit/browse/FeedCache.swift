@@ -10,8 +10,6 @@ import Foundation
 import Skull
 import os.log
 
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
-
 public final class FeedCache: LocalCache {
   
   // TODO: Replace noSuggestions Dictionary with NSCache
@@ -200,8 +198,8 @@ extension FeedCache: FeedCaching {
   /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
   ///
   /// - Throws: Might throw database errors.
-  public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
-    -> ([Entry], [EntryLocator]) {
+  public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
+  ) throws -> ([Entry], [EntryLocator]) {
     let optimized = EntryLocator.reduce(locators)
       
     let guids = optimized.flatMap { $0.guid }
@@ -213,26 +211,37 @@ extension FeedCache: FeedCaching {
       return (resolved, [])
     }
 
-    let resguids = resolved.map { $0.guid }
-    
+    let resolvedGUIDs = resolved.map { $0.guid }
+      
     let unresolved = optimized.filter {
       guard let guid = $0.guid else {
         return true 
       }
-      return !resguids.contains(guid)
+      return !resolvedGUIDs.contains(guid)
     }
     
     let items = try entries(within: unresolved) + resolved
     let unresolvedURLs = unresolved.map { $0.url }
     
-    let (cached, stale, needed) =
-      FeedCache.subtract(items: items, from: unresolvedURLs, with: ttl)
+    // TODO: Review subtract function
+    let (cached, stale, needed) = FeedCache.subtract(
+      items, from: unresolvedURLs, with: ttl
+    )
+    
+    os_log("""
+    subtracted: {
+      cached: %{public}@,
+      stale: %{public}@,
+      needed: %{public}@
+    }
+    """, log: Cache.log, type: .debug, cached, stale, needed ?? "none")
+    
     assert(stale.isEmpty, "entries cannot be stale")
     
     let neededLocators: [EntryLocator] = optimized.filter {
       let urls = needed ?? []
       if let guid = $0.guid {
-        return !resguids.contains(guid) || urls.contains($0.url)
+        return !resolvedGUIDs.contains(guid) || urls.contains($0.url)
       }
       return urls.contains($0.url)
     }
@@ -292,7 +301,7 @@ extension FeedCache: FeedCaching {
           guard code == 19 else {
             break
           }
-          os_log("inconsistent database: %@", log: log, type: .error, message)
+          os_log("inconsistent database: %@", log: Cache.log, type: .error, message)
           // TODO: Handle Skull: 19: UNIQUE constraint failed: feed.itunes_guid
           break
         default:
@@ -318,7 +327,7 @@ extension FeedCache: FeedCaching {
         let feedID = try self.feedID(for: url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
-        os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
+        os_log("feed not cached: %{public}@", log: Cache.log,  type: .debug, url)
       }
     }
     
@@ -543,7 +552,7 @@ extension FeedCache: SearchCaching {
             switch error {
             case FeedKitError.feedNotCached(let urls):
               if #available(iOS 10.0, *) {
-                os_log("feed not cached: %{public}@", log: log,  type: .error, urls)
+                os_log("feed not cached: %{public}@", log: Cache.log,  type: .error, urls)
               }
               return acc
             default: throw error

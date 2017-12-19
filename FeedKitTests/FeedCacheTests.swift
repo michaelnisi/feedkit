@@ -591,6 +591,10 @@ extension FeedCacheTests {
 
 extension FeedCacheTests {
   
+  func testSubtract() {
+    XCTFail("should be tested")
+  }
+  
   func testSliceElements() {
     let fixtures = [
       (FeedCache.slice(elements: [1, 2, 3], with: 1), [[1], [2], [3]]),

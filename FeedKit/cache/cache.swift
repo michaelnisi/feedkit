@@ -10,6 +10,23 @@ import Foundation
 import Skull
 import os.log
 
+struct Cache {
+  static var log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
+}
+
+// MARK: - Caching
+
+/// Housekeeping for local caching.
+public protocol Caching {
+  
+  /// Flushes any dispensable resources to save memory.
+  func flush() throws
+  
+  /// Closes any underlying database files.
+  func closeDatabase()
+  
+}
+
 /// Enumerate default time-to-live intervals used for caching.
 ///
 /// - None: Zero seconds.
@@ -56,8 +73,8 @@ public class LocalCache: Caching {
         do {
           _db = try open()
         } catch {
-          os_log("could not open database: %{public}@", type: .error,
-                 error as CVarArg)
+          os_log("could not open database: %{public}@",
+                 log: Cache.log, type: .error, error as CVarArg)
           fatalError(String(describing: error))
         }
         return _db!

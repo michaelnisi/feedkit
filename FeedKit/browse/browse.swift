@@ -16,6 +16,139 @@ struct Browse {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
 }
 
+// MARK: - FeedCaching
+
+/// A persistent cache for feeds and entries.
+public protocol FeedCaching {
+  
+  func update(feeds: [Feed]) throws
+  func feeds(_ urls: [String]) throws -> [Feed]
+  
+  func update(entries: [Entry]) throws
+  func entries(within locators: [EntryLocator]) throws -> [Entry]
+  func entries(_ guids: [String]) throws -> [Entry]
+  
+  func remove(_ urls: [String]) throws
+  
+  /// Integrates iTunes metadata from `subscriptions`.
+  func integrateMetadata(from subscriptions: [Subscription]) throws
+  
+  /// Queries the local `cache` for entries and returns a tuple of cached
+  /// entries and unfullfilled entry `locators`, if any.
+  ///
+  /// - Parameters:
+  ///   - locators: The selection of entries to fetch.
+  ///   - ttl: The maximum age of entries to use.
+  ///
+  /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
+  ///
+  /// - Throws: Might throw database errors.
+  func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
+  ) throws -> ([Entry], [EntryLocator])
+  
+}
+
+extension FeedCaching {
+  
+  /// Find and return the newest item in the specified array of cachable items.
+  /// Attention: this intentionally crashes if you pass an empty items array or
+  /// if one of the items doesn't bear a timestamp.
+  ///
+  /// - Parameter items: The cachable items to iterate and compare.
+  ///
+  /// - Returns: The item with the latest timestamp.
+  static func latest<T: Cachable> (_ items: [T]) -> T {
+    return items.sorted {
+      return $0.ts!.compare($1.ts! as Date) == .orderedDescending
+      }.first!
+  }
+  
+  /// Returns `true` if the specified timestamp is older than the specified time
+  /// to live.
+  ///
+  /// - Parameters:
+  ///   - ts: The timestamp to check if it's older than the specified ttl.
+  ///   - ttl: The maximal age to allow.
+  ///
+  /// - Returns: `true` if the timestamp is older than the maximal age.
+  static func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
+    return ts.timeIntervalSinceNow + ttl < 0
+  }
+  
+  /// Find out which URLs still need to be consulted, after items have been
+  /// received from the cache, respecting a maximal time cached items stay
+  /// valid (ttl) before becoming stale.
+  ///
+  /// The stale items are also returned, because they might be used to fall back
+  /// on, in case something goes wrong further down the road.
+  ///
+  /// Because **entries never become stale**, this function collects and adds them
+  /// to the cached items array. Other item types, like feeds, are checked for
+  /// their age and put in the cached items or, respectively, the stale items
+  /// array.
+  ///
+  /// URLs of stale items, as well as URLs not present in the specified items
+  /// array, are added to the URLs array. Finally the latest entry of each feed is
+  /// checked for its age and, if stale, its feed URL is added to the needed
+  /// URLs.
+  ///
+  /// - Parameters:
+  ///   - items: An array of items from the cache.
+  ///   - urls: The originally requested URLs.
+  ///   - ttl: The maximal age of cached items before they’re stale.
+  ///
+  /// - Returns: A tuple of cached items, stale items, and URLs still to consult.
+  public static func subtract<T: Cachable> (
+    _ items: [T], from urls: [String], with ttl: TimeInterval
+    ) -> ([T], [T], [String]?) {
+    guard !items.isEmpty else {
+      return ([], [], urls)
+    }
+    
+    var cachedItems = [T]()
+    var staleItems = [T]()
+    
+    var entries = [Entry]()
+    
+    let cachedURLs = items.reduce([String]()) { acc, item in
+      if let entry = item as? Entry {
+        entries.append(entry)
+        cachedItems.append(item)
+        return acc
+      }
+      if !stale(item.ts!, ttl: ttl) {
+        cachedItems.append(item)
+        return acc + [item.url]
+      } else {
+        staleItems.append(item)
+        return acc
+      }
+    }
+    
+    var cachedEntryURLs = [String]()
+    for url in urls {
+      let feed = entries.filter { $0.feed == url }
+      guard !feed.isEmpty else {
+        break
+      }
+      let entry = latest(feed)
+      if !stale(entry.ts!, ttl: ttl) {
+        cachedEntryURLs.append(entry.feed)
+      }
+    }
+    
+    let strings = cachedURLs + cachedEntryURLs
+    let notCachedURLs = Array(Set(urls).subtracting(strings))
+    
+    if notCachedURLs.isEmpty {
+      return (cachedItems, [], nil)
+    } else {
+      return (cachedItems, staleItems, notCachedURLs)
+    }
+  }
+  
+}
+
 /// The `FeedRepository` provides feeds and entries.
 public final class FeedRepository: RemoteRepository {
   

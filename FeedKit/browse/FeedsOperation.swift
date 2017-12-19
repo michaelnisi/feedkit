@@ -194,7 +194,7 @@ extension FeedsOperation {
   static func feeds(in cache: FeedCaching, with urls: [String], within ttl: TimeInterval
     ) throws -> ([Feed], [Feed], [String]?) {
     let items = try cache.feeds(urls)
-    let t = FeedCache.subtract(items: items, from: urls, with: ttl)
+    let t = FeedCache.subtract(items, from: urls, with: ttl)
     return t
   }
   
