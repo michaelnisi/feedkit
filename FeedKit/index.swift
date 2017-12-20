@@ -1,5 +1,5 @@
 //
-//  index.swift - API and common internal functions
+//  index.swift - Core types
 //  FeedKit
 //
 //  Created by Michael Nisi on 17.07.14.
@@ -7,9 +7,6 @@
 //
 
 import Foundation
-import Ola
-import Patron
-import os.log
 
 /// Wraps a value into an `NSObject`.
 class ValueObject<T>: NSObject {

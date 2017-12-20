@@ -1,5 +1,5 @@
 //
-//  images.swift
+//  images.swift - Load images
 //  Podest
 //
 //  Created by Michael on 3/19/17.
