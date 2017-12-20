@@ -10,6 +10,7 @@
 		4C0549D51A8BDD5700104B3E /* browse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0549D41A8BDD5700104B3E /* browse.swift */; };
 		4C3485B21977C2BD008A6B53 /* index.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3485B11977C2BD008A6B53 /* index.swift */; };
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
+		4C394B7F1FEA35DE004394EC /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C394B7E1FEA35DE004394EC /* FeedRepository.swift */; };
 		4C405D111FE63BAC0031C4DB /* BrowseOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */; };
 		4C405D131FE63DF80031C4DB /* FeedsOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D121FE63DF80031C4DB /* FeedsOperation.swift */; };
 		4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D151FE77E960031C4DB /* FeedKitOperation.swift */; };
@@ -76,6 +77,7 @@
 		4C3485A61977C237008A6B53 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4C3485B11977C2BD008A6B53 /* index.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = index.swift; sourceTree = "<group>"; };
 		4C372BF81A08133F00D22A9A /* cache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = cache.swift; sourceTree = "<group>"; };
+		4C394B7E1FEA35DE004394EC /* FeedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedRepository.swift; sourceTree = "<group>"; };
 		4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseOperation.swift; sourceTree = "<group>"; };
 		4C405D121FE63DF80031C4DB /* FeedsOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedsOperation.swift; sourceTree = "<group>"; };
 		4C405D151FE77E960031C4DB /* FeedKitOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedKitOperation.swift; sourceTree = "<group>"; };
@@ -252,6 +254,7 @@
 				4CA3D31D1A89E78900CA58E9 /* serialize.swift */,
 				4EB7EE481F5E8F9F00F418D5 /* FeedCache.swift */,
 				4C6D1D5D1FE8F8810023EB17 /* RemoteRepository.swift */,
+				4C394B7E1FEA35DE004394EC /* FeedRepository.swift */,
 				4C9970091FE42AB400E0FA30 /* EntriesOperation.swift */,
 				4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */,
 				4C405D121FE63DF80031C4DB /* FeedsOperation.swift */,
@@ -422,6 +425,7 @@
 				4C9970001FE389F800E0FA30 /* UserSQL.swift in Sources */,
 				4CCC8C991C0598F100120D07 /* search.swift in Sources */,
 				4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */,
+				4C394B7F1FEA35DE004394EC /* FeedRepository.swift in Sources */,
 				4C6D1D5E1FE8F8810023EB17 /* RemoteRepository.swift in Sources */,
 				4C74A6E41F06BC6500951796 /* queue.swift in Sources */,
 				4C9970081FE3BA1000E0FA30 /* PrepareUpdateOperation.swift in Sources */,

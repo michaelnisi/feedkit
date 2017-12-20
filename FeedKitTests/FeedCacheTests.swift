@@ -622,7 +622,7 @@ extension FeedCacheTests {
       let ttl = TimeInterval.infinity
       let url = "http://abc.de"
       let urls = [url]
-      let wanted: ([Entry], [Entry], [String]) = {
+      let wanted: ([Entry], [Entry], [FeedURL]) = {
         return ([], [], urls)
       }()
       let found = FeedCache.subtract(items, from: urls, with: ttl)
@@ -646,6 +646,26 @@ extension FeedCacheTests {
       XCTAssertEqual(found.1, wanted.1)
       XCTAssertNil(found.2)
     }
+    
+    do {
+      let ttl = 3600.0
+      let ts = Date.init(timeIntervalSinceNow: -ttl)
+      let items = [
+        Item(url: "http://abc.de", ts: ts, id: 0)
+      ]
+      let url = "http://abc.de"
+      let urls = [url]
+      let wanted: ([Item], [Item], [FeedURL]) = {
+        return ([], items, [url])
+      }()
+      let found = FeedCache.subtract(items, from: urls, with: ttl)
+      XCTAssertEqual(found.0, wanted.0)
+      XCTAssertEqual(found.1, wanted.1)
+      XCTAssertEqual(found.2!, wanted.2)
+    }
+    
+    // This function is way more complex and needs deeper testing, of course.
+    // But which function doesn’t, right?
   }
   
   func testSliceElements() {
