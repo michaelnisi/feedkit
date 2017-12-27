@@ -181,7 +181,8 @@ public final class ImageRepository: Images {
   }
   
   /// Loads an image to represent `item` into `imageView`, scaling the image
-  /// to match the image view’s bounds.
+  /// to match the image view’s bounds. For larger sizes a smaller image is
+  /// preloaded, which gets replaced when the large image has been loaded.
   ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
@@ -189,8 +190,8 @@ public final class ImageRepository: Images {
   public func loadImage(
     for item: Imaginable,
     into imageView: UIImageView,
-    quality: ImageQuality? = nil) {
-
+    quality: ImageQuality? = nil
+  ) {
     os_log("image for: %{public}@", log: log,  type: .debug,
            String(describing: item))
     
