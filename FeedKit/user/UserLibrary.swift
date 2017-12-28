@@ -35,6 +35,7 @@ public final class UserLibrary: EntryQueueHost {
   
   /// A synchronized list of subscribed URLs for quick in-memory access.
   fileprivate var subscriptions = Set<FeedURL>()
+  
 }
 
 // MARK: - Subscribing
@@ -370,12 +371,11 @@ extension UserLibrary: Queueing {
         return
       }
       
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-      }
-      
       DispatchQueue.global().async {
         dequeueCompletionBlock?(nil)
+        DispatchQueue.main.async {
+          NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+        }
       }
     }
   }

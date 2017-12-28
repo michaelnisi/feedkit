@@ -79,16 +79,12 @@ class EnqueueOperation: Operation, Providing {
         cb(error)
       }
     }
-    
-    DispatchQueue.main.async {
-      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-      os_log("posted", log: User.log, type: .debug)
-    }
-    
-    guard let cb = enqueueCompletionBlock else { return }
+
     DispatchQueue.global().async {
-      cb(nil)
-      os_log("dispatched", log: User.log, type: .debug)
+      self.enqueueCompletionBlock?(nil)
+      DispatchQueue.main.async {
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      }
     }
   }
   

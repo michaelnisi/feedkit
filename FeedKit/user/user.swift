@@ -21,6 +21,20 @@ struct User {
   static let queue = OperationQueue()
 }
 
+// MARK: - Notifications
+
+public extension Notification.Name {
+  
+  /// Posted after the users‘s subscriptions have been changed.
+  public static var FKSubscriptionsDidChange =
+    NSNotification.Name("FeedKitSubscriptionsDidChange")
+  
+  /// Posted after the user‘s queue has been changed.
+  public static var FKQueueDidChange =
+    NSNotification.Name("FeedKitQueueDidChange")
+  
+}
+
 // MARK: - Queueing
 
 /// An item that can be in the user’s queue. At the moment these are just

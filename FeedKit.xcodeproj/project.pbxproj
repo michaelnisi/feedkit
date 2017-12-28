@@ -18,7 +18,7 @@
 		4C6D1D571FE790640023EB17 /* EnqueueOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D1D561FE790640023EB17 /* EnqueueOperation.swift */; };
 		4C6D1D5B1FE8250B0023EB17 /* UserLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D1D5A1FE8250B0023EB17 /* UserLibrary.swift */; };
 		4C6D1D5E1FE8F8810023EB17 /* RemoteRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6D1D5D1FE8F8810023EB17 /* RemoteRepository.swift */; };
-		4C74A6E41F06BC6500951796 /* queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E31F06BC6500951796 /* queue.swift */; };
+		4C74A6E41F06BC6500951796 /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E31F06BC6500951796 /* Queue.swift */; };
 		4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C74A6E51F07953300951796 /* UserCacheTests.swift */; };
 		4C9970001FE389F800E0FA30 /* UserSQL.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C996FFF1FE389F800E0FA30 /* UserSQL.swift */; };
 		4C9970021FE3993900E0FA30 /* FetchSubscribedFeedsOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9970011FE3993900E0FA30 /* FetchSubscribedFeedsOperation.swift */; };
@@ -87,7 +87,7 @@
 		4C6D1D561FE790640023EB17 /* EnqueueOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnqueueOperation.swift; sourceTree = "<group>"; };
 		4C6D1D5A1FE8250B0023EB17 /* UserLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserLibrary.swift; sourceTree = "<group>"; };
 		4C6D1D5D1FE8F8810023EB17 /* RemoteRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRepository.swift; sourceTree = "<group>"; };
-		4C74A6E31F06BC6500951796 /* queue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = queue.swift; sourceTree = "<group>"; };
+		4C74A6E31F06BC6500951796 /* Queue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Queue.swift; sourceTree = "<group>"; };
 		4C74A6E51F07953300951796 /* UserCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserCacheTests.swift; sourceTree = "<group>"; };
 		4C7B0F971C1DC20E0085A88B /* search.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = search.json; sourceTree = "<group>"; };
 		4C962EAF19E85CB100F33D9D /* common.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = common.swift; sourceTree = "<group>"; };
@@ -242,7 +242,7 @@
 				4CF53BB91C5DF35700B85CA1 /* user.swift */,
 				4C6D1D5A1FE8250B0023EB17 /* UserLibrary.swift */,
 				4E2AEB641F59666D004BC34A /* UserCache.swift */,
-				4C74A6E31F06BC6500951796 /* queue.swift */,
+				4C74A6E31F06BC6500951796 /* Queue.swift */,
 				4C9970011FE3993900E0FA30 /* FetchSubscribedFeedsOperation.swift */,
 				4C9970031FE39AE800E0FA30 /* FetchQueueOperation.swift */,
 				4C9970071FE3BA1000E0FA30 /* PrepareUpdateOperation.swift */,
@@ -450,7 +450,7 @@
 				4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */,
 				4C394B7F1FEA35DE004394EC /* FeedRepository.swift in Sources */,
 				4C6D1D5E1FE8F8810023EB17 /* RemoteRepository.swift in Sources */,
-				4C74A6E41F06BC6500951796 /* queue.swift in Sources */,
+				4C74A6E41F06BC6500951796 /* Queue.swift in Sources */,
 				4C9970081FE3BA1000E0FA30 /* PrepareUpdateOperation.swift in Sources */,
 				4C6D1D571FE790640023EB17 /* EnqueueOperation.swift in Sources */,
 				4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */,

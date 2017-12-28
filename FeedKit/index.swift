@@ -16,7 +16,6 @@ class ValueObject<T>: NSObject {
   }
 }
 
-/// Adds this framework‘s notification names.
 public extension Notification.Name {
 
   /// Posted when a remote request has been started.
@@ -26,15 +25,7 @@ public extension Notification.Name {
   /// Posted when a remote response has been received.
   static var FKRemoteResponse =
     NSNotification.Name("FeedKitRemoteResponse")
-
-  /// Posted after the users‘s subscriptions have been changed.
-  public static var FKSubscriptionsDidChange =
-    NSNotification.Name("FeedKitSubscriptionsDidChange")
-
-  /// Posted after the user‘s queue has been changed.
-  public static var FKQueueDidChange =
-    NSNotification.Name("FeedKitQueueDidChange")
-
+  
 }
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
