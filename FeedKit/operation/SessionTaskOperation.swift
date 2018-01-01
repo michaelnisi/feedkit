@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
@@ -31,8 +32,15 @@ class SessionTaskOperation: FeedKitOperation {
     }
   }
   
+  // TODO: Review
   override func cancel() {
-    task?.cancel()
-    super.cancel()
+    os_log("** cancel %{public}@", type: .debug, self)
+    let current = OperationQueue.current!
+    let q = current.underlyingQueue!
+    q.async {
+      self.task?.cancel()
+      super.cancel()
+    }
+
   }
 }

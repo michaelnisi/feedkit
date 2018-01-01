@@ -37,11 +37,11 @@ final class FetchQueueOperation: FeedKitOperation {
         cb(er)
       }
     }
+
+    isFinished = true
     
     entriesBlock = nil
     fetchQueueCompletionBlock = nil
-    
-    isFinished = true
     
     op?.cancel()
     op = nil
