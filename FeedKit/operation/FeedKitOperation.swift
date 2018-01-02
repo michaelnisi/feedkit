@@ -29,16 +29,15 @@ protocol ProvidingEntries: Providing {
 class FeedKitOperation: Operation {
   
   /// Queue for synchronized property access.
-  private let access = DispatchQueue(label: "ink.codes.feedkit.\(UUID().uuidString)")
+  private let access = DispatchQueue(
+    label: "ink.codes.feedkit.\(UUID().uuidString)")
   
   fileprivate var _executing: Bool = false
-  
-  // MARK: Operation
   
   override final var isExecuting: Bool {
     get {
       return access.sync {
-        return self._executing
+        return _executing
       }
     }
 
@@ -52,7 +51,7 @@ class FeedKitOperation: Operation {
       willChangeValue(forKey: "isExecuting")
       
       access.sync {
-        self._executing = newValue
+        _executing = newValue
       }
       
       didChangeValue(forKey: "isExecuting")
@@ -69,10 +68,13 @@ class FeedKitOperation: Operation {
     }
     
     set {
-      guard newValue != _finished else {
-        // Just to be extra annoying.
-        fatalError("FeedKitOperation: already finished")
+      access.sync {
+        guard newValue != _finished else {
+          // Just to be extra annoying.
+          fatalError("FeedKitOperation: already finished")
+        }
       }
+
       willChangeValue(forKey: "isFinished")
       
       access.sync {
