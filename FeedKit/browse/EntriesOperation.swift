@@ -64,6 +64,10 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     self._locators = locators
     super.init(cache: cache, svc: svc)
   }
+  
+  deinit {
+    os_log("** deinit", type: .debug)
+  }
 
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
   func done(_ error: Error? = nil) {

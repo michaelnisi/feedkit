@@ -27,20 +27,16 @@ class SessionTaskOperation: FeedKitOperation {
   }
   
   final var task: URLSessionTask? {
-    didSet {
+    willSet {
+      guard newValue != nil else {
+        return
+      }
       post(name: Notification.Name.FKRemoteRequest)
     }
   }
   
-  // TODO: Review
-  override func cancel() {
-    os_log("** cancel %{public}@", type: .debug, self)
-    let current = OperationQueue.current!
-    let q = current.underlyingQueue!
-    q.async {
-      self.task?.cancel()
-      super.cancel()
-    }
-
+  deinit {
+    task?.cancel()
   }
+  
 }

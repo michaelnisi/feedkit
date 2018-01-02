@@ -8,6 +8,7 @@
 
 import Foundation
 import MangerKit
+import os.log
 
 /// Although, I despise inheritance, this is an abstract `Operation` to be
 /// extended by operations of the browse category. It provides common
@@ -27,7 +28,8 @@ class BrowseOperation: SessionTaskOperation {
     self.cache = cache
     self.svc = svc
     
-    // Important to do this at init, underlying queue is changing.
     self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
+    os_log("** target: %{public}@", type: .debug, self.target)
   }
+
 }
