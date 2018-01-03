@@ -35,7 +35,6 @@ public final class UserLibrary: EntryQueueHost {
   
   /// A synchronized list of subscribed URLs for quick in-memory access.
   fileprivate var subscriptions = Set<FeedURL>()
-  
 }
 
 // MARK: - Subscribing

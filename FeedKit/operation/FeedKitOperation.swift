@@ -28,21 +28,21 @@ protocol ProvidingEntries: Providing {
 /// An abstract super class to be extended by concurrent FeedKit operations.
 class FeedKitOperation: Operation {
   
-  /// Queue for synchronized property access.
-  private let access = DispatchQueue(
-    label: "ink.codes.feedkit.\(UUID().uuidString)")
+  /// An internal serial queue for synchronized property access.
+  private let serialQueue = DispatchQueue(
+    label: "ink.codes.feedkit.operation.\(UUID().uuidString)")
   
   fileprivate var _executing: Bool = false
   
   override final var isExecuting: Bool {
     get {
-      return access.sync {
+      return serialQueue.sync {
         return _executing
       }
     }
 
     set {
-      access.sync {
+      serialQueue.sync {
         guard newValue != _executing else {
           fatalError("FeedKitOperation: already executing")
         }
@@ -50,7 +50,7 @@ class FeedKitOperation: Operation {
 
       willChangeValue(forKey: "isExecuting")
       
-      access.sync {
+      serialQueue.sync {
         _executing = newValue
       }
       
@@ -62,22 +62,21 @@ class FeedKitOperation: Operation {
   
   override final var isFinished: Bool {
     get {
-      return access.sync {
+      return serialQueue.sync {
         return _finished
       }
     }
     
     set {
-      access.sync {
+      serialQueue.sync {
         guard newValue != _finished else {
-          // Just to be extra annoying.
           fatalError("FeedKitOperation: already finished")
         }
       }
 
       willChangeValue(forKey: "isFinished")
       
-      access.sync {
+      serialQueue.sync {
         _finished = newValue
       }
       
