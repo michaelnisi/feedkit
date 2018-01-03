@@ -26,15 +26,31 @@ public final class UserLibrary: EntryQueueHost {
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
-    
+
     synchronize()
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
   internal var queue = Queue<Entry>()
   
+  
+  fileprivate var  _subscriptions = Set<FeedURL>()
   /// A synchronized list of subscribed URLs for quick in-memory access.
-  fileprivate var subscriptions = Set<FeedURL>()
+  fileprivate var subscriptions:Set<FeedURL> {
+    get {
+      return serialQueue.sync {
+        return _subscriptions
+      }
+    }
+    set {
+      serialQueue.sync {
+        _subscriptions = newValue
+      }
+    }
+  }
+  
+  /// Internal serial queue.
+  fileprivate let serialQueue = DispatchQueue(label: "ink.codes.feedkit.user.library")
 }
 
 // MARK: - Subscribing
@@ -125,14 +141,18 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize() {
+    // Using a copy here.
+    var subscriptions = self.subscriptions
+    
     DispatchQueue.global(qos: .background).async {
       do {
         let subscribed = try self.cache.subscribed()
         
         let urls = Set(subscribed.map { $0.url })
-        let unsubscribed = self.subscriptions.subtracting(urls)
-        self.subscriptions.subtract(unsubscribed)
-        self.subscriptions.formUnion(urls)
+        let unsubscribed = subscriptions.subtracting(urls)
+        subscriptions.subtract(unsubscribed)
+        subscriptions.formUnion(urls)
+        self.subscriptions = subscriptions
       } catch {
         os_log("failed to reload subscriptions", log: User.log, type: .error,
                error as CVarArg)
