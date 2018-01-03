@@ -151,6 +151,18 @@ extension Feed : CustomStringConvertible {
   }
 }
 
+extension Feed: CustomDebugStringConvertible {
+  public var debugDescription: String {
+    return """
+    Feed(
+      title: \(title),
+      url: \(url),
+      summary: \(String(describing: summary))
+    )
+    """
+  }
+}
+
 extension Feed: Equatable {
   static public func ==(lhs: Feed, rhs: Feed) -> Bool {
     return lhs.url == rhs.url
