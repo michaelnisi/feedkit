@@ -141,7 +141,7 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize() {
-    // Using a copy here.
+    // Copy...
     var subscriptions = self.subscriptions
     
     DispatchQueue.global(qos: .background).async {
@@ -152,6 +152,7 @@ extension UserLibrary: Subscribing {
         let unsubscribed = subscriptions.subtracting(urls)
         subscriptions.subtract(unsubscribed)
         subscriptions.formUnion(urls)
+        // ...and replace.
         self.subscriptions = subscriptions
       } catch {
         os_log("failed to reload subscriptions", log: User.log, type: .error,
