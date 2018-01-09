@@ -6,6 +6,8 @@
 //  Copyright © 2017 Michael Nisi. All rights reserved.
 //
 
+// TODO: Don’t submit callbacks on the main thread
+
 import Foundation
 import MangerKit
 import Ola

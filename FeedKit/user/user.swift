@@ -263,7 +263,7 @@ public protocol Subscribing: Updating {
   
   /// Asynchronously reloads the in-memory cache of locally cached subscription
   /// URLs, in the background, returning right away.
-  func synchronize()
+  func synchronize(completionBlock: ((Error?) -> Void)?)
   
 }
 

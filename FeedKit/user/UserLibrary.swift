@@ -140,7 +140,7 @@ extension UserLibrary: Subscribing {
     return subscriptions.contains(url)
   }
   
-  public func synchronize() {
+  public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
     // Copy...
     var subscriptions = self.subscriptions
     
@@ -154,9 +154,11 @@ extension UserLibrary: Subscribing {
         subscriptions.formUnion(urls)
         // ...and replace.
         self.subscriptions = subscriptions
+        completionBlock?(nil)
       } catch {
         os_log("failed to reload subscriptions", log: User.log, type: .error,
                error as CVarArg)
+        completionBlock?(error)
       }
     }
   }
