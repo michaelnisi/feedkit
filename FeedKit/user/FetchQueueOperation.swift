@@ -163,10 +163,7 @@ final class FetchQueueOperation: FeedKitOperation {
              String(reflecting: entries))
       
       DispatchQueue.global().async { [weak self] in
-        guard let cb = self?.entriesBlock else {
-          return
-        }
-        cb(entries, accError)
+        self?.entriesBlock?(entries, accError)
       }
     }
   }
