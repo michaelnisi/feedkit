@@ -198,14 +198,20 @@ extension FeedRepositoryTests {
     var count = 0
     
     func go() {
+      // The Talk Show is redirected, I keep it, because it makes for a good
+      // test.
       let extra = try! freshFeed(named: "thetalkshow")
+      let x = urls + [extra.url]
+      dump(x)
       repo.feeds(urls + [extra.url], feedsBlock: { er, feeds in
+        let found = feeds.map { $0.url }
+        dump(found)
         count += feeds.count
       }) { er in
         exp.fulfill()
       }
     }
-    
+
     repo.feeds(urls, feedsBlock: { er, feeds in
       XCTAssertNil(er)
       let found = feeds.map { $0.url }
@@ -225,7 +231,6 @@ extension FeedRepositoryTests {
       XCTAssertEqual(count, wanted.count * 2 + 1)
     }
   }
-  
   
   func testFeedsAllCached() {
     let exp = self.expectation(description: "feeds")

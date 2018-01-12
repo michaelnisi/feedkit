@@ -109,6 +109,7 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
   }
   
   if urlString == nil {
+    os_log("falling back on LARGE image", log: log)
     if let entry = item as? Entry {
       urlString = entry.feedImage
     }
@@ -116,6 +117,7 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
   }
   
   guard let string = urlString, let url = URL(string: string) else {
+    os_log("no image URL", log: log, type: .error)
     return nil
   }
   

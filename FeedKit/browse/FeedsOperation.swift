@@ -95,27 +95,36 @@ final class FeedsOperation: BrowseOperation {
         
         assert(errors.isEmpty, "unhandled errors: \(errors)")
         
-        let r = Entry.redirects(in: feeds)
-        if !r.isEmpty {
-          let urls = r.map { $0.originalURL! }
-          try cache.remove(urls)
+        var freshURLs = Set(urls)
+        
+        // Handling HTTP Redirects
+        
+        let redirects = Entry.redirects(in: feeds)
+        var redirectedURLs = [String]()
+        for r in redirects {
+          guard let originalURL = r.originalURL else {
+            fatalError("original URL required")
+          }
+          freshURLs.remove(originalURL)
+          freshURLs.insert(r.url)
+          redirectedURLs.append(originalURL)
         }
         
+        if !redirectedURLs.isEmpty {
+          try cache.remove(redirectedURLs)
+        }
+        
+        // Updating and rereading to produce merged results.
+        
         try cache.update(feeds: feeds)
-        
-        // TODO: Review
-        //
-        // This is risky: What if the cache modifies objects during the process
-        // of storing them? Shouldn’t we better use those cached objects as our
-        // result? This way, we’d also be able to put all foreign keys right on
-        // our objects. The extra round trip should be neglectable.
-        
-        guard let cb = feedsBlock, !feeds.isEmpty else {
+        let cachedFeeds = try cache.feeds(Array(freshURLs))
+ 
+        guard let cb = feedsBlock, !cachedFeeds.isEmpty else {
           return self.done()
         }
         
         target.async() {
-          cb(nil, feeds)
+          cb(nil, cachedFeeds)
         }
         self.done()
       } catch let er {
