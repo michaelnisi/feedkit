@@ -149,8 +149,8 @@ public final class ImageRepository: Images {
   
   /// Synchronously loads an image for the specificied item and size.
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
-    os_log("image for: %{public}@", log: log,  type: .debug,
-           String(describing: item))
+    os_log("image for: %{public}@, %{public}@", log: log,  type: .debug,
+           String(describing: item), String(describing: item.iTunes))
     
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
@@ -192,10 +192,13 @@ public final class ImageRepository: Images {
     into imageView: UIImageView,
     quality: ImageQuality? = nil
   ) {
-    os_log("image for: %{public}@", log: log,  type: .debug,
-           String(describing: item))
-    
     let size = imageView.frame.size
+    
+    os_log("image for: %@, with: %@, at: %@",
+           log: log, type: .debug,
+           String(describing: item),
+           String(describing: item.iTunes),
+           size as CVarArg)
     
     guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {
       os_log("no image: %{public}@", log: log,  type: .error,

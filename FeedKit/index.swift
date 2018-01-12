@@ -107,6 +107,28 @@ extension ITunesItem: Equatable {
   }
 }
 
+extension ITunesItem: CustomStringConvertible {
+  public var description: String {
+    return "ITunesItem: { \(iTunesID) }"
+  }
+}
+
+extension ITunesItem: CustomDebugStringConvertible {
+  public var debugDescription: String {
+    get {
+      return """
+      ITunesItem: {
+        iTunesID: \(iTunesID),
+        img100: \(img100),
+        img30: \(img30),
+        img60: \(img60),
+        img600: \(img600)
+      }
+      """
+    }
+  }
+}
+
 public protocol Imaginable {
   var iTunes: ITunesItem? { get }
   var image: String? { get }
