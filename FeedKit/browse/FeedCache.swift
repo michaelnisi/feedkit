@@ -11,29 +11,29 @@ import Skull
 import os.log
 
 public final class FeedCache: LocalCache {
-  
+
   // TODO: Replace noSuggestions Dictionary with NSCache
   fileprivate var noSuggestions = [String : Date]()
-  
+
   // TODO: Replace noSearch Dictionary with NSCache
   fileprivate var noSearch = [String : Date]()
-  
+
   fileprivate var feedIDsCache = NSCache<NSString, ValueObject<FeedID>>()
-  
+
   fileprivate func cachedFeedID(for url: String) -> FeedID? {
     return feedIDsCache.object(forKey: url as NSString)?.value
   }
-  
+
   fileprivate func cache(feedID: FeedID, for url: String) -> FeedID {
     let obj = ValueObject<FeedID>(feedID)
     feedIDsCache.setObject(obj, forKey: url as NSString)
     return feedID
   }
-  
+
   fileprivate func removeFeedID(for url: String) {
     feedIDsCache.removeObject(forKey: url as NSString)
   }
-  
+
   /// Returns the local feed identifier, its rowid in the database feed table,
   /// for the given URL. Retrieved identifiers are being cached in memory, for
   /// faster access, although this should probably be measured for prove.
@@ -41,12 +41,12 @@ public final class FeedCache: LocalCache {
     if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
     }
-    
+
     var er: Error?
     var id: FeedID?
     let sql = SQLFormatter.SQLToSelectFeedIDFromURLView(url)
     let fmt = self.sqlFormatter
-    
+
     try db.query(sql) { error, row in
       guard error == nil, let r = row else {
         er = error ?? FeedKitError.unexpectedDatabaseRow
@@ -60,36 +60,36 @@ public final class FeedCache: LocalCache {
       }
       return 0
     }
-    
+
     guard er == nil else { throw er! }
     guard id != nil else { throw FeedKitError.feedNotCached(urls: [url]) }
-    
+
     return cache(feedID: id!, for: url)
   }
-  
+
 }
 
 // MARK: - Internal query functions for inlining
 
 extension FeedCache {
-  
+
   private static func isMainThread() -> Bool {
     guard ProcessInfo.processInfo.processName != "xctest" else {
       return false
     }
     return Thread.isMainThread
   }
-  
+
   /// Queries the database for feeds. If no feeds were found, instead of an
   /// empty array, `nil` is returned.
   static fileprivate func queryFeeds(
     _ db: Skull, with sql: String, using formatter: SQLFormatter
     ) throws -> [Feed]? {
     assert(!FeedCache.isMainThread())
-    
+
     var er: Error?
     var feeds = [Feed]()
-    
+
     try db.query(sql) { error, row -> Int in
       guard error == nil else {
         er = error
@@ -106,24 +106,24 @@ extension FeedCache {
       }
       return 0
     }
-    
+
     if let error = er {
       throw error
     }
-    
+
     return feeds.isEmpty ? nil : feeds
   }
-  
+
   /// Queries the database for entries. If no entries were found, instead of an
   /// empty array, `nil` is returned.
   fileprivate static func queryEntries(
     _ db: Skull, with sql: String, using formatter: SQLFormatter
     ) throws -> [Entry]? {
     assert(!FeedCache.isMainThread())
-    
+
     var er: Error?
     var entries = [Entry]()
-    
+
     try db.query(sql) { error, row -> Int in
       guard error == nil else {
         er = error
@@ -140,24 +140,24 @@ extension FeedCache {
       }
       return 0
     }
-    
+
     if let error = er {
       throw error
     }
-    
+
     return entries.isEmpty ? nil : entries
   }
-  
+
   /// Queries the database for suggestions. If no entries were found, instead of
   /// an empty array, `nil` is returned.
   fileprivate static func querySuggestions(
     _ db: Skull, with sql: String, using formatter: SQLFormatter
     ) throws -> [Suggestion]? {
     assert(!FeedCache.isMainThread())
-    
+
     var er: Error?
     var sugs = [Suggestion]()
-    
+
     try db.query(sql) { error, row -> Int in
       guard error == nil else {
         er = error
@@ -174,20 +174,20 @@ extension FeedCache {
       }
       return 0
     }
-    
+
     if let error = er {
       throw error
     }
-    
+
     return sugs.isEmpty ? nil : sugs
   }
-  
+
 }
 
 // MARK: - FeedCaching
 
 extension FeedCache: FeedCaching {
-  
+
   /// Queries the local `cache` for entries and returns a tuple of cached
   /// entries and unfullfilled entry `locators`, if any.
   ///
@@ -201,10 +201,10 @@ extension FeedCache: FeedCaching {
   public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
   ) throws -> ([Entry], [EntryLocator]) {
     let optimized = EntryLocator.reduce(locators)
-      
+
     let guids = optimized.flatMap { $0.guid }
     let resolved = try entries(guids)
-      
+
     // If all locators were specific, having guids, and all have been resolved,
     // we are done.
     if guids.count == optimized.count && guids.count == resolved.count {
@@ -212,22 +212,22 @@ extension FeedCache: FeedCaching {
     }
 
     let resolvedGUIDs = resolved.map { $0.guid }
-      
+
     let unresolved = optimized.filter {
       guard let guid = $0.guid else {
-        return true 
+        return true
       }
       return !resolvedGUIDs.contains(guid)
     }
-    
+
     let items = try entries(within: unresolved) + resolved
     let unresolvedURLs = unresolved.map { $0.url }
-    
+
     // TODO: Review subtract function
     let (cached, stale, needed) = FeedCache.subtract(
       items, from: unresolvedURLs, with: ttl
     )
-    
+
     os_log("""
     subtracted: {
       cached: %{public}@,
@@ -235,9 +235,9 @@ extension FeedCache: FeedCaching {
       needed: %{public}@
     }
     """, log: Cache.log, type: .debug, cached, stale, needed ?? "none")
-    
+
     assert(stale.isEmpty, "entries cannot be stale")
-    
+
     let neededLocators: [EntryLocator] = optimized.filter {
       let urls = needed ?? []
       if let guid = $0.guid {
@@ -245,11 +245,11 @@ extension FeedCache: FeedCaching {
       }
       return urls.contains($0.url)
     }
-    
+
     guard neededLocators != optimized else {
       return ([], neededLocators)
     }
-    
+
     return (cached, neededLocators)
   }
 
@@ -261,27 +261,21 @@ extension FeedCache: FeedCaching {
         }
         return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes, where: s.url)]
       }.joined(separator: "\n")
-      
+
       try self.db.exec(sql)
     }
   }
-  
-  /// Updates feeds in the cache, while new feeds are inserted.
-  ///
-  /// Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
-  /// removed. These doublets may occure, after the feed URL has changed while
-  /// the iTunes GUID stayed the same. Just inserting such a feed would result
-  /// in a unique constraint failure in the database.
-  ///
-  /// - Parameter feeds: The feeds to insert or update.
-  ///
-  /// - Throws: Skull errors originating from SQLite.
-  public func update(feeds: [Feed]) throws {
+
+  /// Updates feeds using a dynamic SQL formatting function.
+  public func update(
+    feeds: [Feed],
+    using sqlToUpdateFeeds: @escaping (Feed, FeedID) -> String
+  ) throws {
     return try queue.sync {
       let sql = try feeds.reduce([String]()) { acc, feed in
         do {
           let id = try feedID(for: feed.url)
-          return acc + [sqlFormatter.SQLToUpdate(feed: feed, with: id)]
+          return acc + [sqlToUpdateFeeds(feed, id)]
         } catch FeedKitError.feedNotCached {
           guard let guid = feed.iTunes?.iTunesID else {
             return acc + [sqlFormatter.SQLToInsert(feed: feed)]
@@ -292,7 +286,7 @@ extension FeedCache: FeedCaching {
           ]
         }
       }.joined(separator: "\n")
-      
+
       do {
         try db.exec(sql)
       } catch {
@@ -311,7 +305,25 @@ extension FeedCache: FeedCaching {
       }
     }
   }
-  
+
+  /// Updates feeds in the cache, while new feeds are inserted.
+  ///
+  /// Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
+  /// removed. These doublets may occure, after the feed URL has changed while
+  /// the iTunes GUID stayed the same. Just inserting such a feed would result
+  /// in a unique constraint failure in the database.
+  ///
+  /// - Parameters:
+  ///   - feeds: The feeds to insert or update.
+  ///
+  /// - Throws: Skull errors originating from SQLite.
+  public func update(feeds: [Feed]) throws {
+    let fmt = sqlFormatter
+    try update(feeds: feeds) { feed, feedID in
+      return fmt.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
+    }
+  }
+
   /// Retrieve feeds from the cache identified by their URLs.
   ///
   /// - Parameter urls: An array of feed URL strings. Passing empty `urls` is
@@ -320,7 +332,7 @@ extension FeedCache: FeedCaching {
   /// - Returns: An array of feeds currently in the cache.
   func feedIDs(matching urls: [String]) throws -> [String : FeedID]? {
     assert(!urls.isEmpty)
-    
+
     var result = [String : FeedID]()
     try urls.forEach { url in
       do {
@@ -330,14 +342,14 @@ extension FeedCache: FeedCaching {
         os_log("feed not cached: %{public}@", log: Cache.log,  type: .debug, url)
       }
     }
-    
+
     guard !result.isEmpty else  {
       return nil
     }
-    
+
     return result
   }
-  
+
   /// Returns feeds for `urls` or an empty array.
   public func feeds(_ urls: [String]) throws -> [Feed] {
     return try queue.sync {
@@ -353,12 +365,12 @@ extension FeedCache: FeedCaching {
       return feeds ?? []
     }
   }
-  
+
   func hasURL(_ url: String) -> Bool {
     do { let _ = try feedID(for: url) } catch { return false }
     return true
   }
-  
+
   /// Updates entries of cached feeds, adding new ones.
   ///
   /// - Parameter entries: An array of entries to be cached.
@@ -373,7 +385,7 @@ extension FeedCache: FeedCaching {
 
     try queue.sync {
       var unidentified = [String]()
-      
+
       let sql = entries.reduce([String]()) { acc, entry in
         var feedID: FeedID?
         do {
@@ -388,17 +400,17 @@ extension FeedCache: FeedCaching {
         let formatter = self.sqlFormatter
         return acc + [formatter.SQLToInsert(entry: entry, for: feedID!)]
       }.joined(separator: "\n")
-      
+
       if sql != "\n" {
         try self.db.exec(sql)
       }
-      
+
       if !unidentified.isEmpty {
         throw FeedKitError.feedNotCached(urls: unidentified)
       }
     }
   }
-  
+
   /// Retrieve entries within the specified locators.
   ///
   /// - Parameter locators: An array of time intervals between now and the past.
@@ -408,14 +420,14 @@ extension FeedCache: FeedCaching {
     guard !locators.isEmpty else {
       return []
     }
-    
+
     return try queue.sync {
       let urls = locators.map { $0.url }
-      
+
       guard let feedIDsByURLs = try self.feedIDs(matching: urls) else {
         return []
       }
-      
+
       let intervals = locators.reduce([(FeedID, Date)]()) { acc, interval in
         let url = interval.url
         let since = interval.since
@@ -425,20 +437,20 @@ extension FeedCache: FeedCaching {
           return acc
         }
       }
-      
+
       let formatter = self.sqlFormatter
       guard let sql = formatter.SQLToSelectEntries(within: intervals) else {
         return []
       }
-      
+
       let entries = try FeedCache.queryEntries(self.db, with: sql, using: formatter)
-      
+
       return entries ?? []
     }
   }
-  
+
   // TODO: Cache entryIDs too (by guids)
-  
+
   /// Selects entries with matching guids.
   ///
   /// - Parameter guids: An array of entry identifiers.
@@ -449,7 +461,7 @@ extension FeedCache: FeedCaching {
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
       let chunks = FeedCache.slice(elements: guids, with: 512)
-      
+
       return try chunks.reduce([Entry]()) { acc, guids in
         guard let sql = SQLFormatter.SQLToSelectEntries(by: guids) else {
           return acc
@@ -463,7 +475,7 @@ extension FeedCache: FeedCaching {
       }
     }
   }
-  
+
   /// Remove feeds and, respectively, their associated entries.
   ///
   /// - Parameter urls: The URL strings of the feeds to remove.
@@ -478,7 +490,7 @@ extension FeedCache: FeedCaching {
       urls.forEach { self.removeFeedID(for: $0) }
     }
   }
-  
+
 }
 
 // MARK: - SearchCaching
@@ -486,9 +498,9 @@ extension FeedCache: FeedCaching {
 // TODO: Use prepared statements in SearchCaching
 
 extension FeedCache: SearchCaching {
-  
+
   // TODO: Review subcached function
-  
+
   /// Scan dictionary for a term and its lexicographical predecessors.
   ///
   /// The specified dictionary, containing timestamps by terms, is scanned
@@ -513,8 +525,8 @@ extension FeedCache: SearchCaching {
       return nil
     }
   }
-  
-  /// Update feeds and associate them with the specified search term, which is
+
+  /// Update feeds associating them with the specified search term, which is
   /// also added to the suggestions table of the database.
   ///
   /// If feeds is not empty, we got at least one suggestion for the specified
@@ -531,16 +543,19 @@ extension FeedCache: SearchCaching {
     if feeds.isEmpty {
       noSearch[term] = Date()
     } else {
-      try update(feeds: feeds)
+      let fmt = sqlFormatter
+      try update(feeds: feeds) { feed, feedID in
+        return fmt.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
+      }
       noSearch[term] = nil
       if let (predecessor, _) = FeedCache.subcached(term, dict: noSuggestions) {
         noSuggestions[predecessor] = nil
       }
     }
-    
+
     // To stay synchronized with the remote state, before inserting feed
     // identifiers, we delete searches for this term wholesale.
-    
+
     try queue.sync {
       do {
         let delete = SQLFormatter.SQLToDeleteSearch(for: term)
@@ -560,22 +575,22 @@ extension FeedCache: SearchCaching {
           }
           return acc + [SQLFormatter.SQLToInsert(feedID: feedID, for: term)]
           }.joined(separator: "\n")
-        
+
         let sql = [
           "BEGIN;",
           delete,
           insert,
           "COMMIT;"
           ].joined(separator: "\n")
-        
+
         try self.db.exec(sql)
       }
     }
-    
+
   }
-  
+
   // TODO: Review feeds(for term), rowid issues
-  
+
   /// Return distinct feeds cached for the specified term, the number of feeds
   /// may be limited.
   ///
@@ -597,24 +612,24 @@ extension FeedCache: SearchCaching {
           return []
         }
       }
-      
+
       let sql = SQLFormatter.SQLToSelectFeedsByTerm(term, limit: limit)
-      
+
       return try FeedCache.queryFeeds(self.db, with: sql, using: self.sqlFormatter)
     }
   }
-  
+
   /// Returns feeds matching `term` using full-text-search.
   public func feeds(matching term: String, limit: Int) throws -> [Feed]? {
     let db = self.db
     let fmt = self.sqlFormatter
-    
+
     return try queue.sync { [unowned db, unowned fmt] in
       let sql = SQLFormatter.SQLToSelectFeedsMatchingTerm(term, limit: limit)
       return try FeedCache.queryFeeds(db, with: sql, using: fmt)
     }
   }
-  
+
   /// Run a full text search on all cached entries for the specified term.
   ///
   /// - Parameters:
@@ -627,13 +642,13 @@ extension FeedCache: SearchCaching {
   public func entries(matching term: String, limit: Int) throws -> [Entry]? {
     let db = self.db
     let fmt = self.sqlFormatter
-    
+
     return try queue.sync { [unowned db, unowned fmt] in
       let sql = SQLFormatter.SQLToSelectEntries(matching: term, limit: limit)
       return try FeedCache.queryEntries(db, with: sql, using: fmt)
     }
   }
-  
+
   /// Update suggestions for a given `term`. You might pass an empty array to
   /// signal that the remote server didn‘t supply any suggestions for this term.
   /// This state would than also be cache, so that the server doesn‘t has to be
@@ -646,11 +661,11 @@ extension FeedCache: SearchCaching {
         try self.db.exec(sql)
         return
       }
-      
+
       if let (cachedTerm, _) = FeedCache.subcached(term, dict: noSuggestions) {
         noSuggestions[cachedTerm] = nil
       }
-      
+
       let sql = [
         "BEGIN;",
         suggestions.map {
@@ -658,11 +673,11 @@ extension FeedCache: SearchCaching {
           }.joined(separator: "\n"),
         "COMMIT;"
         ].joined(separator: "\n")
-      
+
       try db.exec(sql)
     }
   }
-  
+
   /// Retrieve cached suggestions matching a term from the database.
   ///
   /// - Parameters:

@@ -27,6 +27,22 @@ import os.log
 /// identifiers is longer than 1000, we have to slice it down, for example, with
 /// `Cache.slice(elements:, with:)`.
 final class SQLFormatter {
+  
+  /// Feeds can enter from their original host or from iTunes.
+  enum FeedOrigin {
+    case iTunes, hosted
+    
+    /// Table columns that should not be set to `NULL` if associated input
+    /// property is `nil`.
+    var columns: [String] {
+      switch self {
+      case .hosted:
+        return ["img100", "img30", "img60", "img600", "itunes_guid", "updated"]
+      case .iTunes:
+        return ["summary", "link"]
+      }
+    }
+  }
 
   public static var shared = SQLFormatter()
 
@@ -104,7 +120,8 @@ final class SQLFormatter {
     return value != "NULL" ? "\(name) = \(value)" : nil
   }
 
-  func SQLToUpdate(feed: Feed, with feedID: FeedID) -> String {
+  private func SQLToUpdate(
+    feed: Feed, with feedID: FeedID, kept: [String]) -> String {
     let author = SQLString(from: feed.author)
     let guid = SQLString(from: feed.iTunes?.iTunesID)
     let img = SQLString(from: feed.image)
@@ -115,15 +132,15 @@ final class SQLFormatter {
     let link = SQLString(from: feed.link)
     let summary = SQLString(from: feed.summary)
     let title = SQLString(from: feed.title)
-    
+
     if feed.updated == nil || feed.updated == Date(timeIntervalSince1970: 0) {
       os_log("** warning: overriding date: %{public}@", type: .debug,
              String(reflecting: feed))
     }
-    
+
     let updated = SQLString(from: feed.updated)
     let url = SQLString(from: feed.url)
-    
+
     let props = [
       ("author", author),
       ("itunes_guid", guid),
@@ -139,23 +156,22 @@ final class SQLFormatter {
       ("url", url)
     ]
 
-    // If the feed doesn’t come from iTunes, it has no GUID and doesn’t contain
-    // URLs of the prescaled images. Also, it might provide no last updated
-    // timestamp. We don’t want to explicitly override these with 'NULL'.
-    let k = ["itunes_guid", "img100", "img30", "img60", "img600", "updated"]
-
     let vars = props.reduce([String]()) { acc, prop in
       let (name, value) = prop
-      let keep = k.contains(name)
+      let keep = kept.contains(name)
       guard let col = column(name: name, value: value, keep: keep) else {
         return acc
       }
       return acc + [col]
     }.joined(separator: ", ")
-    
+
     let sql = "UPDATE feed SET \(vars) WHERE feed_id = \(feedID.rowid);"
 
     return sql
+  }
+  
+  func SQLToUpdate(feed: Feed, with feedID: FeedID, from type: FeedOrigin) -> String {
+    return SQLToUpdate(feed: feed, with: feedID, kept: type.columns)
   }
 
   func SQLToInsert(entry: Entry, for feedID: FeedID) -> String {
@@ -219,7 +235,7 @@ final class SQLFormatter {
     let ts = date(from: row["ts"] as? String)
     let uid = try feedID(from: row)
     let updated = date(from: row["updated"] as? String)
-    
+
     guard let url = row["url"] as? String else {
       throw FeedKitError.invalidFeed(reason: "missing url")
     }

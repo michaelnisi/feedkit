@@ -20,19 +20,19 @@ struct Browse {
 
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
-  
+
   func update(feeds: [Feed]) throws
   func feeds(_ urls: [String]) throws -> [Feed]
-  
+
   func update(entries: [Entry]) throws
   func entries(within locators: [EntryLocator]) throws -> [Entry]
   func entries(_ guids: [String]) throws -> [Entry]
-  
+
   func remove(_ urls: [String]) throws
-  
+
   /// Integrates iTunes metadata from `subscriptions`.
   func integrateMetadata(from subscriptions: [Subscription]) throws
-  
+
   /// Queries the local `cache` for entries and returns a tuple of cached
   /// entries and unfullfilled entry `locators`, if any.
   ///
@@ -45,11 +45,11 @@ public protocol FeedCaching {
   /// - Throws: Might throw database errors.
   func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
   ) throws -> ([Entry], [EntryLocator])
-  
+
 }
 
 extension FeedCaching {
-  
+
   /// Find and return the newest item in the specified array of cachable items.
   /// Attention: this intentionally crashes if you pass an empty items array or
   /// if one of the items doesn't bear a timestamp.
@@ -62,7 +62,7 @@ extension FeedCaching {
       return $0.ts!.compare($1.ts! as Date) == .orderedDescending
       }.first!
   }
-  
+
   /// Returns `true` if the specified timestamp is older than the specified time
   /// to live.
   ///
@@ -74,7 +74,7 @@ extension FeedCaching {
   static func stale(_ ts: Date, ttl: TimeInterval) -> Bool {
     return ts.timeIntervalSinceNow + ttl < 0
   }
-  
+
   /// Figures out which URLs still need to be consulted, after items have been
   /// received from the cache, respecting a maximal time cached items stay
   /// valid (ttl) before becoming stale.
@@ -103,12 +103,12 @@ extension FeedCaching {
     guard !items.isEmpty else {
       return ([], [], urls.isEmpty ? nil : urls)
     }
-    
+
     var cachedItems = [T]()
     var staleItems = [T]()
-    
+
     var entriesByURLs = [FeedURL: [Entry]]()
-    
+
     let cachedURLs = items.reduce([String]()) { acc, item in
       if let entry = item as? Entry {
         let url = entry.feed
@@ -139,14 +139,14 @@ extension FeedCaching {
     let notCachedURLs = Array(Set(urls).subtracting(
       cachedURLs + cachedEntryURLs
     ))
-    
+
     if notCachedURLs.isEmpty {
       return (cachedItems, [], nil)
     } else {
       return (cachedItems, staleItems, notCachedURLs)
     }
   }
-  
+
 }
 
 // MARK: - Browsing
@@ -155,10 +155,10 @@ extension FeedCaching {
 /// aggregation from sources with diverse run times in mind, result blocks might
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
-  
+
   // TODO: Review
   func makeEntriesOperation() -> Operation
-  
+
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
   /// callback block might get called multiple times. Each iteration providing
   /// groups of feeds as they become available. The order of these feeds and
@@ -181,14 +181,14 @@ public protocol Browsing {
     feedsBlock: @escaping (Error?, [Feed]) -> Void,
     feedsCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
-  
+
+
   @discardableResult func entries(
     _ locators: [EntryLocator],
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   /// Fetches entries for the given locators, aggregating local and remote data.
   ///
   /// Locators provide a feed URL, a moment in the past, and an optional guid.
@@ -230,13 +230,13 @@ public protocol Browsing {
     entriesBlock: @escaping (Error?, [Entry]) -> Void,
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
-  
+
   /// Integrates metadata from `subscriptions`.
   func integrateMetadata(
     from subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)?
   ) -> Void
-  
+
 }
 
 

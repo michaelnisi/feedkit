@@ -19,27 +19,27 @@ func randomString(length: Int) -> String {
   let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   let max = UInt32(chars.count)
   var str = ""
-  
+
   for _ in 0..<length {
     let offset = Int(arc4random_uniform(max))
     let index = chars.index(chars.startIndex, offsetBy: offset)
     str += String(chars[index])
   }
-  
+
   return str
 }
 
 func freshManger(string: String = "http://localhost:8384") -> Manger {
   let url = URL(string: string)!
-  
+
   let conf = URLSessionConfiguration.default
   conf.httpShouldUsePipelining = true
   conf.requestCachePolicy = .reloadIgnoringLocalCacheData
   let session = URLSession(configuration: conf)
   let target = DispatchQueue.main
-  
+
   let client = Patron(URL: url, session: session, target: target)
-  
+
   return Manger(client: client)
 }
 
@@ -77,7 +77,7 @@ func freshCache(_ aClass: AnyClass!) -> FeedCache {
 func freshUserCache(_ aClass: AnyClass!) -> UserCache {
   let name = "ink.codes.feedkit.test.user.db"
   let url = cacheURL(name)
-  
+
   let fm = FileManager.default
   let exists = fm.fileExists(atPath: url.path)
   if exists {
@@ -92,12 +92,12 @@ func freshUserCache(_ aClass: AnyClass!) -> UserCache {
 func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
   let cache = freshCache(aClass)
   let svc = freshManger(string: "http://localhost:8384")
-  
+
   let queue = OperationQueue()
   queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.browsing")
-  
+
   let probe = Ola(host: "http://localhost:8384", queue: queue.underlyingQueue!)!
-  
+
   return FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
 }
 
@@ -144,17 +144,17 @@ func freshEntry(named name: String) throws -> Entry {
     case "thetalkshow":
       let feed = "http://daringfireball.net/thetalkshow/rss"
       let link = "http://daringfireball.net/thetalkshow/2015/10/17/ep-133"
-      
+
       let enclosure = Enclosure(
         url: "http://tracking.feedpress.it/link/1068/1894544/228745910-thetalkshow-133a.mp3",
         length: 110282964,
         type: EnclosureType(withString: "audio/mpeg")
       )
-      
+
       let updated = Date(timeIntervalSince1970: 1445110501000 / 1000)
-      
+
       let guid = "c596b134310d499b13651fed64597de2c9931179"
-      
+
       return Entry(
         author: "Daring Fireball / John Gruber",
         duration: 9185,
