@@ -78,12 +78,20 @@ final class SearchOperation: SearchRepoOperation {
         
         try self.cache.update(feeds: feeds, for: self.term)
         
+        let now = Date()
+        
         guard
           !feeds.isEmpty,
           let cb = self.perFindGroupBlock,
+          // Rereading from the cache takes below 3 milliseconds.
           let cached = try self.cache.feeds(for: self.term, limit: 25) else {
-            return
+          return
         }
+        
+        let diff = Date().timeIntervalSince(now)
+
+        os_log("rereading from the cache took: %{public}@",
+               log: Search.log, type: .debug, String(describing: diff))
         
         let finds = cached.map { Find.foundFeed($0) }
         self.target.sync() {

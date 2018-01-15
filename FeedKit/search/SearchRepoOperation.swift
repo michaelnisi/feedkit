@@ -16,6 +16,8 @@ class SearchRepoOperation: SessionTaskOperation {
   let originalTerm: String
   let svc: FanboyService
   let term: String
+  
+  // TODO: Remove, use Dispatch.global()
   let target: DispatchQueue
   
   /// Returns an initialized search repo operation.
@@ -27,12 +29,11 @@ class SearchRepoOperation: SessionTaskOperation {
   ///   string.
   init(cache: SearchCaching, svc: FanboyService, term: String) {
     self.cache = cache
-    self.originalTerm = term
     self.svc = svc
     
-    let trimmed = replaceWhitespaces(in: term.lowercased(), with: " ")
+    self.originalTerm = term
+    self.term = replaceWhitespaces(in: term.lowercased(), with: " ")
     
-    self.term = trimmed
     self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
   }
   
