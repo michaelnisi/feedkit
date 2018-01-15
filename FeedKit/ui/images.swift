@@ -225,9 +225,15 @@ public final class ImageRepository: Images {
     
     if let smallURL = urlToPreload(from: item, for: size) {
       load(url: smallURL, into: imageView) { [weak imageView] res, _ in
-        imageView?.image = res.value
-        load(url: url, into: imageView) { [weak imageView] res, _ in
+        DispatchQueue.main.async {
           imageView?.image = res.value
+        }
+        DispatchQueue.main.async {
+          load(url: url, into: imageView) { [weak imageView] res, _ in
+            DispatchQueue.main.async {
+              imageView?.image = res.value
+            }
+          }
         }
       }
     } else {
