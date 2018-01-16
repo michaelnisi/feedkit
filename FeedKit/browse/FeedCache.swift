@@ -613,7 +613,7 @@ extension FeedCache: SearchCaching {
         }
       }
 
-      let sql = SQLFormatter.SQLToSelectFeedsByTerm(term, limit: limit)
+      let sql = SQLFormatter.SQLToSelectFeeds(for: term, limit: limit)
 
       return try FeedCache.queryFeeds(self.db, with: sql, using: self.sqlFormatter)
     }
@@ -625,7 +625,7 @@ extension FeedCache: SearchCaching {
     let fmt = self.sqlFormatter
 
     return try queue.sync { [unowned db, unowned fmt] in
-      let sql = SQLFormatter.SQLToSelectFeedsMatchingTerm(term, limit: limit)
+      let sql = SQLFormatter.SQLToSelectFeeds(matching: term, limit: limit)
       return try FeedCache.queryFeeds(db, with: sql, using: fmt)
     }
   }

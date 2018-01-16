@@ -449,7 +449,7 @@ extension SQLFormatter {
     return Suggestion(term: term, ts: ts)
   }
 
-  static func SQLToSelectFeedsByTerm(_ term: String, limit: Int) -> String {
+  static func SQLToSelectFeeds(for term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: term)
     let sql = "SELECT DISTINCT * FROM search_view WHERE searchid IN (" +
       "SELECT rowid FROM search_fts " +
@@ -458,24 +458,25 @@ extension SQLFormatter {
     return sql
   }
 
-  static func SQLToSelectFeedsMatchingTerm(_ term: String, limit: Int) -> String {
+  static func SQLToSelectFeeds(matching term: String, limit: Int) -> String {
     let s = SQLFormatter.SQLString(from: "\(term)*")
-    let sql = "SELECT DISTINCT * FROM feed WHERE feed_id IN (" +
-      "SELECT rowid FROM feed_fts " +
-      "WHERE feed_fts MATCH \(s)) " +
-      "ORDER BY ts DESC " +
-      "LIMIT \(limit);"
-    return sql
+    return """
+    SELECT DISTINCT * FROM feed WHERE feed_id IN (
+      SELECT rowid FROM feed_fts
+      WHERE feed_fts MATCH \(s)
+    ) ORDER BY ts DESC LIMIT \(limit);
+    """
   }
 
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
+    // Limiting search to title for shorter latency.
     let s = SQLFormatter.SQLString(from: "\(term)*")
-    let sql = "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (" +
-      "SELECT rowid FROM entry_fts " +
-      "WHERE entry_fts MATCH \(s)) " +
-      "ORDER BY updated DESC " +
-      "LIMIT \(limit);"
-    return sql
+    return """
+    SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
+      SELECT rowid FROM entry_fts
+      WHERE title MATCH \(s)
+    ) ORDER BY updated DESC LIMIT \(limit);
+    """
   }
 
   static func SQLToDeleteSearch(for term: String) -> String {

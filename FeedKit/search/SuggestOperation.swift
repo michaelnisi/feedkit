@@ -7,63 +7,7 @@
 //
 
 import Foundation
-
-private func recentSearchesForTerm(
-  _ term: String,
-  fromCache cache: SearchCaching,
-  except exceptions: [Find]
-  ) throws -> [Find]? {
-  if let feeds = try cache.feeds(for: term, limit: 2) {
-    return feeds.reduce([Find]()) { acc, feed in
-      let find = Find.recentSearch(feed)
-      if exceptions.contains(find) {
-        return acc
-      } else {
-        return acc + [find]
-      }
-    }
-  }
-  return nil
-}
-
-private func suggestedFeedsForTerm(
-  _ term: String,
-  fromCache cache: SearchCaching,
-  except exceptions: [Find]
-  ) throws -> [Find]? {
-  let limit = 5
-  if let feeds = try cache.feeds(matching: term, limit: limit + 2) {
-    return feeds.reduce([Find]()) { acc, feed in
-      let find = Find.suggestedFeed(feed)
-      guard !exceptions.contains(find), acc.count < limit else {
-        return acc
-      }
-      return acc + [find]
-    }
-  }
-  return nil
-}
-
-private func suggestedEntriesForTerm(
-  _ term: String,
-  fromCache cache: SearchCaching,
-  except exceptions: [Find]
-  ) throws -> [Find]? {
-  if let entries = try cache.entries(matching: term, limit: 5) {
-    return entries.reduce([Find]()) { acc, entry in
-      let find = Find.suggestedEntry(entry)
-      guard !exceptions.contains(find) else {
-        return acc
-      }
-      return acc + [find]
-    }
-  }
-  return nil
-}
-
-func suggestionsFromTerms(_ terms: [String]) -> [Suggestion] {
-  return terms.map { Suggestion(term: $0, ts: nil) }
-}
+import os.log
 
 // An operation to get search suggestions.
 final class SuggestOperation: SearchRepoOperation {
@@ -84,24 +28,25 @@ final class SuggestOperation: SearchRepoOperation {
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ?  FeedKitError.cancelledByUser : error
     if let cb = suggestCompletionBlock {
-      target.sync {
-        cb(er)
-      }
+      cb(er)
     }
     perFindGroupBlock = nil
     suggestCompletionBlock = nil
     isFinished = true
   }
   
-  func dispatch(_ error: FeedKitError?, finds: [Find]) {
-    target.sync { [unowned self] in
-      guard !self.isCancelled else { return }
-      guard let cb = self.perFindGroupBlock else { return }
-      cb(error as Error?, finds.filter { !self.dispatched.contains($0) })
-      self.dispatched.formUnion(finds)
+  private func dispatch(_ error: FeedKitError?, finds: [Find]) {
+    guard !self.isCancelled, let cb = perFindGroupBlock else {
+      return
     }
+    cb(error as Error?, finds.filter { !dispatched.contains($0) })
+    dispatched.formUnion(finds)
   }
   
+  static func suggestions(from terms: [String]) -> [Suggestion] {
+    return terms.map { Suggestion(term: $0, ts: nil) }
+  }
+
   fileprivate func request() throws {
     guard reachable else {
       return done(FeedKitError.offline)
@@ -136,7 +81,7 @@ final class SuggestOperation: SearchRepoOperation {
       }
       
       do {
-        let suggestions = suggestionsFromTerms(payload!)
+        let suggestions = SuggestOperation.suggestions(from: payload!)
         try self.cache.update(suggestions: suggestions, for: self.term)
         guard !suggestions.isEmpty else { return }
         let finds = suggestions.reduce([Find]()) { acc, sug in
@@ -157,7 +102,62 @@ final class SuggestOperation: SearchRepoOperation {
     }
   }
   
+  private static func recentSearchesForTerm(
+    _ term: String,
+    fromCache cache: SearchCaching,
+    except exceptions: [Find]
+    ) throws -> [Find]? {
+    if let feeds = try cache.feeds(for: term, limit: 2) {
+      return feeds.reduce([Find]()) { acc, feed in
+        let find = Find.recentSearch(feed)
+        if exceptions.contains(find) {
+          return acc
+        } else {
+          return acc + [find]
+        }
+      }
+    }
+    return nil
+  }
+  
+  private static func suggestedFeedsForTerm(
+    _ term: String,
+    fromCache cache: SearchCaching,
+    except exceptions: [Find]
+    ) throws -> [Find]? {
+    let limit = 5
+    if let feeds = try cache.feeds(matching: term, limit: limit + 2) {
+      return feeds.reduce([Find]()) { acc, feed in
+        let find = Find.suggestedFeed(feed)
+        guard !exceptions.contains(find), acc.count < limit else {
+          return acc
+        }
+        return acc + [find]
+      }
+    }
+    return nil
+  }
+  
+  private static func suggestedEntriesForTerm(
+    _ term: String,
+    fromCache cache: SearchCaching,
+    except exceptions: [Find]
+    ) throws -> [Find]? {
+    let cached = try cache.entries(matching: term, limit: 5)
+    if let entries = cached {
+      return entries.reduce([Find]()) { acc, entry in
+        let find = Find.suggestedEntry(entry)
+        guard !exceptions.contains(find) else {
+          return acc
+        }
+        return acc + [find]
+      }
+    }
+    return nil
+  }
+  
   fileprivate func resume() {
+    let a = Date()
     var error: Error?
     defer {
       if requestRequired {
@@ -167,9 +167,9 @@ final class SuggestOperation: SearchRepoOperation {
       }
     }
     let funs = [
-      recentSearchesForTerm,
-      suggestedFeedsForTerm,
-      suggestedEntriesForTerm
+      SuggestOperation.recentSearchesForTerm,
+      SuggestOperation.suggestedFeedsForTerm,
+      SuggestOperation.suggestedEntriesForTerm
     ]
     for f in funs {
       if isCancelled {
@@ -184,6 +184,8 @@ final class SuggestOperation: SearchRepoOperation {
         return error = er
       }
     }
+    os_log("** resume took: %@", log: Search.log, type: .debug,
+           String(describing: a.timeIntervalSinceNow))
   }
   
   override func start() {
@@ -200,9 +202,14 @@ final class SuggestOperation: SearchRepoOperation {
       let original = Find.suggestedTerm(sug)
       dispatch(nil, finds: [original]) // resulting in five suggested terms
       
+      let a = Date()
+      
       guard let cached = try cache.suggestions(for: term, limit: 4) else {
         return resume()
       }
+      
+      os_log("** start took: %@", log: Search.log, type: .debug,
+             String(describing: a.timeIntervalSinceNow))
       
       if isCancelled {
         return done()

@@ -25,31 +25,6 @@ final class SerializeTests: XCTestCase {
     }
   }
 
-  func testTrimString() {
-    func f(_ s: String) -> String {
-      return replaceWhitespaces(in: s.lowercased(), with: " ")
-    }
-    let input = [
-      "apple",
-      "apple watch",
-      "  apple  watch ",
-      "  apple     Watch Kit  ",
-      " ",
-      ""
-    ]
-    let wanted = [
-      "apple",
-      "apple watch",
-      "apple watch",
-      "apple watch kit",
-      "",
-      ""
-    ]
-    for (n, it) in wanted.enumerated() {
-      XCTAssertEqual(f(input[n]), it)
-    }
-  }
-
   func testTimeIntervalFromJS() {
     let found = [
       serialize.timeIntervalFromJS(-1000),

@@ -13,12 +13,11 @@ import FanboyKit
 class SearchRepoOperation: SessionTaskOperation {
   
   let cache: SearchCaching
-  let originalTerm: String
   let svc: FanboyService
   let term: String
   
-  // TODO: Remove, use Dispatch.global()
-  let target: DispatchQueue
+  // A copy of the original query term.
+  let originalTerm: String
   
   /// Returns an initialized search repo operation.
   ///
@@ -32,9 +31,34 @@ class SearchRepoOperation: SessionTaskOperation {
     self.svc = svc
     
     self.originalTerm = term
-    self.term = replaceWhitespaces(in: term.lowercased(), with: " ")
-    
-    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
+    self.term = SearchRepoOperation.replaceWhitespaces(in: term.lowercased(), with: " ")
+  }
+  
+}
+
+extension SearchRepoOperation {
+  
+  /// Remove whitespace from specified string and replace it with `""` or the
+  /// specified string. Consecutive spaces are reduced to a single space.
+  ///
+  /// - Parameters:
+  ///   - string: The string to trim..
+  ///   - replacement: The string to replace whitespace with.
+  ///
+  /// - Returns: The trimmed string.
+  static func replaceWhitespaces(
+    in string: String,
+    with replacement: String = ""
+    ) -> String {
+    let ws = CharacterSet.whitespaces
+    let ts = string.trimmingCharacters(in: ws)
+    let cmps = ts.components(separatedBy: " ") as [String]
+    return cmps.reduce("") { a, b in
+      if a.isEmpty { return b }
+      let tb = b.trimmingCharacters(in: ws)
+      if tb.isEmpty { return a }
+      return "\(a)\(replacement)\(tb)"
+    }
   }
   
 }

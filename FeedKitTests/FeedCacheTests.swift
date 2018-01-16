@@ -400,7 +400,7 @@ extension FeedCacheTests {
 
     do {
       let found = try cache.suggestions(for: term, limit: 5)
-      let wanted = suggestionsFromTerms([term])
+      let wanted = SuggestOperation.suggestions(from: [term])
       XCTAssertEqual(found!, wanted)
     } catch {
       XCTFail("should not throw \(error)")
@@ -502,7 +502,7 @@ extension FeedCacheTests {
     XCTAssertNil(try! cache.suggestions(for: "a", limit: 5))
 
     let terms = ["apple", "apple watch", "apple pie"]
-    let input = suggestionsFromTerms(terms)
+    let input = SuggestOperation.suggestions(from: terms)
     try! cache.update(suggestions: input, for: "apple")
 
     do {
@@ -549,7 +549,7 @@ extension FeedCacheTests {
 
   func testRemoveSuggestions() {
     let terms = ["apple", "apple watch", "apple pie"]
-    let input = suggestionsFromTerms(terms)
+    let input = SuggestOperation.suggestions(from: terms)
 
     try! cache.update(suggestions: input, for: "apple")
     try! cache.update(suggestions: [], for: "pie")

@@ -36,29 +36,6 @@ fileprivate func feedURL(from json: [String : Any]) -> String? {
   return url
 }
 
-/// Remove whitespace from specified string and replace it with `""` or the
-/// specified string. Consecutive spaces are reduced to a single space.
-///
-/// - Parameters:
-///   - string: The string to trim..
-///   - replacement: The string to replace whitespace with.
-///
-/// - Returns: The trimmed string.
-func replaceWhitespaces(
-  in string: String,
-  with replacement: String = ""
-) -> String {
-  let ws = CharacterSet.whitespaces
-  let ts = string.trimmingCharacters(in: ws)
-  let cmps = ts.components(separatedBy: " ") as [String]
-  return cmps.reduce("") { a, b in
-    if a.isEmpty { return b }
-    let tb = b.trimmingCharacters(in: ws)
-    if tb.isEmpty { return a }
-    return "\(a)\(replacement)\(tb)"
-  }
-}
-
 /// A collection of serialization functions.
 struct serialize {
   

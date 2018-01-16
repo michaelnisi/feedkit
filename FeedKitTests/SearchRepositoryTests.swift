@@ -299,8 +299,8 @@ final class SearchRepositoryTests: XCTestCase {
     for _ in 0...100 {
       let exp = self.expectation(description: "suggest")
       let term = randomString(length: max(Int(arc4random_uniform(8)), 1))
-      let op = repo.suggest(term, perFindGroupBlock: { _, _ in
-        XCTFail("should not get dispatched")
+      let op = repo.suggest(term, perFindGroupBlock: { error, finds in
+        XCTAssertNil(error)
         }) { er in
           do {
             throw er!
@@ -316,4 +316,35 @@ final class SearchRepositoryTests: XCTestCase {
       }
     }
   }
+}
+
+// MARK: Query Term Trimming
+
+extension SearchRepositoryTests {
+  
+  func testTrimString() {
+    func f(_ s: String) -> String {
+      return SearchRepoOperation.replaceWhitespaces(in: s.lowercased(), with: " ")
+    }
+    let input = [
+      "apple",
+      "apple watch",
+      "  apple  watch ",
+      "  apple     Watch Kit  ",
+      " ",
+      ""
+    ]
+    let wanted = [
+      "apple",
+      "apple watch",
+      "apple watch",
+      "apple watch kit",
+      "",
+      ""
+    ]
+    for (n, it) in wanted.enumerated() {
+      XCTAssertEqual(f(input[n]), it)
+    }
+  }
+  
 }

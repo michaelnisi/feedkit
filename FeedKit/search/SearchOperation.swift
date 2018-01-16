@@ -22,9 +22,7 @@ final class SearchOperation: SearchRepoOperation {
     if let cb = searchCompletionBlock {
       // Dispatching synchronously here to only let this operation finish
       // after searchCompletionBlock completes.
-      target.sync {
-        cb(er)
-      }
+      cb(er)
     }
     perFindGroupBlock = nil
     searchCompletionBlock = nil
@@ -57,9 +55,7 @@ final class SearchOperation: SearchRepoOperation {
           if let feeds = stock {
             guard !feeds.isEmpty else { return }
             let finds = feeds.map { Find.foundFeed($0) }
-            self.target.sync() {
-              cb(nil, finds)
-            }
+            cb(nil, finds)
           }
         }
         return
@@ -94,9 +90,7 @@ final class SearchOperation: SearchRepoOperation {
                log: Search.log, type: .debug, String(describing: diff))
         
         let finds = cached.map { Find.foundFeed($0) }
-        self.target.sync() {
-          cb(nil, finds)
-        }
+        cb(nil, finds)
       } catch {
         er = error
       }
@@ -137,9 +131,7 @@ final class SearchOperation: SearchRepoOperation {
           return done()
         }
         let finds = cached.map { Find.foundFeed($0) }
-        target.sync {
-          cb(nil, finds)
-        }
+        cb(nil, finds)
         return done()
       }
     } catch let er {

@@ -182,7 +182,6 @@ public protocol Browsing {
     feedsCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 
-
   @discardableResult func entries(
     _ locators: [EntryLocator],
     entriesBlock: @escaping (Error?, [Entry]) -> Void,

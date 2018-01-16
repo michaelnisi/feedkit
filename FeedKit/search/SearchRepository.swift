@@ -16,6 +16,8 @@ public final class SearchRepository: RemoteRepository, Searching {
   let cache: SearchCaching
   let svc: FanboyService
   
+  // TODO: Hide queue
+  
   /// Initializes and returns a new search repository object.
   ///
   /// - Parameters:

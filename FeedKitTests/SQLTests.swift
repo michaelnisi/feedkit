@@ -383,7 +383,7 @@ extension SQLTests {
   }
 
   func testSQLToSelectFeedsByTerm() {
-    let found = SQLFormatter.SQLToSelectFeedsByTerm("abc", limit: 50)
+    let found = SQLFormatter.SQLToSelectFeeds(for: "abc", limit: 50)
     let wanted = [
       "SELECT DISTINCT * FROM search_view WHERE searchid IN (",
       "SELECT rowid FROM search_fts ",
@@ -394,26 +394,24 @@ extension SQLTests {
   }
 
   func testSQLToSelectFeedsMatchingTerm() {
-    let found = SQLFormatter.SQLToSelectFeedsMatchingTerm("abc", limit: 3)
-    let wanted = [
-      "SELECT DISTINCT * FROM feed WHERE feed_id IN (",
-      "SELECT rowid FROM feed_fts ",
-      "WHERE feed_fts MATCH 'abc*') ",
-      "ORDER BY ts DESC ",
-      "LIMIT 3;"
-    ].joined()
+    let found = SQLFormatter.SQLToSelectFeeds(matching: "abc", limit: 3)
+    let wanted = """
+    SELECT DISTINCT * FROM feed WHERE feed_id IN (
+      SELECT rowid FROM feed_fts
+      WHERE feed_fts MATCH 'abc'
+    ) ORDER BY ts DESC LIMIT 3;
+    """
     XCTAssertEqual(found, wanted)
   }
 
   func testSQLToSelectEntriesMatchingTerm() {
     let found = SQLFormatter.SQLToSelectEntries(matching: "abc", limit: 3)
-    let wanted = [
-      "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (",
-      "SELECT rowid FROM entry_fts ",
-      "WHERE entry_fts MATCH 'abc*') ",
-      "ORDER BY updated DESC ",
-      "LIMIT 3;"
-    ].joined()
+    let wanted = """
+    SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
+      SELECT rowid FROM entry_fts
+      WHERE entry_fts MATCH 'abc'
+    ) ORDER BY updated DESC LIMIT 3;
+    """
     XCTAssertEqual(found, wanted)
   }
 
