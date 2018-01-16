@@ -144,8 +144,8 @@ public protocol Searching {
   /// - returns: The, already executing, operation.
   @discardableResult func search(
     _ term: String,
-    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
-    searchCompletionBlock: @escaping (Error?) -> Void
+    perFindGroupBlock: ((Error?, [Find]) -> Void)?,
+    searchCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
   
   /// Get lexicographical suggestions for a search term combining locally cached
@@ -160,8 +160,8 @@ public protocol Searching {
   /// - Returns: The, already executing, operation.
   @discardableResult func suggest(
     _ term: String,
-    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
-    suggestCompletionBlock: @escaping (Error?) -> Void
+    perFindGroupBlock: ((Error?, [Find]) -> Void)?,
+    suggestCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
   
 }

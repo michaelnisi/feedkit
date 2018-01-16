@@ -27,16 +27,15 @@ final class SuggestOperation: SearchRepoOperation {
   
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ?  FeedKitError.cancelledByUser : error
-    if let cb = suggestCompletionBlock {
-      cb(er)
-    }
+    suggestCompletionBlock?(er)
+    
     perFindGroupBlock = nil
     suggestCompletionBlock = nil
     isFinished = true
   }
   
   private func dispatch(_ error: FeedKitError?, finds: [Find]) {
-    guard !self.isCancelled, let cb = perFindGroupBlock else {
+    guard !isCancelled, let cb = perFindGroupBlock else {
       return
     }
     cb(error as Error?, finds.filter { !dispatched.contains($0) })
@@ -96,17 +95,17 @@ final class SuggestOperation: SearchRepoOperation {
         }
         guard !finds.isEmpty else { return }
         self.dispatch(nil, finds: finds)
-      } catch let error {
+      } catch {
         er = error
       }
     }
   }
   
-  private static func recentSearchesForTerm(
-    _ term: String,
+  private static func recentSearches(
+    for term: String,
     fromCache cache: SearchCaching,
     except exceptions: [Find]
-    ) throws -> [Find]? {
+  ) throws -> [Find]? {
     if let feeds = try cache.feeds(for: term, limit: 2) {
       return feeds.reduce([Find]()) { acc, feed in
         let find = Find.recentSearch(feed)
@@ -120,8 +119,8 @@ final class SuggestOperation: SearchRepoOperation {
     return nil
   }
   
-  private static func suggestedFeedsForTerm(
-    _ term: String,
+  private static func suggestedFeeds(
+    for term: String,
     fromCache cache: SearchCaching,
     except exceptions: [Find]
     ) throws -> [Find]? {
@@ -138,8 +137,8 @@ final class SuggestOperation: SearchRepoOperation {
     return nil
   }
   
-  private static func suggestedEntriesForTerm(
-    _ term: String,
+  private static func suggestedEntries(
+    for term: String,
     fromCache cache: SearchCaching,
     except exceptions: [Find]
     ) throws -> [Find]? {
@@ -157,19 +156,18 @@ final class SuggestOperation: SearchRepoOperation {
   }
   
   fileprivate func resume() {
-    let a = Date()
-    var error: Error?
+    var er: Error?
     defer {
       if requestRequired {
-        do { try request() } catch let er { done(er) }
+        do { try request() } catch { done(error) }
       } else {
-        done(error)
+        done(er)
       }
     }
     let funs = [
-      SuggestOperation.recentSearchesForTerm,
-      SuggestOperation.suggestedFeedsForTerm,
-      SuggestOperation.suggestedEntriesForTerm
+      SuggestOperation.recentSearches,
+      SuggestOperation.suggestedFeeds,
+      SuggestOperation.suggestedEntries
     ]
     for f in funs {
       if isCancelled {
@@ -180,12 +178,10 @@ final class SuggestOperation: SearchRepoOperation {
           guard !finds.isEmpty else { return }
           dispatch(nil, finds: finds)
         }
-      } catch let er {
-        return error = er
+      } catch {
+        return er = error
       }
     }
-    os_log("** resume took: %@", log: Search.log, type: .debug,
-           String(describing: a.timeIntervalSinceNow))
   }
   
   override func start() {
@@ -195,21 +191,17 @@ final class SuggestOperation: SearchRepoOperation {
     guard !term.isEmpty else {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
+    
     isExecuting = true
     
     do {
       let sug = Suggestion(term: originalTerm, ts: nil)
       let original = Find.suggestedTerm(sug)
       dispatch(nil, finds: [original]) // resulting in five suggested terms
-      
-      let a = Date()
-      
+
       guard let cached = try cache.suggestions(for: term, limit: 4) else {
         return resume()
       }
-      
-      os_log("** start took: %@", log: Search.log, type: .debug,
-             String(describing: a.timeIntervalSinceNow))
       
       if isCancelled {
         return done()
@@ -229,8 +221,8 @@ final class SuggestOperation: SearchRepoOperation {
         stock = cached
       }
       resume()
-    } catch let er {
-      done(er)
+    } catch {
+      done(error)
     }
   }
 }

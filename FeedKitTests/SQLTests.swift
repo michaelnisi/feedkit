@@ -398,7 +398,7 @@ extension SQLTests {
     let wanted = """
     SELECT DISTINCT * FROM feed WHERE feed_id IN (
       SELECT rowid FROM feed_fts
-      WHERE feed_fts MATCH 'abc'
+      WHERE feed_fts MATCH 'abc*'
     ) ORDER BY ts DESC LIMIT 3;
     """
     XCTAssertEqual(found, wanted)
@@ -409,7 +409,7 @@ extension SQLTests {
     let wanted = """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
       SELECT rowid FROM entry_fts
-      WHERE entry_fts MATCH 'abc'
+      WHERE title MATCH 'abc*'
     ) ORDER BY updated DESC LIMIT 3;
     """
     XCTAssertEqual(found, wanted)

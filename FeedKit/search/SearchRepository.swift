@@ -15,9 +15,7 @@ import Ola
 public final class SearchRepository: RemoteRepository, Searching {
   let cache: SearchCaching
   let svc: FanboyService
-  
-  // TODO: Hide queue
-  
+
   /// Initializes and returns a new search repository object.
   ///
   /// - Parameters:
@@ -53,9 +51,9 @@ public final class SearchRepository: RemoteRepository, Searching {
   
   public func search(
     _ term: String,
-    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
-    searchCompletionBlock: @escaping (Error?) -> Void
-    ) -> Operation {
+    perFindGroupBlock: ((Error?, [Find]) -> Void)?,
+    searchCompletionBlock: ((Error?) -> Void)?
+  ) -> Operation {
     let op = SearchOperation(cache: cache, svc: svc, term: term)
     op.perFindGroupBlock = perFindGroupBlock
     op.searchCompletionBlock = searchCompletionBlock
@@ -64,9 +62,9 @@ public final class SearchRepository: RemoteRepository, Searching {
   
   public func suggest(
     _ term: String,
-    perFindGroupBlock: @escaping (Error?, [Find]) -> Void,
-    suggestCompletionBlock: @escaping (Error?) -> Void
-    ) -> Operation {
+    perFindGroupBlock: ((Error?, [Find]) -> Void)?,
+    suggestCompletionBlock: ((Error?) -> Void)?
+  ) -> Operation {
     let op = SuggestOperation(cache: cache, svc: svc, term: term)
     op.perFindGroupBlock = perFindGroupBlock
     op.suggestCompletionBlock = suggestCompletionBlock

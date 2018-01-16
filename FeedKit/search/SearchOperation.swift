@@ -19,11 +19,8 @@ final class SearchOperation: SearchRepoOperation {
   /// `FeedKitError.cancelledByUser` overrides passed errors.
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
-    if let cb = searchCompletionBlock {
-      // Dispatching synchronously here to only let this operation finish
-      // after searchCompletionBlock completes.
-      cb(er)
-    }
+    searchCompletionBlock?(er)
+    
     perFindGroupBlock = nil
     searchCompletionBlock = nil
     isFinished = true
@@ -35,6 +32,8 @@ final class SearchOperation: SearchRepoOperation {
   ///
   /// - Parameter stock: Stock of stale feeds to fall back on.
   fileprivate func request(_ stock: [Feed]? = nil) throws {
+    os_log("requesting: %@", log: Search.log, type: .debug, term)
+    
     // Capturing self as unowned to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
     task = try svc.search(term: term) { [unowned self] payload, error in
@@ -90,6 +89,11 @@ final class SearchOperation: SearchRepoOperation {
                log: Search.log, type: .debug, String(describing: diff))
         
         let finds = cached.map { Find.foundFeed($0) }
+        
+        guard !self.isCancelled else {
+          return
+        }
+        
         cb(nil, finds)
       } catch {
         er = error
@@ -110,6 +114,8 @@ final class SearchOperation: SearchRepoOperation {
       guard let cached = try cache.feeds(for: term, limit: 25) else {
         return try request()
       }
+      
+      os_log("cached: %{public}@", log: Search.log, type: .debug, cached)
       
       if isCancelled { return done() }
       
@@ -134,8 +140,8 @@ final class SearchOperation: SearchRepoOperation {
         cb(nil, finds)
         return done()
       }
-    } catch let er {
-      done(er)
+    } catch {
+      done(error)
     }
   }
 }
