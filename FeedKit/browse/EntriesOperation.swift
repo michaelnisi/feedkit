@@ -11,11 +11,7 @@ import MangerKit
 import Ola
 import os.log
 
-// MARK: - Entries
-
-/// Comply with MangerKit API to enable using the remote service.
-extension EntryLocator: MangerQuery {}
-
+/// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
   // MARK: ProvidingEntries
@@ -27,19 +23,6 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
-
-  private func findLocators() throws -> [EntryLocator] {
-    var found = Set<EntryLocator>()
-    for dep in dependencies {
-      if case let req as ProvidingLocators = dep {
-        guard req.error == nil else {
-          throw req.error!
-        }
-        found.formUnion(req.locators)
-      }
-    }
-    return Array(found)
-  }
 
   var _locators: [EntryLocator]?
   lazy var locators: [EntryLocator] = {
@@ -65,30 +48,19 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     super.init(cache: cache, svc: svc)
   }
   
-  deinit {
-    os_log("** deinit", type: .debug)
-  }
-
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
   func done(_ error: Error? = nil) {
-    os_log("done: %{public}@", log: Browse.log, type: .debug,
-           error != nil ? error! as CVarArg : "ok")
-
     let er = isCancelled ? FeedKitError.cancelledByUser : error
+    
+    let cb = entriesCompletionBlock
+    target.sync { cb?(er) }
+    
+    entriesBlock = nil
+    entriesCompletionBlock = nil
+    
+    task = nil
 
-    defer {
-      entriesBlock = nil
-      entriesCompletionBlock = nil
-      isFinished = true
-    }
-
-    guard let cb = self.entriesCompletionBlock else {
-      return
-    }
-
-    target.async {
-      cb(er)
-    }
+    isFinished = true
   }
 
   /// Request all entries of listed feed URLs remotely.
@@ -100,54 +72,71 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
     let reload = ttl == .none
 
-    task = try svc.entries(locators, reload: reload) { error, payload in
-      self.post(name: Notification.Name.FKRemoteResponse)
+    let cache = self.cache
+    let entriesBlock = self.entriesBlock
+    let target = self.target
 
-      guard !self.isCancelled else { return self.done() }
+    task = try svc.entries(locators, reload: reload) {
+      [weak self] error, payload in
+      guard let me = self, !me.isCancelled else {
+        self?.done()
+        return
+      }
 
       guard error == nil else {
-        return self.done(FeedKitError.serviceUnavailable(error: error!))
+        self?.done(FeedKitError.serviceUnavailable(error: error!))
+        return
       }
 
       guard payload != nil else {
         os_log("no payload", log: Browse.log)
-        return self.done()
+        self?.done()
+        return
       }
 
       os_log("received payload", log: Browse.log, type: .debug)
 
       do {
         let (errors, receivedEntries) = serialize.entries(from: payload!)
+        
+        guard !me.isCancelled else { return me.done() }
 
         if !errors.isEmpty {
-          os_log("invalid entries: %{public}@", log: Browse.log,  type: .error, errors)
+          os_log("invalid entries: %{public}@", log: Browse.log,  type: .error,
+                 errors)
         }
-        os_log("received: %{public}@", log: Browse.log, type: .debug, receivedEntries)
+        
+        os_log("received: %{public}@", log: Browse.log, type: .debug,
+               receivedEntries)
+        
+        guard !receivedEntries.isEmpty else {
+          self?.done()
+          return
+        }
+        
+        // Handling HTTP Redirects
 
         let r = Entry.redirects(in: receivedEntries)
         if !r.isEmpty {
           let urls = r.map { $0.originalURL! }
-          try self.cache.remove(urls)
+          try cache.remove(urls)
         }
-
-        try self.cache.update(entries: receivedEntries)
-
-        guard !receivedEntries.isEmpty else {
-          return self.done()
-        }
+    
+        try cache.update(entries: receivedEntries)
+        
+        guard !me.isCancelled else { return me.done() }
+        
+        // Preparing Result
 
         // The cached entries, contrary to the freshly received entries, have
         // more properties. Also, we should not dispatch more entries than
         // those that actually have been requested. To match these requirements
         // centrally, we retrieve the freshly updated entries from the cache,
         // relying on SQLite’s speed.
-        
-        // TODO: Review
-        
-        // Range locators, without guids, as used while updating the Queue,
-        // apparently don’t work here. I get ([], [locators]).
 
-        let (cached, missing) = try self.cache.fulfill(self.locators, ttl: .infinity)
+        let (cached, missing) = try cache.fulfill(locators, ttl: .infinity)
+        
+        guard !me.isCancelled else { return me.done() }
 
         let error: FeedKitError? = {
           guard !missing.isEmpty else {
@@ -155,27 +144,30 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
           }
           return FeedKitError.missingEntries(locators: missing)
         }()
-
-        let fresh = cached.filter {
-          !self.entries.contains($0)
-        }
-
+        
+        let a = Set(cached)
+        let b = self?.entries ?? Set<Entry>()
+        let fresh = a.subtracting(b)
+        
         if !fresh.isEmpty {
-          self.entries.formUnion(fresh)
-        }
-
-        if (!fresh.isEmpty || error != nil), let cb = self.entriesBlock {
-          self.target.async() {
-            cb(error, fresh)
+          self?.entries.formUnion(fresh)
+          if (!fresh.isEmpty) {
+            target.sync {
+              entriesBlock?(error, Array(fresh))
+            }
+          }
+        } else if error != nil {
+          target.sync {
+            entriesBlock?(error, [])
           }
         }
 
-        self.done()
+        self?.done()
       } catch FeedKitError.feedNotCached(let urls) {
         os_log("feeds not cached: %{public}@", log: Browse.log, urls)
-        self.done()
-      } catch let er {
-        self.done(er)
+        self?.done()
+      } catch {
+        self?.done(error)
       }
     }
   }
@@ -199,10 +191,9 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
 
       if !cached.isEmpty {
         entries.formUnion(cached)
-        if let cb = entriesBlock {
-          target.async {
-            cb(nil, cached)
-          }
+        let cb = entriesBlock
+        target.sync {
+          cb?(nil, cached)
         }
       }
 

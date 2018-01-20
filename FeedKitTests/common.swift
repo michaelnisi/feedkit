@@ -29,16 +29,15 @@ func randomString(length: Int) -> String {
   return str
 }
 
-func freshManger(string: String = "http://localhost:8384") -> Manger {
+func makeManger(string: String = "http://localhost:8384") -> Manger {
   let url = URL(string: string)!
 
   let conf = URLSessionConfiguration.default
   conf.httpShouldUsePipelining = true
   conf.requestCachePolicy = .reloadIgnoringLocalCacheData
   let session = URLSession(configuration: conf)
-  let target = DispatchQueue.main
 
-  let client = Patron(URL: url, session: session, target: target)
+  let client = Patron(URL: url, session: session)
 
   return Manger(client: client)
 }
@@ -91,7 +90,7 @@ func freshUserCache(_ aClass: AnyClass!) -> UserCache {
 
 func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
   let cache = freshCache(aClass)
-  let svc = freshManger(string: "http://localhost:8384")
+  let svc = makeManger(string: "http://localhost:8384")
 
   let queue = OperationQueue()
   queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.browsing")

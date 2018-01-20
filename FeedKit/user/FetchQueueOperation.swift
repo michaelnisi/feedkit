@@ -113,7 +113,7 @@ final class FetchQueueOperation: FeedKitOperation {
     var accError: Error?
     
     op = browser.entries(locators, entriesBlock: { error, entries in
-      assert(!Thread.isMainThread)
+      assert(!Thread.isMainThread) // TODO: Update
       guard error == nil else {
         accError = error
         return

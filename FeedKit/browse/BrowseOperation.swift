@@ -10,6 +10,9 @@ import Foundation
 import MangerKit
 import os.log
 
+/// Comply with MangerKit API to enable using the remote service.
+extension EntryLocator: MangerQuery {}
+
 /// Although, I despise inheritance, this is an abstract `Operation` to be
 /// extended by operations of the browse category. It provides common
 /// properties for the, currently two: feed and entries; operations of the
@@ -17,7 +20,11 @@ import os.log
 class BrowseOperation: SessionTaskOperation {
   let cache: FeedCaching
   let svc: MangerService
-  let target: DispatchQueue
+  
+  /// Target queue for serial execution of our handler blocks. Make sure to
+  /// submit completion blocks last. Each operation object gets an unspecified
+  /// global concurrent queue.
+  lazy var target = DispatchQueue.global()
   
   /// Initialize and return a new feed repo operation.
   ///
@@ -27,9 +34,7 @@ class BrowseOperation: SessionTaskOperation {
   init(cache: FeedCaching, svc: MangerService) {
     self.cache = cache
     self.svc = svc
-    
-    self.target = OperationQueue.current?.underlyingQueue ?? DispatchQueue.main
-    os_log("** target: %{public}@", type: .debug, self.target)
   }
 
 }
+

@@ -19,7 +19,7 @@ private func freshFanboy(url: URL, target: DispatchQueue) -> Fanboy {
   conf.requestCachePolicy = .reloadIgnoringLocalCacheData
   let session = URLSession(configuration: conf)
 
-  let client = Patron(URL: url, session: session, target: target)
+  let client = Patron(URL: url, session: session)
 
   return Fanboy(client: client)
 }

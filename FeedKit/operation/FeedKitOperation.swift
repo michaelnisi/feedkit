@@ -9,26 +9,10 @@
 import Foundation
 import Ola
 
-protocol Providing {
-  var error: Error? { get }
-}
-
-protocol ProvidingReachability: Providing {
-  var status: OlaStatus { get }
-}
-
-protocol ProvidingLocators: Providing {
-  var locators: [EntryLocator]  { get }
-}
-
-protocol ProvidingEntries: Providing {
-  var entries: Set<Entry> { get }
-}
-
 /// An abstract super class to be extended by concurrent FeedKit operations.
 class FeedKitOperation: Operation {
   
-  /// An internal serial queue for synchronized property access.
+  /// An internal serial queue for synchronized (thread-safe) property access.
   private let serialQueue = DispatchQueue(
     label: "ink.codes.feedkit.operation.\(UUID().uuidString)")
   

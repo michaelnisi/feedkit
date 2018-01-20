@@ -11,41 +11,38 @@ import MangerKit
 import Ola
 import os.log
 
-/// A concurrent `Operation` for getting hold of feeds.
+/// A concurrent `Operation` for accessing feeds.
 final class FeedsOperation: BrowseOperation {
+  
+  // MARK: ProvidingFeeds
+  
+  // TODO: Provide
+  
+  private(set) var error: Error?
+  private(set) var feeds = Set<Feed>()
 
   // MARK: Callbacks
 
   var feedsBlock: ((Error?, [Feed]) -> Void)?
-
   var feedsCompletionBlock: ((Error?) -> Void)?
-
-  // MARK: State
 
   let urls: [String]
 
-  /// Returns an intialized `FeedsOperation` object. Refer to `BrowseOperation`
-  /// for more.
-  ///
-  /// - parameter urls: The feed URLs to retrieve.
-  init(
-    cache: FeedCaching,
-    svc: MangerService,
-    urls: [String]
-    ) {
+  init(cache: FeedCaching, svc: MangerService, urls: [String]) {
     self.urls = urls
     super.init(cache: cache, svc: svc)
   }
 
   fileprivate func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
-    if let cb = feedsCompletionBlock {
-      target.async {
-        cb(er)
-      }
-    }
+    
+    let cb = feedsCompletionBlock
+    target.sync { cb?(er) }
+    
     feedsBlock = nil
     feedsCompletionBlock = nil
+    task = nil
+    
     isFinished = true
   }
 
@@ -61,37 +58,35 @@ final class FeedsOperation: BrowseOperation {
     let feedsBlock = self.feedsBlock
     let target = self.target
 
-    task = try svc.feeds(queries) { error, payload in
-      self.post(name: Notification.Name.FKRemoteResponse)
-
-      guard !self.isCancelled else {
-        return self.done()
+    task = try svc.feeds(queries) { [weak self] error, payload in
+      guard let me = self, !me.isCancelled else {
+        self?.done()
+        return
       }
 
       guard error == nil else {
-        defer {
-          let er = FeedKitError.serviceUnavailable(error: error!)
-          self.done(er)
+        let er = FeedKitError.serviceUnavailable(error: error!)
+        if !stale.isEmpty {
+          target.sync { feedsBlock?(nil, stale) }
         }
-        guard !stale.isEmpty, let cb = feedsBlock else {
-          return
-        }
-        return target.async() {
-          cb(nil, stale)
-        }
+        self?.done(er)
+        return
       }
 
       guard payload != nil else {
-        return self.done()
+        self?.done()
+        return
       }
 
       do {
         let (errors, feeds) = serialize.feeds(from: payload!)
-
+        
+        guard !me.isCancelled else { return me.done() }
+        
         // TODO: Handle serialization errors
         //
         // Although, owning the remote service, we can be reasonably sure, these
-        // objects are O.K., we should probably still handle these errors.
+        // objects are OK, we should probably still handle these errors.
 
         assert(errors.isEmpty, "unhandled errors: \(errors)")
 
@@ -114,74 +109,62 @@ final class FeedsOperation: BrowseOperation {
           try cache.remove(redirectedURLs)
         }
 
-        // Updating and rereading to produce merged results.
-
         try cache.update(feeds: feeds)
+        
+        guard !me.isCancelled else { return me.done() }
+        
+        // Preparing Result
+        
         let cachedFeeds = try cache.feeds(Array(freshURLs))
-
-        guard let cb = feedsBlock, !cachedFeeds.isEmpty else {
-          return self.done()
+        if !cachedFeeds.isEmpty {
+          target.sync { feedsBlock?(nil, cachedFeeds) }
         }
-
-        target.async() {
-          cb(nil, cachedFeeds)
-        }
-        self.done()
-      } catch let er {
-        self.done(er)
+        self?.done()
+      } catch {
+        self?.done(error)
       }
     }
   }
-
-  // TODO: Figure out why timeouts aren’t handled expectedly
 
   override func start() {
     guard !isCancelled else { return done() }
     isExecuting = true
 
     do {
-      let target = self.target
-      let cache = self.cache
-      let feedsBlock = self.feedsBlock
-
       let items = try cache.feeds(urls)
-      let (cached, stale, urlsToRequest) = FeedCache.subtract(
+      let (cached, stale, needed) = FeedCache.subtract(
         items, from: urls, with: ttl.seconds
       )
 
       guard !isCancelled else { return done() }
 
-      if urlsToRequest == nil {
-        guard !cached.isEmpty else { return done() }
-        guard let cb = feedsBlock else { return done() }
-        target.async {
-          cb(nil, cached)
+      let feedsBlock = self.feedsBlock
+      
+      guard let urlsToRequest = needed else {
+        if !cached.isEmpty {
+          target.sync { feedsBlock?(nil, cached) }
         }
         return done()
       }
+      
       if !cached.isEmpty {
-        if let cb = feedsBlock {
-          target.async {
-            cb(nil, cached)
-          }
-        }
+        target.sync { feedsBlock?(nil, cached) }
       }
-      assert(!urlsToRequest!.isEmpty, "URLs to request must not be empty")
+      
+      assert(!urlsToRequest.isEmpty, "URLs to request must not be empty")
 
       if !reachable {
         if !stale.isEmpty {
-          if let cb = feedsBlock {
-            target.async {
-              cb(nil, stale)
-            }
-          }
+          target.sync { feedsBlock?(nil, stale) }
+          done()
+        } else {
+          done(FeedKitError.offline)
         }
-        done()
       } else {
-        try request(urlsToRequest!, stale: stale)
+        try request(urlsToRequest, stale: stale)
       }
-    } catch let er {
-      done(er)
+    } catch {
+      done(error)
     }
   }
 }

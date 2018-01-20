@@ -25,6 +25,7 @@
 		4C9970041FE39AE800E0FA30 /* FetchQueueOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9970031FE39AE800E0FA30 /* FetchQueueOperation.swift */; };
 		4C9970081FE3BA1000E0FA30 /* PrepareUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9970071FE3BA1000E0FA30 /* PrepareUpdateOperation.swift */; };
 		4C99700A1FE42AB400E0FA30 /* EntriesOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9970091FE42AB400E0FA30 /* EntriesOperation.swift */; };
+		4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B95E2011D66300BE9BD8 /* Providing.swift */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
 		4CD696F61FEA56BE00349580 /* purchase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD696F51FEA56BE00349580 /* purchase.swift */; };
@@ -101,6 +102,7 @@
 		4C9970071FE3BA1000E0FA30 /* PrepareUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrepareUpdateOperation.swift; sourceTree = "<group>"; };
 		4C9970091FE42AB400E0FA30 /* EntriesOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntriesOperation.swift; sourceTree = "<group>"; };
 		4CA3B2BD1A068BC80072E0C4 /* FeedCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FeedCacheTests.swift; sourceTree = "<group>"; };
+		4CA3B95E2011D66300BE9BD8 /* Providing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Providing.swift; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
@@ -239,6 +241,7 @@
 			children = (
 				4C405D151FE77E960031C4DB /* FeedKitOperation.swift */,
 				4C405D171FE77EBA0031C4DB /* SessionTaskOperation.swift */,
+				4CA3B95E2011D66300BE9BD8 /* Providing.swift */,
 			);
 			path = operation;
 			sourceTree = "<group>";
@@ -482,6 +485,7 @@
 				4C405D181FE77EBA0031C4DB /* SessionTaskOperation.swift in Sources */,
 				4C9970021FE3993900E0FA30 /* FetchSubscribedFeedsOperation.swift in Sources */,
 				4EB7EE491F5E8F9F00F418D5 /* FeedCache.swift in Sources */,
+				4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */,
 				4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
 				4CD696F81FEA56DF00349580 /* download.swift in Sources */,

@@ -20,23 +20,26 @@ class SessionTaskOperation: FeedKitOperation {
   /// The maximal age, `CacheTTL.long`, of cached items.
   var ttl: CacheTTL = CacheTTL.long
   
+  /// Posts `name` to the default notifcation center.
   func post(name: NSNotification.Name) {
     DispatchQueue.main.async {
-      NotificationCenter.default.post(name: name, object: self)
+      NotificationCenter.default.post(name: name, object: nil)
     }
   }
   
   final var task: URLSessionTask? {
-    willSet {
-      guard newValue != nil else {
-        return
+    didSet {
+      if task != nil {
+        post(name: .FKRemoteRequest)
+      } else if oldValue != nil {
+        oldValue?.cancel()
+        post(name: .FKRemoteResponse)
       }
-      post(name: Notification.Name.FKRemoteRequest)
     }
   }
   
   deinit {
-    task?.cancel()
+    task = nil
   }
   
 }

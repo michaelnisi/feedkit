@@ -491,10 +491,12 @@ extension FeedCacheTests {
 
   func testEntriesMatchingTerm() {
     let _ = try! populate()
-    guard let found = try! cache.entries(matching: "supercomputer", limit: 3) else {
+    
+    guard let found = try! cache.entries(matching: "Dead", limit: 3) else {
       return XCTFail("not found")
     }
-    XCTAssertEqual(found.count, 1)
+    
+    XCTAssertEqual(found.count, 3)
     XCTAssertEqual(found.first?.title, "Seven Deadly Sins")
   }
 

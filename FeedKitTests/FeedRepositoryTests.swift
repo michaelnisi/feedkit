@@ -24,7 +24,7 @@ final class FeedRepositoryTests: XCTestCase {
     
     cache = freshCache(self.classForCoder)
     
-    svc = freshManger(string: "http://localhost:8384")
+    svc = makeManger(string: "http://localhost:8384")
     
     let queue = OperationQueue()
     queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.FeedRepositoryTests")
@@ -138,55 +138,73 @@ extension FeedRepositoryTests {
     }
   }
   
-  // TODO: Review this test
-  
   func testCachedFeeds() {
-    let exp = self.expectation(description: "feeds")
-    
-    let falseHost = "http://localhost:8385"
-    let unavailable = freshManger(string: falseHost)
-    
     let zeroCache = freshCache(classForCoder)
-    let queue = OperationQueue()
-    let probe = Ola(host: "localhost", queue: DispatchQueue.main)!
     
-    let a: Browsing = FeedRepository(
-      cache: zeroCache, svc: unavailable, queue: queue, probe: probe)
-    
-    var found = [String]()
-    let wanted = urls
-    
-    func go() {
-      var ended = false
-      a.feeds(urls, feedsBlock: { er, feeds in
-        XCTAssertNil(er)
-        found += feeds.map { $0.url }
-      }) { er in
-        XCTAssertFalse(ended, "should end only once")
-        ended = true
-        XCTAssertEqual(found, wanted)
-        exp.fulfill()
-      }
-    }
-    
-    do { // Cache Loading
-      let probe = Ola(host: "localhost", queue: DispatchQueue.main)!
-      let b: Browsing = FeedRepository(
+    do {
+      let exp = self.expectation(description: "populating cache")
+      
+      let queue = OperationQueue()
+      let probe = Ola(host: "localhost", queue: DispatchQueue.global())!
+      let repo: Browsing = FeedRepository(
         cache: zeroCache, svc: svc, queue: queue, probe: probe)
       
       var found = [String]()
-      var ended = false
-      b.feeds(urls, feedsBlock: { er, feeds in
+      var feedsBlockCount = 0
+      
+      let wanted = urls
+      
+      repo.feeds(urls, feedsBlock: { er, feeds in
         XCTAssertNil(er)
-        found += feeds.map { $0.url }
+        DispatchQueue.main.async {
+          feedsBlockCount += 1
+          found += feeds.map { $0.url }
+        }
       }) { er in
-        XCTAssertFalse(ended, "should end only once")
-        ended = true
         XCTAssertNil(er)
-        XCTAssertEqual(found, wanted)
-        go()
+        DispatchQueue.main.async {
+          XCTAssert(feedsBlockCount > 0, "should run in order")
+          XCTAssertEqual(found, wanted)
+          exp.fulfill()
+        }
       }
-      self.waitForExpectations(timeout: 10) { er in
+      
+      waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+    
+    do {
+      let falseHost = "http://localhost:8385"
+      let unavailable = makeManger(string: falseHost)
+      let queue = OperationQueue()
+      let probe = Ola(host: "localhost", queue: DispatchQueue.global())!
+      let repo: Browsing = FeedRepository(
+        cache: zeroCache, svc: unavailable, queue:queue, probe: probe)
+      
+      var found = [String]()
+      var feedsBlockCount = 0
+      
+      let wanted = urls
+      
+      let exp = self.expectation(description: "falling back on cache")
+      
+      repo.feeds(urls, feedsBlock: { er, feeds in
+        XCTAssertNil(er)
+        DispatchQueue.main.async {
+          feedsBlockCount += 1
+          found += feeds.map { $0.url }
+        }
+      }) { er in
+        XCTAssertNil(er)
+        DispatchQueue.main.async {
+          XCTAssert(feedsBlockCount > 0, "should run in order")
+          XCTAssertEqual(found, wanted)
+          exp.fulfill()
+        }
+      }
+      
+      waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
       }
     }
@@ -402,38 +420,53 @@ extension FeedRepositoryTests {
   
   func testEntriesAllCached() {
     let exp = self.expectation(description: "entries")
-    let wanted = urls
-    var found = [Entry]()
-    
+
     func go() {
+      let wanted = urls
+      var ok = false
+      var found = [Entry]()
+      
       repo.entries(locators, entriesBlock: { er, entries in
         XCTAssertNil(er)
         XCTAssertFalse(entries.isEmpty)
-        found += entries
+        DispatchQueue.main.async {
+          ok = true
+          found += entries
+        }
       }) { er in
         XCTAssertNil(er)
-        XCTAssertFalse(found.isEmpty)
-        for entry in found {
-          XCTAssertNotNil(entry.ts, "should be cached")
+        DispatchQueue.main.async {
+          XCTAssert(ok, "should run blocks in order")
+          XCTAssertFalse(found.isEmpty)
+          for entry in found {
+            XCTAssertNotNil(entry.ts, "should be cached")
+          }
+          let urls = found.map { $0.feed }
+          wanted.forEach { url in
+            XCTAssertTrue(urls.contains(url))
+          }
+          exp.fulfill()
         }
-        let urls = found.map { $0.feed }
-        wanted.forEach { url in
-          XCTAssertTrue(urls.contains(url))
-        }
-        exp.fulfill()
       }
     }
-    
+
     do {
+      var ok = false
       var found = [Entry]()
       repo.entries(locators, entriesBlock: { er, entries in
         XCTAssertNil(er)
         XCTAssertFalse(entries.isEmpty)
-        found += entries
+        DispatchQueue.main.async {
+          ok = true
+          found += entries
+        }
       }) { er in
         XCTAssertNil(er)
-        XCTAssertFalse(found.isEmpty)
-        go()
+        DispatchQueue.main.async {
+          XCTAssert(ok, "should run blocks in order")
+          XCTAssertFalse(found.isEmpty)
+          go()
+        }
       }
     }
     
