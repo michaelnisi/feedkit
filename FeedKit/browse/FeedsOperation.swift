@@ -16,8 +16,6 @@ final class FeedsOperation: BrowseOperation {
   
   // MARK: ProvidingFeeds
   
-  // TODO: Provide
-  
   private(set) var error: Error?
   private(set) var feeds = Set<Feed>()
 
@@ -26,15 +24,31 @@ final class FeedsOperation: BrowseOperation {
   var feedsBlock: ((Error?, [Feed]) -> Void)?
   var feedsCompletionBlock: ((Error?) -> Void)?
 
-  let urls: [String]
+  private let urls: [String]
 
   init(cache: FeedCaching, svc: MangerService, urls: [String]) {
     self.urls = urls
     super.init(cache: cache, svc: svc)
   }
+  
+  /// Use submit and done to handle final results, instead of individually
+  /// affecting the state of this operation.
+  private func submit(_ otherFeeds: [Feed], error: Error? = nil) {
+    assert(!otherFeeds.isEmpty)
+    feeds.formUnion(otherFeeds)
+    target.sync {
+      feedsBlock?(error, otherFeeds)
+    }
+  }
 
-  fileprivate func done(_ error: Error? = nil) {
-    let er = isCancelled ? FeedKitError.cancelledByUser : error
+  private func done(_ error: Error? = nil) {
+    let er: Error? = {
+      guard !isCancelled else {
+        return FeedKitError.cancelledByUser
+      }
+      self.error = error
+      return error
+    }()
     
     let cb = feedsCompletionBlock
     target.sync { cb?(er) }
@@ -51,12 +65,10 @@ final class FeedsOperation: BrowseOperation {
   /// - Parameters:
   ///   - urls: The URLs of the feeds to request.
   ///   - stale: The stale feeds to fall back on if the remote request fails.
-  fileprivate func request(_ urls: [String], stale: [Feed]) throws {
+  private func request(_ urls: [String], stale: [Feed]) throws {
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
     let cache = self.cache
-    let feedsBlock = self.feedsBlock
-    let target = self.target
 
     task = try svc.feeds(queries) { [weak self] error, payload in
       guard let me = self, !me.isCancelled else {
@@ -67,7 +79,7 @@ final class FeedsOperation: BrowseOperation {
       guard error == nil else {
         let er = FeedKitError.serviceUnavailable(error: error!)
         if !stale.isEmpty {
-          target.sync { feedsBlock?(nil, stale) }
+          self?.submit(stale)
         }
         self?.done(er)
         return
@@ -117,7 +129,7 @@ final class FeedsOperation: BrowseOperation {
         
         let cachedFeeds = try cache.feeds(Array(freshURLs))
         if !cachedFeeds.isEmpty {
-          target.sync { feedsBlock?(nil, cachedFeeds) }
+          self?.submit(cachedFeeds)
         }
         self?.done()
       } catch {
@@ -138,24 +150,22 @@ final class FeedsOperation: BrowseOperation {
 
       guard !isCancelled else { return done() }
 
-      let feedsBlock = self.feedsBlock
-      
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {
-          target.sync { feedsBlock?(nil, cached) }
+          submit(cached)
         }
         return done()
       }
       
       if !cached.isEmpty {
-        target.sync { feedsBlock?(nil, cached) }
+        submit(cached)
       }
       
       assert(!urlsToRequest.isEmpty, "URLs to request must not be empty")
 
       if !reachable {
         if !stale.isEmpty {
-          target.sync { feedsBlock?(nil, stale) }
+          submit(stale)
           done()
         } else {
           done(FeedKitError.offline)

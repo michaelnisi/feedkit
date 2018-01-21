@@ -24,8 +24,8 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
 
-  var _locators: [EntryLocator]?
-  lazy var locators: [EntryLocator] = {
+  private var _locators: [EntryLocator]?
+  private lazy var locators: [EntryLocator] = {
     guard let locs = _locators else {
       do {
         _locators = try findLocators()
@@ -48,16 +48,31 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
     super.init(cache: cache, svc: svc)
   }
   
+  private func submit(_ otherEntries: [Entry], error: Error? = nil) {
+    if error == nil {
+      assert(!otherEntries.isEmpty)
+    }
+    entries.formUnion(otherEntries)
+    target.sync {
+      entriesBlock?(error, otherEntries)
+    }
+  }
+  
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
-  func done(_ error: Error? = nil) {
-    let er = isCancelled ? FeedKitError.cancelledByUser : error
+  private func done(_ error: Error? = nil) {
+    let er: Error? = {
+      guard !isCancelled else {
+        return FeedKitError.cancelledByUser
+      }
+      self.error = error
+      return error
+    }()
     
     let cb = entriesCompletionBlock
     target.sync { cb?(er) }
     
     entriesBlock = nil
     entriesCompletionBlock = nil
-    
     task = nil
 
     isFinished = true
@@ -67,14 +82,12 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
   ///
   /// - Parameters:
   ///   - locators: The locators of entries to request.
-  func request(_ locators: [EntryLocator]) throws {
+  private func request(_ locators: [EntryLocator]) throws {
     os_log("requesting: %{public}@", log: Browse.log, type: .debug, locators)
 
     let reload = ttl == .none
 
     let cache = self.cache
-    let entriesBlock = self.entriesBlock
-    let target = self.target
 
     task = try svc.entries(locators, reload: reload) {
       [weak self] error, payload in
@@ -147,19 +160,14 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
         
         let a = Set(cached)
         let b = self?.entries ?? Set<Entry>()
-        let fresh = a.subtracting(b)
+        let fresh = Array(a.subtracting(b))
         
         if !fresh.isEmpty {
-          self?.entries.formUnion(fresh)
           if (!fresh.isEmpty) {
-            target.sync {
-              entriesBlock?(error, Array(fresh))
-            }
+            self?.submit(fresh, error: error)
           }
         } else if error != nil {
-          target.sync {
-            entriesBlock?(error, [])
-          }
+          self?.submit([], error: error)
         }
 
         self?.done()
@@ -190,11 +198,7 @@ final class EntriesOperation: BrowseOperation, ProvidingEntries {
       os_log("missing: %{public}@", log: Browse.log, type: .debug, missing)
 
       if !cached.isEmpty {
-        entries.formUnion(cached)
-        let cb = entriesBlock
-        target.sync {
-          cb?(nil, cached)
-        }
+        submit(cached)
       }
 
       guard !missing.isEmpty else {
