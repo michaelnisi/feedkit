@@ -156,7 +156,8 @@ extension FeedCaching {
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
 
-  // TODO: Review
+  /// Returns a minimally configured, all defaults, operation to fetch entries
+  /// with locators aquired via operation dependencies.
   func makeEntriesOperation() -> Operation
 
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`

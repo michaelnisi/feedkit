@@ -221,112 +221,22 @@ extension UserLibrary: Updating {
     
     let fetch = browser.makeEntriesOperation()
     fetch.addDependency(prepare)
+    // TODO: fetch.addDependency(reach)
     
     let enqueue = EnqueueOperation(user: self, cache: cache)
     enqueue.addDependency(fetch)
     
-    operationQueue.addOperation(enqueue)
-    operationQueue.addOperation(fetch)
     operationQueue.addOperation(prepare)
+    operationQueue.addOperation(fetch)
+    operationQueue.addOperation(enqueue)
     
+    // TODO: Add proper completion block
+    // ... make sure errors get propagated
     enqueue.completionBlock = {
       DispatchQueue.global().async {
         updateComplete(false, nil)
       }
     }
-    
-  }
-  
-  public func old_update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: User.log,  type: .info)
-    
-    let cache = self.cache
-    
-    /// Results of the locating operation: subscriptions, locators, and ignored
-    /// (GUIDs); where subscriptions are used for the request and to filter
-    /// the fetched entries before enqueuing them in the completion block below.
-    struct LocatingResult {
-      let subscriptions: [Subscription]
-      let locators: [EntryLocator]
-      let ignored: [String]
-      
-      init(cache: UserCaching) throws {
-        self.subscriptions = try cache.subscribed()
-        self.locators = try UserLibrary.locatorsForUpdating(
-          from: cache, with: subscriptions)
-        self.ignored = try UserLibrary.previousGUIDs(from: cache)
-      }
-    }
-    
-    var locatingError: Error?
-    var locatingResult: LocatingResult?
-    
-    let locating = BlockOperation {
-      do {
-        locatingResult = try LocatingResult(cache: cache)
-      } catch {
-        locatingError = error
-      }
-    }
-    
-    func fetchEntries() {
-      guard locatingError == nil,
-        let locators = locatingResult?.locators,
-        !locators.isEmpty,
-        let ignored = locatingResult?.ignored,
-        let subscriptions = locatingResult?.subscriptions else {
-          return DispatchQueue.global().async {
-            updateComplete(false, locatingError)
-          }
-      }
-      
-      var acc = [Entry]()
-      browser.entries(locators, force: true, entriesBlock: { error, entries in
-        guard error == nil else {
-          os_log("faulty entries: %{public}@", log: User.log, type: .error,
-                 String(describing: error))
-          return
-        }
-        
-        guard !ignored.isEmpty else {
-          return acc.append(contentsOf: entries)
-        }
-        
-        acc = acc + entries.filter { !ignored.contains($0.guid) }
-      }) { error in
-        guard error == nil else {
-          return DispatchQueue.global().async {
-            updateComplete(false, error)
-          }
-        }
-        
-        let latest = UserLibrary.newer(from: acc, than: Set(subscriptions))
-        
-        do {
-          try self.enqueue(entries: latest) { error in
-            DispatchQueue.global().async {
-              updateComplete(true, error)
-            }
-          }
-        } catch {
-          DispatchQueue.global().async {
-            updateComplete(false, error)
-          }
-        }
-      }
-    }
-    
-    let q = operationQueue.underlyingQueue!
-    assert(q.label == "ink.codes.feedkit.user")
-    
-    locating.completionBlock = {
-      q.async {
-        fetchEntries()
-      }
-    }
-    
-    operationQueue.addOperation(locating)
   }
   
 }

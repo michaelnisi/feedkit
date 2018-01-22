@@ -79,11 +79,7 @@ extension FeedRepository: Browsing {
     feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let op = FeedsOperation(
-      cache: cache,
-      svc: svc,
-      urls: urls
-    )
+    let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     
     let r = reachable()
     let uri = urls.count == 1 ? urls.first : nil
@@ -106,11 +102,7 @@ extension FeedRepository: Browsing {
   }
   
   public func makeEntriesOperation() -> Operation {
-    let op = EntriesOperation(
-      cache: cache,
-      svc: svc
-    )
-    return op
+    return EntriesOperation(cache: cache,svc: svc)
   }
   
   public func entries(
@@ -119,11 +111,7 @@ extension FeedRepository: Browsing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let op = EntriesOperation(
-      cache: cache,
-      svc: svc,
-      locators: locators
-    )
+    let op = EntriesOperation(cache: cache, svc: svc, locators: locators)
     
     let r = reachable()
     let uri = locators.count == 1 ? locators.first?.url : nil
@@ -147,11 +135,7 @@ extension FeedRepository: Browsing {
     
     let urls = locators.map { $0.url }
     
-    let dep = FeedsOperation(
-      cache: cache,
-      svc: svc,
-      urls: urls
-    )
+    let dep = FeedsOperation(cache: cache, svc: svc, urls: urls)
     
     dep.ttl = CacheTTL.forever
     dep.reachable = r
