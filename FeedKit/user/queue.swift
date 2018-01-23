@@ -48,7 +48,7 @@ public struct Queue<Item: Hashable> {
   ///
   /// - Throws: Will throw `QueueError.alreadyInQueue` if the item is already 
   /// in the queue, because this is probably a programming error.
-  public mutating func prepend(_ item: Item) throws {
+  public mutating func prepend(_ item: Item) throws -> Item {
     let h = item.hashValue
     
     guard !contains(item) else {
@@ -59,22 +59,23 @@ public struct Queue<Item: Hashable> {
     hashValues = [h] + hashValues
     
     if now == nil { now = h }
+    
+    return item
   }
+  
+  // TODO: Return added items
   
   /// Prepends multiple `items` to the queue at once, in reverse order, so the
   /// order of `items` becomes the order of the head of the queue.
-  public mutating func prepend(items: [Item]) throws {
-    var acc: Error?
+  public mutating func prepend(items: [Item]) -> [Item] {
+    var acc = [Item]()
     for item in items.reversed() {
       do {
-        try prepend(item)
+        acc.append(try prepend(item))
       } catch {
-        acc = error
       }
     }
-    if let error = acc {
-      throw error
-    }
+    return acc
   }
   
   /// Appends `item` to queue, making it its tail.

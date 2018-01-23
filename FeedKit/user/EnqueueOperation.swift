@@ -27,7 +27,7 @@ class EnqueueOperation: Operation, Providing {
     return e
   }()
   
-  var enqueueCompletionBlock: ((_ error: Error?) -> Void)?
+  var enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?
 
   // MARK: Providing
   
@@ -50,42 +50,49 @@ class EnqueueOperation: Operation, Providing {
   init(user: EntryQueueHost, cache: QueueCaching, entries: [Entry]? = nil) {
     self.user = user
     self.cache = cache
+    
     self._entries = entries
     
     super.init()
   }
   
+  private func done(_ error: Error? = nil) {
+    self.error = error
+    
+    enqueueCompletionBlock?(enqueued ?? [], error)
+
+    DispatchQueue.main.async {
+      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+    }
+  }
+  
+  // TODO: Use entries properety for result
+  private var enqueued: [Entry]?
+  
   override func main() {
     do {
-      guard error == nil, !entries.isEmpty else {
+      guard error == nil else {
+        // Although redundant, passing the error again for clarity.
+        return done(error)
+      }
+      
+      guard !entries.isEmpty else {
         os_log("nothing new to enqueue", log: User.log, type: .debug)
-        guard let cb = enqueueCompletionBlock else { return }
-        let er = error
-        return DispatchQueue.global().async {
-          cb(er)
-        }
+        return done()
       }
       
       os_log("enqueueing: %{public}@", log: User.log, type: .debug, entries)
 
-      try user.queue.prepend(items: entries)
+      enqueued = user.queue.prepend(items: entries)
       let locators = entries.map { EntryLocator(entry: $0) }
       try cache.add(entries: locators)
     } catch {
-      os_log("error", log: User.log, type: .debug)
-      self.error = error
-      guard let cb = enqueueCompletionBlock else { return }
-      return DispatchQueue.global().async {
-        cb(error)
-      }
+      os_log("enqueueing failed: %{public}@",
+             log: User.log, type: .debug, error as CVarArg)
+      return done(error)
     }
-
-    DispatchQueue.global().async {
-      self.enqueueCompletionBlock?(nil)
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-      }
-    }
+    
+    done()
   }
   
 }

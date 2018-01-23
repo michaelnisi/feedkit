@@ -215,7 +215,7 @@ extension UserLibrary: Updating {
   
   public func update(
     updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
-    os_log("updating", log: User.log,  type: .info)
+    os_log("updating...", log: User.log,  type: .info)
     
     let prepare = PrepareUpdateOperation(cache: cache)
     
@@ -232,9 +232,9 @@ extension UserLibrary: Updating {
     
     // TODO: Add proper completion block
     // ... make sure errors get propagated
-    enqueue.completionBlock = {
+    enqueue.enqueueCompletionBlock = { enqueued, error in
       DispatchQueue.global().async {
-        updateComplete(false, nil)
+        updateComplete(!enqueued.isEmpty, error)
       }
     }
   }
@@ -282,7 +282,18 @@ extension UserLibrary: Queueing {
     entries: [Entry],
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
-    op.enqueueCompletionBlock = enqueueCompletionBlock
+    op.enqueueCompletionBlock = { enqueued, error in
+      let er: Error? = {
+        guard error == nil else {
+          return error
+        }
+        if enqueued.count != entries.count {
+          return QueueError.alreadyInQueue
+        }
+        return nil
+      }()
+      enqueueCompletionBlock?(er)
+    }
     User.queue.addOperation(op)
   }
   
