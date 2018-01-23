@@ -63,16 +63,17 @@ public struct Queue<Item: Hashable> {
     return item
   }
   
-  // TODO: Return added items
-  
   /// Prepends multiple `items` to the queue at once, in reverse order, so the
   /// order of `items` becomes the order of the head of the queue.
-  public mutating func prepend(items: [Item]) -> [Item] {
+  ///
+  /// - Returns: Returns the prepended items.
+  @discardableResult public mutating func prepend(items: [Item]) -> [Item] {
     var acc = [Item]()
     for item in items.reversed() {
       do {
         acc.append(try prepend(item))
       } catch {
+        // Can be inferred from the accumulated items returned.
       }
     }
     return acc
@@ -114,7 +115,7 @@ public struct Queue<Item: Hashable> {
   ///
   /// - Parameter items: The items to enqueue, an empty array is OK.
   public init(items: [Item]) {
-    try! prepend(items: items)
+    prepend(items: items)
     now = hashValues.first
   }
   
