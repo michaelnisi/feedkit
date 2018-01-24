@@ -217,7 +217,6 @@ final class QueueTests: XCTestCase {
     
     XCTAssertEqual(queue.items, [1, 2, 3, 4, 5, 6])
     
-    
     XCTAssertThrowsError(try queue.prepend(1), "should throw") { er in
       switch er {
       case QueueError.alreadyInQueue:
