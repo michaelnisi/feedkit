@@ -87,11 +87,11 @@ final class QueueTests: XCTestCase {
   }
   
   func testPrepend() {
-    try! queue.prepend(4)
+    XCTAssertEqual(try! queue.prepend(4), 4)
     XCTAssertEqual(queue.current, 4)
     XCTAssertEqual(queue.nextUp, [])
     
-    try! queue.prepend(3)
+    XCTAssertEqual(try! queue.prepend(3), 3)
     XCTAssertEqual(queue.current, 4)
     XCTAssertEqual(queue.items, [3, 4])
     XCTAssertEqual(queue.nextUp, [])
@@ -100,16 +100,7 @@ final class QueueTests: XCTestCase {
   
   func testPrependAlready() {
     try! queue.append(3)
-    do {
-      try queue.prepend(items: [1, 2, 3])
-    } catch {
-      switch error {
-      case QueueError.alreadyInQueue:
-        break
-      default:
-        XCTFail("should be expected error")
-      }
-    }
+    XCTAssertEqual(queue.prepend(items: [1, 2, 3]), [2, 1])
     XCTAssertEqual(queue.items, [1, 2, 3])
   }
   
@@ -218,10 +209,10 @@ final class QueueTests: XCTestCase {
   }
   
   func testPrependItems() {
-    try! queue.prepend(items: [4, 5, 6])
+    XCTAssertEqual(queue.prepend(items: [4, 5, 6]), [6, 5, 4])
     XCTAssertEqual(queue.current, 6)
     
-    try! queue.prepend(items: [1, 2, 3])
+    XCTAssertEqual(queue.prepend(items: [1, 2, 3]), [3, 2, 1])
     XCTAssertEqual(queue.current, 6)
     
     XCTAssertEqual(queue.items, [1, 2, 3, 4, 5, 6])
