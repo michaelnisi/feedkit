@@ -9,29 +9,14 @@
 import Foundation
 import os.log
 
-class EnqueueOperation: Operation, Providing {
+final class EnqueueOperation: Operation, Providing {
   
-  var user: EntryQueueHost
-  let cache: QueueCaching
-  
-  var _entries: [Entry]?
-  lazy var entries: [Entry] = {
-    guard let e = _entries else {
-      do {
-        _entries = try findEntries()
-      } catch {
-        self.error = error
-      }
-      return _entries!
-    }
-    return e
-  }()
-  
-  var enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?
-
   // MARK: Providing
   
   private(set) var error: Error?
+  private(set) var entries = Set<Entry>()
+  
+  // MARK: -
   
   private func findEntries() throws -> [Entry] {
     var found = Set<Entry>()
@@ -40,34 +25,52 @@ class EnqueueOperation: Operation, Providing {
         guard req.error == nil else {
           throw req.error!
         }
-        os_log("found entry provider", log: User.log, type: .debug)
         found.formUnion(req.entries)
       }
     }
     return Array(found)
   }
   
+  private var _candidates: [Entry]?
+  
+  /// Initially passed or dependently provided entries to enqueue.
+  private var candidates: [Entry] {
+    get {
+      guard let c = _candidates else {
+        do {
+          _candidates = try findEntries()
+        } catch {
+          self.error = error
+          _candidates = []
+        }
+        return _candidates!
+      }
+      return c
+    }
+  }
+  
+  private var user: EntryQueueHost
+  private let cache: QueueCaching
+  
   init(user: EntryQueueHost, cache: QueueCaching, entries: [Entry]? = nil) {
     self.user = user
     self.cache = cache
-    
-    self._entries = entries
+    self._candidates = entries
     
     super.init()
   }
   
+  var enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?
+  
   private func done(_ error: Error? = nil) {
     self.error = error
     
-    enqueueCompletionBlock?(enqueued ?? [], error)
+    enqueueCompletionBlock?(Array(entries), error)
 
     DispatchQueue.main.async {
       NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
     }
   }
-  
-  // TODO: Use entries properety for result
-  private var enqueued: [Entry]?
   
   override func main() {
     do {
@@ -76,15 +79,15 @@ class EnqueueOperation: Operation, Providing {
         return done(error)
       }
       
-      guard !entries.isEmpty else {
-        os_log("nothing new to enqueue", log: User.log, type: .debug)
+      guard !candidates.isEmpty else {
+        os_log("nothing to enqueue", log: User.log, type: .debug)
         return done()
       }
       
-      os_log("enqueueing: %{public}@", log: User.log, type: .debug, entries)
+      os_log("enqueueing: %{public}@", log: User.log, type: .debug, candidates)
 
-      enqueued = user.queue.prepend(items: entries)
-      let locators = entries.map { EntryLocator(entry: $0) }
+      entries.formUnion(user.queue.prepend(items: candidates))
+      let locators = candidates.map { EntryLocator(entry: $0) }
       try cache.add(entries: locators)
     } catch {
       os_log("enqueueing failed: %{public}@",
