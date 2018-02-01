@@ -137,7 +137,8 @@ extension UserCacheTests {
       var tmp = acc
       for i in 0...4 {
         let since = now.addingTimeInterval(TimeInterval(-i))
-        let guid = "\(url)/\(i)"
+        let host = URL(string: url)!.host!
+        let guid = "\(host)#\(i)"
         let loc = EntryLocator(url: url, since: since, guid: guid)
         tmp.append(loc)
       }
@@ -157,16 +158,15 @@ extension UserCacheTests {
     do {
       try! cache.removeQueued()
       let found = try! cache.stalePreviousGUIDs()
-      let wanted = [
-        "http://abc.de/1",
-        "http://abc.de/2",
-        "http://abc.de/3",
-        "http://abc.de/4",
-        "http://fgh.ijk/1",
-        "http://fgh.ijk/2",
-        "http://fgh.ijk/3",
-        "http://fgh.ijk/4"
-      ]
+      let wanted = urls.reduce([String]()) { acc, url in
+        var tmp = acc
+        for i in 1...4 {
+          let host = URL(string: url)!.host!
+          let guid = "\(host)#\(i)"
+          tmp.append(guid)
+        }
+        return tmp
+      }
       XCTAssertEqual(found, wanted, "should exclude latest of each")
     }
     
