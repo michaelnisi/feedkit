@@ -218,15 +218,12 @@ final class FetchQueueOperation: FeedKitOperation {
     var guids = [String]()
     
     let locators: [EntryLocator] = queued.flatMap {
-      switch $0 {
-      // Making no distinction, only looking for entries at the moment.
-      case .temporary(let locator, _), .pinned(let locator, _):
-        guard let guid = locator.guid else {
-          fatalError("missing guid")
-        }
-        guids.append(guid)
-        return locator.including
+      let loc = $0.entryLocator
+      guard let guid = loc.guid else {
+        fatalError("missing guid")
       }
+      guids.append(guid)
+      return loc.including
     }
     
     sortedIds = guids

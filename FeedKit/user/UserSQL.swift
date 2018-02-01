@@ -83,9 +83,13 @@ extension SQLFormatter {
     return EntryLocator(url: url, since: since, guid: guid)
   }
   
-  func queued(from row: SkullRow) -> Queued {
+  func queued(from row: SkullRow, being removed: Bool = false) -> Queued {
     let locator = entryLocator(from: row)
     let ts = date(from: row["ts"] as? String)!
+    
+    guard !removed else {
+      return Queued.previous(locator, ts)
+    }
     
     // While pinned_ts being just a marker for pinned entries in the queue. It
     // has the same value as ts.
@@ -223,7 +227,8 @@ extension SQLFormatter {
   private func SQLToReplaceQueued(
     locator: EntryLocator,
     timestamp: Date,
-    record: RecordMetadata
+    record: RecordMetadata,
+    table: String
   ) throws -> String {
     guard let locGuid = locator.guid else {
       throw FeedKitError.invalidEntryLocator(reason: "missing guid")
@@ -251,7 +256,7 @@ extension SQLFormatter {
       \(guid), \(url), \(since)
     );
     
-    INSERT OR REPLACE INTO queued_entry(
+    INSERT OR REPLACE INTO \(table)(
       entry_guid, ts, record_name
     ) VALUES(
       \(guid), \(ts), \(recordName)
@@ -295,7 +300,7 @@ extension SQLFormatter {
       switch queued {
       case .pinned(let loc, let ts):
         let sql = try SQLToReplaceQueued(
-          locator: loc, timestamp: ts, record: record)
+          locator: loc, timestamp: ts, record: record, table: "queued_entry")
         let guidStr = SQLString(from: loc.guid!)
         return """
         \(sql)
@@ -303,7 +308,10 @@ extension SQLFormatter {
         """
       case .temporary(let loc, let ts):
         return try SQLToReplaceQueued(
-          locator: loc, timestamp: ts, record: record)
+          locator: loc, timestamp: ts, record: record, table: "queued_entry")
+      case .previous(let loc, let ts):
+        return try SQLToReplaceQueued(
+          locator: loc, timestamp: ts, record: record, table: "previous_entry")
       }
     }
   }

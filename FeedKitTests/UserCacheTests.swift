@@ -174,12 +174,7 @@ extension UserCacheTests {
       try! cache.removeStalePrevious()
       let prev = try! cache.previous()
       XCTAssertEqual(prev.count, 2)
-      let found: [EntryLocator] = prev.flatMap {
-        if case .temporary(let loc, _) = $0 {
-          return loc
-        }
-        return nil
-      }
+      let found: [EntryLocator] = prev.map { $0.entryLocator }
       XCTAssertEqual(found.count, 2)
       let wanted = try! cache.newest()
       XCTAssertEqual(found, wanted)
@@ -250,8 +245,9 @@ extension UserCacheTests {
     
     do {
       let all = try! cache.all()
-      let wanted = locators.map { Queued.temporary($0, Date()) }
-      XCTAssertEqual(all, wanted)
+      let found = all.map { $0.entryLocator }
+      let wanted = locators
+      XCTAssertEqual(found, wanted)
     }
     
     do {
@@ -268,13 +264,6 @@ extension UserCacheTests {
       let wanted = locators.map { Queued.temporary($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
-      
-      // Unpacking the timestamp here, because Queued timestamps, Date() in the 
-      // map function above, aren‘t compared by Queued: Equatable.
-      switch found.first! {
-      case .temporary(_, let ts), .pinned(_, let ts):
-        XCTAssertNotNil(ts)
-      }
     }
     
     do {
@@ -288,7 +277,7 @@ extension UserCacheTests {
     
     do {
       let found = try! cache.previous()
-      let wanted = locators.map { Queued.temporary($0, Date()) }
+      let wanted = locators.map { Queued.previous($0, Date()) }
       XCTAssertEqual(found, wanted)
     }
     

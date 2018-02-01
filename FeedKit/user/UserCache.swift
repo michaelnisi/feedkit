@@ -103,7 +103,8 @@ extension UserCache: SubscriptionCaching {
 
 extension UserCache: QueueCaching {
 
-  private func queryForQueued(using sql: String) throws -> [Queued] {
+  private func queryForQueued(
+    using sql: String, _ previous: Bool = false) throws -> [Queued] {
     return try queue.sync {
       var acc = [Queued]()
 
@@ -117,7 +118,7 @@ extension UserCache: QueueCaching {
           guard let r = row else {
             return 0
           }
-          let locator = sqlFormatter.queued(from: r)
+          let locator = sqlFormatter.queued(from: r, being: previous)
           acc.append(locator)
           return 0
         }
@@ -137,7 +138,7 @@ extension UserCache: QueueCaching {
   }
   
   public func previous() throws -> [Queued] {
-    return try queryForQueued(using: SQLFormatter.SQLToSelectAllPrevious)
+    return try queryForQueued(using: SQLFormatter.SQLToSelectAllPrevious, true)
   }
   
   public func all() throws -> [Queued] {

@@ -37,16 +37,58 @@ public extension Notification.Name {
 
 // MARK: - Queueing
 
-/// An item that can be in the user’s queue. At the moment these are just
-/// entries, but we might add seasons, etc.
+/// An item that can be in the user’s queue. At the moment these are entries,
+/// exclusively, but we might add seasons, etc.
 public enum Queued {
   case temporary(EntryLocator, Date)
   case pinned(EntryLocator, Date)
+  case previous(EntryLocator, Date)
 }
 
 extension Queued: Equatable {
   static public func ==(lhs: Queued, rhs: Queued) -> Bool {
     return lhs.hashValue == rhs.hashValue
+  }
+}
+
+extension Queued: CustomStringConvertible {
+  public var description: String {
+    switch self {
+    case .temporary(_, _):
+      return "Queued.temporary"
+    case .pinned(_, _):
+      return "Queued.pinned"
+    case .previous(_, _):
+      return "Queued.previous"
+    }
+  }
+}
+
+extension Queued: CustomDebugStringConvertible {
+  public var debugDescription: String {
+    switch self {
+    case .temporary(let loc, let ts):
+      return """
+      Queued.temporary {
+        locator: \(loc),
+        ts: \(ts)
+      }
+      """
+    case .pinned(let loc, let ts):
+      return """
+      Queued.pinned {
+        locator: \(loc),
+        ts: \(ts)
+      }
+      """
+    case .previous(let loc, let ts):
+      return """
+      Queued.previous {
+        locator: \(loc),
+        ts: \(ts)
+      }
+      """
+    }
   }
 }
 
@@ -61,10 +103,10 @@ extension Queued: Hashable {
   
   public var hashValue: Int {
     switch self {
-    case .temporary(let loc, let ts):
-      return Queued.makeHash(marker: "temporary", locator: loc, timestamp: ts)
-    case .pinned(let loc, let ts):
-      return Queued.makeHash(marker: "pinned", locator: loc, timestamp: ts)
+    case .temporary(let loc, let ts),
+         .pinned(let loc, let ts),
+         .previous(let loc, let ts):
+      return Queued.makeHash(marker: description, locator: loc, timestamp: ts)
     }
   }
 }
@@ -72,7 +114,7 @@ extension Queued: Hashable {
 extension Queued {
   public var entryLocator: EntryLocator {
     switch self {
-    case .temporary(let loc, _), .pinned(let loc, _):
+    case .temporary(let loc, _), .pinned(let loc, _), .previous(let loc, _):
       return loc
     }
   }
@@ -96,7 +138,7 @@ extension QueuedOwner: Equatable {
   }
 }
 
-/// Cache the user`s queue locallly.
+/// Cache the user`s queue locally.
 public protocol QueueCaching {
   
   /// Enqueues `entries` `belonging` to owner. Entries belonging to .user must
