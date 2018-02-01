@@ -25,6 +25,12 @@ extension SQLFormatter {
   static let SQLToSelectAllPrevious =
   "SELECT * FROM prev_entry_view ORDER BY ts DESC;"
   
+  static let SQLToTrimQueue = """
+    DELETE FROM queued_entry WHERE entry_guid IN(
+      SELECT entry_guid FROM stale_queued_entry_guid_view
+    );
+    """
+
   static func SQLToDeleteFromEntry(where guids: [String]) -> String {
     return "DELETE FROM entry WHERE entry_guid IN(" + guids.map {
       "'\($0)'"
@@ -41,7 +47,8 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
   
-  func SQLToQueue(entry: EntryLocator) throws -> String {
+  func SQLToQueue(entry: EntryLocator, belonging: QueuedOwner = .nobody
+  ) throws -> String {
     guard let guid = entry.guid else {
       throw FeedKitError.invalidEntryLocator(reason: "missing guid")
     }
@@ -50,13 +57,22 @@ extension SQLFormatter {
     let since = SQLString(from: entry.since)
     let guidStr = SQLFormatter.SQLString(from: guid)
     
-    return """
+    let insertEntry = """
     INSERT OR REPLACE INTO entry(
       entry_guid, feed_url, since
     ) VALUES(
       \(guidStr), \(url), \(since)
     );
     INSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\(guidStr));
+    """
+    
+    guard case .user = belonging else {
+      return insertEntry
+    }
+    
+    return """
+    \(insertEntry)
+    INSERT OR REPLACE INTO pinned_entry(entry_guid) VALUES(\(guidStr));
     """
   }
   
@@ -67,10 +83,17 @@ extension SQLFormatter {
     return EntryLocator(url: url, since: since, guid: guid)
   }
   
-  func queuedLocator(from row: SkullRow) -> Queued {
+  func queued(from row: SkullRow) -> Queued {
     let locator = entryLocator(from: row)
     let ts = date(from: row["ts"] as? String)!
-    return Queued.entry(locator, ts)
+    
+    // While pinned_ts being just a marker for pinned entries in the queue. It
+    // has the same value as ts.
+    guard let _ = date(from: row["pinned_ts"] as? String) else {
+      return Queued.temporary(locator, ts)
+    }
+    
+    return Queued.pinned(locator, ts)
   }
   
 }
@@ -197,6 +220,45 @@ extension SQLFormatter {
     }.joined(separator: ", ") + ");"
   }
   
+  private func SQLToReplaceQueued(
+    locator: EntryLocator,
+    timestamp: Date,
+    record: RecordMetadata
+  ) throws -> String {
+    guard let locGuid = locator.guid else {
+      throw FeedKitError.invalidEntryLocator(reason: "missing guid")
+    }
+    let guid = SQLString(from: locGuid)
+    let url = SQLString(from: locator.url)
+    let since = SQLString(from: locator.since)
+    
+    let zoneName = SQLString(from: record.zoneName)
+    let recordName = SQLString(from: record.recordName)
+    let tag = SQLString(from: record.changeTag)
+    
+    let ts = SQLString(from: timestamp)
+    
+    return """
+    INSERT OR REPLACE INTO record(
+      record_name, zone_name, change_tag
+    ) VALUES(
+      \(recordName), \(zoneName), \(tag)
+    );
+    
+    INSERT OR REPLACE INTO entry(
+      entry_guid, feed_url, since
+    ) VALUES(
+      \(guid), \(url), \(since)
+    );
+    
+    INSERT OR REPLACE INTO queued_entry(
+      entry_guid, ts, record_name
+    ) VALUES(
+      \(guid), \(ts), \(recordName)
+    );
+    """
+  }
+  
   func SQLToReplace(synced: Synced) throws -> String {
     switch synced {
     case .subscription(let subscription, let record):
@@ -229,30 +291,20 @@ extension SQLFormatter {
       );
       """
       return sql
-    case .entry(let locator, let queuedAt, let record):
-      guard let locGuid = locator.guid else {
-        throw FeedKitError.invalidEntryLocator(reason: "missing guid")
+    case .queued(let queued, let record):
+      switch queued {
+      case .pinned(let loc, let ts):
+        let sql = try SQLToReplaceQueued(
+          locator: loc, timestamp: ts, record: record)
+        let guidStr = SQLString(from: loc.guid!)
+        return """
+        \(sql)
+        INSERT OR REPLACE INTO pinned_entry(entry_guid) VALUES(\(guidStr));
+        """
+      case .temporary(let loc, let ts):
+        return try SQLToReplaceQueued(
+          locator: loc, timestamp: ts, record: record)
       }
-      let guid = SQLString(from: locGuid)
-      let url = SQLString(from: locator.url)
-      let since = SQLString(from: locator.since)
-      
-      let ts = SQLString(from: queuedAt)
-      
-      let zoneName = SQLString(from: record.zoneName)
-      let recordName = SQLString(from: record.recordName)
-      let tag = SQLString(from: record.changeTag)
-      
-      return [
-        "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) " +
-        "VALUES(\(recordName), \(zoneName), \(tag));",
-        
-        "INSERT OR REPLACE INTO entry(entry_guid, feed_url, since) " +
-        "VALUES(\(guid), \(url), \(since));",
-        
-        "INSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) " +
-        "VALUES(\(guid), \(ts), \(recordName));"
-        ].joined(separator: "\n");
     }
   }
   

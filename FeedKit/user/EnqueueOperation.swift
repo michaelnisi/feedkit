@@ -9,9 +9,9 @@
 import Foundation
 import os.log
 
-final class EnqueueOperation: Operation, Providing {
+final class EnqueueOperation: Operation, ProvidingEntries {
   
-  // MARK: Providing
+  // MARK: ProvidingEntries
   
   private(set) var error: Error?
   private(set) var entries = Set<Entry>()
@@ -52,6 +52,12 @@ final class EnqueueOperation: Operation, Providing {
   private var user: EntryQueueHost
   private let cache: QueueCaching
   
+  private var _owner: QueuedOwner?
+  var owner: QueuedOwner {
+    get { return _owner ?? .nobody }
+    set { _owner = newValue }
+  }
+  
   init(user: EntryQueueHost, cache: QueueCaching, entries: [Entry]? = nil) {
     self.user = user
     self.cache = cache
@@ -88,7 +94,7 @@ final class EnqueueOperation: Operation, Providing {
 
       entries.formUnion(user.queue.prepend(items: candidates))
       let locators = candidates.map { EntryLocator(entry: $0) }
-      try cache.add(entries: locators)
+      try cache.add(entries: locators, belonging: owner)
     } catch {
       os_log("enqueueing failed: %{public}@",
              log: User.log, type: .debug, error as CVarArg)

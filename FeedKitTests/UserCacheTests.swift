@@ -40,35 +40,117 @@ final class UserCacheTests: XCTestCase {
 // MARK: - QueueCaching
 
 extension UserCacheTests {
+  
+  func testTrim() {
+    do {
+      try! cache.trim()
+      XCTAssert(try! cache.queued().isEmpty)
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let locators = [
+        EntryLocator(url: url, since: Date(), guid: "abc"),
+        EntryLocator(url: url, since: Date.distantPast, guid: "def")
+      ]
+      
+      try! cache.add(entries: locators)
+      
+      let newest = try! cache.newest()
+      XCTAssertEqual(newest.count, 1)
+      
+      let found = newest.first
+      let wanted = locators.first
+      XCTAssertEqual(found, wanted, "should be newest")
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let locators = [
+        EntryLocator(url: url, since: Date(), guid: "abc"),
+        EntryLocator(url: url, since: Date.distantPast, guid: "def")
+      ]
+      
+      try! cache.add(entries: locators)
+      try! cache.trim()
+      
+      let queued = try! cache.queued()
+      XCTAssertEqual(queued.count, 1)
+      
+      guard case Queued.temporary(let found, _) = queued.first! else {
+        return XCTFail("should enqueue entry")
+      }
+      let wanted = locators.first
+      XCTAssertEqual(found, wanted, "should be newest")
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let locators = [
+        EntryLocator(url: url, since: Date(), guid: "abc"),
+        EntryLocator(url: url, since: Date.distantPast, guid: "def")
+      ]
+      
+      try! cache.add(entries: locators, belonging: .user)
+      try! cache.trim()
+      
+      let queued = try! cache.queued()
+      XCTAssertEqual(queued.count, 2)
+      
+      let found: [EntryLocator] = queued.map { $0.entryLocator }
+      let wanted = locators
+      XCTAssertEqual(found, wanted, "should keep all")
+    }
+    
+    do {
+      let url = "http://abc.de"
+      // Must be older to be kept, behaviour for equal dates is undefined.
+      let older = Date().addingTimeInterval(-1)
+      let locators = [
+        EntryLocator(url: url, since: older, guid: "abc"),
+        EntryLocator(url: url, since: Date.distantPast, guid: "def")
+      ]
+      
+      try! cache.add(entries: locators, belonging: .user)
+      let more = [EntryLocator(url: url, since: Date(), guid: "ghi"),]
+      try! cache.add(entries: more)
+      try! cache.trim()
+      
+      let queued = try! cache.queued()
+      XCTAssertEqual(queued.count, 3)
+      XCTAssert(queued.contains {
+        guard case .pinned = $0 else { return false }
+        return true
+      })
+      
+      let found: [EntryLocator] = queued.map { $0.entryLocator }
+      let wanted = locators + more
+      XCTAssertEqual(found, wanted, "should keep all")
+    }
+    
+  }
 
   func testNewest() {
     let urls = ["http://abc.de", "http://fgh.ijk"]
+    let now = Date()
     let locators = urls.reduce([EntryLocator]()) { acc, url in
       var tmp = acc
-      for index in 1...5 {
-        if url == "http://abc.de" && index == 5 {
-          continue
-        }
-        let since = Date(timeIntervalSince1970: Double(index) * 10)
-        let guid = "\(url)/\(index)"
+      for i in 0...4 {
+        let since = now.addingTimeInterval(TimeInterval(-i))
+        let guid = "\(url)/\(i)"
         let loc = EntryLocator(url: url, since: since, guid: guid)
         tmp.append(loc)
       }
       return tmp
     }
+    
+    assert(locators.count == 10)
   
     try! cache.add(entries: locators)
   
     do {
       let found = try! cache.newest()
-      let a = urls.last!
-      let b = urls.first!
-      let since = Date(timeIntervalSince1970: 50)
-      
-      let wanted = [
-        EntryLocator(url: a, since: since, guid: "\(a)/5"),
-        EntryLocator(url: b, since: since, guid: "\(b)/4")
-      ]
+      let wanted = [locators[0], locators[5]]
       XCTAssertEqual(found, wanted)
     }
     
@@ -79,12 +161,13 @@ extension UserCacheTests {
         "http://abc.de/1",
         "http://abc.de/2",
         "http://abc.de/3",
+        "http://abc.de/4",
         "http://fgh.ijk/1",
         "http://fgh.ijk/2",
         "http://fgh.ijk/3",
         "http://fgh.ijk/4"
       ]
-      XCTAssertEqual(wanted, found, "should exclude latest of each")
+      XCTAssertEqual(found, wanted, "should exclude latest of each")
     }
     
     do {
@@ -92,22 +175,36 @@ extension UserCacheTests {
       let prev = try! cache.previous()
       XCTAssertEqual(prev.count, 2)
       let found: [EntryLocator] = prev.flatMap {
-        if case .entry(let loc, _) = $0 {
+        if case .temporary(let loc, _) = $0 {
           return loc
         }
         return nil
       }
       XCTAssertEqual(found.count, 2)
-      let wanted = Array(try! cache.newest().reversed())
+      let wanted = try! cache.newest()
       XCTAssertEqual(found, wanted)
     }
   }
   
   func testAddEntries() {
+    do {
+      let locators = [EntryLocator(url: "http://abc.de")]
+      let wanted = "missing guid"
+      XCTAssertThrowsError(try cache.add(entries: locators), wanted) {
+        error in
+        switch error {
+        case FeedKitError.invalidEntryLocator(let reason):
+          XCTAssertEqual(reason, wanted)
+        default:
+          XCTFail()
+        }
+      }
+    }
+    
     try! cache.add(entries: locators)
 
     do {
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
       let guid = locators.first?.guid
@@ -115,14 +212,14 @@ extension UserCacheTests {
     }
     
     do {
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       let found = try! cache.locallyQueued()
       XCTAssertEqual(found, wanted)
     }
     
     do {
       let all = try! cache.all()
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       XCTAssertEqual(all, wanted)
     }
     
@@ -135,7 +232,7 @@ extension UserCacheTests {
   func testRemoveAll() {
     do {
       try! cache.add(entries: locators)
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
       let guid = locators.first?.guid
@@ -153,7 +250,7 @@ extension UserCacheTests {
     
     do {
       let all = try! cache.all()
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       XCTAssertEqual(all, wanted)
     }
     
@@ -168,14 +265,14 @@ extension UserCacheTests {
   func testRemoveEntries() {
     do {
       try! cache.add(entries: locators)
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
       
       // Unpacking the timestamp here, because Queued timestamps, Date() in the 
       // map function above, aren‘t compared by Queued: Equatable.
       switch found.first! {
-      case .entry(_, let ts):
+      case .temporary(_, let ts), .pinned(_, let ts):
         XCTAssertNotNil(ts)
       }
     }
@@ -191,7 +288,7 @@ extension UserCacheTests {
     
     do {
       let found = try! cache.previous()
-      let wanted = locators.map { Queued.entry($0, Date()) }
+      let wanted = locators.map { Queued.temporary($0, Date()) }
       XCTAssertEqual(found, wanted)
     }
     
@@ -208,30 +305,79 @@ extension UserCacheTests {
 
 extension UserCacheTests {
   
-  fileprivate func freshSynced() -> [Synced] {
-    let zoneName = "queueZone"
-    let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
-  
-    let record = RecordMetadata(
-      zoneName: zoneName, recordName: recordName, changeTag: "e")
-    let url = "http://abc.de"
-    let guid = "abc"
-    let loc = EntryLocator(url: url, guid: guid)
-    let s = Synced.entry(loc, Date(), record)
-  
-    return [s]
-  }
-  
   func testAddSynced() {
-    let synced = freshSynced()
-    try! cache.add(synced: synced)
-    let guid = "abc"
-    XCTAssertTrue(try! cache.isQueued(guid))
+    struct A {
+      let rec = RecordMetadata(
+        zoneName: "queueZone",
+        recordName: UUID().uuidString,
+        changeTag: "e"
+      )
+      let locator = EntryLocator(
+        url: "http://abc.de",
+        guid: UUID().uuidString
+      )
+    }
+
+    struct B {
+      let rec = RecordMetadata(
+        zoneName: "queueZone",
+        recordName: UUID().uuidString,
+        changeTag: "e"
+      )
+      let locator = EntryLocator(
+        url: "http://abc.de",
+        guid: UUID().uuidString
+      )
+    }
+
+    let a = A()
+    let b = B()
+
+    do {
+      let temp = Queued.temporary(a.locator, Date())
+      let synced = [Synced.queued(temp, a.rec)]
+      
+      try! cache.add(synced: synced)
+      
+      XCTAssertTrue(try! cache.isQueued(a.locator.guid!))
+    }
+    
+    do {
+      let pinned = Queued.pinned(a.locator, Date())
+      let synced = [Synced.queued(pinned, a.rec)]
+      
+      try! cache.add(synced: synced)
+      
+      XCTAssertTrue(try! cache.isQueued(a.locator.guid!))
+    }
+    
+    do {
+      let pinned = Queued.pinned(a.locator, Date())
+      let temp = Queued.temporary(b.locator, Date(timeIntervalSinceNow: -1))
+      
+      let synced = [
+        Synced.queued(pinned, a.rec),
+        Synced.queued(temp, b.rec)
+      ]
+      
+      try! cache.add(synced: synced)
+
+      XCTAssertTrue(try! cache.isQueued(a.locator.guid!))
+      XCTAssertTrue(try! cache.isQueued(b.locator.guid!))
+      
+      let found = try! cache.queued()
+      XCTAssertEqual(found.count, 2)
+      
+      let wanted: [Queued] = synced.flatMap {
+        guard case .queued(let q, _) = $0 else { return nil }
+        return q
+      }
+      XCTAssertEqual(found, wanted)
+    }
   }
   
   func testRemoveSynced() {
-    let recordName = "E49847D6-6251-48E3-9D7D-B70E8B7392CD"
-    let recordNames = [recordName]
+    let recordNames = [UUID().uuidString]
     try! cache.remove(recordNames: recordNames)
   }
   
@@ -242,12 +388,7 @@ extension UserCacheTests {
    
     let queued = try! cache.locallyQueued()
     
-    let found: [EntryLocator] = queued.flatMap {
-      switch $0 {
-      case .entry(let loc, _):
-        return loc
-      }
-    }
+    let found: [EntryLocator] = queued.map { $0.entryLocator }
     let wanted = locators
     XCTAssertEqual(found, wanted)
   }
@@ -256,19 +397,20 @@ extension UserCacheTests {
     XCTAssertEqual(try! cache.queued(), [])
     
     do {
-      let locator = locators.first!
+      let loc = locators.first!
       let uuidString = UUID().uuidString
       let record = RecordMetadata(
         zoneName: "abc", recordName: uuidString, changeTag: "a")
       let ts = Date()
-      let synced = Synced.entry(locator, ts, record)
+      let queued = Queued.temporary(loc, ts)
+      let synced = Synced.queued(queued, record)
       
       try! cache.add(synced: [synced])
 
       XCTAssertEqual(try! cache.locallyQueued(), [])
       
-      let queued = Queued.entry(locator, ts)
-      XCTAssertEqual(try! cache.queued(), [queued])
+      let wanted = Queued.temporary(loc, ts)
+      XCTAssertEqual(try! cache.queued(), [wanted])
     }
   }
   

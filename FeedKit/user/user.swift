@@ -40,25 +40,58 @@ public extension Notification.Name {
 /// An item that can be in the user’s queue. At the moment these are just
 /// entries, but we might add seasons, etc.
 public enum Queued {
-  case entry(EntryLocator, Date)
+  case temporary(EntryLocator, Date)
+  case pinned(EntryLocator, Date)
 }
 
 extension Queued: Equatable {
   static public func ==(lhs: Queued, rhs: Queued) -> Bool {
-    switch (lhs, rhs) {
-    case (.entry(let a, _), .entry(let b, _)):
-      return a == b
-    }
+    return lhs.hashValue == rhs.hashValue
   }
 }
 
 extension Queued: Hashable {
+  private static func makeHash(
+    marker: String, locator: EntryLocator, timestamp: Date
+  ) -> Int {
+    // Using timestamp’s hash value directly, doesn’t yield expected results.
+    let ts = Int(timestamp.timeIntervalSince1970)
+    return marker.hashValue ^ locator.hashValue ^ ts
+  }
+  
   public var hashValue: Int {
-    get {
-      switch self {
-      case .entry(let locator, _):
-        return locator.hashValue
-      }
+    switch self {
+    case .temporary(let loc, let ts):
+      return Queued.makeHash(marker: "temporary", locator: loc, timestamp: ts)
+    case .pinned(let loc, let ts):
+      return Queued.makeHash(marker: "pinned", locator: loc, timestamp: ts)
+    }
+  }
+}
+
+extension Queued {
+  public var entryLocator: EntryLocator {
+    switch self {
+    case .temporary(let loc, _), .pinned(let loc, _):
+      return loc
+    }
+  }
+}
+
+/// Queued items belong to owners, default is `.nobody`.
+public enum QueuedOwner: Int {
+  case nobody, user
+}
+
+extension QueuedOwner: Equatable {
+  static public func ==(lhs: QueuedOwner, rhs: QueuedOwner) -> Bool {
+    switch (lhs, rhs) {
+    case (.nobody, .nobody):
+      return true
+    case (.user, .user):
+      return true
+    case (.user, _), (.nobody, _):
+      return false
     }
   }
 }
@@ -66,12 +99,19 @@ extension Queued: Hashable {
 /// Cache the user`s queue locallly.
 public protocol QueueCaching {
   
-  /// Enqueues `entries`, as locators, so you cann enqueue without
-  /// having to provide the actual entry.
+  /// Enqueues `entries` `belonging` to owner. Entries belonging to .user must
+  /// not be removed automatically.
+  func add(entries: [EntryLocator], belonging: QueuedOwner) throws
+  
+  /// Enqueues `entries`.
   func add(entries: [EntryLocator]) throws
   
   /// Removes queued entries with `guids`.
   func removeQueued(_ guids: [String]) throws
+  
+  /// Trims the queue, keeping only the latest items, and items that have been
+  /// explicitly enqueued by users.
+  func trim() throws
   
   /// Removes all queued entries.
   func removeQueued() throws
@@ -112,6 +152,12 @@ protocol EntryQueueHost {
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
+  
+  /// Adds `entry` to the queue.
+  func enqueue(
+    entries: [Entry],
+    belonging: QueuedOwner,
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
   
   /// Adds `entry` to the queue.
   func enqueue(
@@ -164,7 +210,7 @@ public protocol Updating {
   ///   - updateComplete: The completion block to apply when done.
   ///   - newData: `true` if new data has been received.
   ///   - error: Optionally, an error if anything went wrong.
-  func update(updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void)
+  func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?)
   
 }
 
@@ -295,7 +341,7 @@ extension RecordMetadata: Equatable {
       lhs.recordName == rhs.recordName,
       lhs.changeTag == rhs.changeTag
       else {
-        return false
+      return false
     }
     return true
   }
@@ -304,10 +350,11 @@ extension RecordMetadata: Equatable {
 /// Enumerates data structures that are synchronized with iCloud.
 public enum Synced {
   
-  /// A queued entry that has been synchronized with the iCloud database with
-  /// these properties: entry locator, the time the entry was added to the
-  /// queue, and CloudKit record metadata.
-  case entry(EntryLocator, Date, RecordMetadata)
+  /// A queued item that has been synchronized with the iCloud database.
+  case queued(Queued, RecordMetadata)
+  
+  /// A previously queued item.
+//  case previous(Queued, RecordMetadata)
   
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
@@ -316,12 +363,13 @@ public enum Synced {
 extension Synced: Equatable {
   public static func ==(lhs: Synced, rhs: Synced) -> Bool {
     switch (lhs, rhs) {
-    case (.entry(let lloc, let lts, let lrec), .entry(let rloc, let rts, let rrec)):
-      return lloc == rloc && lts == rts && lrec == rrec
+    case (.queued(let lq, let lrec), .queued(let rq, let rrec)):
+      return lq == rq && lrec == rrec
+//    case (.previous(let lq, let lrec), .previous(let rq, let rrec)):
+//      return lq == rq && lrec == rrec
     case (.subscription(let ls, let lrec), .subscription(let rs, let rrec)):
       return ls == rs && lrec == rrec
-    case (.entry, _),
-         (.subscription, _):
+    case (.queued, _), (.subscription, _):
       return false
     }
   }

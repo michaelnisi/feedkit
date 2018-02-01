@@ -473,7 +473,8 @@ extension SQLTests {
 
     do {
       let loc = EntryLocator(url: "http://abc.de")
-      let synced = Synced.entry(loc, Date(), record)
+      let queued = Queued.temporary(loc, Date())
+      let synced = Synced.queued(queued, record)
       XCTAssertThrowsError(try formatter.SQLToReplace(synced: synced))
     }
 
@@ -481,9 +482,29 @@ extension SQLTests {
 
     do {
       let loc = EntryLocator(url: "http://abc.de", since: nil, guid: "abc", title: nil)
-      let synced = Synced.entry(loc, ts, record)
+      let queued = Queued.temporary(loc, ts)
+      let synced = Synced.queued(queued, record)
       let found = try! formatter.SQLToReplace(synced: synced)
-      let wanted = "INSERT OR REPLACE INTO record(record_name, zone_name, change_tag) VALUES(\'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\');\nINSERT OR REPLACE INTO entry(entry_guid, feed_url, since) VALUES(\'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\');\nINSERT OR REPLACE INTO queued_entry(entry_guid, ts, record_name) VALUES(\'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\');"
+      let wanted = """
+      INSERT OR REPLACE INTO record(
+        record_name, zone_name, change_tag
+      ) VALUES(
+        \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\', \'queueZone\', \'e\'
+      );
+      
+      INSERT OR REPLACE INTO entry(
+        entry_guid, feed_url, since
+      ) VALUES(
+        \'abc\', \'http://abc.de\', \'1970-01-01 00:00:00\'
+      );
+
+      INSERT OR REPLACE INTO queued_entry(
+        entry_guid, ts, record_name
+      ) VALUES(
+        \'abc\', \'2016-06-06 06:00:00\', \'E49847D6-6251-48E3-9D7D-B70E8B7392CD\'
+      );
+      """
+
       XCTAssertEqual(found, wanted)
     }
 
@@ -617,31 +638,51 @@ extension SQLTests {
     }
   }
 
-  func testQueuedLocatorFromRow() {
-    let keys = ["guid", "url", "since", "ts"]
-    var row = skullRow(keys)
+  func testQueuedFromRow() {
+    do {
+      let url = "abc.de"
+      let guid = "123"
+      let now = formatter.now()
 
-    let guid = "12three"
-    let url = "abc.de"
+      let row = [
+        "entry_guid": guid,
+        "feed_url": url,
+        "since": "2016-06-06 06:00:00",
+        "ts": now
+      ]
+      
+      let found = formatter.queued(from: row)
+      
+      let since = Date(timeIntervalSince1970: 1465192800)
+      let locator = EntryLocator(url: url, since: since, guid: guid)
+      let ts = formatter.date(from: now)
+      let wanted = Queued.temporary(locator, ts!)
 
-    row["entry_guid"] = guid
-    row["feed_url"] = url
-    row["since"] = "2016-06-06 06:00:00" // UTC
+      XCTAssertEqual(found, wanted)
+    }
+    
+    do {
+      let url = "http://abc.de"
+      let guid = "123"
+      let now = formatter.now()
 
-    // This hassle of producing a timestamp is unnecessary, really, because
-    // Queued: Equatable only compares locator, not the timestamp.
-
-    let now = formatter.now()
-    row["ts"] = now
-    let ts = formatter.date(from: now)
-    let found = formatter.queuedLocator(from: row)
-
-    let since = Date(timeIntervalSince1970: 1465192800)
-    let locator = EntryLocator(url: url, since: since, guid: guid)
-
-    let wanted = Queued.entry(locator, ts!)
-
-    XCTAssertEqual(found, wanted)
+      let row = [
+        "entry_guid": guid,
+        "feed_url": url,
+        "since": "2016-06-06 06:00:00",
+        "ts": now,
+        "pinned_ts": now
+      ]
+      
+      let found = formatter.queued(from: row)
+      
+      let since = Date(timeIntervalSince1970: 1465192800)
+      let locator = EntryLocator(url: url, since: since, guid: guid)
+      let ts = formatter.date(from: now)
+      let wanted = Queued.pinned(locator, ts!)
+      
+      XCTAssertEqual(found, wanted)
+    }
   }
 
 }

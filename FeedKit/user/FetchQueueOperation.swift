@@ -219,7 +219,8 @@ final class FetchQueueOperation: FeedKitOperation {
     
     let locators: [EntryLocator] = queued.flatMap {
       switch $0 {
-      case .entry(let locator, _):
+      // Making no distinction, only looking for entries at the moment.
+      case .temporary(let locator, _), .pinned(let locator, _):
         guard let guid = locator.guid else {
           fatalError("missing guid")
         }

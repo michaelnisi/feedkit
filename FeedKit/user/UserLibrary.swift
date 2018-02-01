@@ -31,8 +31,7 @@ public final class UserLibrary: EntryQueueHost {
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
-  internal var queue = Queue<Entry>()
-  
+  internal var queue = Queue<Entry>()  
   
   fileprivate var  _subscriptions = Set<FeedURL>()
   /// A synchronized list of subscribed URLs for quick in-memory access.
@@ -172,7 +171,7 @@ extension UserLibrary: Updating {
   private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
     return previous.flatMap {
-      if case .entry(let loc, _) = $0 {
+      if case .temporary(let loc, _) = $0 {
         return loc.guid
       }
       return nil
@@ -214,27 +213,35 @@ extension UserLibrary: Updating {
   }
   
   public func update(
-    updateComplete: @escaping (_ newData: Bool, _ error: Error?) -> Void) {
+    updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating...", log: User.log,  type: .info)
     
-    let prepare = PrepareUpdateOperation(cache: cache)
+    let cache = self.cache
+    let operationQueue = self.operationQueue
+    let browser = self.browser
     
-    let fetch = browser.makeEntriesOperation()
-    fetch.addDependency(prepare)
-    // TODO: fetch.addDependency(reach)
+    DispatchQueue.global(qos: .background).async {
+      let prepare = PrepareUpdateOperation(cache: cache)
+      let fetch = browser.makeEntriesOperation()
+      let enqueue = EnqueueOperation(user: self, cache: cache)
+      let trim = TrimQueueOperation(cache: cache)
+      
+      // TODO: prepare.addDependency(reach)
+      fetch.addDependency(prepare)
+      enqueue.addDependency(fetch)
+      trim.addDependency(enqueue)
+      
+      operationQueue.addOperation(prepare)
+      operationQueue.addOperation(fetch)
+      operationQueue.addOperation(enqueue)
+      operationQueue.addOperation(trim)
     
-    let enqueue = EnqueueOperation(user: self, cache: cache)
-    enqueue.addDependency(fetch)
-    
-    operationQueue.addOperation(prepare)
-    operationQueue.addOperation(fetch)
-    operationQueue.addOperation(enqueue)
-    
-    // TODO: Add proper completion block
-    // ... make sure errors get propagated
-    enqueue.enqueueCompletionBlock = { enqueued, error in
-      DispatchQueue.global().async {
-        updateComplete(!enqueued.isEmpty, error)
+      trim.trimQueueCompletionBlock = { newData, error in
+        if let er = error {
+          os_log("trim error: %{public}@",
+                 log: User.log, type: .error, er as CVarArg)
+        }
+        updateComplete?(newData, error)
       }
     }
   }
@@ -250,7 +257,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
     ) -> Operation {
-    os_log("fetching", log: User.log, type: .debug)
+    os_log("fetching...", log: User.log, type: .debug)
     
     let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
@@ -280,8 +287,10 @@ extension UserLibrary: Queueing {
   
   public func enqueue(
     entries: [Entry],
+    belonging owner: QueuedOwner,
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
+    op.owner = owner
     op.enqueueCompletionBlock = { enqueued, error in
       let er: Error? = {
         guard error == nil else {
@@ -295,6 +304,13 @@ extension UserLibrary: Queueing {
       enqueueCompletionBlock?(er)
     }
     User.queue.addOperation(op)
+  }
+  
+  public func enqueue(
+    entries: [Entry],
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
+    try enqueue(entries: entries, belonging: .nobody,
+                enqueueCompletionBlock: enqueueCompletionBlock)
   }
   
   public func dequeue(

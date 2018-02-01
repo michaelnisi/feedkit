@@ -117,7 +117,7 @@ extension UserCache: QueueCaching {
           guard let r = row else {
             return 0
           }
-          let locator = sqlFormatter.queuedLocator(from: r)
+          let locator = sqlFormatter.queued(from: r)
           acc.append(locator)
           return 0
         }
@@ -225,6 +225,12 @@ extension UserCache: QueueCaching {
     }
   }
   
+  public func trim() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToTrimQueue)
+    }
+  }
+  
   public func removePrevious() throws {
     try queue.sync {
       try db.exec(SQLFormatter.SQLToDeleteFromPrevEntry)
@@ -237,14 +243,18 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func add(entries: [EntryLocator]) throws {
+  public func add(entries: [EntryLocator], belonging owner: QueuedOwner) throws {
     try queue.sync {
       let sql = try entries.reduce([String]()) { acc, loc in
-        let token = try sqlFormatter.SQLToQueue(entry: loc)
+        let token = try sqlFormatter.SQLToQueue(entry: loc, belonging: owner)
         return acc + [token]
       }.joined(separator: "\n")
       try db.exec(sql)
     }
+  }
+  
+  public func add(entries: [EntryLocator]) throws {
+    try add(entries: entries, belonging: .nobody)
   }
   
   public func isQueued(_ guid: EntryGUID) throws -> Bool {
@@ -294,9 +304,8 @@ extension UserCache: UserCacheSyncing {
   }
   
   public func add(synced: [Synced]) throws {
-    os_log("aborting attempt to add empty array", type: .debug)
     guard !synced.isEmpty else {
-      return
+      return os_log("aborting attempt to add empty array", type: .debug)
     }
     
     var er: Error?

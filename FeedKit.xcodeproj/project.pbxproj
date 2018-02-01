@@ -36,6 +36,7 @@
 		4CF1A5A1200C887D008C2550 /* SuggestOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A5A0200C887D008C2550 /* SuggestOperation.swift */; };
 		4CF1A5A3200C88F8008C2550 /* SearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A5A2200C88F8008C2550 /* SearchRepository.swift */; };
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
+		4CF56407201A44F10014E7B4 /* TrimQueueOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF56406201A44F10014E7B4 /* TrimQueueOperation.swift */; };
 		4E2AEB651F59666D004BC34A /* UserCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2AEB641F59666D004BC34A /* UserCache.swift */; };
 		4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5171E3CB58B007517FB /* Skull.framework */; };
 		4E49B7381F07A524004668FD /* user.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4E49B7371F07A524004668FD /* user.sql */; };
@@ -119,6 +120,7 @@
 		4CF1A5A0200C887D008C2550 /* SuggestOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SuggestOperation.swift; sourceTree = "<group>"; };
 		4CF1A5A2200C88F8008C2550 /* SearchRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchRepository.swift; sourceTree = "<group>"; };
 		4CF53BB91C5DF35700B85CA1 /* user.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = user.swift; sourceTree = "<group>"; };
+		4CF56406201A44F10014E7B4 /* TrimQueueOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrimQueueOperation.swift; sourceTree = "<group>"; };
 		4E2AEB641F59666D004BC34A /* UserCache.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserCache.swift; sourceTree = "<group>"; };
 		4E34B5171E3CB58B007517FB /* Skull.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Skull.framework; path = "../skull/build/Debug-iphoneos/Skull.framework"; sourceTree = "<group>"; };
 		4E49B7371F07A524004668FD /* user.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = user.sql; sourceTree = "<group>"; };
@@ -259,6 +261,7 @@
 				4C9970031FE39AE800E0FA30 /* FetchQueueOperation.swift */,
 				4C9970071FE3BA1000E0FA30 /* PrepareUpdateOperation.swift */,
 				4C6D1D561FE790640023EB17 /* EnqueueOperation.swift */,
+				4CF56406201A44F10014E7B4 /* TrimQueueOperation.swift */,
 			);
 			path = user;
 			sourceTree = "<group>";
@@ -488,6 +491,7 @@
 				4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */,
 				4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
+				4CF56407201A44F10014E7B4 /* TrimQueueOperation.swift in Sources */,
 				4CD696F81FEA56DF00349580 /* download.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
