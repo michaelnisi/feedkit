@@ -113,7 +113,7 @@ public class LocalCache: Caching {
     let me = type(of: self)
     self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
     
-    self.sqlFormatter = SQLFormatter.shared
+    self.sqlFormatter = SQLFormatter()
   }
 
   public func flush() throws {

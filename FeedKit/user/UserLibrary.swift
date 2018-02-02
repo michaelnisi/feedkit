@@ -151,8 +151,11 @@ extension UserLibrary: Subscribing {
         let unsubscribed = subscriptions.subtracting(urls)
         subscriptions.subtract(unsubscribed)
         subscriptions.formUnion(urls)
-        // ...and replace.
+        
+        // ...and replace. The subscriptions property here needs to be
+        // thread-safe.
         self.subscriptions = subscriptions
+        
         completionBlock?(nil)
       } catch {
         os_log("failed to reload subscriptions", log: User.log, type: .error,

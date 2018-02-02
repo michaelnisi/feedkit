@@ -240,7 +240,7 @@ extension UserCache: QueueCaching {
   
   public func removeAll() throws {
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToDeleteFromEntry)
+      try db.exec(SQLFormatter.SQLToDeleteAll)
     }
   }
   
@@ -288,13 +288,19 @@ extension UserCache: UserCacheSyncing {
   
   public func removeQueue() throws {
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToRemoveQueue)
+      try db.exec(SQLFormatter.SQLToDeleteFromQueuedEntry)
     }
   }
   
   public func removeLibrary() throws {
     try queue.sync {
-      try db.exec(SQLFormatter.SQLToRemoveLibrary)
+      try db.exec(SQLFormatter.SQLToDeleteFromSubscribed)
+    }
+  }
+  
+  public func removeLog() throws {
+    try queue.sync {
+      try db.exec(SQLFormatter.SQLToDeleteFromPrevEntry)
     }
   }
   

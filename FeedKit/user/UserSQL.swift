@@ -191,23 +191,14 @@ extension SQLFormatter {
 
 extension SQLFormatter {
   
+  static var SQLToDeleteFromSubscribed = "DELETE FROM subscribed_feed;"
   static var SQLToDeleteFromQueuedEntry = "DELETE FROM queued_entry;"
-  
   static var SQLToDeleteFromPrevEntry = "DELETE FROM prev_entry;"
-  
-  static var SQLToDeleteFromEntry = "DELETE FROM entry;"
-  
-  static var SQLToRemoveLibrary = """
+
+  static var SQLToDeleteAll = """
+  DELETE FROM record;
   DELETE FROM feed;
-  DELETE FROM subscribed_feed;
-  DELETE FROM record WHERE record_name IN (SELECT record_name FROM zombie_record_name_view);
-  """
-  
-  static var SQLToRemoveQueue = """
-  DELETE FROM entry;
-  DELETE FROM queued_entry;
-  DELETE FROM prev_entry;
-  DELETE FROM record WHERE record_name IN (SELECT record_name FROM zombie_record_name_view);
+  DELETE FROM entry;"
   """
   
   static var SQLToDeleteZombies = """

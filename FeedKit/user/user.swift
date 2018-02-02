@@ -454,6 +454,9 @@ public protocol UserCacheSyncing: QueueCaching {
   /// Deletes all library data.
   func removeLibrary() throws
   
+  /// Deletes all log data.
+  func removeLog() throws
+  
 }
 
 

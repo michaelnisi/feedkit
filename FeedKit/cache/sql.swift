@@ -18,12 +18,11 @@ import os.log
 /// formatter.
 ///
 /// This formatter doesn‘t return explicit transactions, this is left to the
-/// call site, which knows more about the context, the formatted SQL is going
-/// to be used in.
+/// the call site, where the user knows the context.
 ///
 /// Remember to respect [SQLite limits](https://www.sqlite.org/limits.html) when
 /// using this class. Some of its functions might exceed the maximum depth of an
-/// SQLite expression tree Here's the deal, basically every time an array of
+/// SQLite expression tree. Here's the deal: basically every time an array of
 /// identifiers is longer than 1000, we have to slice it down, for example, with
 /// `Cache.slice(elements:, with:)`.
 final class SQLFormatter {
@@ -43,8 +42,6 @@ final class SQLFormatter {
       }
     }
   }
-
-  public static var shared = SQLFormatter()
 
   lazy private var df: DateFormatter = {
     let df = DateFormatter()
