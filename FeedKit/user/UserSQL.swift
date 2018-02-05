@@ -304,6 +304,32 @@ extension SQLFormatter {
         return try SQLToReplaceQueued(
           locator: loc, timestamp: ts, record: record, table: "previous_entry")
       }
+    case .feed(let feedURL, let iTunes, let record):
+      let url = SQLString(from: feedURL)
+      
+      let iTunesID = SQLString(from: iTunes.iTunesID)
+      let img100 = SQLString(from: iTunes.img100)
+      let img30 = SQLString(from: iTunes.img30)
+      let img60 = SQLString(from: iTunes.img60)
+      let img600 = SQLString(from: iTunes.img600)
+
+      let recordName = SQLString(from: record.recordName)
+      let zoneName = SQLString(from: record.zoneName)
+      let tag = SQLString(from: record.changeTag)
+      
+      return """
+      INSERT OR REPLACE INTO record(
+        record_name, zone_name, change_tag
+      ) VALUES(
+        \(recordName), \(zoneName), \(tag)
+      );
+      
+      INSERT OR REPLACE INTO feed(
+        feed_url, itunes_guid, img100, img30, img60, img600
+      ) VALUES(
+        \(url), \(iTunesID), \(img100), \(img30), \(img60), \(img600)
+      );
+      """
     }
   }
   

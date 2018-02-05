@@ -40,6 +40,7 @@ public extension Notification.Name {
 /// An item that can be in the user’s queue. At the moment these are entries,
 /// exclusively, but we might add seasons, etc.
 public enum Queued {
+  // TODO: Maybe add iTunes to temporary and pinned (Queued, ITunesItem, RecordMetadata)
   case temporary(EntryLocator, Date)
   case pinned(EntryLocator, Date)
   case previous(EntryLocator, Date)
@@ -395,11 +396,12 @@ public enum Synced {
   /// A queued item that has been synchronized with the iCloud database.
   case queued(Queued, RecordMetadata)
   
-  /// A previously queued item.
-//  case previous(Queued, RecordMetadata)
-  
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
+  
+  /// A separately synchronized feed to share URLs of pre-scaled images aquired
+  /// using iTunes search on specific devices, but not on others.
+  case feed(String, ITunesItem, RecordMetadata)
 }
 
 extension Synced: Equatable {
@@ -407,11 +409,11 @@ extension Synced: Equatable {
     switch (lhs, rhs) {
     case (.queued(let lq, let lrec), .queued(let rq, let rrec)):
       return lq == rq && lrec == rrec
-//    case (.previous(let lq, let lrec), .previous(let rq, let rrec)):
-//      return lq == rq && lrec == rrec
     case (.subscription(let ls, let lrec), .subscription(let rs, let rrec)):
       return ls == rs && lrec == rrec
-    case (.queued, _), (.subscription, _):
+    case (.feed(let lurl, let li, let lrec), .feed(let rurl, let ri, let rrec)):
+      return lurl == rurl && li == ri && lrec == rrec
+    case (.queued, _), (.subscription, _), (.feed, _):
       return false
     }
   }

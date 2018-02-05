@@ -33,6 +33,8 @@ public final class UserLibrary: EntryQueueHost {
   /// The actual queue data structure. Starting off with an empty queue.
   internal var queue = Queue<Entry>()  
   
+  // TODO: Move in-memory subscriptions cache into UserCaching
+  
   fileprivate var  _subscriptions = Set<FeedURL>()
   /// A synchronized list of subscribed URLs for quick in-memory access.
   fileprivate var subscriptions:Set<FeedURL> {

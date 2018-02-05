@@ -252,8 +252,9 @@ public final class ImageRepository: Images {
 
 extension ImageRepository {
   
-  fileprivate func requests(with items: [Imaginable], at size: CGSize,
-                            quality: ImageQuality) -> [Request] {
+  fileprivate func requests(
+    with items: [Imaginable], at size: CGSize, quality: ImageQuality
+  ) -> [Request] {
     return items.flatMap {
       guard let url = urlToLoad(from: $0, for: scale(size, to: quality)) else {
         return nil
@@ -262,14 +263,17 @@ extension ImageRepository {
     }
   }
   
-  public func prefetchImages(for items: [Imaginable], at size: CGSize,
-                             quality: ImageQuality) -> [ImageRequest] {
+  public func prefetchImages(
+    for items: [Imaginable], at size: CGSize, quality: ImageQuality
+  ) -> [ImageRequest] {
     let reqs = requests(with: items, at: size, quality: quality)
+    os_log("start preheating: %{public}@", log: log, type: .debug, items)
     preheater.startPreheating(with: reqs)
     return reqs
   }
   
   public func cancel(prefetching requests: [ImageRequest]) {
+    os_log("stop preheating: %{public}@", log: log, type: .debug, requests)
     preheater.stopPreheating(with: requests)
   }
   
