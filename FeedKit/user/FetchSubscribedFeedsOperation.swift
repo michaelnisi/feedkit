@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 /// Synced data from iCloud might contain additional information, we don’t
 /// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
@@ -46,7 +47,6 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     op?.cancel()
     op = nil
   }
-  
   private func fetchFeeds(of subscriptions: [Subscription]) {
     guard !isCancelled, !subscriptions.isEmpty else {
       return done()
@@ -70,11 +70,18 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       guard !self.isCancelled, error == nil else {
         return self.done(error)
       }
+
+      // Preventing overwriting of existing iTunes items here,
+      // not sure why though.
+      let missing = acc.flatMap { $0.iTunes == nil ? $0.url : nil }
+      let iTunes: [ITunesItem] = subscriptions.flatMap {
+        guard missing.contains($0.url) else {
+          return nil
+        }
+        return $0.iTunes
+      }
       
-      let urls = acc.flatMap { $0.iTunes == nil ? $0.url : nil }
-      let missing = subscriptions.filter { urls.contains($0.url) }
-      
-      self.browser.integrateMetadata(from: missing) { error in
+      self.browser.integrate(iTunesItems: iTunes) { error in
         self.done(error)
       }
     }
@@ -88,6 +95,8 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
   }
   
   override func start() {
+    os_log("starting FetchSubscribedFeedsOperation", log: User.log, type: .debug)
+    
     guard !isCancelled else {
       return done()
     }

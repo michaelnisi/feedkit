@@ -12,9 +12,9 @@ import os.log
 final class FetchQueueOperation: FeedKitOperation {
   let browser: Browsing
   let cache: QueueCaching
-  var user: EntryQueueHost
+  var user: UserLibrary
   
-  init(browser: Browsing, cache: QueueCaching, user: EntryQueueHost) {
+  init(browser: Browsing, cache: QueueCaching, user: UserLibrary) {
     self.browser = browser
     self.cache = cache
     self.user = user
@@ -22,6 +22,15 @@ final class FetchQueueOperation: FeedKitOperation {
   
   var entriesBlock: (([Entry], Error?) -> Void)?
   var fetchQueueCompletionBlock: ((Error?) -> Void)?
+  
+  // TODO: Choose optimal target dispatch queue.
+  let target = DispatchQueue.global(qos: .background)
+  
+  private func submit(resulting entries: [Entry], error: Error? = nil) {
+    target.sync {
+      entriesBlock?(entries, error)
+    }
+  }
   
   /// The browser operation, fetching the entries.
   weak var op: Operation?
@@ -33,7 +42,7 @@ final class FetchQueueOperation: FeedKitOperation {
            er != nil ? String(reflecting: er) : "OK")
     
     if let cb = fetchQueueCompletionBlock {
-      DispatchQueue.global().async {
+      target.sync {
         cb(er)
       }
     }
@@ -126,14 +135,8 @@ final class FetchQueueOperation: FeedKitOperation {
       
       acc = acc + entries
     }) { error in
-      defer {
-        DispatchQueue.global().async { [weak self] in
-          self?.done(but: error)
-        }
-      }
-      
       guard error == nil else {
-        return
+        return self.done(but: error)
       }
       
       let sorted: [Entry] = {
@@ -162,8 +165,28 @@ final class FetchQueueOperation: FeedKitOperation {
       os_log("entries in queue: %{public}@", log: User.log, type: .debug,
              String(reflecting: entries))
       
-      DispatchQueue.global().async { [weak self] in
-        self?.entriesBlock?(entries, accError)
+      func leave(_ error: Error? = nil) {
+        self.submit(resulting: entries, error: accError)
+        self.done(but: error)
+      }
+      
+      guard let metadata = self.iTunesItems else {
+        return leave()
+      }
+      
+      let notSubscribed = metadata.filter {
+        !self.user.has(subscription: $0.url)
+      }
+      
+      // Assuming subscriptions’ metadata has been integrated already.
+      guard !notSubscribed.isEmpty else {
+        return leave()
+      }
+   
+      os_log("starting integration of metadata", log: User.log, type: .debug)
+      
+      self.browser.integrate(iTunesItems: notSubscribed) { error in
+        leave(error)
       }
     }
   }
@@ -197,7 +220,15 @@ final class FetchQueueOperation: FeedKitOperation {
     }
   }
   
+  /// User metadata, preloaded with the queued items, for merging into the
+  /// browser cache after entries have been fetched. In this order, for
+  /// receiving the feeds, parents of queued entries, first, or else we had
+  /// nothing to merge with, obviously.
+  private var iTunesItems: [ITunesItem]?
+  
   override func start() {
+    os_log("starting FetchQueueOperation", log: User.log, type: .debug)
+    
     guard !isCancelled else {
       return done()
     }
@@ -230,6 +261,16 @@ final class FetchQueueOperation: FeedKitOperation {
     
     guard !isCancelled, !locators.isEmpty else {
       return done()
+    }
+    
+    // Keeping metadata around, for merging it later.
+    self.iTunesItems = queued.flatMap {
+      switch $0 {
+      case .pinned(_, _, let iTunes), .temporary(_, _, let iTunes):
+        return iTunes
+      case .previous:
+        return nil
+      }
     }
     
     fetchEntries(for: locators)

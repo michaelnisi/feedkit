@@ -15,19 +15,86 @@ import Ola
 
 @testable import FeedKit
 
-func randomString(length: Int) -> String {
-  let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-  let max = UInt32(chars.count)
-  var str = ""
-
-  for _ in 0..<length {
-    let offset = Int(arc4random_uniform(max))
-    let index = chars.index(chars.startIndex, offsetBy: offset)
-    str += String(chars[index])
+enum Common {
+  
+  /// Returns a random String of `length`.
+  static func makeString(length: Int) -> String {
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    let max = UInt32(chars.count)
+    var str = ""
+    
+    for _ in 0..<length {
+      let offset = Int(arc4random_uniform(max))
+      let index = chars.index(chars.startIndex, offsetBy: offset)
+      str += String(chars[index])
+    }
+    
+    return str
   }
-
-  return str
+  
 }
+
+// MARK: - Core
+
+extension Common {
+  
+  static func makeITunesItem(url: String) -> ITunesItem {
+    return ITunesItem(url: url, iTunesID: 123, img100: "img100",
+                      img30: "img30", img60: "img60", img600: "img600")
+  }
+  
+  static func makeFeed(name: String) throws -> Feed {
+    switch name {
+    case "thetalkshow", "gruber":
+      return Feed(
+        author: "Daring Fireball / John Gruber",
+        iTunes: ITunesItem(
+          url: "http://daringfireball.net/thetalkshow/rss",
+          iTunesID: 528458508,
+          img100: "abc",
+          img30: "def",
+          img60: "ghi",
+          img600: "jkl"
+        ),
+        image: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
+        link: nil,
+        originalURL: nil,
+        summary: "The director’s commentary track for Daring Fireball.",
+        title: "The Talk Show With John Gruber",
+        ts: Date(),
+        uid: nil,
+        updated: Date(timeIntervalSince1970: 1445110501000 / 1000),
+        url: "http://daringfireball.net/thetalkshow/rss"
+      )
+    case "roderickontheline":
+      return Feed(
+        author: "Merlin Mann",
+        iTunes: ITunesItem(
+          url: "http://feeds.feedburner.com/RoderickOnTheLine",
+          iTunesID: 471418144,
+          img100: "abc",
+          img30: "def",
+          img60: "ghi",
+          img600: "jkl"
+        ),
+        image: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
+        link: nil,
+        originalURL: nil,
+        summary: nil,
+        title: "Roderick on the Line",
+        ts: nil,
+        uid: nil,
+        updated: Date(timeIntervalSince1970: 0),
+        url: "http://feeds.feedburner.com/RoderickOnTheLine"
+      )
+    default:
+      throw FeedKitError.notAFeed
+    }
+  }
+  
+}
+
+// TODO: Move global functions into Common
 
 func makeManger(string: String = "http://localhost:8384") -> Manger {
   let url = URL(string: string)!
@@ -177,50 +244,3 @@ func freshEntry(named name: String) throws -> Entry {
   }
 }
 
-/// A new test `Feed` distinguished by `name`.
-func freshFeed(named name: String) throws -> Feed {
-  switch name {
-  case "thetalkshow", "gruber":
-    return Feed(
-      author: "Daring Fireball / John Gruber",
-      iTunes: ITunesItem(
-        iTunesID: 528458508,
-        img100: "abc",
-        img30: "def",
-        img60: "ghi",
-        img600: "jkl"
-      ),
-      image: "http://daringfireball.net/thetalkshow/graphics/cover-1400.jpg",
-      link: nil,
-      originalURL: nil,
-      summary: "The director’s commentary track for Daring Fireball.",
-      title: "The Talk Show With John Gruber",
-      ts: Date(),
-      uid: nil,
-      updated: Date(timeIntervalSince1970: 1445110501000 / 1000),
-      url: "http://daringfireball.net/thetalkshow/rss"
-    )
-  case "roderickontheline":
-    return Feed(
-      author: "Merlin Mann",
-      iTunes: ITunesItem(
-        iTunesID: 471418144,
-        img100: "abc",
-        img30: "def",
-        img60: "ghi",
-        img600: "jkl"
-      ),
-      image: "http://www.merlinmann.com/storage/rotl/rotl-logo-300-sq.jpg",
-      link: nil,
-      originalURL: nil,
-      summary: nil,
-      title: "Roderick on the Line",
-      ts: nil,
-      uid: nil,
-      updated: Date(timeIntervalSince1970: 0),
-      url: "http://feeds.feedburner.com/RoderickOnTheLine"
-    )
-  default:
-    throw FeedKitError.notAFeed
-  }
-}

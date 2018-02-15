@@ -40,10 +40,14 @@ public extension Notification.Name {
 /// An item that can be in the user’s queue. At the moment these are entries,
 /// exclusively, but we might add seasons, etc.
 public enum Queued {
-  // TODO: Maybe add iTunes to temporary and pinned (Queued, ITunesItem, RecordMetadata)
-  case temporary(EntryLocator, Date)
-  case pinned(EntryLocator, Date)
+  case temporary(EntryLocator, Date, ITunesItem?)
+  case pinned(EntryLocator, Date, ITunesItem?)
   case previous(EntryLocator, Date)
+  
+  /// Creates a temporarily queued `entry` including `iTunes` item.
+  init(entry locator: EntryLocator, iTunes: ITunesItem? = nil) {
+    self = .temporary(locator, Date(), iTunes)
+  }
 }
 
 extension Queued: Equatable {
@@ -55,9 +59,9 @@ extension Queued: Equatable {
 extension Queued: CustomStringConvertible {
   public var description: String {
     switch self {
-    case .temporary(_, _):
+    case .temporary(_, _, _):
       return "Queued.temporary"
-    case .pinned(_, _):
+    case .pinned(_, _, _):
       return "Queued.pinned"
     case .previous(_, _):
       return "Queued.previous"
@@ -68,18 +72,20 @@ extension Queued: CustomStringConvertible {
 extension Queued: CustomDebugStringConvertible {
   public var debugDescription: String {
     switch self {
-    case .temporary(let loc, let ts):
+    case .temporary(let loc, let ts, let iTunes):
       return """
       Queued.temporary {
         locator: \(loc),
-        ts: \(ts)
+        ts: \(ts),
+        iTunes: \(String(describing: iTunes))
       }
       """
-    case .pinned(let loc, let ts):
+    case .pinned(let loc, let ts, let iTunes):
       return """
       Queued.pinned {
         locator: \(loc),
-        ts: \(ts)
+        ts: \(ts),
+        iTunes: \(String(describing: iTunes))
       }
       """
     case .previous(let loc, let ts):
@@ -104,8 +110,8 @@ extension Queued: Hashable {
   
   public var hashValue: Int {
     switch self {
-    case .temporary(let loc, let ts),
-         .pinned(let loc, let ts),
+    case .temporary(let loc, let ts, _),
+         .pinned(let loc, let ts, _),
          .previous(let loc, let ts):
       return Queued.makeHash(marker: description, locator: loc, timestamp: ts)
     }
@@ -115,42 +121,38 @@ extension Queued: Hashable {
 extension Queued {
   public var entryLocator: EntryLocator {
     switch self {
-    case .temporary(let loc, _), .pinned(let loc, _), .previous(let loc, _):
+    case .temporary(let loc, _, _),
+         .pinned(let loc, _, _),
+         .previous(let loc, _):
       return loc
     }
   }
 }
 
-/// Queued items belong to owners, default is `.nobody`.
-public enum QueuedOwner: Int {
-  case nobody, user
-}
-
-extension QueuedOwner: Equatable {
-  static public func ==(lhs: QueuedOwner, rhs: QueuedOwner) -> Bool {
-    switch (lhs, rhs) {
-    case (.nobody, .nobody):
-      return true
-    case (.user, .user):
-      return true
-    case (.user, _), (.nobody, _):
-      return false
+extension Queued {
+  
+  /// Returns a copy leaving off iTunes metadata.
+  public func dropITunes() -> Queued {
+    switch self {
+    case .temporary(let loc, let ts, _):
+      return .temporary(loc, ts, nil)
+    case .pinned(let loc, let ts, _):
+      return .pinned(loc, ts, nil)
+    case .previous:
+      return self
     }
   }
+  
 }
 
 /// Cache the user`s queue locally.
 public protocol QueueCaching {
   
-  /// Enqueues `entries` `belonging` to owner. Entries belonging to .user must
-  /// not be removed automatically.
-  func add(entries: [EntryLocator], belonging: QueuedOwner) throws
-  
-  /// Enqueues `entries`.
-  func add(entries: [EntryLocator]) throws
+  /// Adds `queued` items.
+  func add(queued: [Queued]) throws
   
   /// Removes queued entries with `guids`.
-  func removeQueued(_ guids: [String]) throws
+  func removeQueued(_ guids: [EntryGUID]) throws
   
   /// Trims the queue, keeping only the latest items, and items that have been
   /// explicitly enqueued by users.
@@ -190,6 +192,11 @@ public protocol QueueCaching {
 /// Confines `Queue` state dependency.
 protocol EntryQueueHost {
   var queue: Queue<Entry> { get set }
+}
+
+/// Enumerates possible owners of enqueued items, default is `.nobody`.
+public enum QueuedOwner: Int {
+  case nobody, user
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
@@ -274,17 +281,25 @@ public struct Subscription {
   public let url: FeedURL
   public let ts: Date
   public let iTunes: ITunesItem?
+  public let title: String?
   
-  public init(url: FeedURL, ts: Date? = nil, iTunes: ITunesItem? = nil) {
+  public init(
+    url: FeedURL,
+    ts: Date? = nil,
+    iTunes: ITunesItem? = nil,
+    title: String? = nil
+  ) {
     self.url = url
     self.ts = ts ?? Date()
     self.iTunes = iTunes
+    self.title = title
   }
   
   public init(feed: Feed) {
     self.url = feed.url
     self.ts = Date()
     self.iTunes = feed.iTunes
+    self.title = feed.title
   }
 }
 
@@ -296,7 +311,13 @@ extension Subscription: Equatable {
 
 extension Subscription: Hashable {
   public var hashValue: Int {
-    get { return url.hashValue }
+    return url.hashValue
+  }
+}
+
+extension Subscription: CustomStringConvertible {
+  public var description: String {
+    return "Subscription { \(title ?? url) }"
   }
 }
 
@@ -398,10 +419,6 @@ public enum Synced {
   
   /// A synchronized feed subscription.
   case subscription(Subscription, RecordMetadata)
-  
-  /// A separately synchronized feed to share URLs of pre-scaled images aquired
-  /// using iTunes search on specific devices, but not on others.
-  case feed(String, ITunesItem, RecordMetadata)
 }
 
 extension Synced: Equatable {
@@ -411,16 +428,14 @@ extension Synced: Equatable {
       return lq == rq && lrec == rrec
     case (.subscription(let ls, let lrec), .subscription(let rs, let rrec)):
       return ls == rs && lrec == rrec
-    case (.feed(let lurl, let li, let lrec), .feed(let rurl, let ri, let rrec)):
-      return lurl == rurl && li == ri && lrec == rrec
-    case (.queued, _), (.subscription, _), (.feed, _):
+    case (.queued, _), (.subscription, _):
       return false
     }
   }
 }
 
 /// Sychronizes with iCloud.
-public protocol UserCacheSyncing: QueueCaching {
+public protocol UserCacheSyncing: QueueCaching, SubscriptionCaching {
   
   /// Saves `synced`, synchronized user items, to the local cache.
   func add(synced: [Synced]) throws
@@ -428,9 +443,12 @@ public protocol UserCacheSyncing: QueueCaching {
   /// Removes records with `recordNames` from the local cache.
   func remove(recordNames: [String]) throws
   
-  /// The queued entries, which not have been synced and are only locally
+  /// The queued entries, which have not been synced and are only locally
   /// cached, hence the name. Push these items with the next sync.
   func locallyQueued() throws -> [Queued]
+  
+  /// Previously queued items, which have not been synced yet.
+  func locallyDequeued() throws -> [Queued]
   
   /// Returns subscriptions that haven’t been synchronized with iCloud yet, and
   /// are only cached locally so far. Push these items with the next sync.

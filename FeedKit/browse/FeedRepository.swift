@@ -44,12 +44,12 @@ public final class FeedRepository: RemoteRepository {
 
 extension FeedRepository: Browsing {
   
-  public func integrateMetadata(
-    from subscriptions: [Subscription],
+  public func integrate(
+    iTunesItems: [ITunesItem],
     completionBlock: ((_ error: Error?) -> Void)?
   ) -> Void {
-    os_log("integrating metadata from: %{public}@", log: Browse.log, type: .debug,
-           String(describing: subscriptions))
+    os_log("integrating iTunes items: %{public}@",
+           log: Browse.log, type: .debug, iTunesItems)
     
     let cache = self.cache
     
@@ -67,7 +67,7 @@ extension FeedRepository: Browsing {
       }
       
       do {
-        try cache.integrateMetadata(from: subscriptions)
+        try cache.integrate(iTunesItems: iTunesItems)
       } catch {
         er = error
       }

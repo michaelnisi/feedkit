@@ -162,7 +162,7 @@ final class SearchRepositoryTests: XCTestCase {
   func testSearchCancel() {
     for _ in 0...100 {
       let exp = self.expectation(description: "search")
-      let term = randomString(length: max(Int(arc4random_uniform(8)), 1))
+      let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.search(term, perFindGroupBlock: { _, _ in
         XCTFail("should not get dispatched")
       }) { er in
@@ -298,7 +298,7 @@ final class SearchRepositoryTests: XCTestCase {
   func testCancelledSuggest() {
     for _ in 0...100 {
       let exp = self.expectation(description: "suggest")
-      let term = randomString(length: max(Int(arc4random_uniform(8)), 1))
+      let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.suggest(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         }) { er in

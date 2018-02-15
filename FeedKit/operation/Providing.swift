@@ -31,7 +31,9 @@ protocol ProdvidingFeeds: Providing {
   var feeds: Set<Feed> { get }
 }
 
-extension FeedKitOperation {
+protocol LocatorsDependent {}
+
+extension LocatorsDependent where Self: Operation {
   
   func findLocators() throws -> [EntryLocator] {
     var found = Set<EntryLocator>()

@@ -30,8 +30,8 @@ public protocol FeedCaching {
 
   func remove(_ urls: [String]) throws
 
-  /// Integrates iTunes metadata from `subscriptions`.
-  func integrateMetadata(from subscriptions: [Subscription]) throws
+  /// Integrates `iTunesItems` metadata.
+  func integrate(iTunesItems: [ITunesItem]) throws
 
   /// Queries the local `cache` for entries and returns a tuple of cached
   /// entries and unfullfilled entry `locators`, if any.
@@ -43,8 +43,8 @@ public protocol FeedCaching {
   /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
   ///
   /// - Throws: Might throw database errors.
-  func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
-  ) throws -> ([Entry], [EntryLocator])
+  func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
+    -> ([Entry], [EntryLocator])
 
 }
 
@@ -156,10 +156,6 @@ extension FeedCaching {
 /// get called multiple times. Completion blocks are called once.
 public protocol Browsing {
 
-  /// Returns a minimally configured, all defaults, operation to fetch entries
-  /// with locators aquired via operation dependencies.
-  func makeEntriesOperation() -> Operation
-
   /// Use this method to get feeds for the specified `urls`. The `feedsBlock`
   /// callback block might get called multiple times. Each iteration providing
   /// groups of feeds as they become available. The order of these feeds and
@@ -231,11 +227,15 @@ public protocol Browsing {
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 
-  /// Integrates metadata from `subscriptions`.
-  func integrateMetadata(
-    from subscriptions: [Subscription],
-    completionBlock: ((_ error: Error?) -> Void)?
-  ) -> Void
+  
+  /// Returns a minimally configured, all defaults, operation to fetch entries
+  /// with locators aquired via operation dependencies.
+  func makeEntriesOperation() -> Operation
+  
+  /// Integrates `iTunesItems`.
+  func integrate(
+    iTunesItems: [ITunesItem],
+    completionBlock: ((_ error: Error?) -> Void)?) -> Void
 
 }
 

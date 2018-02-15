@@ -47,6 +47,8 @@ class TrimQueueOperation: Operation, Providing {
   }
   
   override func main() {
+    os_log("starting TrimQueueOperation", log: User.log, type: .debug)
+    
     do {
       try cache.trim()
       done()

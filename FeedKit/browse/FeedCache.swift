@@ -11,6 +11,8 @@ import Skull
 import os.log
 
 public final class FeedCache: LocalCache {
+  
+  lazy var sqlFormatter = LibrarySQLFormatter()
 
   // TODO: Replace noSuggestions Dictionary with NSCache
   fileprivate var noSuggestions = [String : Date]()
@@ -44,16 +46,15 @@ public final class FeedCache: LocalCache {
 
     var er: Error?
     var id: FeedID?
-    let sql = SQLFormatter.SQLToSelectFeedIDFromURLView(url)
-    let fmt = self.sqlFormatter
-
+    let sql = LibrarySQLFormatter.SQLToSelectFeedIDFromURLView(url)
+    
     try db.query(sql) { error, row in
       guard error == nil, let r = row else {
         er = error ?? FeedKitError.unexpectedDatabaseRow
         return 1
       }
       do {
-        id = try fmt.feedID(from: r)
+        id = try LibrarySQLFormatter.feedID(from: r)
       } catch {
         er = error
         return 1
@@ -83,7 +84,7 @@ extension FeedCache {
   /// Queries the database for feeds. If no feeds were found, instead of an
   /// empty array, `nil` is returned.
   static fileprivate func queryFeeds(
-    _ db: Skull, with sql: String, using formatter: SQLFormatter
+    _ db: Skull, with sql: String, using formatter: LibrarySQLFormatter
     ) throws -> [Feed]? {
     assert(!FeedCache.isMainThread())
 
@@ -117,7 +118,7 @@ extension FeedCache {
   /// Queries the database for entries. If no entries were found, instead of an
   /// empty array, `nil` is returned.
   fileprivate static func queryEntries(
-    _ db: Skull, with sql: String, using formatter: SQLFormatter
+    _ db: Skull, with sql: String, using formatter: LibrarySQLFormatter
     ) throws -> [Entry]? {
     assert(!FeedCache.isMainThread())
 
@@ -151,7 +152,7 @@ extension FeedCache {
   /// Queries the database for suggestions. If no entries were found, instead of
   /// an empty array, `nil` is returned.
   fileprivate static func querySuggestions(
-    _ db: Skull, with sql: String, using formatter: SQLFormatter
+    _ db: Skull, with sql: String, using formatter: LibrarySQLFormatter
     ) throws -> [Suggestion]? {
     assert(!FeedCache.isMainThread())
 
@@ -252,14 +253,11 @@ extension FeedCache: FeedCaching {
 
     return (cached, neededLocators)
   }
-
-  public func integrateMetadata(from subscriptions: [Subscription]) throws {
+  
+  public func integrate(iTunesItems: [ITunesItem]) throws {
     try queue.sync {
-      let sql = subscriptions.reduce([String]()) { acc, s in
-        guard let iTunes = s.iTunes else {
-          return acc
-        }
-        return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes, where: s.url)]
+      let sql = iTunesItems.reduce([String]()) { acc, iTunes in
+        return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes)]
       }.joined(separator: "\n")
 
       try self.db.exec(sql)
@@ -281,7 +279,7 @@ extension FeedCache: FeedCaching {
             return acc + [sqlFormatter.SQLToInsert(feed: feed)]
           }
           return acc + [
-            SQLFormatter.toRemoveFeed(with: guid),
+            LibrarySQLFormatter.toRemoveFeed(with: guid),
             sqlFormatter.SQLToInsert(feed: feed)
           ]
         }
@@ -357,7 +355,7 @@ extension FeedCache: FeedCaching {
         return []
       }
       let feedIDs = dicts.map { $0.1 }
-      guard let sql = SQLFormatter.SQLToSelectFeeds(by: feedIDs) else {
+      guard let sql = LibrarySQLFormatter.SQLToSelectFeeds(by: feedIDs) else {
         return []
       }
       let formatter = self.sqlFormatter
@@ -463,7 +461,7 @@ extension FeedCache: FeedCaching {
       let chunks = FeedCache.slice(elements: guids, with: 512)
 
       return try chunks.reduce([Entry]()) { acc, guids in
-        guard let sql = SQLFormatter.SQLToSelectEntries(by: guids) else {
+        guard let sql = LibrarySQLFormatter.SQLToSelectEntries(by: guids) else {
           return acc
         }
         let fmt = self.sqlFormatter
@@ -483,7 +481,7 @@ extension FeedCache: FeedCaching {
     try queue.sync {
       guard let dicts = try self.feedIDs(matching: urls) else { return }
       let feedIDs = dicts.map { $0.1 }
-      guard let sql = SQLFormatter.SQLToRemoveFeeds(with: feedIDs) else {
+      guard let sql = LibrarySQLFormatter.SQLToRemoveFeeds(with: feedIDs) else {
         throw FeedKitError.sqlFormatting
       }
       try db.exec(sql)
@@ -558,7 +556,7 @@ extension FeedCache: SearchCaching {
 
     try queue.sync {
       do {
-        let delete = SQLFormatter.SQLToDeleteSearch(for: term)
+        let delete = LibrarySQLFormatter.SQLToDeleteSearch(for: term)
         let insert = try feeds.reduce([String]()) { acc, feed in
           let feedID: FeedID
           do {
@@ -573,7 +571,7 @@ extension FeedCache: SearchCaching {
             default: throw error
             }
           }
-          return acc + [SQLFormatter.SQLToInsert(feedID: feedID, for: term)]
+          return acc + [LibrarySQLFormatter.SQLToInsert(feedID: feedID, for: term)]
           }.joined(separator: "\n")
 
         let sql = [
@@ -613,7 +611,7 @@ extension FeedCache: SearchCaching {
         }
       }
 
-      let sql = SQLFormatter.SQLToSelectFeeds(for: term, limit: limit)
+      let sql = LibrarySQLFormatter.SQLToSelectFeeds(for: term, limit: limit)
 
       return try FeedCache.queryFeeds(self.db, with: sql, using: self.sqlFormatter)
     }
@@ -625,7 +623,7 @@ extension FeedCache: SearchCaching {
     let fmt = self.sqlFormatter
 
     return try queue.sync { [unowned db, unowned fmt] in
-      let sql = SQLFormatter.SQLToSelectFeeds(matching: term, limit: limit)
+      let sql = LibrarySQLFormatter.SQLToSelectFeeds(matching: term, limit: limit)
       return try FeedCache.queryFeeds(db, with: sql, using: fmt)
     }
   }
@@ -644,7 +642,7 @@ extension FeedCache: SearchCaching {
     let fmt = self.sqlFormatter
 
     return try queue.sync { [unowned db, unowned fmt] in
-      let sql = SQLFormatter.SQLToSelectEntries(matching: term, limit: limit)
+      let sql = LibrarySQLFormatter.SQLToSelectEntries(matching: term, limit: limit)
       return try FeedCache.queryEntries(db, with: sql, using: fmt)
     }
   }
@@ -657,7 +655,7 @@ extension FeedCache: SearchCaching {
     try queue.sync {
       guard !suggestions.isEmpty else {
         noSuggestions[term] = Date()
-        let sql = SQLFormatter.SQLToDeleteSuggestionsMatchingTerm(term)
+        let sql = LibrarySQLFormatter.SQLToDeleteSuggestionsMatchingTerm(term)
         try self.db.exec(sql)
         return
       }
@@ -669,8 +667,8 @@ extension FeedCache: SearchCaching {
       let sql = [
         "BEGIN;",
         suggestions.map {
-          SQLFormatter.SQLToInsertSuggestionForTerm($0.term)
-          }.joined(separator: "\n"),
+          LibrarySQLFormatter.SQLToInsertSuggestionForTerm($0.term)
+        }.joined(separator: "\n"),
         "COMMIT;"
         ].joined(separator: "\n")
 
@@ -699,7 +697,7 @@ extension FeedCache: SearchCaching {
           return []
         }
       }
-      let sql = SQLFormatter.SQLToSelectSuggestionsForTerm(term, limit: limit)
+      let sql = LibrarySQLFormatter.SQLToSelectSuggestionsForTerm(term, limit: limit)
       return try FeedCache.querySuggestions(db, with: sql, using: sqlFormatter)
     }
   }

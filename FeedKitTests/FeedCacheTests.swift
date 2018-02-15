@@ -170,34 +170,42 @@ extension FeedCacheTests {
   }
   
   func testKeepImages() {
-    let iTunes = ITunesItem(iTunesID: 123, img100: "a", img30: "b", img60: "c",
-                            img600: "d")
+    let url = "http://abc.de"
+    
+    let iTunes = ITunesItem(
+      url: url,
+      iTunesID: 123,
+      img100: "a",
+      img30: "b",
+      img60: "c",
+      img600: "d"
+    )
     
     let a = Feed(author: nil, iTunes: iTunes, image: nil, link: nil,
-                 originalURL: "abc", summary: nil, title: "Title", ts: nil,
-                 uid: nil, updated: nil, url: "abc")
+                 originalURL: url, summary: nil, title: "Title", ts: nil,
+                 uid: nil, updated: nil, url: url)
     
     try! cache.update(feeds: [a])
     
     do {
       let b = Feed(author: nil, iTunes: nil, image: nil, link: nil,
-                   originalURL: "abc", summary: nil, title: "Title", ts: nil,
-                   uid: nil, updated: nil, url: "abc")
+                   originalURL: url, summary: nil, title: "Title", ts: nil,
+                   uid: nil, updated: nil, url: url)
       
       try! cache.update(feeds: [b])
       
-      let found = try! cache.feeds(["abc"]).first!
+      let found = try! cache.feeds([url]).first!
       XCTAssertEqual(found.iTunes, iTunes, "should not nullify iTunes images")
     }
     
     do {
       let c = Feed(author: "not null", iTunes: nil, image: nil, link: nil,
-                   originalURL: "abc", summary: nil, title: "Title", ts: nil,
-                   uid: nil, updated: nil, url: "abc")
+                   originalURL: url, summary: nil, title: "Title", ts: nil,
+                   uid: nil, updated: nil, url: url)
       
       try! cache.update(feeds: [c])
       
-      let found = try! cache.feeds(["abc"]).first!
+      let found = try! cache.feeds([url]).first!
       XCTAssertEqual(found.iTunes, iTunes, "should not nullify iTunes images")
     }
   }

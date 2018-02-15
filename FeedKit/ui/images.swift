@@ -19,12 +19,18 @@ typealias ImageCache = Nuke.Cache
 
 // MARK: - API
 
+
 public typealias ImageRequest = Request
 
 public enum ImageQuality: CGFloat {
   case high = 1
   case medium = 2
   case low = 4
+}
+
+public protocol Imaginable {
+  var iTunes: ITunesItem? { get }
+  var image: String? { get }
 }
 
 public protocol Images {

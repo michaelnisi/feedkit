@@ -79,11 +79,15 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   }
   
   override func main() {
+    os_log("starting EnqueueOperation", log: User.log, type: .debug)
+    
     do {
       guard error == nil else {
         // Although redundant, passing the error again for clarity.
         return done(error)
       }
+
+      let candidates = self.candidates
       
       guard !candidates.isEmpty else {
         os_log("nothing to enqueue", log: User.log, type: .debug)
@@ -93,8 +97,18 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       os_log("enqueueing: %{public}@", log: User.log, type: .debug, candidates)
 
       entries.formUnion(user.queue.prepend(items: candidates))
-      let locators = candidates.map { EntryLocator(entry: $0) }
-      try cache.add(entries: locators, belonging: owner)
+      
+      let queued: [Queued] = candidates.map {
+        let loc = EntryLocator(entry: $0)
+        switch owner {
+        case .nobody:
+          return Queued.temporary(loc, Date(), $0.iTunes)
+        case .user:
+          return Queued.pinned(loc, Date(), $0.iTunes)
+        }
+      }
+      
+      try cache.add(queued: queued)
     } catch {
       os_log("enqueueing failed: %{public}@",
              log: User.log, type: .debug, error as CVarArg)

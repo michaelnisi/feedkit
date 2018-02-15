@@ -14,6 +14,14 @@ struct Cache {
   static var log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
 }
 
+/// Wraps a value into an `NSObject`.
+class ValueObject<T>: NSObject {
+  let value: T
+  init(_ value: T) {
+    self.value = value
+  }
+}
+
 /// Cachable objects, currently feeds and entries, must adopt this protocol,
 /// which requires a globally unique resource locator (url) and a timestamp (ts).
 public protocol Cachable {
@@ -92,8 +100,6 @@ public class LocalCache: Caching {
   /// to serialize database access.
   let queue: DispatchQueue
   
-  let sqlFormatter: SQLFormatter
-  
   fileprivate func open() throws -> Skull {
     let freshDB = try Skull(url)
     let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
@@ -112,8 +118,6 @@ public class LocalCache: Caching {
     
     let me = type(of: self)
     self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
-    
-    self.sqlFormatter = SQLFormatter()
   }
 
   public func flush() throws {

@@ -9,6 +9,18 @@
 import Foundation
 import os.log
 
+public extension Notification.Name {
+  
+  /// Posted when a remote request has been started.
+  static var FKRemoteRequest =
+    NSNotification.Name("FeedKitRemoteRequest")
+  
+  /// Posted when a remote response has been received.
+  static var FKRemoteResponse =
+    NSNotification.Name("FeedKitRemoteResponse")
+  
+}
+
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation {

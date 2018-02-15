@@ -68,9 +68,10 @@ final class SerializeTests: XCTestCase {
       "img600": "jkl"
     ]
     
-    let found = serialize.iTunesItem(from: dict)!
+    let found = serialize.makeITunesItem(url: "http://abc.de", payload: dict)!
     
     let wanted = ITunesItem(
+      url: "http://abc.de",
       iTunesID: 123,
       img100: "abc",
       img30: "def",

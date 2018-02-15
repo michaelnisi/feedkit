@@ -48,6 +48,8 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
   }
 
   override func main() {
+    os_log("starting PrepareUpdateOperation", log: User.log, type: .debug)
+    
     do {
       let subscriptions = try cache.subscribed()
       let latest = try cache.newest()

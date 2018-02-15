@@ -12,7 +12,8 @@ import Ola
 import os.log
 
 /// A concurrent `Operation` for accessing entries.
-final class EntriesOperation: BrowseOperation, ProvidingEntries {
+final class EntriesOperation: BrowseOperation,
+LocatorsDependent, ProvidingEntries {
 
   // MARK: ProvidingEntries
 

@@ -51,19 +51,20 @@ struct serialize {
     return Double(truncating: value) / 1000 as TimeInterval
   }
   
-  /// Create an iTunes item from a JSON payload. All properties: guid, img100,
-  /// img30, img60, and img600 must be present.
-  static func iTunesItem(from dict: [String : Any]) -> ITunesItem? {
+  /// Create an iTunes item from a JSON `payload` for the feed at `url`. All
+  /// properties: guid, img100, img30, img60, and img600 must be present.
+  static func makeITunesItem(url: FeedURL, payload: [String : Any]) -> ITunesItem? {
     guard
-      let guid = dict["guid"] as? Int,
-      let img100 = dict["img100"] as? String,
-      let img30 = dict["img30"] as? String,
-      let img60 = dict["img60"] as? String,
-      let img600 = dict["img600"] as? String else {
-        return nil
+      let guid = payload["guid"] as? Int,
+      let img100 = payload["img100"] as? String,
+      let img30 = payload["img30"] as? String,
+      let img60 = payload["img60"] as? String,
+      let img600 = payload["img600"] as? String else {
+      return nil
     }
     
     return ITunesItem(
+      url: url,
       iTunesID: guid,
       img100: img100,
       img30: img30,
@@ -132,7 +133,7 @@ struct serialize {
       throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
     }
     
-    let iTunes = serialize.iTunesItem(from: json)
+    let iTunes = serialize.makeITunesItem(url: url, payload: json)
     let image = json["image"] as? String
     let link = json["link"] as? String
     let summary = json["summary"] as? String

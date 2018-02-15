@@ -176,7 +176,7 @@ extension UserLibrary: Updating {
   private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
     return previous.flatMap {
-      if case .temporary(let loc, _) = $0 {
+      if case .temporary(let loc, _, _) = $0 {
         return loc.guid
       }
       return nil
@@ -262,7 +262,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
     ) -> Operation {
-    os_log("fetching...", log: User.log, type: .debug)
+    os_log("fetching queue...", log: User.log, type: .debug)
     
     let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
