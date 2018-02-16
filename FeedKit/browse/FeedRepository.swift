@@ -6,8 +6,6 @@
 //  Copyright © 2017 Michael Nisi. All rights reserved.
 //
 
-// TODO: Don’t submit callbacks on the main thread
-
 import Foundation
 import MangerKit
 import Ola
@@ -52,25 +50,14 @@ extension FeedRepository: Browsing {
            log: Browse.log, type: .debug, iTunesItems)
     
     let cache = self.cache
-    
     queue.addOperation {
-      guard let target = OperationQueue.current?.underlyingQueue else {
-        return
-      }
-      
-      var er: Error?
-      
-      defer {
-        target.async {
-          completionBlock?(er)
-        }
-      }
-      
+      let q = OperationQueue.current?.underlyingQueue ?? DispatchQueue.global()
       do {
         try cache.integrate(iTunesItems: iTunesItems)
       } catch {
-        er = error
+        q.async { completionBlock?(error) }
       }
+      q.async { completionBlock?(nil) }
     }
   }
   
@@ -101,8 +88,23 @@ extension FeedRepository: Browsing {
     return op
   }
   
-  public func makeEntriesOperation() -> Operation {
-    return EntriesOperation(cache: cache,svc: svc)
+  public func entries(satisfying provider: Operation) -> Operation {
+    let reach = ReachHostOperation(host: svc.client.host)
+    let fetchFeeds = FeedsOperation(cache: cache, svc: svc)
+    let fetchEntries = EntriesOperation(cache: cache, svc: svc)
+    
+    fetchFeeds.addDependency(reach)
+    fetchFeeds.addDependency(provider)
+    
+    fetchEntries.addDependency(reach)
+    fetchEntries.addDependency(provider)
+    fetchEntries.addDependency(fetchFeeds)
+    
+    queue.addOperation(fetchEntries)
+    queue.addOperation(fetchFeeds)
+    queue.addOperation(reach)
+    
+    return fetchEntries
   }
   
   public func entries(
@@ -111,7 +113,7 @@ extension FeedRepository: Browsing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let op = EntriesOperation(cache: cache, svc: svc, locators: locators)
+    let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
     
     let r = reachable()
     let uri = locators.count == 1 ? locators.first?.url : nil
@@ -123,10 +125,10 @@ extension FeedRepository: Browsing {
       ttl: CacheTTL.short
     )
     
-    op.entriesBlock = entriesBlock
-    op.entriesCompletionBlock = entriesCompletionBlock
-    op.reachable = r
-    op.ttl = ttl
+    fetchEntries.entriesBlock = entriesBlock
+    fetchEntries.entriesCompletionBlock = entriesCompletionBlock
+    fetchEntries.reachable = r
+    fetchEntries.ttl = ttl
     
     // We have to get the according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds. Providing a place to
@@ -135,33 +137,33 @@ extension FeedRepository: Browsing {
     
     let urls = locators.map { $0.url }
     
-    let dep = FeedsOperation(cache: cache, svc: svc, urls: urls)
+    let fetchFeeds = FeedsOperation(cache: cache, svc: svc, urls: urls)
     
-    dep.ttl = CacheTTL.forever
-    dep.reachable = r
+    fetchFeeds.ttl = CacheTTL.forever
+    fetchFeeds.reachable = r
     
-    dep.feedsBlock = { error, feeds in
+    fetchFeeds.feedsBlock = { error, feeds in
       if let er = error {
         os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
                String(reflecting: er))
       }
     }
     
-    dep.feedsCompletionBlock = { error in
+    fetchFeeds.feedsCompletionBlock = { error in
       if let er = error {
         os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
                String(reflecting: er))
       }
     }
     
-    assert(dep.ttl == CacheTTL.forever)
+    assert(fetchFeeds.ttl == CacheTTL.forever)
     
-    op.addDependency(dep)
+    fetchEntries.addDependency(fetchFeeds)
+
+    queue.addOperation(fetchEntries)
+    queue.addOperation(fetchFeeds)
     
-    queue.addOperation(op)
-    queue.addOperation(dep)
-    
-    return op
+    return fetchEntries
   }
   
   public func entries(
@@ -176,4 +178,5 @@ extension FeedRepository: Browsing {
       entriesCompletionBlock: entriesCompletionBlock
     )
   }
+
 }

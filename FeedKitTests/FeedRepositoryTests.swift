@@ -29,7 +29,7 @@ final class FeedRepositoryTests: XCTestCase {
     let queue = OperationQueue()
     queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.FeedRepositoryTests")
 
-    let probe = Ola(host: "http://localhost:8384", queue: queue.underlyingQueue!)!
+    let probe = Ola(host: "http://localhost:8384")!
     
     repo = FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
   }
@@ -145,7 +145,7 @@ extension FeedRepositoryTests {
       let exp = self.expectation(description: "populating cache")
       
       let queue = OperationQueue()
-      let probe = Ola(host: "localhost", queue: DispatchQueue.global())!
+      let probe = Ola(host: "localhost")!
       let repo: Browsing = FeedRepository(
         cache: zeroCache, svc: svc, queue: queue, probe: probe)
       
@@ -178,7 +178,7 @@ extension FeedRepositoryTests {
       let falseHost = "http://localhost:8385"
       let unavailable = makeManger(string: falseHost)
       let queue = OperationQueue()
-      let probe = Ola(host: "localhost", queue: DispatchQueue.global())!
+      let probe = Ola(host: "localhost")!
       let repo: Browsing = FeedRepository(
         cache: zeroCache, svc: unavailable, queue:queue, probe: probe)
       

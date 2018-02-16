@@ -225,19 +225,19 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
     
+    // TODO: Make update queue safe
+    // Fetching entries will fail for unknown feeds.
+    
     DispatchQueue.global(qos: .background).async {
       let prepare = PrepareUpdateOperation(cache: cache)
-      let fetch = browser.makeEntriesOperation()
+      let fetch = browser.entries(satisfying: prepare)
       let enqueue = EnqueueOperation(user: self, cache: cache)
       let trim = TrimQueueOperation(cache: cache)
       
-      // TODO: prepare.addDependency(reach)
-      fetch.addDependency(prepare)
       enqueue.addDependency(fetch)
       trim.addDependency(enqueue)
       
       operationQueue.addOperation(prepare)
-      operationQueue.addOperation(fetch)
       operationQueue.addOperation(enqueue)
       operationQueue.addOperation(trim)
     

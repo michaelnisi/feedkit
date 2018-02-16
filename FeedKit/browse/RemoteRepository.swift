@@ -29,17 +29,13 @@ public class RemoteRepository: NSObject {
     return r == .reachable || r == .cellular
   }
   
-  private var forced = [String : Date]()
+  // Keeps track of forced updates per URL.
+  private let forcedLog = DateCache()
   
+  /// Returns `true` if a request to `uri` is OK to be forced. This has to be
+  /// thread-safe, might get called from operations.
   private func forceable(_ uri: String) -> Bool {
-    if let prev = forced[uri] {
-      if prev.timeIntervalSinceNow < CacheTTL.short.seconds {
-        return false
-      }
-    }
-    forced[uri] = Date()
-    return true
-    
+    return forcedLog.update(uri)
   }
   
   /// Return the momentary maximal age for cached items of a specific resource

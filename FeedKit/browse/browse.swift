@@ -227,16 +227,16 @@ public protocol Browsing {
     entriesCompletionBlock: @escaping (Error?) -> Void
   ) -> Operation
 
+  // MARK: Semi-Internal
   
-  /// Returns a minimally configured, all defaults, operation to fetch entries
-  /// with locators aquired via operation dependencies.
-  func makeEntriesOperation() -> Operation
+  /// Returns an executing operation.
+  func entries(satisfying provider: Operation) -> Operation
   
   /// Integrates `iTunesItems`.
   func integrate(
     iTunesItems: [ITunesItem],
     completionBlock: ((_ error: Error?) -> Void)?) -> Void
-
+  
 }
 
 

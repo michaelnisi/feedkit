@@ -68,6 +68,26 @@ public enum CacheTTL {
   }
 }
 
+// MARK: - DateCache
+
+/// An in-memory date log.
+class DateCache {
+  
+  private var dates = NSCache<NSString, NSDate>()
+  
+  // Returns `true` if `key` has not been used or is stale.
+  func update(_ key: String) -> Bool {
+    if let prev = dates.object(forKey: key as NSString) as Date? {
+      if prev.timeIntervalSinceNow < CacheTTL.short.seconds {
+        return false
+      }
+    }
+    dates.setObject(Date() as NSDate, forKey: key as NSString)
+    return true
+  }
+  
+}
+
 // MARK: - Caching
 
 /// Abstract super class for embedded (SQLite) databases.

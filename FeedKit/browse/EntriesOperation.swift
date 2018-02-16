@@ -12,8 +12,7 @@ import Ola
 import os.log
 
 /// A concurrent `Operation` for accessing entries.
-final class EntriesOperation: BrowseOperation,
-LocatorsDependent, ProvidingEntries {
+final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
 
   // MARK: ProvidingEntries
 
@@ -32,6 +31,7 @@ LocatorsDependent, ProvidingEntries {
         _locators = try findLocators()
       } catch {
         self.error = error
+        _locators = []
       }
       return _locators!
     }
@@ -65,8 +65,8 @@ LocatorsDependent, ProvidingEntries {
       guard !isCancelled else {
         return FeedKitError.cancelledByUser
       }
-      self.error = error
-      return error
+      self.error = self.error ?? error
+      return self.error
     }()
     
     let cb = entriesCompletionBlock
@@ -182,11 +182,13 @@ LocatorsDependent, ProvidingEntries {
   }
 
   override func start() {
+    os_log("starting EntriesOperation", log: Browse.log, type: .debug)
+    
     guard !isCancelled, error == nil, !locators.isEmpty else {
       return done(error)
     }
     isExecuting = true
-
+    
     do {
       os_log("trying cache: %{public}@", log: Browse.log,
              type: .debug, locators)

@@ -12,7 +12,7 @@ import Ola
 import os.log
 
 /// A concurrent `Operation` for accessing feeds.
-final class FeedsOperation: BrowseOperation {
+final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   
   // MARK: ProvidingFeeds
   
@@ -24,10 +24,23 @@ final class FeedsOperation: BrowseOperation {
   var feedsBlock: ((Error?, [Feed]) -> Void)?
   var feedsCompletionBlock: ((Error?) -> Void)?
 
-  private let urls: [String]
+  private var _urls: [String]?
+  
+  private var urls: [String] {
+    guard let actualURLs = _urls else {
+      do {
+        _urls = try findFeedURLs()
+      } catch {
+        self.error = error
+        _urls = []
+      }
+      return _urls!
+    }
+    return actualURLs
+  }
 
-  init(cache: FeedCaching, svc: MangerService, urls: [String]) {
-    self.urls = urls
+  init(cache: FeedCaching, svc: MangerService, urls: [String]? = nil) {
+    self._urls = urls
     super.init(cache: cache, svc: svc)
   }
   
@@ -46,8 +59,8 @@ final class FeedsOperation: BrowseOperation {
       guard !isCancelled else {
         return FeedKitError.cancelledByUser
       }
-      self.error = error
-      return error
+      self.error = self.error ?? error
+      return self.error
     }()
     
     let cb = feedsCompletionBlock
@@ -142,6 +155,9 @@ final class FeedsOperation: BrowseOperation {
     guard !isCancelled else { return done() }
     isExecuting = true
 
+    // TODO: Review handling of empty URLs
+    guard !urls.isEmpty else { return done() }
+    
     do {
       let items = try cache.feeds(urls)
       let (cached, stale, needed) = FeedCache.subtract(

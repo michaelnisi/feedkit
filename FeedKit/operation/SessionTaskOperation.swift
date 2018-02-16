@@ -23,14 +23,34 @@ public extension Notification.Name {
 
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
-class SessionTaskOperation: FeedKitOperation {
+class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
+  
+  var _reachable: Bool?
   
   /// If you know in advance that the remote service is currently not available,
-  /// you might set this to `false` to be more effective.
-  var reachable: Bool = true
+  /// you might set this to `false` to be more effective. If probing fails, this
+  /// assumes the service is reachable, trial vs error. Defaults to `true`,
+  /// although dependencies are tried to find the status.
+  var reachable: Bool {
+    get {
+      guard let r = _reachable else {
+        do {
+          let s = try findStatus()
+          _reachable = s == .reachable || s == .cellular
+        } catch {
+          _reachable = true
+        }
+        return _reachable!
+      }
+      return r
+    }
+    set {
+      _reachable = newValue
+    }
+  }
   
   /// The maximal age, `CacheTTL.long`, of cached items.
-  var ttl: CacheTTL = CacheTTL.long
+  var ttl = CacheTTL.long
   
   /// Posts `name` to the default notifcation center.
   func post(name: NSNotification.Name) {

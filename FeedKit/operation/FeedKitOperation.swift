@@ -7,14 +7,12 @@
 //
 
 import Foundation
-import Ola
 
-/// An abstract super class to be extended by concurrent FeedKit operations.
+/// An abstract super class to be extended by **concurrent** FeedKit operations.
 class FeedKitOperation: Operation {
   
   /// An internal serial queue for synchronized (thread-safe) property access.
-  private let serialQueue = DispatchQueue(
-    label: "ink.codes.feedkit.operation.\(UUID().uuidString)")
+  private let serialQueue = DispatchQueue(label: "ink.codes.feedkit.operation.\(UUID().uuidString)")
   
   fileprivate var _executing: Bool = false
   
