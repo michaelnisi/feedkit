@@ -88,15 +88,45 @@ extension FeedRepository: Browsing {
     return op
   }
   
+  private func makeFeedsOperationDependency(
+    locators: [EntryLocator]? = nil,
+    reachable: Bool? = nil,
+    ttl: CacheTTL = CacheTTL.forever
+  ) -> FeedsOperation {
+    let urls = locators?.map { $0.url }
+    
+    let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
+    op.ttl = ttl
+    
+    if let r = reachable {
+      op.reachable = r
+    }
+    
+    op.feedsBlock = { error, feeds in
+      if let er = error {
+        os_log("error while fetching feeds: %{public}@",
+               log: Browse.log, type: .error, String(reflecting: er))
+      }
+    }
+    
+    op.feedsCompletionBlock = { error in
+      if let er = error {
+        os_log("could not fetch feeds: %{public}@",
+               log: Browse.log, type: .error, String(reflecting: er))
+      }
+    }
+    
+    return op
+  }
+  
   public func entries(satisfying provider: Operation) -> Operation {
     let reach = ReachHostOperation(host: svc.client.host)
-    let fetchFeeds = FeedsOperation(cache: cache, svc: svc)
-    let fetchEntries = EntriesOperation(cache: cache, svc: svc)
     
+    let fetchFeeds = makeFeedsOperationDependency()
     fetchFeeds.addDependency(reach)
     fetchFeeds.addDependency(provider)
     
-    fetchEntries.addDependency(reach)
+    let fetchEntries = EntriesOperation(cache: cache, svc: svc)
     fetchEntries.addDependency(provider)
     fetchEntries.addDependency(fetchFeeds)
     
@@ -125,38 +155,16 @@ extension FeedRepository: Browsing {
       ttl: CacheTTL.short
     )
     
+    // We have to aquire according feeds, before we can request their entries,
+    // because we cannot update entries of uncached feeds.
+    
+    let fetchFeeds = makeFeedsOperationDependency(locators: locators, reachable: r)
+    assert(fetchFeeds.ttl == CacheTTL.forever)
+    
     fetchEntries.entriesBlock = entriesBlock
     fetchEntries.entriesCompletionBlock = entriesCompletionBlock
     fetchEntries.reachable = r
     fetchEntries.ttl = ttl
-    
-    // We have to get the according feeds, before we can request their entries,
-    // because we cannot update entries of uncached feeds. Providing a place to
-    // composite operations, like this, is an advantage of interposing
-    // repositories, compared to exposing operations directly.
-    
-    let urls = locators.map { $0.url }
-    
-    let fetchFeeds = FeedsOperation(cache: cache, svc: svc, urls: urls)
-    
-    fetchFeeds.ttl = CacheTTL.forever
-    fetchFeeds.reachable = r
-    
-    fetchFeeds.feedsBlock = { error, feeds in
-      if let er = error {
-        os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
-               String(reflecting: er))
-      }
-    }
-    
-    fetchFeeds.feedsCompletionBlock = { error in
-      if let er = error {
-        os_log("could not fetch feeds: %{public}@", log: Browse.log, type: .error,
-               String(reflecting: er))
-      }
-    }
-    
-    assert(fetchFeeds.ttl == CacheTTL.forever)
     
     fetchEntries.addDependency(fetchFeeds)
 

@@ -152,6 +152,8 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   }
 
   override func start() {
+    os_log("starting FeedsOperation", log: Browse.log, type: .debug)
+    
     guard !isCancelled else { return done() }
     isExecuting = true
 

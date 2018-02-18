@@ -229,10 +229,12 @@ public protocol Browsing {
 
   // MARK: Semi-Internal
   
-  /// Returns an executing operation.
+  /// Fetches entries, and feeds accordingly, for locators provided by the
+  /// dependency `provider` operation.
   func entries(satisfying provider: Operation) -> Operation
   
-  /// Integrates `iTunesItems`.
+  /// Integrates `iTunesItems` into local cache, adding feeds not cached yet,
+  /// which might be a problem. TODO: Review
   func integrate(
     iTunesItems: [ITunesItem],
     completionBlock: ((_ error: Error?) -> Void)?) -> Void
