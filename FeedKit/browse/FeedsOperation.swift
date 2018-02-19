@@ -157,21 +157,27 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     guard !isCancelled else { return done() }
     isExecuting = true
 
-    // TODO: Review handling of empty URLs
-    guard !urls.isEmpty else { return done() }
-    
-    os_log("about to fetch feeds: %{public}@", log: Browse.log, type: .debug,
-           urls)
-    
-    // TODO: Log like EntriesOperation
+    guard error == nil, !urls.isEmpty else {
+      os_log("aborting FeedsOperation: no URLs provided",
+             log: Browse.log, type: .debug)
+      return done(error)
+    }
     
     do {
+      os_log("trying cache: %{public}@", log: Browse.log, type: .debug, urls)
+      
       let items = try cache.feeds(urls)
       let (cached, stale, needed) = FeedCache.subtract(
         items, from: urls, with: ttl.seconds
       )
 
       guard !isCancelled else { return done() }
+      
+      // Why, compared to EntriesOperation, is needed optional?
+      
+      os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
+      os_log("missing: %{public}@", log: Browse.log, type: .debug,
+             String(describing: needed))
 
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {

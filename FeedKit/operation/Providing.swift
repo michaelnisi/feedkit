@@ -88,7 +88,10 @@ protocol LocatorsDependent {}
 extension LocatorsDependent where Self: Operation {
   
   /// Returns locators of the **first** locator providing dependency. Note that
-  /// these are not accumlated from all providers.
+  /// these are not accumulated from all providers, but only from the first one.
+  ///
+  /// - Throws: If no dependency provides locators, this throws
+  /// `ProvidingError.missingLocators`.
   func findLocators() throws -> [EntryLocator] {
     for dep in dependencies {
       if case let prov as ProvidingLocators = dep {

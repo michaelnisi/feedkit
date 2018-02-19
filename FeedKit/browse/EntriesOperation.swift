@@ -189,17 +189,17 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   override func start() {
     os_log("starting EntriesOperation", log: Browse.log, type: .debug)
     
-    guard !isCancelled, error == nil, !locators.isEmpty else {
-      os_log("aborting EntriesOperation: cancelled or no entry locators found",
+    guard !isCancelled else { return done() }
+    isExecuting = true
+    
+    guard error == nil, !locators.isEmpty else {
+      os_log("aborting EntriesOperation: no locators provided",
              log: Browse.log, type: .debug)
       return done(error)
     }
     
-    isExecuting = true
-    
     do {
-      os_log("trying cache: %{public}@", log: Browse.log,
-             type: .debug, locators)
+      os_log("trying cache: %{public}@", log: Browse.log, type: .debug, locators)
 
       let (cached, missing) = try cache.fulfill(locators, ttl: ttl.seconds)
 
