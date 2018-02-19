@@ -102,7 +102,7 @@ end;
 
 create trigger if not exists queued_entry_ad after delete on queued_entry begin
   delete from pinned_entry where entry_guid = old.entry_guid;
-  insert into prev_entry(entry_guid) values(old.entry_guid);
+  insert or replace into prev_entry(entry_guid) values(old.entry_guid);
 end;
 
 create trigger if not exists feed_ad after delete on feed begin
