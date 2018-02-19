@@ -43,6 +43,14 @@ extension UserSQLFormatter {
     return "SELECT * FROM queued_entry WHERE entry_guid = '\(guid)';"
   }
   
+  static func SQLToSelectEntryGUIDFromQueued(where guid: String) -> String {
+    return "SELECT entry_guid FROM queued_entry WHERE entry_guid = '\(guid)';"
+  }
+  
+  static func SQLToSelectEntryGUIDFromPrevious(where guid: String) -> String {
+    return "SELECT entry_guid FROM prev_entry WHERE entry_guid = '\(guid)';"
+  }
+  
   static func SQLToUnqueue(guids: [String]) -> String {
     return "DELETE FROM queued_entry WHERE entry_guid IN(" + guids.map {
       "'\($0)'"

@@ -30,8 +30,13 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       do {
         _locators = try findLocators()
       } catch {
-        self.error = error
-        _locators = []
+        switch error {
+        case ProvidingError.missingLocators:
+          fatalError(String(describing: error))
+        default:
+          self.error = error
+          _locators = []
+        }
       }
       return _locators!
     }
@@ -185,8 +190,11 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     os_log("starting EntriesOperation", log: Browse.log, type: .debug)
     
     guard !isCancelled, error == nil, !locators.isEmpty else {
+      os_log("aborting EntriesOperation: cancelled or no entry locators found",
+             log: Browse.log, type: .debug)
       return done(error)
     }
+    
     isExecuting = true
     
     do {

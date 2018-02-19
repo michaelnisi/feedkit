@@ -35,8 +35,12 @@ extension PrepareUpdateOperation {
       return EntryLocator(url: url, since: ts)
     }
   }
+  
 }
 
+/// Prepares updating of the queue, producing entry locators from subscriptions
+/// and currently queued items. The resulting entry locators are published via
+/// the `ProvidingLocators` interface.
 final class PrepareUpdateOperation: Operation, ProvidingLocators {
   private(set) var error: Error?
   private(set) var locators = [EntryLocator]()
@@ -53,7 +57,9 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
     do {
       let subscriptions = try cache.subscribed()
       let latest = try cache.newest()
+      
       self.locators = PrepareUpdateOperation.merge(latest, with: subscriptions)
+      
       os_log("** prepared: %{public}@", log: User.log, type: .debug, locators)
     } catch {
       self.error = error

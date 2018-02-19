@@ -187,6 +187,10 @@ public protocol QueueCaching {
   /// cached queue.
   func isQueued(_ guid: EntryGUID) throws -> Bool
   
+  /// Checks if an entry with `guid` is currently contained in the local cache
+  /// of previously queued entries.
+  func isPrevious(_ guid: EntryGUID) throws -> Bool
+  
 }
 
 /// Confines `Queue` state dependency.

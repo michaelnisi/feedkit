@@ -231,6 +231,8 @@ public protocol Browsing {
   
   /// Fetches entries, and feeds accordingly, for locators provided by the
   /// dependency `provider` operation.
+  ///
+  /// - Returns: Returns an already executing operation.
   func entries(satisfying provider: Operation) -> Operation
   
   /// Integrates `iTunesItems` into local cache, adding feeds not cached yet,

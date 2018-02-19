@@ -257,26 +257,42 @@ extension UserCache: QueueCaching {
     }
   }
   
-  public func isQueued(_ guid: EntryGUID) throws -> Bool {
+  private func query(entryGUID: EntryGUID, with sql: String) throws -> Bool {
     return try queue.sync {
-      var dbError: SkullError?
       var yes = false
-      try db.exec(UserSQLFormatter.SQLToSelectQueued(where: guid)) { error, row in
+      
+      var dbError: SkullError?
+      
+      try db.query(sql) { error, row in
         guard error == nil else {
           dbError = error
           return 1
         }
-        guard let found = row["entry_guid"] else {
+        
+        guard let found = row?["entry_guid"] as? String else {
           return 0
         }
-        yes = found == guid
+        
+        yes = found == entryGUID
+        
         return 0
       }
       guard dbError == nil else {
         throw dbError!
       }
+      
       return yes
     }
+  }
+  
+  public func isQueued(_ guid: EntryGUID) throws -> Bool {
+    let sql = UserSQLFormatter.SQLToSelectEntryGUIDFromQueued(where: guid)
+    return try query(entryGUID: guid, with: sql)
+  }
+  
+  public func isPrevious(_ guid: EntryGUID) throws -> Bool {
+    let sql = UserSQLFormatter.SQLToSelectEntryGUIDFromPrevious(where: guid)
+    return try query(entryGUID: guid, with: sql)
   }
   
 }

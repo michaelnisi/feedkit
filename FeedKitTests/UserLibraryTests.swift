@@ -80,16 +80,20 @@ extension UserLibraryTests {
     }
   }
   
-  /// Subscribes to default feed and return subscriptions for testing.
+  /// Subscribes to feed at `url` and returns subscriptions for testing.
   @discardableResult
-  private func subscribe(addComplete: @escaping (Error?) -> Void) -> [Subscription] {
-    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+  private func subscribe(
+    _ url: String,
+    addComplete: @escaping (Error?) -> Void
+  ) -> [Subscription] {
     let subscriptions = [Subscription(url: url)]
     try! user.add(subscriptions: subscriptions, addComplete: addComplete)
     return subscriptions
   }
   
   func testUnsubscribe() {
+    let url = "http://abc.de"
+    
     do {
       let exp = self.expectation(description: "subscribing")
       
@@ -101,7 +105,7 @@ extension UserLibraryTests {
         exp.fulfill()
       }
       
-      subscribe { error in
+      subscribe(url) { error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
       }
@@ -122,12 +126,9 @@ extension UserLibraryTests {
       }
     }
     
-    // TODO: Fix erratically failing test
-    
     do {
       let exp = self.expectation(description: "unsubscribing")
-      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
-      
+
       let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
         object: self.user,
@@ -153,10 +154,12 @@ extension UserLibraryTests {
   }
   
   func testHasSubscription() {
+    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+    
     do {
       let exp = self.expectation(description: "subscribing")
       
-      subscribe { error in
+      subscribe(url) { error in
         XCTAssertNil(error)
         exp.fulfill()
       }
@@ -167,7 +170,6 @@ extension UserLibraryTests {
     }
     
     do {
-      let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
       self.measure {
         XCTAssertTrue(user.has(subscription: url))
       }
@@ -176,10 +178,12 @@ extension UserLibraryTests {
   }
   
   func testFeeds() {
+    let url = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+    
     do {
       let exp = self.expectation(description: "subscribing")
       
-      subscribe { error in
+      subscribe(url) { error in
         XCTAssertNil(error)
         exp.fulfill()
       }

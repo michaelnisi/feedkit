@@ -87,14 +87,15 @@ protocol LocatorsDependent {}
 
 extension LocatorsDependent where Self: Operation {
   
+  /// Returns locators of the **first** locator providing dependency. Note that
+  /// these are not accumlated from all providers.
   func findLocators() throws -> [EntryLocator] {
-    var found = Set<EntryLocator>()
     for dep in dependencies {
-      if case let req as ProvidingLocators = dep {
-        guard req.error == nil else {
-          throw req.error!
+      if case let prov as ProvidingLocators = dep {
+        guard prov.error == nil else {
+          throw prov.error!
         }
-        found.formUnion(req.locators)
+        return prov.locators
       }
     }
     throw ProvidingError.missingLocators

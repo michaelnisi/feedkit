@@ -217,6 +217,8 @@ extension UserLibrary: Updating {
     }
   }
   
+  // TODO: Review, doesn’t update
+  
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating...", log: User.log,  type: .info)
@@ -224,13 +226,13 @@ extension UserLibrary: Updating {
     let cache = self.cache
     let operationQueue = self.operationQueue
     let browser = self.browser
-    
-    // TODO: Make update queue safe
-    // Fetching entries will fail for unknown feeds.
-    
+
     DispatchQueue.global(qos: .background).async {
       let prepare = PrepareUpdateOperation(cache: cache)
+      
+      // Executing on browser queue.
       let fetch = browser.entries(satisfying: prepare)
+      
       let enqueue = EnqueueOperation(user: self, cache: cache)
       let trim = TrimQueueOperation(cache: cache)
       
@@ -243,8 +245,8 @@ extension UserLibrary: Updating {
     
       trim.trimQueueCompletionBlock = { newData, error in
         if let er = error {
-          os_log("trim error: %{public}@",
-                 log: User.log, type: .error, er as CVarArg)
+          os_log("trim error: %{public}@", log: User.log, type: .error,
+                 er as CVarArg)
         }
         updateComplete?(newData, error)
       }
