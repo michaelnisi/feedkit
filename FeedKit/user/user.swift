@@ -258,23 +258,36 @@ public protocol Queueing {
 /// Updating subscribed feeds.
 public protocol Updating {
   
-  /// Fetch the latest entries of subscribed feeds from the server.
+  /// Fetch the latest entries of subscribed feeds from the server. Errors past
+  /// to the completion block aren’t necessarily critical.
   ///
   /// - Parameters:
   ///   - updateComplete: The completion block to apply when done.
   ///   - newData: `true` if new data has been received.
-  ///   - error: Optionally, an error if anything went wrong.
+  ///   - error: Optionally, a, not conclusively critical, error.
   func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?)
   
 }
 
 // MARK: - Downloading
 
-/// Downloading fresh episodes and managing media files.
+public struct FileLocator {
+  let uid: UUID
+  let remote: URL
+  let local: URL
+}
+
+/// Downloading episodes and managing files.
 public protocol Downloading {
   
-  // TODO: Design Downloading API
-  // - background first, like Updating
+  /// Returns original URL or the file URL of an already downloaded file.
+  ///
+  /// - Parameters:
+  ///   - url: The remote url of a media file to stream or download.
+  ///   - downloadComplete: The block to execute once the download finished.
+  ///
+  /// - Returns: A structure identifying and locating the file.
+  func file(url: URL, downloadComplete: ((_ url: URL, _ error: Error?) -> Void)?) -> FileLocator
   
 }
 
