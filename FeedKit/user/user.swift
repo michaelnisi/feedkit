@@ -269,28 +269,6 @@ public protocol Updating {
   
 }
 
-// MARK: - Downloading
-
-public struct FileLocator {
-  let uid: UUID
-  let remote: URL
-  let local: URL
-}
-
-/// Downloading episodes and managing files.
-public protocol Downloading {
-  
-  /// Returns original URL or the file URL of an already downloaded file.
-  ///
-  /// - Parameters:
-  ///   - url: The remote url of a media file to stream or download.
-  ///   - downloadComplete: The block to execute once the download finished.
-  ///
-  /// - Returns: A structure identifying and locating the file.
-  func file(url: URL, downloadComplete: ((_ url: URL, _ error: Error?) -> Void)?) -> FileLocator
-  
-}
-
 // MARK: - Subscribing
 
 /// A feed subscription.

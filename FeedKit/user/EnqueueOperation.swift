@@ -9,6 +9,16 @@
 import Foundation
 import os.log
 
+enum EnqueueOperationError: Error {
+  
+  /// Using an error here to internally signal questionable usage and for
+  /// preventing ourselves from dispatching redundant queue change events.
+  /// This error isn’t critical, in fact, not knowing the queue state at call
+  /// site might be reasonable.
+  case nothingToEnqueue
+  
+}
+
 final class EnqueueOperation: Operation, ProvidingEntries {
   
   // MARK: ProvidingEntries
@@ -72,6 +82,11 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     self.error = error
     
     enqueueCompletionBlock?(Array(entries), error)
+    
+    if let er = error, case EnqueueOperationError.nothingToEnqueue = er {
+      os_log("nothing to enqueue", log: User.log)
+      return
+    }
 
     DispatchQueue.main.async {
       NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
@@ -87,11 +102,12 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         return done(error)
       }
 
-      let candidates = self.candidates
-      
+      let candidates = try self.candidates.filter {
+        try !cache.isQueued($0.guid)
+      }
+
       guard !candidates.isEmpty else {
-        os_log("nothing to enqueue", log: User.log, type: .debug)
-        return done()
+        return done(EnqueueOperationError.nothingToEnqueue)
       }
       
       os_log("enqueueing: %{public}@", log: User.log, type: .debug, candidates)

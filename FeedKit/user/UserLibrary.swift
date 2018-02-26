@@ -263,7 +263,7 @@ extension UserLibrary: Queueing {
   public func fetchQueue(
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
-    ) -> Operation {
+  ) -> Operation {
     os_log("fetching queue...", log: User.log, type: .debug)
     
     let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
@@ -316,7 +316,8 @@ extension UserLibrary: Queueing {
   public func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
-    try enqueue(entries: entries, belonging: .nobody,
+    try enqueue(entries: entries,
+                belonging: .nobody,
                 enqueueCompletionBlock: enqueueCompletionBlock)
   }
   
