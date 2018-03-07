@@ -207,13 +207,13 @@ public enum QueuedOwner: Int {
 /// change events regarding the user’s queue.
 public protocol Queueing {
   
-  /// Adds `entry` to the queue.
+  /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
     belonging: QueuedOwner,
     enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
   
-  /// Adds `entry` to the queue.
+  /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
@@ -249,6 +249,7 @@ public protocol Queueing {
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
+  func skip(to entry: Entry) throws
   
   var isEmpty: Bool { get }
 }

@@ -217,8 +217,6 @@ extension UserLibrary: Updating {
     }
   }
   
-  // TODO: Review, doesn’t update
-  
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating...", log: User.log,  type: .info)
@@ -365,6 +363,10 @@ extension UserLibrary: Queueing {
   
   public var isEmpty: Bool {
     return queue.isEmpty
+  }
+  
+  public func skip(to entry: Entry) throws {
+    try queue.skip(to: entry)
   }
   
 }
