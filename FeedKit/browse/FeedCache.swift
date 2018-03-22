@@ -12,7 +12,10 @@ import os.log
 
 public final class FeedCache: LocalCache {
   
-  lazy var sqlFormatter = LibrarySQLFormatter()
+  private lazy var sqlFormatter = LibrarySQLFormatter()
+  
+  // Access these caches is not synchronized, be aware that this only works,
+  // if our users run exactly ONE search operation at a time.
 
   // TODO: Replace noSuggestions Dictionary with NSCache
   fileprivate var noSuggestions = [String : Date]()
@@ -260,7 +263,7 @@ extension FeedCache: FeedCaching {
         return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes)]
       }.joined(separator: "\n")
 
-      try self.db.exec(sql)
+      try db.exec(sql)
     }
   }
 
@@ -316,9 +319,8 @@ extension FeedCache: FeedCaching {
   ///
   /// - Throws: Skull errors originating from SQLite.
   public func update(feeds: [Feed]) throws {
-    let fmt = sqlFormatter
     try update(feeds: feeds) { feed, feedID in
-      return fmt.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
+      return self.sqlFormatter.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
     }
   }
 
@@ -358,8 +360,7 @@ extension FeedCache: FeedCaching {
       guard let sql = LibrarySQLFormatter.SQLToSelectFeeds(by: feedIDs) else {
         return []
       }
-      let formatter = self.sqlFormatter
-      let feeds = try FeedCache.queryFeeds(self.db, with: sql, using: formatter)
+      let feeds = try FeedCache.queryFeeds(db, with: sql, using: sqlFormatter)
       return feeds ?? []
     }
   }
@@ -395,8 +396,7 @@ extension FeedCache: FeedCaching {
           }
           return acc
         }
-        let formatter = self.sqlFormatter
-        return acc + [formatter.SQLToInsert(entry: entry, for: feedID!)]
+        return acc + [sqlFormatter.SQLToInsert(entry: entry, for: feedID!)]
       }.joined(separator: "\n")
 
       if sql != "\n" {
@@ -422,7 +422,7 @@ extension FeedCache: FeedCaching {
     return try queue.sync {
       let urls = locators.map { $0.url }
 
-      guard let feedIDsByURLs = try self.feedIDs(matching: urls) else {
+      guard let feedIDsByURLs = try feedIDs(matching: urls) else {
         return []
       }
 
@@ -436,12 +436,12 @@ extension FeedCache: FeedCaching {
         }
       }
 
-      let formatter = self.sqlFormatter
-      guard let sql = formatter.SQLToSelectEntries(within: intervals) else {
+      guard let sql = sqlFormatter.SQLToSelectEntries(within: intervals) else {
         return []
       }
 
-      let entries = try FeedCache.queryEntries(self.db, with: sql, using: formatter)
+      let entries = try FeedCache.queryEntries(
+        db, with: sql, using: sqlFormatter)
 
       return entries ?? []
     }
@@ -464,9 +464,8 @@ extension FeedCache: FeedCaching {
         guard let sql = LibrarySQLFormatter.SQLToSelectEntries(by: guids) else {
           return acc
         }
-        let fmt = self.sqlFormatter
         guard let entries = try FeedCache.queryEntries(
-          self.db, with: sql, using: fmt) else {
+          self.db, with: sql, using: sqlFormatter) else {
             return acc
         }
         return acc + entries
@@ -541,9 +540,8 @@ extension FeedCache: SearchCaching {
     if feeds.isEmpty {
       noSearch[term] = Date()
     } else {
-      let fmt = sqlFormatter
       try update(feeds: feeds) { feed, feedID in
-        return fmt.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
+        return self.sqlFormatter.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
       }
       noSearch[term] = nil
       if let (predecessor, _) = FeedCache.subcached(term, dict: noSuggestions) {
@@ -619,12 +617,9 @@ extension FeedCache: SearchCaching {
 
   /// Returns feeds matching `term` using full-text-search.
   public func feeds(matching term: String, limit: Int) throws -> [Feed]? {
-    let db = self.db
-    let fmt = self.sqlFormatter
-
-    return try queue.sync { [unowned db, unowned fmt] in
+    return try queue.sync {
       let sql = LibrarySQLFormatter.SQLToSelectFeeds(matching: term, limit: limit)
-      return try FeedCache.queryFeeds(db, with: sql, using: fmt)
+      return try FeedCache.queryFeeds(db, with: sql, using: sqlFormatter)
     }
   }
 
@@ -638,12 +633,9 @@ extension FeedCache: SearchCaching {
   ///
   /// - Throws: Might throw SQL errors via Skull.
   public func entries(matching term: String, limit: Int) throws -> [Entry]? {
-    let db = self.db
-    let fmt = self.sqlFormatter
-
-    return try queue.sync { [unowned db, unowned fmt] in
+    return try queue.sync { [unowned db, unowned sqlFormatter] in
       let sql = LibrarySQLFormatter.SQLToSelectEntries(matching: term, limit: limit)
-      return try FeedCache.queryEntries(db, with: sql, using: fmt)
+      return try FeedCache.queryEntries(db, with: sql, using: sqlFormatter)
     }
   }
 

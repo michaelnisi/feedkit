@@ -11,7 +11,7 @@ import Skull
 import os.log
 
 public class UserCache: LocalCache, UserCaching {
-  lazy var sqlFormatter = UserSQLFormatter()
+  private lazy var sqlFormatter = UserSQLFormatter()
 }
 
 // MARK: - SubscriptionCaching
@@ -23,13 +23,11 @@ extension UserCache: SubscriptionCaching {
       return
     }
     
-    let fmt = sqlFormatter
-    
     try queue.sync {
       let sql = [
         "BEGIN;",
         subscriptions.map {
-          fmt.SQLToReplace(subscription: $0)
+          sqlFormatter.SQLToReplace(subscription: $0)
         }.joined(separator: "\n"),
         "COMMIT;"
       ].joined(separator: "\n")
@@ -62,7 +60,7 @@ extension UserCache: SubscriptionCaching {
           return 1
         }
         
-        subscriptions.append(self.sqlFormatter.subscription(from: r))
+        subscriptions.append(sqlFormatter.subscription(from: r))
         
         return 0
       }
@@ -332,12 +330,10 @@ extension UserCache: UserCacheSyncing {
     
     var er: Error?
     
-    let fmt = self.sqlFormatter
-    
     queue.sync {
       do {
         let sql = try synced.reduce([String]()) { acc, item in
-          let sql = try fmt.SQLToReplace(synced: item)
+          let sql = try sqlFormatter.SQLToReplace(synced: item)
           return acc + [sql]
           }.joined(separator: "\n")
         
