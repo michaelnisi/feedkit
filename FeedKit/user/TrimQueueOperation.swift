@@ -11,13 +11,31 @@ import os.log
 
 class TrimQueueOperation: Operation, Providing {
   
-  /// The block to use to process the trim result.
+  private let sQueue = DispatchQueue(
+    label: "ink.codes.podest.TrimQueueOperation.serial")
+  
+  private
+  var _trimQueueCompletionBlock: ((_ newData: Bool, _ error: Error?) -> Void)?
+  
+  /// The block to use to process the trim result. Accessing this block is
+  /// thread-safe.
   ///
   /// - Parameters:
   ///   - newData: If we are dependent on an enqueue operation, `true` if new
   /// items have been enqueued.
   ///   - error: An optional error.
-  var trimQueueCompletionBlock: ((_ newData: Bool, _ error: Error?) -> Void)?
+  var trimQueueCompletionBlock: ((_ newData: Bool, _ error: Error?) -> Void)? {
+    get {
+      return sQueue.sync {
+        return _trimQueueCompletionBlock
+      }
+    }
+    set {
+      sQueue.sync {
+        _trimQueueCompletionBlock = newValue
+      }
+    }
+  }
   
   // MARK: Providing
   
