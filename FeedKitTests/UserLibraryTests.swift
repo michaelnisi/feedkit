@@ -247,7 +247,9 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "update")
       user.update { newData, error in
-        XCTAssertNil(error)
+        guard case EnqueueOperationError.nothingToEnqueue = error! else {
+          return XCTFail("should error") // I think
+        }
         exp.fulfill()
       }
       waitForExpectations(timeout: 10) { er in
