@@ -367,8 +367,8 @@ public protocol Subscribing: Updating {
   /// relying on this.
   func has(subscription url: FeedURL) -> Bool
   
-  /// Asynchronously reloads the in-memory cache of locally cached subscription
-  /// URLs, in the background, returning right away.
+  /// Reloads the in-memory cache of locally cached subscriptions and enqueued
+  /// items.
   func synchronize(completionBlock: ((Error?) -> Void)?)
   
 }

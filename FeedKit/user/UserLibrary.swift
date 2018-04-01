@@ -49,6 +49,21 @@ public final class UserLibrary: EntryQueueHost {
       }
     }
   }
+
+  private var _queuedGUIDs =  Set<EntryGUID>()
+  
+  fileprivate var queuedGUIDs: Set<EntryGUID> {
+    get {
+      return serialQueue.sync {
+        return _queuedGUIDs
+      }
+    }
+    set {
+      serialQueue.sync {
+        _queuedGUIDs = newValue
+      }
+    }
+  }
   
   /// Internal serial queue.
   fileprivate let serialQueue = DispatchQueue(label: "ink.codes.feedkit.user.library")
@@ -142,7 +157,6 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
-    // Copy...
     var subscriptions = self.subscriptions
     
     DispatchQueue.global(qos: .background).async {
@@ -153,10 +167,28 @@ extension UserLibrary: Subscribing {
         let unsubscribed = subscriptions.subtracting(urls)
         subscriptions.subtract(unsubscribed)
         subscriptions.formUnion(urls)
-        
-        // ...and replace. The subscriptions property here needs to be
-        // thread-safe.
+
         self.subscriptions = subscriptions
+        
+        var queued: [Queued]!
+        do {
+          queued = try self.cache.queued()
+        } catch {
+          
+        }
+        let queuedGUIDs = queued.flatMap {
+          switch $0 {
+          case .pinned(let loc, _, _), .temporary(let loc, _, _):
+            guard let guid = loc.guid else {
+              return nil
+            }
+            return guid
+          case .previous:
+            return nil
+          }
+        }
+        
+        self.queuedGUIDs = Set(queuedGUIDs)
         
         completionBlock?(nil)
       } catch {
@@ -306,6 +338,11 @@ extension UserLibrary: Queueing {
         }
         return nil
       }()
+      
+      if er == nil {
+        self.queuedGUIDs.formUnion(entries.map { $0.guid })
+      }
+      
       enqueueCompletionBlock?(er)
     }
     User.queue.addOperation(op)
@@ -329,6 +366,7 @@ extension UserLibrary: Queueing {
         try self.queue.remove(entry)
         let guids = [entry.guid]
         try self.cache.removeQueued(guids)
+        self.queuedGUIDs.subtract(guids)
       } catch {
         DispatchQueue.global().async {
           dequeueCompletionBlock?(error)
@@ -345,12 +383,10 @@ extension UserLibrary: Queueing {
     }
   }
   
-  // TODO: Review synchronous user queue methods
-  
   // MARK: Synchronous queue methods
   
   public func contains(entry: Entry) -> Bool {
-    return queue.contains(entry)
+    return queuedGUIDs.contains(entry.guid)
   }
   
   public func next() -> Entry? {

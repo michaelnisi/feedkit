@@ -23,7 +23,6 @@ final class FetchQueueOperation: FeedKitOperation {
   var entriesBlock: (([Entry], Error?) -> Void)?
   var fetchQueueCompletionBlock: ((Error?) -> Void)?
   
-  // TODO: Choose optimal target dispatch queue.
   let target = DispatchQueue.global(qos: .background)
   
   private func submit(resulting entries: [Entry], error: Error? = nil) {

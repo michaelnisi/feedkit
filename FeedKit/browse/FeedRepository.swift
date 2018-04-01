@@ -74,6 +74,7 @@ extension FeedRepository: Browsing {
       uri,
       force: false,
       reachable: r,
+      // TODO: Fix data race
       status: svc.client.status,
       ttl: CacheTTL.short
     )

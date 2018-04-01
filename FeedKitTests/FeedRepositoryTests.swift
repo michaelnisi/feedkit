@@ -77,7 +77,7 @@ extension FeedRepositoryTests {
       XCTAssertNil(er)
       XCTAssertEqual(found, wanted)
       urls.forEach() { url in
-        XCTAssertTrue((cache?.hasURL(url))!)
+        XCTAssertTrue((cache?.hasURL(url))!, "should have \(url)")
       }
     }
   }
