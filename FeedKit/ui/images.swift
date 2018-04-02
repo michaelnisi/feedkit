@@ -261,7 +261,7 @@ extension ImageRepository {
   fileprivate func requests(
     with items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [Request] {
-    return items.flatMap {
+    return items.compactMap {
       guard let url = urlToLoad(from: $0, for: scale(size, to: quality)) else {
         return nil
       }

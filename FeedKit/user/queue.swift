@@ -173,7 +173,7 @@ public struct Queue<Item: Hashable> {
     guard let last = keys.last else {
       return []
     }
-    return last.flatMap {
+    return last.compactMap {
       itemsByHashValues[$0]
     }
   }}

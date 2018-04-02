@@ -68,7 +68,7 @@ final class FetchQueueOperation: FeedKitOperation {
     
     switch er {
     case FeedKitError.missingEntries(let locators):
-      return Array(Set(a + locators.flatMap { $0.guid }))
+      return Array(Set(a + locators.compactMap { $0.guid }))
     default:
       return Array(Set(a))
     }
@@ -141,7 +141,7 @@ final class FetchQueueOperation: FeedKitOperation {
       let sorted: [Entry] = {
         var entriesByGuids = [String : Entry]()
         acc.forEach { entriesByGuids[$0.guid] = $0 }
-        return guids.flatMap { entriesByGuids[$0] }
+        return guids.compactMap { entriesByGuids[$0] }
       }()
       
       do {
@@ -247,7 +247,7 @@ final class FetchQueueOperation: FeedKitOperation {
     
     var guids = [String]()
     
-    let locators: [EntryLocator] = queued.flatMap {
+    let locators: [EntryLocator] = queued.compactMap {
       let loc = $0.entryLocator
       guard let guid = loc.guid else {
         fatalError("missing guid")
@@ -263,7 +263,7 @@ final class FetchQueueOperation: FeedKitOperation {
     }
     
     // Keeping metadata around, for merging it later.
-    self.iTunesItems = queued.flatMap {
+    self.iTunesItems = queued.compactMap {
       switch $0 {
       case .pinned(_, _, let iTunes), .temporary(_, _, let iTunes):
         return iTunes

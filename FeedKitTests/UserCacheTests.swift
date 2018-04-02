@@ -361,7 +361,7 @@ extension UserCacheTests {
       let found = try! cache.queued()
       XCTAssertEqual(found.count, 2)
       
-      let wanted: [Queued] = synced.flatMap {
+      let wanted: [Queued] = synced.compactMap {
         guard case .queued(let q, _) = $0 else { return nil }
         return q
       }

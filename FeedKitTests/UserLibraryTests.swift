@@ -16,22 +16,17 @@ class UserLibraryTests: XCTestCase {
   
   override func setUp() {
     super.setUp()
-    
-    let dq = DispatchQueue(label: "ink.codes.feedkit.user")
-    
-    dq.sync {
-      let cache = freshUserCache(self.classForCoder)
-      let browser = freshBrowser(self.classForCoder)
-      
-      let queue = OperationQueue()
-      queue.underlyingQueue = dq
-      queue.maxConcurrentOperationCount = 1
 
-      let user = UserLibrary.init(cache: cache, browser: browser, queue: queue)
-      
-      self.user = user
-      self.cache = cache
-    }
+    let cache = freshUserCache(self.classForCoder)
+    let browser = freshBrowser(self.classForCoder)
+    
+    let queue = OperationQueue()
+    queue.maxConcurrentOperationCount = 1
+    
+    let user = UserLibrary.init(cache: cache, browser: browser, queue: queue)
+    
+    self.user = user
+    self.cache = cache
   }
   
   override func tearDown() {
@@ -385,15 +380,8 @@ extension UserLibraryTests {
       XCTAssertTrue(self.user.contains(entry: entry))
       
       try! self.user.enqueue(entries: [entry]) { error in
-        guard let er = error as? QueueError else {
-          return XCTFail("should err")
-        }
-        
-        switch er {
-        case .alreadyInQueue:
-          break
-        default:
-          XCTFail("should be expected error")
+        guard case .nothingToEnqueue = error as! EnqueueOperationError else {
+          return XCTFail("should throw expectedly")
         }
       }
     }

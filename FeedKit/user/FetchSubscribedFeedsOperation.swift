@@ -73,8 +73,8 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
 
       // Preventing overwriting of existing iTunes items here,
       // not sure why though.
-      let missing = acc.flatMap { $0.iTunes == nil ? $0.url : nil }
-      let iTunes: [ITunesItem] = subscriptions.flatMap {
+      let missing = acc.compactMap { $0.iTunes == nil ? $0.url : nil }
+      let iTunes: [ITunesItem] = subscriptions.compactMap {
         guard missing.contains($0.url) else {
           return nil
         }

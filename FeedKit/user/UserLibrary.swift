@@ -176,7 +176,7 @@ extension UserLibrary: Subscribing {
         } catch {
           
         }
-        let queuedGUIDs = queued.flatMap {
+        let queuedGUIDs: [EntryGUID] = queued.compactMap {
           switch $0 {
           case .pinned(let loc, _, _), .temporary(let loc, _, _):
             guard let guid = loc.guid else {
@@ -207,7 +207,7 @@ extension UserLibrary: Updating {
   
   private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
-    return previous.flatMap {
+    return previous.compactMap {
       if case .temporary(let loc, _, _) = $0 {
         return loc.guid
       }

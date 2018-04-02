@@ -206,7 +206,7 @@ extension FeedCache: FeedCaching {
   ) throws -> ([Entry], [EntryLocator]) {
     let optimized = EntryLocator.reduce(locators)
 
-    let guids = optimized.flatMap { $0.guid }
+    let guids = optimized.compactMap { $0.guid }
     let resolved = try entries(guids)
 
     // If all locators were specific, having guids, and all have been resolved,
