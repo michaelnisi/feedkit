@@ -12,9 +12,9 @@ import os.log
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
 public final class UserLibrary: EntryQueueHost {
-  fileprivate let cache: UserCaching
-  fileprivate let browser: Browsing
-  fileprivate let operationQueue: OperationQueue
+  private let cache: UserCaching
+  private let browser: Browsing
+  private let operationQueue: OperationQueue
   
   /// Makes a fresh `UserLibrary` object.
   ///
@@ -33,18 +33,20 @@ public final class UserLibrary: EntryQueueHost {
   /// The actual queue data structure. Starting off with an empty queue.
   internal var queue = Queue<Entry>()  
   
-  // TODO: Move in-memory subscriptions cache into UserCaching
+  /// Internal serial queue.
+  private let sQueue = DispatchQueue(
+    label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
   
-  fileprivate var  _subscriptions = Set<FeedURL>()
+  private var  _subscriptions = Set<FeedURL>()
   /// A synchronized list of subscribed URLs for quick in-memory access.
-  fileprivate var subscriptions:Set<FeedURL> {
+  private var subscriptions:Set<FeedURL> {
     get {
-      return serialQueue.sync {
+      return sQueue.sync {
         return _subscriptions
       }
     }
     set {
-      serialQueue.sync {
+      sQueue.sync {
         _subscriptions = newValue
       }
     }
@@ -52,21 +54,19 @@ public final class UserLibrary: EntryQueueHost {
 
   private var _queuedGUIDs =  Set<EntryGUID>()
   
-  fileprivate var queuedGUIDs: Set<EntryGUID> {
+  private var queuedGUIDs: Set<EntryGUID> {
     get {
-      return serialQueue.sync {
+      return sQueue.sync {
         return _queuedGUIDs
       }
     }
     set {
-      serialQueue.sync {
+      sQueue.sync {
         _queuedGUIDs = newValue
       }
     }
   }
-  
-  /// Internal serial queue.
-  fileprivate let serialQueue = DispatchQueue(label: "ink.codes.feedkit.user.library")
+
 }
 
 // MARK: - Subscribing

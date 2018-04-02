@@ -25,5 +25,12 @@ extension Redirectable {
     }
   }
   
+  var isRedirected: Bool {
+    guard let o = originalURL else {
+      return false
+    }
+    return o != url
+  }
+  
 }
 

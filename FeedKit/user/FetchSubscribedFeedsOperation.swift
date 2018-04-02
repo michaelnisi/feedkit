@@ -47,6 +47,21 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     op?.cancel()
     op = nil
   }
+  
+  private func update(redirected feeds: [Feed]) throws {
+    let r = feeds.filter { $0.isRedirected }
+    guard !r.isEmpty else {
+      return
+    }
+    
+    os_log("resubscribing to redirected feeds: %{public}@", log: User.log,
+           r.map {($0.originalURL, $0.url) })
+    
+    try cache.remove(urls: r.compactMap { $0.originalURL })
+    let s = r.map { Subscription(feed: $0) }
+    try cache.add(subscriptions: s)
+  }
+  
   private func fetchFeeds(of subscriptions: [Subscription]) {
     guard !isCancelled, !subscriptions.isEmpty else {
       return done()
@@ -68,6 +83,12 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       }
     }) { error in
       guard !self.isCancelled, error == nil else {
+        return self.done(error)
+      }
+      
+      do {
+        try self.update(redirected: acc)
+      } catch {
         return self.done(error)
       }
 
