@@ -86,6 +86,7 @@ extension FeedRepositoryTests {
     let exp = self.expectation(description: "feeds")
     var count = 0
     var urls = self.urls
+    let initialCount = urls.count
     func go() {
       guard !urls.isEmpty else {
         return exp.fulfill()
@@ -102,7 +103,7 @@ extension FeedRepositoryTests {
     go()
     self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
-      XCTAssertEqual(count, 9)
+      XCTAssertEqual(count, initialCount)
     }
   }
   
@@ -114,6 +115,7 @@ extension FeedRepositoryTests {
     
     var n = urls.count
     var count = 0
+    let initialCount = urls.count
     
     urls.forEach { url in
       q.async {
@@ -134,7 +136,7 @@ extension FeedRepositoryTests {
     
     self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
-      XCTAssertEqual(count, 9)
+      XCTAssertEqual(count, initialCount)
     }
   }
   
