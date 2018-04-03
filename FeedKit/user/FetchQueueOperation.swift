@@ -23,7 +23,7 @@ final class FetchQueueOperation: FeedKitOperation {
   var entriesBlock: (([Entry], Error?) -> Void)?
   var fetchQueueCompletionBlock: ((Error?) -> Void)?
   
-  let target = DispatchQueue.global(qos: .background)
+  let target = DispatchQueue.global()
   
   private func submit(resulting entries: [Entry], error: Error? = nil) {
     target.sync {

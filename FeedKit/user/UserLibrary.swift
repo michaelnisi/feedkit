@@ -159,7 +159,7 @@ extension UserLibrary: Subscribing {
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
     var subscriptions = self.subscriptions
     
-    DispatchQueue.global(qos: .background).async {
+    DispatchQueue.global().async {
       do {
         let subscribed = try self.cache.subscribed()
         
@@ -257,7 +257,7 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
-    DispatchQueue.global(qos: .background).async {
+    DispatchQueue.global().async {
       let prepare = PrepareUpdateOperation(cache: cache)
       
       // Executing on browser queue.

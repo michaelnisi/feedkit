@@ -63,8 +63,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       return self.error
     }()
     
-    let cb = feedsCompletionBlock
-    target.sync { cb?(er) }
+    target.sync { feedsCompletionBlock?(er) }
     
     feedsBlock = nil
     feedsCompletionBlock = nil
