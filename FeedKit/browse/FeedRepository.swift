@@ -63,8 +63,8 @@ extension FeedRepository: Browsing {
   
   public func feeds(
     _ urls: [String],
-    feedsBlock: @escaping (_ feedsError: Error?, _ feeds: [Feed]) -> Void,
-    feedsCompletionBlock: @escaping (_ error: Error?) -> Void
+    feedsBlock: ((_ feedsError: Error?, _ feeds: [Feed]) -> Void)?,
+    feedsCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation {
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     
@@ -87,6 +87,10 @@ extension FeedRepository: Browsing {
     queue.addOperation(op)
     
     return op
+  }
+  
+  public func feeds(_ urls: [String]) -> Operation {
+    return feeds(urls, feedsBlock: nil, feedsCompletionBlock: nil)
   }
   
   private func makeFeedsOperationDependency(

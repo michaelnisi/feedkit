@@ -18,14 +18,14 @@ public struct FeedID: Equatable {
     return lhs.rowid == rhs.rowid
   }
   
-  /// Tries to return a feed URL string from any `string` or `nil`.
+  /// Tries to return a feed URL string from any optional `string`.
   public static func urlString(string: String?) -> String? {
     guard
       let t = string?.lowercased(),
       let url = URL(string: t),
       url.scheme == "http" ||
-        url.scheme == "https" ||
-        url.scheme == "feed" else {
+      url.scheme == "https" ||
+      url.scheme == "feed" else {
       return nil
     }
       

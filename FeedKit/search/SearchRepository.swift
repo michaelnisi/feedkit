@@ -15,23 +15,27 @@ import Ola
 public final class SearchRepository: RemoteRepository, Searching {
   let cache: SearchCaching
   let svc: FanboyService
+  let browser: Browsing
 
   /// Initializes and returns a new search repository object.
   ///
   /// - Parameters:
   ///   - cache: The search cache.
-  ///   - queue: An operation queue to run the search operations.
   ///   - svc: The fanboy service to handle remote queries.
+  ///   - browser: The browser to fetch feeds.
+  ///   - queue: An operation queue to run the search operations.
   ///   - probe: The probe object to probe reachability.
   public init(
     cache: SearchCaching,
     svc: FanboyService,
+    browser: Browsing,
     queue: OperationQueue,
     probe: Reaching
     ) {
+    self.browser = browser
     self.cache = cache
     self.svc = svc
-    
+
     super.init(queue: queue, probe: probe)
   }
   
@@ -54,10 +58,20 @@ public final class SearchRepository: RemoteRepository, Searching {
     perFindGroupBlock: ((Error?, [Find]) -> Void)?,
     searchCompletionBlock: ((Error?) -> Void)?
   ) -> Operation {
-    let op = SearchOperation(cache: cache, svc: svc, term: term)
-    op.perFindGroupBlock = perFindGroupBlock
-    op.searchCompletionBlock = searchCompletionBlock
-    return execute(op)
+    var fetchingFeed: Operation?
+    if let url = FeedID.urlString(string: term) {
+      fetchingFeed = browser.feeds([url])
+    }
+    
+    let searching = SearchOperation(cache: cache, svc: svc, term: term)
+    searching.perFindGroupBlock = perFindGroupBlock
+    searching.searchCompletionBlock = searchCompletionBlock
+    
+    if let dep = fetchingFeed {
+      searching.addDependency(dep)
+    }
+    
+    return execute(searching)
   }
   
   public func suggest(

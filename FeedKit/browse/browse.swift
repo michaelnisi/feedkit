@@ -175,9 +175,11 @@ public protocol Browsing {
   /// - Returns: The executing operation.
   @discardableResult func feeds(
     _ urls: [String],
-    feedsBlock: @escaping (Error?, [Feed]) -> Void,
-    feedsCompletionBlock: @escaping (Error?) -> Void
+    feedsBlock: ((Error?, [Feed]) -> Void)?,
+    feedsCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
+  
+  @discardableResult func feeds(_ urls: [String]) -> Operation
 
   @discardableResult func entries(
     _ locators: [EntryLocator],

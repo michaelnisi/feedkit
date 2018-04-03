@@ -100,15 +100,40 @@ final class SearchOperation: SearchRepoOperation {
       }
     }
   }
-  
+
+  private var fetchingFeeds: FeedsOperation? {
+    for dep in dependencies {
+      if let op = dep as? FeedsOperation {
+        return op
+      }
+    }
+    return nil
+  }
+
   override func start() {
     guard !isCancelled else {
       return done()
     }
+    
     guard !term.isEmpty else {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
+    
     isExecuting = true
+    
+    if let op = fetchingFeeds {
+      guard op.error == nil else {
+        return done(op.error)
+      }
+      
+      guard let feed = op.feeds.first else {
+        return done()
+      }
+      
+      let find = Find.foundFeed(feed)
+      perFindGroupBlock?(nil, [find])
+      return done()
+    }
     
     do {
       guard let cached = try cache.feeds(for: term, limit: 25) else {

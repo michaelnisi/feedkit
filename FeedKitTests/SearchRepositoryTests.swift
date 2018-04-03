@@ -41,12 +41,20 @@ final class SearchRepositoryTests: XCTestCase {
     )
     svc = freshFanboy(url: url, target: target)
 
+    let browser = freshBrowser(self.classForCoder)
+    
     cache = freshCache(self.classForCoder)
     let queue = OperationQueue()
     // TODO: Determine optimal queue for Ola
     let probe = Ola(host: "localhost")!
 
-    repo = SearchRepository(cache: cache, svc: svc, queue: queue, probe: probe)
+    repo = SearchRepository(
+      cache: cache,
+      svc: svc,
+      browser: browser,
+      queue: queue,
+      probe: probe
+    )
   }
 
   override func tearDown() {
