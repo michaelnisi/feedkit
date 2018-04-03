@@ -17,6 +17,27 @@ public struct FeedID: Equatable {
   public static func ==(lhs: FeedID, rhs: FeedID) -> Bool {
     return lhs.rowid == rhs.rowid
   }
+  
+  /// Tries to return a feed URL string from any `string` or `nil`.
+  public static func urlString(string: String?) -> String? {
+    guard
+      let t = string?.lowercased(),
+      let url = URL(string: t),
+      url.scheme == "http" ||
+        url.scheme == "https" ||
+        url.scheme == "feed" else {
+      return nil
+    }
+      
+    guard url.scheme != "feed" else {
+      var c = URLComponents(url: url, resolvingAgainstBaseURL: false)
+      c?.scheme = "http"
+      return (c?.url!.absoluteString)!
+    }
+    
+    return url.absoluteString
+  }
+  
 }
 
 /// Feeds are the central object of this framework.
