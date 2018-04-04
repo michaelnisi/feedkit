@@ -174,7 +174,6 @@ extension LibrarySQLFormatter {
     return "DELETE FROM feed WHERE itunes_guid = \(guid);"
   }
   
-  
   static func SQLToSelectFeeds(by feedIDs: [FeedID]) -> String? {
     guard !feedIDs.isEmpty else {
       return nil

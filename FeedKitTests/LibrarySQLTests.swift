@@ -188,6 +188,14 @@ extension LibrarySQLTests {
     XCTAssertEqual(found, wanted)
   }
   
+  func testMakeTokenQueryExpression() {
+    func f(_ str: String) -> String {
+      return LibrarySQLFormatter.makeTokenQueryExpression(string: str)
+    }
+    XCTAssertEqual(f("()*:\"^"), "'*'")
+    XCTAssertEqual(f("abc("), "'abc*'")
+  }
+  
   func testSQLToSelectSuggestionsForTerm() {
     let found = LibrarySQLFormatter.SQLToSelectSuggestionsForTerm("abc", limit: 5)
     let wanted = """
