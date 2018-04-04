@@ -690,6 +690,7 @@ extension FeedCache: SearchCaching {
         }
       }
       let sql = LibrarySQLFormatter.SQLToSelectSuggestionsForTerm(term, limit: limit)
+      os_log("** SQL: %@", log: Search.log, type: .debug, sql)
       return try FeedCache.querySuggestions(db, with: sql, using: sqlFormatter)
     }
   }

@@ -82,6 +82,12 @@ class SQLFormatter {
     
     return "'\(s)'"
   }
+  
+  /// Returns a sanitized String from `string` for FTS query expressions.
+  static func FTSString(from string: String) -> String {
+    let set = CharacterSet(charactersIn: "()*:\"^")
+    return String(string.unicodeScalars.filter { !set.contains($0) })
+  }
 
 }
 

@@ -356,27 +356,32 @@ extension LibrarySQLFormatter {
 
 extension LibrarySQLFormatter {
   
+  static func makeTokenQueryExpression(string: String) -> String {
+    let t = SQLFormatter.FTSString(from: string)
+    return SQLFormatter.SQLString(from: "\(t)*")
+  }
+  
   static func SQLToInsertSuggestionForTerm(_ term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO sug(term) VALUES(\(s));"
   }
   
   static func SQLToSelectSuggestionsForTerm(_ term: String, limit: Int) -> String {
-    let s = SQLFormatter.SQLString(from: "\(term)*")
+    let exp = makeTokenQueryExpression(string: term)
     return """
     SELECT * FROM sug WHERE rowid IN (
       SELECT rowid FROM sug_fts
-      WHERE term MATCH \(s)
+      WHERE term MATCH \(exp)
     ) ORDER BY ts DESC LIMIT \(limit);
     """
   }
   
   static func SQLToDeleteSuggestionsMatchingTerm(_ term: String) -> String {
-    let s = SQLFormatter.SQLString(from: "\(term)*")
+    let exp = makeTokenQueryExpression(string: term)
     return """
     DELETE FROM sug WHERE rowid IN (
       SELECT rowid FROM sug_fts
-      WHERE term MATCH \(s)
+      WHERE term MATCH \(exp)
     );
     """
   }
@@ -402,22 +407,22 @@ extension LibrarySQLFormatter {
   }
   
   static func SQLToSelectFeeds(matching term: String, limit: Int) -> String {
-    let s = SQLFormatter.SQLString(from: "\(term)*")
+    let exp = makeTokenQueryExpression(string: term)
     return """
     SELECT DISTINCT * FROM feed WHERE feed_id IN (
       SELECT rowid FROM feed_fts
-      WHERE feed_fts MATCH \(s)
+      WHERE feed_fts MATCH \(exp)
     ) ORDER BY ts DESC LIMIT \(limit);
     """
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
-    // Limiting search to title for shorter latency.
-    let s = SQLFormatter.SQLString(from: "\(term)*")
+    // Temporarily, limiting search to title for shorter latency.
+    let exp = makeTokenQueryExpression(string: term)
     return """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
       SELECT rowid FROM entry_fts
-      WHERE title MATCH \(s)
+      WHERE title MATCH \(exp)
     ) ORDER BY updated DESC LIMIT \(limit);
     """
   }
