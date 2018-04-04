@@ -13,7 +13,7 @@ import Patron
 
 @testable import FeedKit
 
-private func freshFanboy(url: URL, target: DispatchQueue) -> Fanboy {
+private func freshFanboy(url: URL) -> Fanboy {
   let conf = URLSessionConfiguration.default
   conf.httpShouldUsePipelining = true
   conf.requestCachePolicy = .reloadIgnoringLocalCacheData
@@ -35,11 +35,7 @@ final class SearchRepositoryTests: XCTestCase {
     super.setUp()
 
     let url = URL(string: "http://localhost:8383")!
-    let target = DispatchQueue(
-      label: "ink.codes.fanboy.json",
-      attributes: DispatchQueue.Attributes.concurrent
-    )
-    svc = freshFanboy(url: url, target: target)
+    svc = freshFanboy(url: url)
 
     let browser = freshBrowser(self.classForCoder)
     

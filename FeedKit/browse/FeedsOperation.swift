@@ -49,9 +49,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   private func submit(_ otherFeeds: [Feed], error: Error? = nil) {
     assert(!otherFeeds.isEmpty)
     feeds.formUnion(otherFeeds)
-    target.sync {
-      feedsBlock?(error, otherFeeds)
-    }
+    feedsBlock?(error, otherFeeds)
   }
 
   private func done(_ error: Error? = nil) {
@@ -63,7 +61,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       return self.error
     }()
     
-    target.sync { feedsCompletionBlock?(er) }
+    feedsCompletionBlock?(er)
     
     feedsBlock = nil
     feedsCompletionBlock = nil

@@ -34,12 +34,8 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
   private func done(_ error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
-    if let cb = feedsCompletionBlock {
-      DispatchQueue.global().async {
-        cb(er)
-      }
-    }
-    
+    feedsCompletionBlock?(er)
+
     feedsBlock = nil
     feedsCompletionBlock = nil
     
@@ -71,6 +67,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     
     var acc = [Feed]()
     
+    // TODO: Extract into dependency chain
     op = browser.feeds(urls, feedsBlock: { error, feeds in
       guard !self.isCancelled else {
         return
@@ -78,9 +75,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       
       acc = acc + feeds
       
-      DispatchQueue.global().async {
-        self.feedsBlock?(feeds, error)
-      }
+      self.feedsBlock?(feeds, error)
     }) { error in
       guard !self.isCancelled, error == nil else {
         return self.done(error)

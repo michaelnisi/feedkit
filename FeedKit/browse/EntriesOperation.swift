@@ -59,9 +59,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       assert(!otherEntries.isEmpty)
     }
     entries.formUnion(otherEntries)
-    target.sync {
-      entriesBlock?(error, otherEntries)
-    }
+    entriesBlock?(error, otherEntries)
   }
   
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
@@ -74,8 +72,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       return self.error
     }()
     
-    let cb = entriesCompletionBlock
-    target.sync { cb?(er) }
+
+    entriesCompletionBlock?(er)
     
     entriesBlock = nil
     entriesCompletionBlock = nil

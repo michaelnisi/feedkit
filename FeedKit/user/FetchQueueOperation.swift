@@ -23,12 +23,8 @@ final class FetchQueueOperation: FeedKitOperation {
   var entriesBlock: (([Entry], Error?) -> Void)?
   var fetchQueueCompletionBlock: ((Error?) -> Void)?
   
-  let target = DispatchQueue.global()
-  
   private func submit(resulting entries: [Entry], error: Error? = nil) {
-    target.sync {
-      entriesBlock?(entries, error)
-    }
+    entriesBlock?(entries, error)
   }
   
   /// The browser operation, fetching the entries.
@@ -40,11 +36,7 @@ final class FetchQueueOperation: FeedKitOperation {
     os_log("done: %{public}@", log: User.log, type: .debug,
            er != nil ? String(reflecting: er) : "OK")
     
-    if let cb = fetchQueueCompletionBlock {
-      target.sync {
-        cb(er)
-      }
-    }
+    fetchQueueCompletionBlock?(er)
 
     isFinished = true
     

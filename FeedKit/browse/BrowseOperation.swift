@@ -21,11 +21,6 @@ class BrowseOperation: SessionTaskOperation {
   let cache: FeedCaching
   let svc: MangerService
   
-  /// Target queue for sequential execution of handler blocks. Make sure to
-  /// submit completion blocks last. Each operation object gets an unspecified
-  /// global concurrent queue.
-  lazy var target = DispatchQueue.global()
-  
   /// Initialize and return a new feed repo operation.
   ///
   /// - Parameters:
