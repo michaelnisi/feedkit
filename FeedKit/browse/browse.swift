@@ -243,6 +243,10 @@ public protocol Browsing {
     iTunesItems: [ITunesItem],
     completionBlock: ((_ error: Error?) -> Void)?) -> Void
   
+  /// Integrates `iTunesItems` into local cache, adding feeds not cached yet,
+  /// which might be a problem. TODO: Review
+  func integrate(iTunesItems: [ITunesItem]) throws
+  
 }
 
 

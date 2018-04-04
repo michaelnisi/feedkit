@@ -83,23 +83,22 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       
       do {
         try self.update(redirected: acc)
+        
+        // Preventing overwriting of existing iTunes items here,
+        // not sure why though.
+        let missing = acc.compactMap { $0.iTunes == nil ? $0.url : nil }
+        let iTunes: [ITunesItem] = subscriptions.compactMap {
+          guard missing.contains($0.url) else {
+            return nil
+          }
+          return $0.iTunes
+        }
+        try self.browser.integrate(iTunesItems: iTunes)
       } catch {
         return self.done(error)
       }
 
-      // Preventing overwriting of existing iTunes items here,
-      // not sure why though.
-      let missing = acc.compactMap { $0.iTunes == nil ? $0.url : nil }
-      let iTunes: [ITunesItem] = subscriptions.compactMap {
-        guard missing.contains($0.url) else {
-          return nil
-        }
-        return $0.iTunes
-      }
-      
-      self.browser.integrate(iTunesItems: iTunes) { error in
-        self.done(error)
-      }
+      self.done()
     }
   }
   

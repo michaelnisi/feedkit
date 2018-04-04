@@ -174,11 +174,13 @@ final class FetchQueueOperation: FeedKitOperation {
         return leave()
       }
    
-      os_log("starting integration of metadata", log: User.log, type: .debug)
-      
-      self.browser.integrate(iTunesItems: notSubscribed) { error in
-        leave(error)
+      do {
+        try self.browser.integrate(iTunesItems: notSubscribed)
+      } catch {
+        return leave(error)
       }
+      
+      leave()
     }
   }
   
