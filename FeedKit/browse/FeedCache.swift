@@ -204,6 +204,13 @@ extension FeedCache: FeedCaching {
   /// - Throws: Might throw database errors.
   public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
   ) throws -> ([Entry], [EntryLocator]) {
+    os_log("""
+    fulfilling: {
+      locators: %{public}@,
+      ttl: %f
+    }
+    """, log: Cache.log, type: .debug, locators, ttl)
+    
     let optimized = EntryLocator.reduce(locators)
 
     let guids = optimized.compactMap { $0.guid }
@@ -249,8 +256,9 @@ extension FeedCache: FeedCaching {
       }
       return urls.contains($0.url)
     }
-
-    guard neededLocators != optimized else {
+    
+    // TODO: Review this filtered guard
+    guard (neededLocators.filter { $0.guid != nil }) != optimized else {
       return ([], neededLocators)
     }
 
