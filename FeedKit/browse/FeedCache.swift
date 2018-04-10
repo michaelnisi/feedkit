@@ -193,11 +193,17 @@ extension FeedCache {
 extension FeedCache: FeedCaching {
 
   /// Queries the local `cache` for entries and returns a tuple of cached
-  /// entries and unfullfilled entry `locators`, if any.
+  /// entries and unfulfilled entry `locators`, if any.
+  ///
+  /// Remember that **entries cannot be stale**—call site makes the calls.
+  ///
+  /// Despite `ttl`, older entries are returned, however their locators are
+  /// included as unfulfilled. For groups the timestamp of the latest entry
+  /// is relevant.
   ///
   /// - Parameters:
   ///   - locators: The selection of entries to fetch.
-  ///   - ttl: The maximum age of entries to use.
+  ///   - ttl: The maximum age for entries.
   ///
   /// - Returns: A tuple of cached entries and URLs not satisfied by the cache.
   ///
@@ -212,18 +218,17 @@ extension FeedCache: FeedCaching {
     """, log: Cache.log, type: .debug, locators, ttl)
     
     let optimized = EntryLocator.reduce(locators)
-
+    
     let guids = optimized.compactMap { $0.guid }
     let resolved = try entries(guids)
 
-    // If all locators were specific, having guids, and all have been resolved,
-    // we are done.
-    if guids.count == optimized.count && guids.count == resolved.count {
+    // If all locators were specific, we can check if we are done.
+    if guids.count == optimized.count, guids.count == resolved.count {
       return (resolved, [])
     }
 
     let resolvedGUIDs = resolved.map { $0.guid }
-
+    
     let unresolved = optimized.filter {
       guard let guid = $0.guid else {
         return true
@@ -234,7 +239,6 @@ extension FeedCache: FeedCaching {
     let items = try entries(within: unresolved) + resolved
     let unresolvedURLs = unresolved.map { $0.url }
 
-    // TODO: Review subtract function
     let (cached, stale, needed) = FeedCache.subtract(
       items, from: unresolvedURLs, with: ttl
     )
@@ -251,13 +255,17 @@ extension FeedCache: FeedCaching {
 
     let neededLocators: [EntryLocator] = optimized.filter {
       let urls = needed ?? []
-      if let guid = $0.guid {
-        return !resolvedGUIDs.contains(guid) || urls.contains($0.url)
+      let y = urls.contains($0.url)
+      guard let guid = $0.guid else {
+        return y
       }
-      return urls.contains($0.url)
+      return !resolvedGUIDs.contains(guid) || y
     }
     
-    // TODO: Review this filtered guard
+    // Assuming, if needed locators are all specific and matching the request,
+    // we got nothing. This is the only case dismissing collected data here,
+    // otherwise the caller would need scan the result for the GUIDS requested.
+    // Shortly put, for concrete requests, we can tell we have failed.
     guard (neededLocators.filter { $0.guid != nil }) != optimized else {
       return ([], neededLocators)
     }
