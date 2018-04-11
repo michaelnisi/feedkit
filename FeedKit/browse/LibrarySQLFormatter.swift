@@ -416,12 +416,12 @@ extension LibrarySQLFormatter {
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
-    // Temporarily, limiting search to title for shorter latency.
+    // TODO: Adjust FTS Match configuration
     let exp = makeTokenQueryExpression(string: term)
     return """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
       SELECT rowid FROM entry_fts
-      WHERE title MATCH \(exp)
+      WHERE summary MATCH \(exp) LIMIT 1000
     ) ORDER BY updated DESC LIMIT \(limit);
     """
   }

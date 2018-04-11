@@ -252,7 +252,7 @@ extension LibrarySQLTests {
     let wanted = """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
       SELECT rowid FROM entry_fts
-      WHERE title MATCH 'abc*'
+      WHERE summary MATCH 'abc*' LIMIT 1000
     ) ORDER BY updated DESC LIMIT 3;
     """
     XCTAssertEqual(found, wanted)

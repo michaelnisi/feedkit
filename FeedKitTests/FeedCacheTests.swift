@@ -505,7 +505,7 @@ extension FeedCacheTests {
     }
     
     XCTAssertEqual(found.count, 3)
-    XCTAssertEqual(found.first?.title, "Seven Deadly Sins")
+    XCTAssertEqual(found.first?.title, "#319: And the Call Was Coming from the Basement")
   }
 
   func testSuggestions() {
