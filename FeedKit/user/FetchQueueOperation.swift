@@ -47,10 +47,10 @@ final class FetchQueueOperation: FeedKitOperation {
     op = nil
   }
   
-  /// Collects a unique list of missing GUIDs.
-  private static func missingGuids(
+  /// Collects a list of unique GUIDs that should be removed from the queue.
+  private static func guidsToDequeue(
     with entries: [Entry], for guids: [String], respecting error: Error?
-    ) -> [String] {
+  ) -> [String] {
     let found = entries.map { $0.guid }
     let a = Array(Set(guids).subtracting(found))
     
@@ -59,6 +59,9 @@ final class FetchQueueOperation: FeedKitOperation {
     }
     
     switch er {
+    case FeedKitError.serviceUnavailable:
+      os_log("service unavailable: kept missing: %{public}@", log: User.log, a)
+      return []
     case FeedKitError.missingEntries(let locators):
       return Array(Set(a + locators.compactMap { $0.guid }))
     default:
@@ -66,19 +69,19 @@ final class FetchQueueOperation: FeedKitOperation {
     }
   }
   
-  /// Cleans up, if we aren‘t offline and the remote service is OK—make sure
-  /// to check this—we can go ahead and remove missing entries. Although, a
-  /// specific feed‘s server might have been offline for a minute, while the
-  /// remote cache is cold, but well, tough luck.
+  /// Returns currently enqueued entries, after dequeuing missing entries, not
+  /// caused by service errors. Although, a specific feed‘s server might have
+  /// been offline for a minute, while the remote cache was cold, but well,
+  /// tough luck.
   ///
   /// - Parameters:
   ///   - entries: The entries we have successfully received.
   ///   - guids: GUIDs of the entries we had requested.
-  ///   - error: An optional `FeedKitError.missingEntries` error.
+  ///   - error: An optional error to take into consideration.
   private func queuedEntries(
     with entries: [Entry], for guids: [String], respecting error: Error?
     ) -> [Entry] {
-    let missing = FetchQueueOperation.missingGuids(
+    let missing = FetchQueueOperation.guidsToDequeue(
       with: entries, for: guids, respecting: error)
     
     guard !missing.isEmpty else {
@@ -87,8 +90,8 @@ final class FetchQueueOperation: FeedKitOperation {
     }
     
     do {
-      os_log("remove missing entries: %{public}@", log: User.log, type: .debug,
-             String(reflecting: missing))
+      os_log("removing missing entries: %{public}@",
+             log: User.log, type: .debug, String(reflecting: missing))
       
       for guid in missing {
         try user.queue.removeItem(with: guid.hashValue)
@@ -113,7 +116,6 @@ final class FetchQueueOperation: FeedKitOperation {
     var accError: Error?
     
     op = browser.entries(locators, entriesBlock: { error, entries in
-      assert(!Thread.isMainThread) // TODO: Update
       guard error == nil else {
         accError = error
         return
@@ -126,10 +128,16 @@ final class FetchQueueOperation: FeedKitOperation {
       
       acc = acc + entries
     }) { error in
-      guard error == nil else {
-        return self.done(but: error)
+      if let er = error {
+        guard !acc.isEmpty else {
+          os_log("fetching entries failed: %{public}@",
+                 log: User.log, type: .error, er as CVarArg)
+          return
+        }
+        os_log("got entries and error: %{public}@",
+               log: User.log, type: .error, er as CVarArg)
       }
-      
+
       let sorted: [Entry] = {
         var entriesByGuids = [String : Entry]()
         acc.forEach { entriesByGuids[$0.guid] = $0 }
@@ -151,7 +159,7 @@ final class FetchQueueOperation: FeedKitOperation {
       }
       
       let entries = self.queuedEntries(
-        with: sorted, for: guids, respecting: accError)
+        with: sorted, for: guids, respecting: accError ?? error)
       
       os_log("entries in queue: %{public}@", log: User.log, type: .debug,
              String(reflecting: entries))

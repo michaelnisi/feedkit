@@ -161,7 +161,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     }
     
     do {
-      os_log("trying cache: %{public}@", log: Browse.log, type: .debug, urls)
+      os_log("""
+        trying cache: %{public}@
+      """, log: Browse.log, type: .debug, urls)
       
       let items = try cache.feeds(urls)
       let (cached, stale, needed) = FeedCache.subtract(
@@ -171,10 +173,13 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       guard !isCancelled else { return done() }
       
       // Why, compared to EntriesOperation, is needed optional?
-      
-      os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
-      os_log("missing: %{public}@", log: Browse.log, type: .debug,
-             String(describing: needed))
+      let x = needed ?? []
+      os_log("""
+        ttl: %f,
+        cached: %{public}@,
+        stale: %{public}@,
+        missing: %{public}@
+      """, log: Browse.log, type: .debug, ttl.seconds, cached, stale, x)
 
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {

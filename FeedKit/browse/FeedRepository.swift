@@ -83,7 +83,7 @@ extension FeedRepository: Browsing {
       reachable: r,
       // TODO: Fix data race
       status: svc.client.status,
-      ttl: CacheTTL.short
+      ttl: CacheTTL.long
     )
     
     op.feedsBlock = feedsBlock
