@@ -294,7 +294,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    os_log("fetching queue...", log: User.log, type: .debug)
+    os_log("fetching queue", log: User.log, type: .debug)
     
     let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
     op.entriesBlock = entriesBlock
