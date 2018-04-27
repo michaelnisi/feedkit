@@ -699,14 +699,16 @@ extension FeedCache: SearchCaching {
     return try queue.sync {
       if let (cachedTerm, ts) = FeedCache.subcached(term, dict: noSuggestions) {
         if FeedCache.stale(ts, ttl: CacheTTL.long.seconds) {
+          os_log("subcached expired: %{public}@",
+                 log: Search.log, type: .debug, term)
           noSuggestions[cachedTerm] = nil
           return nil
         } else {
+          os_log("nothing cached: %{public}@", log: Search.log, type: .debug, term)
           return []
         }
       }
       let sql = LibrarySQLFormatter.SQLToSelectSuggestionsForTerm(term, limit: limit)
-      os_log("** SQL: %@", log: Search.log, type: .debug, sql)
       return try FeedCache.querySuggestions(db, with: sql, using: sqlFormatter)
     }
   }

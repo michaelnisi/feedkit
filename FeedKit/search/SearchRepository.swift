@@ -58,19 +58,14 @@ public final class SearchRepository: RemoteRepository, Searching {
     perFindGroupBlock: ((Error?, [Find]) -> Void)?,
     searchCompletionBlock: ((Error?) -> Void)?
   ) -> Operation {
-    var fetchingFeed: Operation?
-    if let url = FeedID.urlString(string: term) {
-      fetchingFeed = browser.feeds([url])
-    }
-    
     let searching = SearchOperation(cache: cache, svc: svc, term: term)
     searching.perFindGroupBlock = perFindGroupBlock
     searching.searchCompletionBlock = searchCompletionBlock
     
-    if let dep = fetchingFeed {
-      searching.addDependency(dep)
+    if let url = FeedID.urlString(string: term) {
+      searching.addDependency(browser.feeds([url]))
     }
-    
+
     return execute(searching)
   }
   

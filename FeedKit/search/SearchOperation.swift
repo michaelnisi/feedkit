@@ -119,6 +119,9 @@ final class SearchOperation: SearchRepoOperation {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
     
+    os_log("starting search operation: %{public}@",
+           log: Search.log, type: .debug, term)
+    
     isExecuting = true
     
     if let op = fetchingFeeds {

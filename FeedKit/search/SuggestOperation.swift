@@ -48,8 +48,11 @@ final class SuggestOperation: SearchRepoOperation {
 
   fileprivate func request() throws {
     guard reachable else {
+      os_log("not reachable: %{public}@", log: Search.log, type: .debug, term)
       return done(FeedKitError.offline)
     }
+    
+    os_log("requesting: %{public}@", log: Search.log, type: .debug, term)
     
     task = try svc.suggestions(matching: term, limit: 10) {
       [unowned self] payload, error in
@@ -67,10 +70,19 @@ final class SuggestOperation: SearchRepoOperation {
       
       guard error == nil else {
         er = FeedKitError.serviceUnavailable(error: error!)
+        
+        os_log("checking stock: service unavailable: %{public}@",
+               log: Search.log, type: .debug, er! as CVarArg)
+        
         if let suggestions = self.stock {
-          guard !suggestions.isEmpty else { return }
+          guard !suggestions.isEmpty else {
+            os_log("empty stock", log: Search.log, type: .debug)
+            return
+          }
           let finds = suggestions.map { Find.suggestedTerm($0) }
           self.dispatch(nil, finds: finds)
+        } else {
+          os_log("no stock", log: Search.log, type: .debug)
         }
         return
       }
@@ -123,7 +135,7 @@ final class SuggestOperation: SearchRepoOperation {
     for term: String,
     fromCache cache: SearchCaching,
     except exceptions: [Find]
-    ) throws -> [Find]? {
+  ) throws -> [Find]? {
     let limit = 5
     if let feeds = try cache.feeds(matching: term, limit: limit + 2) {
       return feeds.reduce([Find]()) { acc, feed in
@@ -141,7 +153,7 @@ final class SuggestOperation: SearchRepoOperation {
     for term: String,
     fromCache cache: SearchCaching,
     except exceptions: [Find]
-    ) throws -> [Find]? {
+  ) throws -> [Find]? {
     let cached = try cache.entries(matching: term, limit: 5)
     if let entries = cached {
       return entries.reduce([Find]()) { acc, entry in
@@ -157,18 +169,25 @@ final class SuggestOperation: SearchRepoOperation {
   
   fileprivate func resume() {
     var er: Error?
+    
     defer {
       if requestRequired {
-        do { try request() } catch { done(error) }
+        do {
+          try request()
+        } catch {
+          done(error)
+        }
       } else {
         done(er)
       }
     }
+    
     let funs = [
       SuggestOperation.recentSearches,
       SuggestOperation.suggestedFeeds,
       SuggestOperation.suggestedEntries
     ]
+    
     for f in funs {
       if isCancelled {
         return requestRequired = false
@@ -188,9 +207,13 @@ final class SuggestOperation: SearchRepoOperation {
     guard !isCancelled else {
       return done()
     }
+    
     guard !term.isEmpty else {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
+    
+    os_log("starting suggest operation: %{public}@",
+           log: Search.log, type: .debug, term)
     
     isExecuting = true
     
@@ -200,8 +223,11 @@ final class SuggestOperation: SearchRepoOperation {
       dispatch(nil, finds: [original]) // resulting in five suggested terms
 
       guard let cached = try cache.suggestions(for: term, limit: 4) else {
+        os_log("nothing cached", log: Search.log, type: .debug)
         return resume()
       }
+      
+      os_log("cached: %{public}@", log: Search.log, type: .debug, cached)
       
       if isCancelled {
         return done()

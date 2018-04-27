@@ -136,7 +136,7 @@ public protocol Searching {
   /// the failure is reported by passing an error in the completion block.
   ///
   /// - Parameters:
-  ///   - term: The term to search for.
+  ///   - term: The term to search for or a feed URL.
   ///   - perFindGroupBlock: The block to receive finds.
   ///   - searchCompletionBlock: The block to execute after the search
   /// is complete.
