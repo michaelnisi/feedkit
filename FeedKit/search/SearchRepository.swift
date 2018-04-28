@@ -31,7 +31,7 @@ public final class SearchRepository: RemoteRepository, Searching {
     browser: Browsing,
     queue: OperationQueue,
     probe: Reaching
-    ) {
+  ) {
     self.browser = browser
     self.cache = cache
     self.svc = svc

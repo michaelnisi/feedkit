@@ -119,8 +119,13 @@ final class SearchOperation: SearchRepoOperation {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
     
-    os_log("starting search operation: %{public}@",
-           log: Search.log, type: .debug, term)
+    os_log("""
+           starting search operation: {
+             term: %{public}@,
+             reachable: %i,
+             ttl: %{public}@
+           }
+           """, log: Search.log, type: .debug, term, reachable, ttl.description)
     
     isExecuting = true
     

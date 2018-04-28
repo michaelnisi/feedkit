@@ -53,24 +53,22 @@ public class RemoteRepository: NSObject {
     force: Bool = false,
     reachable: Bool = true,
     status: (Int, TimeInterval)? = nil,
-    ttl: CacheTTL = CacheTTL.long
+    ttl: CacheTTL = .long
   ) -> CacheTTL {
     guard reachable else {
-      return CacheTTL.forever
+      return .forever
     }
     
     if force, let k = uri {
       if forceable(k) {
-        return CacheTTL.none
+        return .none
       }
     }
-    
-    // TODO: Check if this catches timeouts as well
-    
+
     if let (code, ts) = status {
       let date = Date(timeIntervalSince1970: ts)
       if code != 0 && !FeedCache.stale(date, ttl: CacheTTL.short.seconds) {
-        return CacheTTL.forever
+        return .forever
       }
     }
     

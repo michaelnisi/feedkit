@@ -56,16 +56,28 @@ public enum CacheTTL {
   
   /// The time-to-live interval in seconds.
   var seconds: TimeInterval {
-    get {
-      switch self {
-      case .none: return 0
-      case .short: return 3600
-      case .medium: return 28800
-      case .long: return 86400
-      case .forever: return Double.infinity
-      }
+    switch self {
+    case .none: return 0
+    case .short: return 3600
+    case .medium: return 28800
+    case .long: return 86400
+    case .forever: return Double.infinity
     }
   }
+}
+
+extension CacheTTL: CustomStringConvertible {
+  
+  public var description: String {
+    switch self {
+    case .none: return "CacheTTL.none"
+    case .short: return "CacheTTL.short"
+    case .medium: return "CacheTTL.medium"
+    case .long: return "CacheTTL.long"
+    case .forever: return "CacheTTL.forever"
+    }
+  }
+  
 }
 
 // MARK: - DateCache
