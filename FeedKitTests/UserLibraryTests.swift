@@ -392,74 +392,84 @@ extension UserLibraryTests {
     }
   }
   
-  func testDequeueEntry() {
+  func testDequeingNotEnqueued() {
     let entry = try! freshEntry(named: "thetalkshow")
     XCTAssertFalse(user.contains(entry: entry))
     
-    do {
-      let exp = expectation(description: "dequeueing not enqueued")
+    let exp = expectation(description: "dequeueing not enqueued")
     
-      user.dequeue(entry: entry) { error in
-        guard let er = error as? QueueError else {
-          return XCTFail("should err")
-        }
-        
-        switch er {
-        case .notInQueue:
-          break
-        default:
-          XCTFail("should be expected error")
-        }
-        
-        exp.fulfill()
+    user.dequeue(entry: entry) { error in
+      guard let er = error as? QueueError else {
+        return XCTFail("should err")
       }
       
-      waitForExpectations(timeout: 10) { er in
-        XCTAssertNil(er)
+      switch er {
+      case .notInQueue:
+        break
+      default:
+        XCTFail("should be expected error")
+      }
+      
+      exp.fulfill()
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+    }
+  }
+  
+  func testEnqueueing() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+    
+    let exp = expectation(description: "enqueueing")
+    
+    let obs = NotificationCenter.default.addObserver(
+      forName: .FKQueueDidChange,
+      object: nil,
+      queue: nil) { notification in
+        assert(Thread.isMainThread)
+        exp.fulfill()
+    }
+    
+    try! user.enqueue(entries: [entry]) { error in
+      XCTAssertNil(error)
+      XCTAssertTrue(self.user.contains(entry: entry))
+    }
+    
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+      NotificationCenter.default.removeObserver(obs)
+    }
+  }
+  
+  func testDequeueing() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+    
+    let exp = expectation(description: "dequeueing")
+    var obs: Any?
+    
+    try! user.enqueue(entries: [entry]) { error in
+      XCTAssertNil(error)
+      XCTAssertTrue(self.user.contains(entry: entry))
+
+      self.user.dequeue(entry: entry) { error in
+        XCTAssertNil(error)
+        
+        obs = NotificationCenter.default.addObserver(
+          forName: .FKQueueDidChange,
+          object: nil,
+          queue: nil) { notification in
+            assert(Thread.isMainThread)
+            exp.fulfill()
+        }
       }
     }
     
-    do {
-      let exp = expectation(description: "enqueueing")
-      
-      let obs = NotificationCenter.default.addObserver(
-        forName: .FKQueueDidChange,
-        object: nil,
-        queue: nil) { notification in
-        assert(Thread.isMainThread)
-        exp.fulfill()
-      }
-      
-      try! user.enqueue(entries: [entry]) { error in
-        XCTAssertNil(error)
-        XCTAssertTrue(self.user.contains(entry: entry))
-      }
-      
-      waitForExpectations(timeout: 10) { er in
-        XCTAssertNil(er)
-        NotificationCenter.default.removeObserver(obs)
-      }
-    }
-    
-    do {
-      let exp = expectation(description: "dequeueing")
-      
-      let obs = NotificationCenter.default.addObserver(
-        forName: .FKQueueDidChange,
-        object: nil,
-        queue: nil) { notification in
-        assert(Thread.isMainThread)
-        exp.fulfill()
-      }
-      
-      user.dequeue(entry: entry) { error in
-        XCTAssertNil(error)
-      }
-      
-      waitForExpectations(timeout: 10) { er in
-        XCTAssertNil(er)
-        NotificationCenter.default.removeObserver(obs)
-      }
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+      NotificationCenter.default.removeObserver(obs!)
     }
   }
   

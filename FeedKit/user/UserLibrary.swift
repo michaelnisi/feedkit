@@ -373,12 +373,11 @@ extension UserLibrary: Queueing {
         }
         return
       }
+    
+      dequeueCompletionBlock?(nil)
       
-      DispatchQueue.global().async {
-        dequeueCompletionBlock?(nil)
-        DispatchQueue.main.async {
-          NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-        }
+      DispatchQueue.main.async {
+        NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
       }
     }
   }

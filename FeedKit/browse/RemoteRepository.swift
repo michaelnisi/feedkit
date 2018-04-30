@@ -39,6 +39,57 @@ public class RemoteRepository: NSObject {
     return forcedLog.update(uri)
   }
   
+  /// A momentary idea of how to optimally approach requests involving the
+  /// underlying remote service.
+  struct ServiceIdea {
+    let isAvailable: Bool
+    let reachability: OlaStatus
+    let ttl: CacheTTL
+    
+    var isOffline: Bool {
+      if case .unknown = reachability {
+        return true
+      }
+      return false
+    }
+    
+    /// - Parameters:
+    ///   - reachability: The network reachability status of the remote service.
+    ///   - ttl: The expected maximum time-to-live for cached data.
+    ///   - status: The status of of the remote service, optionally.
+    ///   - forcing: The forcing tuple of log and URI, optionally.
+    init(
+      reachability: OlaStatus,
+      expecting ttl: CacheTTL,
+      status: (Int, TimeInterval)? = nil,
+      forcing: (DateCache, String)? = nil
+    ) {
+      self.reachability = reachability
+      
+      switch reachability {
+      case .cellular, .reachable:
+        if let (_, ts) = status {
+          if Date().timeIntervalSince1970 - ts < 300 {
+            self.isAvailable = false
+            self.ttl = .forever
+          } else {
+            self.isAvailable = true
+            self.ttl = ttl
+          }
+        } else if let (log, url) = forcing, log.update(url) {
+          self.isAvailable = true
+          self.ttl = .forever
+        } else {
+          self.isAvailable = true
+          self.ttl = ttl
+        }
+      case .unknown:
+        self.isAvailable = false
+        self.ttl = .forever
+      }
+    }
+  }
+  
   /// Returns availablility tuple containing network reachability and
   /// reasonable cache time-to-live. An error leaves the service stigmatized
   /// for five minutes, enough breathing room for the server to recover, saving

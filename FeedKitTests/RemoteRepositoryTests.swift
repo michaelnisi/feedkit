@@ -17,9 +17,7 @@ class RemoteRepositoryTests: XCTestCase {
   
   override func setUp() {
     super.setUp()
-    let queue = OperationQueue()
-    let probe = Ola(host: "localhost")!
-    repo = RemoteRepository(queue: queue, probe: probe)
+    //
   }
   
   override func tearDown() {
@@ -27,9 +25,37 @@ class RemoteRepositoryTests: XCTestCase {
     super.tearDown()
   }
   
-  func testExample() {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+  func testOfflineServiceIdea() {
+    let ideas = [
+      RemoteRepository.ServiceIdea(
+        reachability: .unknown, expecting: .forever),
+      RemoteRepository.ServiceIdea(
+        reachability: .unknown, expecting: .long),
+      RemoteRepository.ServiceIdea(
+        reachability: .unknown, expecting: .medium),
+      RemoteRepository.ServiceIdea(
+        reachability: .unknown, expecting: .none),
+      RemoteRepository.ServiceIdea(
+        reachability: .unknown, expecting: .short)
+    ]
+    for idea in ideas {
+      XCTAssertFalse(idea.isAvailable)
+      XCTAssertTrue(idea.isOffline)
+      XCTAssertEqual(idea.ttl, .forever)
+    }
+  }
+  
+  func testOnlineServiceIdea() {
+    let ttls: [CacheTTL] = [.forever, .long, .medium, .none, .short]
+    let statuses: [OlaStatus] = [.reachable, .cellular]
+    for status in statuses {
+      for ttl in ttls {
+        let idea = RemoteRepository.ServiceIdea(reachability: status, expecting: ttl)
+        XCTAssertEqual(idea.ttl, ttl)
+        XCTAssertFalse(idea.isOffline)
+        XCTAssertTrue(idea.isAvailable)
+      }
+    }
   }
   
 }
