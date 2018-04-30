@@ -26,12 +26,24 @@ final class SearchOperation: SearchRepoOperation {
     isFinished = true
   }
   
-  /// Remotely request search and subsequently update the cache while falling
+  /// Remotely requests search and subsequently updates the cache while falling
   /// back on stale feeds in stock. Finally, end the operation after applying
-  /// the callback. Passing empty stock makes no sense.
+  /// the callback. Passing empty stock makes no sense. If the remote service
+  /// isn’t available, we’re falling back on `stock`.
   ///
   /// - Parameter stock: Stock of stale feeds to fall back on.
   fileprivate func request(_ stock: [Feed]? = nil) throws {
+    guard reachable else {
+      guard let feeds = stock, !feeds.isEmpty else {
+        os_log("aborting: service not available", log: Search.log)
+        return done(FeedKitError.serviceUnavailable(nil))
+      }
+      os_log("falling back on stock: service not available", log: Search.log)
+      let finds = feeds.map { Find.foundFeed($0) }
+      perFindGroupBlock?(nil, finds)
+      return done(FeedKitError.serviceUnavailable(nil))
+    }
+    
     os_log("requesting: %@", log: Search.log, type: .debug, term)
     
     // Capturing self as unowned to crash when we've mistakenly ended the
@@ -49,7 +61,7 @@ final class SearchOperation: SearchRepoOperation {
       }
       
       guard error == nil else {
-        er = FeedKitError.serviceUnavailable(error: error!)
+        er = FeedKitError.serviceUnavailable(error!)
         if let cb = self.perFindGroupBlock {
           if let feeds = stock {
             guard !feeds.isEmpty else { return }
@@ -145,6 +157,7 @@ final class SearchOperation: SearchRepoOperation {
     
     do {
       guard let cached = try cache.feeds(for: term, limit: 25) else {
+        os_log("nothing cached", log: Search.log, type: .debug)
         return try request()
       }
       

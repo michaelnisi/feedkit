@@ -9,6 +9,7 @@
 import Foundation
 import FanboyKit
 import Ola
+import os.log
 
 /// The search repository provides a search API orchestrating remote services
 /// and persistent caching.
@@ -40,13 +41,16 @@ public final class SearchRepository: RemoteRepository, Searching {
   }
   
   /// Configures and adds `operation` to the queue, returns executing operation.
-  fileprivate func execute(_ operation: SearchRepoOperation) -> Operation {
-    let r = reachable()
-    let term = operation.term
-    let status = svc.client.status
-    
-    operation.reachable = r
-    operation.ttl = timeToLive(term, force: false, reachable: r, status: status)
+  private func execute(_ operation: SearchRepoOperation) -> Operation {
+    let (available, ttl) = makeAvailablilityTuple(
+      uri: nil, // never forced
+      force: false,
+      reachable: reachable(),
+      status: svc.client.status
+    )
+
+    operation.reachable = available
+    operation.ttl = ttl
     
     queue.addOperation(operation)
     

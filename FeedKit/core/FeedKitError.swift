@@ -17,7 +17,7 @@ public enum FeedKitError : Error {
   case cancelledByUser
   case notAFeed
   case notAnEntry
-  case serviceUnavailable(error: Error)
+  case serviceUnavailable(Error?)
   case feedNotCached(urls: [String])
   case unknownEnclosureType(type: String)
   case multiple(errors: [Error])

@@ -101,7 +101,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       guard error == nil else {
-        self?.done(FeedKitError.serviceUnavailable(error: error!))
+        self?.done(FeedKitError.serviceUnavailable(error!))
         return
       }
 

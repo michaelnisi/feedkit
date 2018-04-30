@@ -87,7 +87,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       }
 
       guard error == nil else {
-        let er = FeedKitError.serviceUnavailable(error: error!)
+        let er = FeedKitError.serviceUnavailable(error!)
         if !stale.isEmpty {
           self?.submit(stale)
         }

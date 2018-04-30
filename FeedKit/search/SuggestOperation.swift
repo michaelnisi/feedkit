@@ -48,8 +48,14 @@ final class SuggestOperation: SearchRepoOperation {
 
   fileprivate func request() throws {
     guard reachable else {
-      os_log("not reachable: %{public}@", log: Search.log, type: .debug, term)
-      return done(FeedKitError.offline)
+      guard let suggestions = stock, !suggestions.isEmpty else {
+        os_log("aborting: service unavailable", log: Search.log)
+        return done(FeedKitError.serviceUnavailable(nil))
+      }
+      os_log("falling back on stock: service unavailable", log: Search.log)
+      let finds = suggestions.map { Find.suggestedTerm($0) }
+      dispatch(nil, finds: finds)
+      return done(FeedKitError.serviceUnavailable(nil))
     }
     
     os_log("requesting: %{public}@", log: Search.log, type: .debug, term)
@@ -69,7 +75,7 @@ final class SuggestOperation: SearchRepoOperation {
       }
       
       guard error == nil else {
-        er = FeedKitError.serviceUnavailable(error: error!)
+        er = FeedKitError.serviceUnavailable(error!)
         
         os_log("checking stock: service unavailable: %{public}@",
                log: Search.log, type: .debug, er! as CVarArg)

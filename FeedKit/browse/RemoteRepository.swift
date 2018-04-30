@@ -8,6 +8,7 @@
 
 import Foundation
 import Ola
+import os.log
 
 /// The common super class repositories of the browse category. Assuming one
 /// service host per repository.
@@ -38,16 +39,61 @@ public class RemoteRepository: NSObject {
     return forcedLog.update(uri)
   }
   
-  /// Return the momentary maximal age for cached items of a specific resource
+  /// Returns availablility tuple containing network reachability and
+  /// reasonable cache time-to-live. An error leaves the service stigmatized
+  /// for five minutes, enough breathing room for the server to recover, saving
+  /// redundant request response cycles.
+  ///
+  /// Paramters are all optional.
+  ///
+  /// - Parameters:
+  ///   - uri: The unique resource identifier.
+  ///   - force: Force refreshing of cached items.
+  ///   - reachable: Pass `true` if the service is reachable over the network.
+  ///   - status: The current status of the service, a tuple containing
+  /// the latest error code and its timestamp.
+  ///   - ttl: Override the default, `CacheTTL.Long`, to return.
+  ///
+  /// - Returns: The availablility tuple `(available, ttl)`.
+  func makeAvailablilityTuple(
+    uri: String? = nil,
+    force: Bool = false,
+    reachable: Bool = true,
+    status: (Int, TimeInterval)? = nil,
+    ttl: CacheTTL = .long)
+  -> (Bool, CacheTTL) {
+    guard reachable else {
+      return (false, .forever)
+    }
+    
+    if force, let k = uri {
+      if forceable(k) {
+        return (true, .none)
+      }
+    }
+    
+    guard let (err, ts) = status else {
+      return (true, ttl)
+    }
+    
+    os_log("service has been marked unreachable: %{public}i", err)
+    
+    let stigmatized = Date().timeIntervalSince1970 - ts < 300
+    return stigmatized ? (false, .forever) : (true, ttl)
+  }
+  
+  /// Returns the momentary maximal age for cached items of a specific resource
   /// incorporating reachability and service status. This method's parameters
   /// are all optional.
   ///
   /// - Parameters:
   ///   - uri: The unique resource identifier.
   ///   - force: Force refreshing of cached items.
+  ///   - reachable: Pass `true` if the service is reachable over the network.
   ///   - status: The current status of the service, a tuple containing
   /// the latest error code and its timestamp.
   ///   - ttl: Override the default, `CacheTTL.Long`, to return.
+  @available(*, deprecated: 8.1.0, message: "Use makeAvailablilityTuple")
   func timeToLive(
     _ uri: String? = nil,
     force: Bool = false,

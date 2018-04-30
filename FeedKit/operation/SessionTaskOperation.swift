@@ -29,9 +29,9 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   
   /// If you know in advance that the remote service is currently not available,
   /// you may set this to `false` to be more effective. If this is not set, when
-  /// a request is about to be issued, dependencies are tried. If the status of
-  /// cannot be determined, optimistically, it is assumed that the service is
-  /// reachable.
+  /// a request is about to be issued, operation dependencies are tried. If no
+  /// dependency provides a status, optimistically, it is assumed that the
+  /// service might as well be reachable.
   var reachable: Bool {
     get {
       guard let r = _reachable else {
@@ -39,7 +39,7 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
           let s = try findStatus()
           _reachable = s == .reachable || s == .cellular
         } catch {
-          os_log("no status: assuming reachable")
+          os_log("depending on status failed: assuming reachable")
           _reachable = true
         }
         return _reachable!
