@@ -31,13 +31,14 @@ public final class UserLibrary: EntryQueueHost {
   }
   
   /// The actual queue data structure. Starting off with an empty queue.
-  internal var queue = Queue<Entry>()  
+  internal var queue = Queue<Entry>()
   
   /// Internal serial queue.
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
   
   private var  _subscriptions = Set<FeedURL>()
+  
   /// A synchronized list of subscribed URLs for quick in-memory access.
   private var subscriptions:Set<FeedURL> {
     get {
@@ -51,9 +52,10 @@ public final class UserLibrary: EntryQueueHost {
       }
     }
   }
-
+  
   private var _queuedGUIDs =  Set<EntryGUID>()
   
+  /// A synchronized list of enqueued entry GUIDs for quick in-memory access.
   private var queuedGUIDs: Set<EntryGUID> {
     get {
       return sQueue.sync {
@@ -84,11 +86,12 @@ extension UserLibrary: Subscribing {
     }
     
     let cache = self.cache
+    let urls = self.subscriptions
     
     operationQueue.addOperation {
       do {
         try cache.add(subscriptions: subscriptions)
-        self.subscriptions.formUnion(subscriptions.map { $0.url })
+        self.subscriptions = urls.union(subscriptions.map { $0.url })
       } catch {
         DispatchQueue.global().async {
           addComplete?(error)
@@ -122,11 +125,12 @@ extension UserLibrary: Subscribing {
     }
     
     let cache = self.cache
+    let subscriptions = self.subscriptions
     
     operationQueue.addOperation {
       do {
         try cache.remove(urls: urls)
-        self.subscriptions.subtract(urls)
+        self.subscriptions = subscriptions.subtracting(urls)
       } catch {
         return done(error)
       }
@@ -157,25 +161,16 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
-    var subscriptions = self.subscriptions
-    
     DispatchQueue.global().async {
       do {
+        // First we are reloading the subscribed feed URLs.
         let subscribed = try self.cache.subscribed()
+        self.subscriptions = Set(subscribed.map { $0.url })
         
-        let urls = Set(subscribed.map { $0.url })
-        let unsubscribed = subscriptions.subtracting(urls)
-        subscriptions.subtract(unsubscribed)
-        subscriptions.formUnion(urls)
-
-        self.subscriptions = subscriptions
+        // Reloading and unpacking the GUIDs currently in the queue is a bit
+        // more elaborate.
+        let queued = try self.cache.queued()
         
-        var queued: [Queued]!
-        do {
-          queued = try self.cache.queued()
-        } catch {
-          
-        }
         let queuedGUIDs: [EntryGUID] = queued.compactMap {
           switch $0 {
           case .pinned(let loc, _, _), .temporary(let loc, _, _):
@@ -251,35 +246,51 @@ extension UserLibrary: Updating {
   
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
-    os_log("updating...", log: User.log,  type: .info)
+    os_log("updating queue", log: User.log,  type: .info)
     
     let cache = self.cache
     let operationQueue = self.operationQueue
     let browser = self.browser
 
     DispatchQueue.global().async {
-      let prepare = PrepareUpdateOperation(cache: cache)
+      let preparing = PrepareUpdateOperation(cache: cache)
+      let fetching = browser.entries(satisfying: preparing)
       
-      // Executing on browser queue.
-      let fetch = browser.entries(satisfying: prepare)
+      // Enqueueing
       
-      let enqueue = EnqueueOperation(user: self, cache: cache)
-      let trim = TrimQueueOperation(cache: cache)
+      let enqueuing = EnqueueOperation(user: self, cache: cache)
       
-      enqueue.addDependency(fetch)
-      trim.addDependency(enqueue)
+      let queuedGUIDs = self.queuedGUIDs
       
-      operationQueue.addOperation(prepare)
-      operationQueue.addOperation(enqueue)
-      operationQueue.addOperation(trim)
-    
-      trim.trimQueueCompletionBlock = { newData, error in
+      enqueuing.enqueueCompletionBlock = { enqueued, error in
+        if let er = error {
+          os_log("enqueue error: %{public}@", log: User.log, type: .error,
+                 er as CVarArg)
+        }
+        self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
+      }
+      
+      // Trimming
+      
+      let trimming = TrimQueueOperation(cache: cache)
+      
+      trimming.trimQueueCompletionBlock = { newData, error in
         if let er = error {
           os_log("trim error: %{public}@", log: User.log, type: .error,
                  er as CVarArg)
         }
         updateComplete?(newData, error)
       }
+      
+      // Routing
+      
+      enqueuing.addDependency(fetching)
+      trimming.addDependency(enqueuing)
+      
+      operationQueue.addOperation(preparing)
+      // Fetching is already executing.
+      operationQueue.addOperation(enqueuing)
+      operationQueue.addOperation(trimming)
     }
   }
   
@@ -328,7 +339,12 @@ extension UserLibrary: Queueing {
     enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
     op.owner = owner
+    
+    let queuedGUIDs = self.queuedGUIDs
+    
     op.enqueueCompletionBlock = { enqueued, error in
+      self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
+      
       let er: Error? = {
         guard error == nil else {
           return error
@@ -338,13 +354,10 @@ extension UserLibrary: Queueing {
         }
         return nil
       }()
-      
-      if er == nil {
-        self.queuedGUIDs.formUnion(entries.map { $0.guid })
-      }
-      
+
       enqueueCompletionBlock?(er)
     }
+    
     User.queue.addOperation(op)
   }
   

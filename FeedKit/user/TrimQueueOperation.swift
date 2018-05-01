@@ -9,10 +9,15 @@
 import Foundation
 import os.log
 
+/// Trims users’ queue, keeping latest and explicitly enqueued items.
 class TrimQueueOperation: Operation, Providing {
   
   private let sQueue = DispatchQueue(
-    label: "ink.codes.podest.TrimQueueOperation.serial")
+    label: "ink.codes.podest.TrimQueueOperation-\(UUID().uuidString).serial")
+  
+  // Theoretically, all public properties of operation have to be synchronized
+  // to work correctly in all circumstances. Otherwise users have to be careful
+  // in which order they’re doing stuff.
   
   private
   var _trimQueueCompletionBlock: ((_ newData: Bool, _ error: Error?) -> Void)?

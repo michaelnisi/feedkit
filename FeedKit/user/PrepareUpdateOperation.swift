@@ -60,7 +60,7 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
       
       self.locators = PrepareUpdateOperation.merge(latest, with: subscriptions)
       
-      os_log("** prepared: %{public}@", log: User.log, type: .debug, locators)
+      os_log("prepared: %{public}@", log: User.log, type: .debug, locators)
     } catch {
       self.error = error
     }
