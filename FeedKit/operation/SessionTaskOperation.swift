@@ -25,31 +25,36 @@ public extension Notification.Name {
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   
-  var _reachable: Bool?
+  var _isOffline: Bool = false
   
-  /// If you know in advance that the remote service is currently not available,
-  /// you may set this to `false` to be more effective. If this is not set, when
-  /// a request is about to be issued, operation dependencies are tried. If no
-  /// dependency provides a status, optimistically, it is assumed that the
-  /// service might as well be reachable.
-  var reachable: Bool {
+  /// No network reachability. If this is false, operation dependencies are
+  /// tried. Use `isAvailable` as general check, probe `isOffline` for more
+  /// details. Are we offline?
+  var isOffline: Bool {
     get {
-      guard let r = _reachable else {
+      guard _isOffline else {
         do {
           let s = try findStatus()
-          _reachable = s == .reachable || s == .cellular
+          _isOffline = s != .reachable && s != .cellular
+          if _isOffline {
+            isAvailable = false
+          }
         } catch {
-          os_log("depending on status failed: assuming reachable")
-          _reachable = true
+          _isOffline = false
         }
-        return _reachable!
+        return _isOffline
       }
-      return r
+      return _isOffline
     }
+    
     set {
-      _reachable = newValue
+      _isOffline = newValue
     }
   }
+  
+  /// If you know in advance that the remote service is currently not available,
+  /// you may set this to `false` to be more effective.
+  var isAvailable: Bool = true
   
   /// The maximal age, `CacheTTL.long`, of cached items.
   var ttl = CacheTTL.long

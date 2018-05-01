@@ -33,7 +33,7 @@ final class SearchOperation: SearchRepoOperation {
   ///
   /// - Parameter stock: Stock of stale feeds to fall back on.
   fileprivate func request(_ stock: [Feed]? = nil) throws {
-    guard reachable else {
+    guard isAvailable else {
       guard let feeds = stock, !feeds.isEmpty else {
         os_log("aborting: service not available", log: Search.log)
         return done(FeedKitError.serviceUnavailable(nil))
@@ -137,7 +137,7 @@ final class SearchOperation: SearchRepoOperation {
              reachable: %i,
              ttl: %{public}@
            }
-           """, log: Search.log, type: .debug, term, reachable, ttl.description)
+           """, log: Search.log, type: .debug, term, isAvailable, ttl.description)
     
     isExecuting = true
     

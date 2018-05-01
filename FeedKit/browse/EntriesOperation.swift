@@ -214,7 +214,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         return done()
       }
 
-      if !reachable {
+      if !isAvailable {
         done(FeedKitError.offline)
       } else {
         try request(missing)

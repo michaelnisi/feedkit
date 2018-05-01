@@ -47,7 +47,7 @@ final class SuggestOperation: SearchRepoOperation {
   }
 
   fileprivate func request() throws {
-    guard reachable else {
+    guard isAvailable else {
       guard let suggestions = stock, !suggestions.isEmpty else {
         os_log("aborting: service unavailable", log: Search.log)
         return done(FeedKitError.serviceUnavailable(nil))
@@ -224,7 +224,7 @@ final class SuggestOperation: SearchRepoOperation {
              reachable: %i,
              ttl: %{public}@
            }
-           """, log: Search.log, type: .debug, term, reachable, ttl.description)
+           """, log: Search.log, type: .debug, term, isAvailable, ttl.description)
     
     isExecuting = true
     

@@ -29,7 +29,7 @@ public final class FeedRepository: RemoteRepository {
     svc: MangerService,
     queue: OperationQueue,
     probe: Reaching
-    ) {
+  ) {
     self.cache = cache
     self.svc = svc
     
@@ -75,21 +75,18 @@ extension FeedRepository: Browsing {
   ) -> Operation {
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
     
-    let r = reachable()
-    let uri = urls.count == 1 ? urls.first : nil
-    let ttl = timeToLive(
-      uri,
-      force: false,
-      reachable: r,
-      // TODO: Fix data race
-      status: svc.client.status,
-      ttl: CacheTTL.long
+    let idea = RemoteRepository.ServiceIdea(
+      reachability: probe.reach(),
+      expecting: .long,
+      status: svc.client.status
     )
+    
+    op.isOffline = idea.isOffline
+    op.isAvailable = idea.isAvailable
+    op.ttl = idea.ttl
     
     op.feedsBlock = feedsBlock
     op.feedsCompletionBlock = feedsCompletionBlock
-    op.reachable = r
-    op.ttl = ttl
     
     queue.addOperation(op)
     
@@ -102,18 +99,18 @@ extension FeedRepository: Browsing {
   
   private func makeFeedsOperationDependency(
     locators: [EntryLocator]? = nil,
-    reachable: Bool? = nil,
-    ttl: CacheTTL = CacheTTL.forever
+    isOffline: Bool = false,
+    isAvailable: Bool = true,
+    ttl: CacheTTL = .forever
   ) -> FeedsOperation {
     let urls = locators?.map { $0.url }
     
     let op = FeedsOperation(cache: cache, svc: svc, urls: urls)
+    
+    op.isOffline = isOffline
+    op.isAvailable = isAvailable
     op.ttl = ttl
-    
-    if let r = reachable {
-      op.reachable = r
-    }
-    
+
     op.feedsBlock = { error, feeds in
       if let er = error {
         os_log("error while fetching feeds: %{public}@",
@@ -155,29 +152,42 @@ extension FeedRepository: Browsing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
+    let ttl: CacheTTL = {
+      if force,
+        locators.count == 1,
+        let uri = locators.first?.url,
+        self.isEnforceable(uri) {
+        return .forever
+      }
+      return .short
+    }()
     
-    let r = reachable()
-    let uri = locators.count == 1 ? locators.first?.url : nil
-    let ttl = timeToLive(
-      uri,
-      force: force,
-      reachable: r,
-      status: svc.client.status,
-      ttl: CacheTTL.short
+    let idea = RemoteRepository.ServiceIdea(
+      reachability: probe.reach(),
+      expecting: ttl,
+      status: svc.client.status
     )
     
     // We have to aquire according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds.
     
-    let fetchFeeds = makeFeedsOperationDependency(locators: locators, reachable: r)
+    let fetchFeeds = makeFeedsOperationDependency(
+      locators: locators,
+      isOffline: idea.isOffline,
+      isAvailable: idea.isAvailable
+    )
+    
     assert(fetchFeeds.ttl == CacheTTL.forever)
+    
+    let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
+    
+    fetchEntries.isOffline = idea.isOffline
+    fetchEntries.isAvailable = idea.isAvailable
+    fetchEntries.ttl = idea.ttl
     
     fetchEntries.entriesBlock = entriesBlock
     fetchEntries.entriesCompletionBlock = entriesCompletionBlock
-    fetchEntries.reachable = r
-    fetchEntries.ttl = ttl
-    
+
     fetchEntries.addDependency(fetchFeeds)
 
     queue.addOperation(fetchEntries)

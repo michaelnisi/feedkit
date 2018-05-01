@@ -13,18 +13,6 @@ import Ola
 
 class RemoteRepositoryTests: XCTestCase {
   
-  var repo: RemoteRepository!
-  
-  override func setUp() {
-    super.setUp()
-    //
-  }
-  
-  override func tearDown() {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-    super.tearDown()
-  }
-  
   func testOfflineServiceIdea() {
     let ideas = [
       RemoteRepository.ServiceIdea(
@@ -54,6 +42,74 @@ class RemoteRepositoryTests: XCTestCase {
         XCTAssertEqual(idea.ttl, ttl)
         XCTAssertFalse(idea.isOffline)
         XCTAssertTrue(idea.isAvailable)
+      }
+    }
+  }
+  
+  func testStigmatizedServiceIdea() {
+    let ttls: [CacheTTL] = [.forever, .long, .medium, .none, .short]
+    let statuses: [OlaStatus] = [.reachable, .cellular]
+    for status in statuses {
+      for ttl in ttls {
+        let idea = RemoteRepository.ServiceIdea(
+          reachability: status,
+          expecting: ttl,
+          status:  (-1000, Date().timeIntervalSince1970 - 299)
+        )
+        XCTAssertEqual(idea.ttl, .forever)
+        XCTAssertFalse(idea.isOffline)
+        XCTAssertFalse(idea.isAvailable)
+      }
+    }
+  }
+  
+  func testStigmatizedOfflineServiceIdea() {
+    let ttls: [CacheTTL] = [.forever, .long, .medium, .none, .short]
+    let statuses: [OlaStatus] = [.unknown]
+    for status in statuses {
+      for ttl in ttls {
+        let idea = RemoteRepository.ServiceIdea(
+          reachability: status,
+          expecting: ttl,
+          status:  (-1000, Date().timeIntervalSince1970 - 299)
+        )
+        XCTAssertEqual(idea.ttl, .forever)
+        XCTAssertTrue(idea.isOffline)
+        XCTAssertFalse(idea.isAvailable)
+      }
+    }
+  }
+  
+  func testAcquittedServiceIdea() {
+    let ttls: [CacheTTL] = [.forever, .long, .medium, .none, .short]
+    let statuses: [OlaStatus] = [.reachable, .cellular]
+    for status in statuses {
+      for ttl in ttls {
+        let idea = RemoteRepository.ServiceIdea(
+          reachability: status,
+          expecting: ttl,
+          status:  (-1000, Date().timeIntervalSince1970 - 300)
+        )
+        XCTAssertEqual(idea.ttl, ttl)
+        XCTAssertFalse(idea.isOffline)
+        XCTAssertTrue(idea.isAvailable)
+      }
+    }
+  }
+  
+  func testAcquittedOfflineServiceIdea() {
+    let ttls: [CacheTTL] = [.forever, .long, .medium, .none, .short]
+    let statuses: [OlaStatus] = [.unknown]
+    for status in statuses {
+      for ttl in ttls {
+        let idea = RemoteRepository.ServiceIdea(
+          reachability: status,
+          expecting: ttl,
+          status:  (-1000, Date().timeIntervalSince1970 - 300)
+        )
+        XCTAssertEqual(idea.ttl, .forever)
+        XCTAssertTrue(idea.isOffline)
+        XCTAssertFalse(idea.isAvailable)
       }
     }
   }

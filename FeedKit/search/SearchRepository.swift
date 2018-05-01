@@ -42,15 +42,15 @@ public final class SearchRepository: RemoteRepository, Searching {
   
   /// Configures and adds `operation` to the queue, returns executing operation.
   private func execute(_ operation: SearchRepoOperation) -> Operation {
-    let (available, ttl) = makeAvailablilityTuple(
-      uri: nil, // never forced
-      force: false,
-      reachable: reachable(),
+    let idea = RemoteRepository.ServiceIdea(
+      reachability: probe.reach(),
+      expecting: .long,
       status: svc.client.status
     )
-
-    operation.reachable = available
-    operation.ttl = ttl
+    
+    operation.isOffline = idea.isOffline
+    operation.isAvailable = idea.isAvailable
+    operation.ttl = idea.ttl
     
     queue.addOperation(operation)
     

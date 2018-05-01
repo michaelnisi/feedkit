@@ -194,7 +194,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       
       assert(!urlsToRequest.isEmpty, "URLs to request must not be empty")
 
-      if !reachable {
+      if !isAvailable {
         if !stale.isEmpty {
           submit(stale)
           done()
