@@ -14,7 +14,8 @@ import os.log
 /// pre-scaled images. Especially those smaller images are of interest to us,
 /// because they enable a palpable improvement for the user. This operation not
 /// only fetches the subscribed feeds, but integrates the iTunes metadata into
-/// our local caches.
+/// our local caches, mediating between the two tiers, `SubscriptionCaching`
+/// and `Browsing`.
 final class FetchSubscribedFeedsOperation: FeedKitOperation {
   
   let browser: Browsing

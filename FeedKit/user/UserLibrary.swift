@@ -252,7 +252,12 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
-    DispatchQueue.global().async {
+    // TODO: Review if sync is required here
+    synchronize { error in
+      guard error == nil else {
+        fatalError()
+      }
+      
       let preparing = PrepareUpdateOperation(cache: cache)
       let fetching = browser.entries(satisfying: preparing)
       
@@ -307,30 +312,32 @@ extension UserLibrary: Queueing {
   ) -> Operation {
     os_log("fetching queue", log: User.log, type: .debug)
     
-    let op = FetchQueueOperation(browser: browser, cache: cache, user: self)
-    op.entriesBlock = entriesBlock
-    op.fetchQueueCompletionBlock = fetchQueueCompletionBlock
+    let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
+    fetchingQueue.entriesBlock = entriesBlock
+    fetchingQueue.fetchQueueCompletionBlock = fetchQueueCompletionBlock
     
-    let dep = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
-    dep.feedsBlock = { feeds, error in
+    let fetchingFeeds = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
+    
+    fetchingFeeds.feedsBlock = { feeds, error in
       if let er = error {
         os_log("problems fetching subscribed feeds: %{public}@",
                log: User.log, type: .error, String(describing: er))
       }
     }
-    dep.feedsCompletionBlock = { error in
+    
+    fetchingFeeds.feedsCompletionBlock = { error in
       if let er = error {
         os_log("failed to integrate metadata %{public}@",
                log: User.log, type: .error, String(describing: er))
       }
     }
     
-    op.addDependency(dep)
+    fetchingQueue.addDependency(fetchingFeeds)
     
-    operationQueue.addOperation(op)
-    operationQueue.addOperation(dep)
+    operationQueue.addOperation(fetchingQueue)
+    operationQueue.addOperation(fetchingFeeds)
     
-    return op
+    return fetchingQueue
   }
   
   public func enqueue(

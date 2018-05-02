@@ -131,11 +131,11 @@ final class FetchQueueOperation: FeedKitOperation {
       if let er = error {
         guard !acc.isEmpty else {
           os_log("fetching entries failed: %{public}@",
-                 log: User.log, type: .error, er as CVarArg)
+                 log: User.log, type: .error, String(describing: er))
           return
         }
         os_log("got entries and error: %{public}@",
-               log: User.log, type: .error, er as CVarArg)
+               log: User.log, type: .error, String(describing: er))
       }
 
       let sorted: [Entry] = {
