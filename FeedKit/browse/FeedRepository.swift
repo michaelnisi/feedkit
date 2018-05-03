@@ -30,6 +30,9 @@ public final class FeedRepository: RemoteRepository {
     queue: OperationQueue,
     probe: Reaching
   ) {
+    dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
+    
+    
     self.cache = cache
     self.svc = svc
     

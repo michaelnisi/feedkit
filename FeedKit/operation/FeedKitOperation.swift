@@ -12,19 +12,20 @@ import Foundation
 class FeedKitOperation: Operation {
   
   /// An internal serial queue for synchronized (thread-safe) property access.
-  private let serialQueue = DispatchQueue(label: "ink.codes.feedkit.operation.\(UUID().uuidString)")
+  private let sQueue = DispatchQueue(
+    label: "ink.codes.feedkit.FeedKitOperation.\(UUID().uuidString)")
   
   fileprivate var _executing: Bool = false
   
   override final var isExecuting: Bool {
     get {
-      return serialQueue.sync {
+      return sQueue.sync {
         return _executing
       }
     }
 
     set {
-      serialQueue.sync {
+      sQueue.sync {
         guard newValue != _executing else {
           fatalError("FeedKitOperation: already executing")
         }
@@ -32,7 +33,7 @@ class FeedKitOperation: Operation {
 
       willChangeValue(forKey: "isExecuting")
       
-      serialQueue.sync {
+      sQueue.sync {
         _executing = newValue
       }
       
@@ -44,13 +45,13 @@ class FeedKitOperation: Operation {
   
   override final var isFinished: Bool {
     get {
-      return serialQueue.sync {
+      return sQueue.sync {
         return _finished
       }
     }
     
     set {
-      serialQueue.sync {
+      sQueue.sync {
         guard newValue != _finished else {
           fatalError("FeedKitOperation: already finished")
         }
@@ -58,7 +59,7 @@ class FeedKitOperation: Operation {
 
       willChangeValue(forKey: "isFinished")
       
-      serialQueue.sync {
+      sQueue.sync {
         _finished = newValue
       }
       

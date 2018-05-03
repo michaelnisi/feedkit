@@ -145,11 +145,21 @@ public class LocalCache: Caching {
   ///   - schema: The path of the database schema file.
   ///   - url: The file URL of the database to use—and create if necessary.
   public init(schema: String, url: URL?) throws {
+    let label = "ink.codes.feedkit.\(type(of: self))"
+    let database = url?.debugDescription ?? "in-memory"
+    
+    os_log(
+      """
+      initializing: {
+        schema: %{public}@,
+        database: %{public}@,
+        queue: %{public}@
+      }
+      """, log: Cache.log, type: .debug, schema, database, label)
+    
     self.schema = schema
     self.url = url
-    
-    let me = type(of: self)
-    self.queue = DispatchQueue(label: "ink.codes.\(me)", attributes: [])
+    self.queue = DispatchQueue(label: label, attributes: [])
   }
 
   public func flush() throws {

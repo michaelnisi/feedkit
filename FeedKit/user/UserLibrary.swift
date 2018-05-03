@@ -26,6 +26,8 @@ public final class UserLibrary: EntryQueueHost {
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
+    
+    precondition(Thread.isMainThread)
 
     synchronize()
   }
