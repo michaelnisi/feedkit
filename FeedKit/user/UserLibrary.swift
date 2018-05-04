@@ -27,7 +27,8 @@ public final class UserLibrary: EntryQueueHost {
     self.browser = browser
     self.operationQueue = queue
     
-    precondition(Thread.isMainThread)
+    dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
+    precondition(queue.maxConcurrentOperationCount == 1)
 
     synchronize()
   }

@@ -132,7 +132,7 @@ final class FetchQueueOperation: FeedKitOperation {
         guard !acc.isEmpty else {
           os_log("fetching entries failed: %{public}@",
                  log: User.log, type: .error, String(describing: er))
-          return
+          return self.done(but: error)
         }
         os_log("got entries and error: %{public}@",
                log: User.log, type: .error, String(describing: er))
