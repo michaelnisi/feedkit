@@ -15,12 +15,12 @@ import os.log
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 // Typealiasing Nuke.Cache to prevent collision with FeedKit.Cache.
-typealias ImageCache = Nuke.Cache
+typealias ImageCache = Nuke.ImageCache
+
+// Hiding Nuke from participants.
+public typealias ImageRequest = Nuke.ImageRequest
 
 // MARK: - API
-
-
-public typealias ImageRequest = Request
 
 public enum ImageQuality: CGFloat {
   case high = 1
@@ -34,6 +34,14 @@ public protocol Imaginable {
 }
 
 public protocol Images {
+  
+  /// Loads an image to represent `item` into `imageView`, scaling the image
+  /// to match the image view’s bounds. For larger sizes a smaller image is
+  /// preloaded, which gets replaced when the large image has been loaded.
+  ///
+  /// - Parameters:
+  ///   - item: The item the loaded image should represent.
+  ///   - imageView: The target view to display the image.
   func loadImage(for item: Imaginable, into imageView: UIImageView)
   func loadImage(for item: Imaginable, into imageView: UIImageView,
                  quality: ImageQuality?)
@@ -43,7 +51,9 @@ public protocol Images {
   
   func cancel(prefetching requests: [ImageRequest])
   
+  /// Synchronously loads an image for the specificied item and size.
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
+  
 }
 
 fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
@@ -55,7 +65,8 @@ fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
 
 // MARK: -
 
-private struct Scale: Processing {
+private struct Scale: ImageProcessing {
+
   let size: CGSize
 
   init(size: CGSize) {
@@ -82,7 +93,7 @@ private struct Scale: Processing {
   }
 
   /// Returns scaled `image` with rounded corners.
-  func process(_ image: UIImage) -> UIImage? {
+  func process(image: Image, context: ImageProcessingContext) -> Image? {
     return imageWithRoundedCorners(from: image)
   }
 
@@ -153,9 +164,10 @@ public final class ImageRepository: Images {
   
   public static var shared: Images = ImageRepository()
   
-  fileprivate let preheater = Nuke.Preheater()
+  fileprivate let preheater = Nuke.ImagePreheater()
   
-  /// Synchronously loads an image for the specificied item and size.
+  // TODO: Make sure to use Nuke cache efficiently
+  
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
     os_log("image for: %{public}@, %{public}@", log: log,  type: .debug,
            String(describing: item), String(describing: item.iTunes))
@@ -164,7 +176,7 @@ public final class ImageRepository: Images {
       return nil
     }
     
-    let req = Request(url: url).processed(with: Scale(size: size))
+    let req = ImageRequest(url: url).processed(with: Scale(size: size))
     
     if let image = ImageCache.shared[req] {
       return image
@@ -188,13 +200,6 @@ public final class ImageRepository: Images {
     return img
   }
   
-  /// Loads an image to represent `item` into `imageView`, scaling the image
-  /// to match the image view’s bounds. For larger sizes a smaller image is
-  /// preloaded, which gets replaced when the large image has been loaded.
-  ///
-  /// - Parameters:
-  ///   - item: The item the loaded image should represent.
-  ///   - imageView: The target view to display the image.
   public func loadImage(
     for item: Imaginable,
     into imageView: UIImageView,
@@ -214,37 +219,39 @@ public final class ImageRepository: Images {
       return
     }
 
-    func load(url: URL, into view: UIImageView?, cb: @escaping Manager.Handler) {
+    func load(url: URL, into view: UIImageView?, cb: @escaping ImageTask.Completion) {
       var urlReq = URLRequest(url: url)
       urlReq.cachePolicy = .returnCacheDataElseLoad
       
       let proc = Scale(size: size)
-      let req = Request(urlRequest: urlReq).processed(with: proc)
+      let req = ImageRequest(urlRequest: urlReq).processed(with: proc)
       
       guard let v = view else { return }
       
       os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
              url as CVarArg, size as CVarArg)
-      
-      Manager.shared.loadImage(with: req, into: v, handler: cb)
+
+      Nuke.loadImage(with: req, into: v, completion: cb)
     }
     
     if let smallURL = urlToPreload(from: item, for: size) {
       load(url: smallURL, into: imageView) { [weak imageView] res, _ in
         DispatchQueue.main.async {
-          imageView?.image = res.value
+          imageView?.image = res?.image
         }
         DispatchQueue.main.async {
           load(url: url, into: imageView) { [weak imageView] res, _ in
             DispatchQueue.main.async {
-              imageView?.image = res.value
+              imageView?.image = res?.image
             }
           }
         }
       }
     } else {
       load(url: url, into: imageView) { [weak imageView] res, _ in
-        imageView?.image = res.value
+        DispatchQueue.main.async {
+          imageView?.image = res?.image
+        }
       }
     }
   }
@@ -260,12 +267,12 @@ extension ImageRepository {
   
   fileprivate func requests(
     with items: [Imaginable], at size: CGSize, quality: ImageQuality
-  ) -> [Request] {
+  ) -> [ImageRequest] {
     return items.compactMap {
       guard let url = urlToLoad(from: $0, for: scale(size, to: quality)) else {
         return nil
       }
-      return Request(url: url)
+      return ImageRequest(url: url)
     }
   }
   
