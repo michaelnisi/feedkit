@@ -81,15 +81,27 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   private func done(_ error: Error? = nil) {
     self.error = error
     
+    let entries = self.entries
+    
+    // TODO: Pass actually enqueued entries
     enqueueCompletionBlock?(Array(entries), error)
     
     if let er = error, case EnqueueOperationError.nothingToEnqueue = er {
       os_log("nothing to enqueue", log: User.log)
       return
     }
-
+    
     DispatchQueue.main.async {
-      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+      let nc = NotificationCenter.default
+      
+      nc.post(name: .FKQueueDidChange, object: nil)
+      
+      for entry in entries {
+        nc.post(name: .FKQueueDidEnqueue, object: nil, userInfo: [
+          "entryGUID": entry.guid,
+          "enclosureURL": entry.enclosure?.url as Any
+        ])
+      }
     }
   }
   

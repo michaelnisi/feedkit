@@ -33,6 +33,10 @@ public extension Notification.Name {
   public static var FKQueueDidChange =
     NSNotification.Name("FeedKitQueueDidChange")
   
+  /// Posted after a new items has been enqueued to the user‘s queue.
+  public static var FKQueueDidEnqueue =
+    NSNotification.Name("FeedKitQueueDidEnqueue")
+  
 }
 
 // MARK: - Queueing
