@@ -78,17 +78,17 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   
   var enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?
   
-  private func done(_ error: Error? = nil) {
+  private func done(_ enqueued: [Entry], _ error: Error? = nil) {
     self.error = error
     
-    let entries = self.entries
+    enqueueCompletionBlock?(enqueued, error)
     
-    // TODO: Pass actually enqueued entries
-    enqueueCompletionBlock?(Array(entries), error)
+    guard !enqueued.isEmpty else {
+      return os_log("nothing to enqueue", log: User.log)
+    }
     
     if let er = error, case EnqueueOperationError.nothingToEnqueue = er {
-      os_log("nothing to enqueue", log: User.log)
-      return
+      return os_log("nothing to enqueue", log: User.log)
     }
     
     DispatchQueue.main.async {
@@ -96,7 +96,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       
       nc.post(name: .FKQueueDidChange, object: nil)
       
-      for entry in entries {
+      for entry in enqueued {
         nc.post(name: .FKQueueDidEnqueue, object: nil, userInfo: [
           "entryGUID": entry.guid,
           "enclosureURL": entry.enclosure?.url as Any
@@ -108,10 +108,12 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   override func main() {
     os_log("starting EnqueueOperation", log: User.log, type: .debug)
     
+    var enqueued = [Entry]()
+    
     do {
       guard error == nil else {
         // Although redundant, passing the error again for clarity.
-        return done(error)
+        return done([], error)
       }
 
       let candidates = try self.candidates.filter {
@@ -119,7 +121,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }
 
       guard !candidates.isEmpty else {
-        return done(EnqueueOperationError.nothingToEnqueue)
+        return done([], EnqueueOperationError.nothingToEnqueue)
       }
       
       os_log("enqueueing: %{public}@", log: User.log, type: .debug, candidates)
@@ -127,6 +129,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       entries.formUnion(user.queue.prepend(items: candidates))
       
       let queued: [Queued] = candidates.map {
+        enqueued.append($0)
         let loc = EntryLocator(entry: $0)
         switch owner {
         case .nobody:
@@ -140,10 +143,10 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     } catch {
       os_log("enqueueing failed: %{public}@",
              log: User.log, type: .debug, error as CVarArg)
-      return done(error)
+      return done([], error)
     }
     
-    done()
+    done(enqueued)
   }
   
 }
