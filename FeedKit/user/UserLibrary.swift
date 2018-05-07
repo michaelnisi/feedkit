@@ -255,10 +255,12 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
-    // TODO: Review if sync is required here
+    // Synchronizing here is redundant, but to our assume nothing mindset, at
+    // least, it’s soothing. This thing is using the local `queuedGUIDs`.
+    
     synchronize { error in
       guard error == nil else {
-        fatalError()
+        fatalError("failed to synchronize")
       }
       
       let preparing = PrepareUpdateOperation(cache: cache)
@@ -272,8 +274,7 @@ extension UserLibrary: Updating {
       
       enqueuing.enqueueCompletionBlock = { enqueued, error in
         if let er = error {
-          os_log("enqueue error: %{public}@", log: User.log, type: .error,
-                 er as CVarArg)
+          os_log("enqueue warning: %{public}@", log: User.log, er as CVarArg)
         }
         self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
       }

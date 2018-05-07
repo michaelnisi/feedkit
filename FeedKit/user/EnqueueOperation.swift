@@ -87,6 +87,8 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       return os_log("nothing to enqueue", log: User.log)
     }
     
+    // TODO: Remove EnqueueOperationError.nothingToEnqueue
+    
     if let er = error, case EnqueueOperationError.nothingToEnqueue = er {
       return os_log("nothing to enqueue", log: User.log)
     }
