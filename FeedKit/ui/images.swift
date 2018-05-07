@@ -35,6 +35,8 @@ public protocol Imaginable {
 
 public protocol Images {
   
+  func loadImage(for item: Imaginable, into imageView: UIImageView)
+  
   /// Loads an image to represent `item` into `imageView`, scaling the image
   /// to match the image view’s bounds. For larger sizes a smaller image is
   /// preloaded, which gets replaced when the large image has been loaded.
@@ -42,13 +44,21 @@ public protocol Images {
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
-  func loadImage(for item: Imaginable, into imageView: UIImageView)
-  func loadImage(for item: Imaginable, into imageView: UIImageView,
+  ///   - quality: The expected image quality.
+  func loadImage(for item: Imaginable,
+                 into imageView: UIImageView,
                  quality: ImageQuality?)
   
-  func prefetchImages(for items: [Imaginable], at size: CGSize,
-                      quality: ImageQuality) -> [ImageRequest]
+  /// Prefetches images of `items`, preheating the image cache.
+  ///
+  /// - Returns: The resulting image requests, these can be used to cancel
+  /// this prefetching batch.
+  func prefetchImages(for items: [Imaginable],
+                      at size: CGSize,
+                      quality: ImageQuality
+  ) -> [ImageRequest]
   
+  /// Cancels prefetching `requests`.
   func cancel(prefetching requests: [ImageRequest])
   
   /// Synchronously loads an image for the specificied item and size.
@@ -207,7 +217,7 @@ public final class ImageRepository: Images {
   ) {
     let size = imageView.frame.size
     
-    os_log("image for: %@, with: %@, at: %@",
+    os_log("handling image request for: %@, with: %@, at: %@",
            log: log, type: .debug,
            String(describing: item),
            String(describing: item.iTunes),
@@ -280,13 +290,13 @@ extension ImageRepository {
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     let reqs = requests(with: items, at: size, quality: quality)
-    os_log("start preheating: %{public}@", log: log, type: .debug, items)
+    os_log("starting preheating: %{public}@", log: log, type: .debug, items)
     preheater.startPreheating(with: reqs)
     return reqs
   }
   
   public func cancel(prefetching requests: [ImageRequest]) {
-    os_log("stop preheating: %{public}@", log: log, type: .debug, requests)
+    os_log("stopping preheating: %{public}@", log: log, type: .debug, requests)
     preheater.stopPreheating(with: requests)
   }
   
