@@ -13,9 +13,6 @@ import os.log
 
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
-// Typealiasing Nuke.Cache to prevent collision with FeedKit.Cache.
-typealias ImageCache = Nuke.ImageCache
-
 // Hiding Nuke from participants.
 public typealias ImageRequest = Nuke.ImageRequest
 
