@@ -19,6 +19,7 @@ enum EnqueueOperationError: Error {
   
 }
 
+/// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
   
   // MARK: ProvidingEntries
@@ -87,23 +88,17 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       return os_log("nothing to enqueue", log: User.log)
     }
     
-    // TODO: Remove EnqueueOperationError.nothingToEnqueue
-    
     if let er = error, case EnqueueOperationError.nothingToEnqueue = er {
       return os_log("nothing to enqueue", log: User.log)
     }
     
-    DispatchQueue.main.async {
-      let nc = NotificationCenter.default
-      
-      nc.post(name: .FKQueueDidChange, object: nil)
-      
-      for entry in enqueued {
-        nc.post(name: .FKQueueDidEnqueue, object: nil, userInfo: [
-          "entryGUID": entry.guid,
-          "enclosureURL": entry.enclosure?.url as Any
-        ])
-      }
+    let nc = NotificationCenter.default
+    nc.post(name: .FKQueueDidChange, object: nil)
+    for entry in enqueued {
+      nc.post(name: .FKQueueDidEnqueue, object: nil, userInfo: [
+        "entryGUID": entry.guid,
+        "enclosureURL": entry.enclosure?.url as Any
+      ])
     }
   }
   

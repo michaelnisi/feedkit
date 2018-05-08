@@ -255,9 +255,6 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
-    // Synchronizing here is redundant, but to our assume nothing mindset, at
-    // least, it’s soothing. This thing is using the local `queuedGUIDs`.
-    
     synchronize { error in
       guard error == nil else {
         fatalError("failed to synchronize")
@@ -293,6 +290,7 @@ extension UserLibrary: Updating {
       
       // Routing
       
+      // The dependency of fetching on preparing has been satisfied by browser.
       enqueuing.addDependency(fetching)
       trimming.addDependency(enqueuing)
       
@@ -368,8 +366,9 @@ extension UserLibrary: Queueing {
 
       enqueueCompletionBlock?(er)
     }
-    
-    User.queue.addOperation(op)
+
+    operationQueue.addOperation(op)
+//    User.queue.addOperation(op)
   }
   
   public func enqueue(
@@ -383,9 +382,9 @@ extension UserLibrary: Queueing {
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    os_log("dequeueing", log: User.log, type: .debug)
-    
     operationQueue.addOperation {
+      os_log("dequeueing: %{public}@",
+             log: User.log, type: .debug, entry.description)
       do {
         try self.queue.remove(entry)
         let guids = [entry.guid]
@@ -398,12 +397,8 @@ extension UserLibrary: Queueing {
         return
       }
       
-      DispatchQueue.global().async {
-        dequeueCompletionBlock?(nil)
-        DispatchQueue.main.async {
-          NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
-        }
-      }
+      dequeueCompletionBlock?(nil)
+      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
     }
   }
   

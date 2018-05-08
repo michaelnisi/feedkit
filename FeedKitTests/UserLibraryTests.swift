@@ -58,7 +58,7 @@ extension UserLibraryTests {
       let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
         object: nil,
-        queue: nil) { notification in
+        queue: OperationQueue.main) { notification in
         assert(Thread.isMainThread)
         exp.fulfill()
       }
@@ -95,7 +95,7 @@ extension UserLibraryTests {
       let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
         object: self.user,
-        queue: nil) { notification in
+        queue: OperationQueue.main) { notification in
         assert(Thread.isMainThread)
         exp.fulfill()
       }
@@ -127,7 +127,7 @@ extension UserLibraryTests {
       let obs = NotificationCenter.default.addObserver(
         forName: .FKSubscriptionsDidChange,
         object: self.user,
-        queue: nil) { notification in
+        queue: OperationQueue.main) { notification in
         XCTAssertFalse(self.user.has(subscription: url))
         assert(Thread.isMainThread)
         exp.fulfill()
@@ -370,7 +370,7 @@ extension UserLibraryTests {
     let obs = NotificationCenter.default.addObserver(
       forName: .FKQueueDidChange,
       object: nil,
-      queue: nil) { notification in
+      queue: OperationQueue.main) { notification in
       assert(Thread.isMainThread)
       exp.fulfill()
     }
@@ -427,7 +427,7 @@ extension UserLibraryTests {
     let obs = NotificationCenter.default.addObserver(
       forName: .FKQueueDidChange,
       object: nil,
-      queue: nil) { notification in
+      queue: OperationQueue.main) { notification in
         assert(Thread.isMainThread)
         exp.fulfill()
     }
@@ -460,7 +460,7 @@ extension UserLibraryTests {
         obs = NotificationCenter.default.addObserver(
           forName: .FKQueueDidChange,
           object: nil,
-          queue: nil) { notification in
+          queue: OperationQueue.main) { notification in
             assert(Thread.isMainThread)
             exp.fulfill()
         }
