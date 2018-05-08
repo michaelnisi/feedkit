@@ -181,6 +181,9 @@ public final class ImageRepository: Images {
     let blocker = DispatchSemaphore(value: 0)
     
     Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
+      if let er = error {
+        os_log("image loading error: %{public}@", log: log, er as CVarArg)
+      }
       image = res?.image
       blocker.signal()
     }
