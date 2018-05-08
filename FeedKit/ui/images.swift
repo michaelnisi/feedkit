@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ImageIO
 import Nuke
 import UIKit
 import os.log
@@ -75,15 +74,16 @@ fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
 
 // MARK: -
 
-private struct Scale: ImageProcessing {
+private struct ScaledWithRoundedCorners: ImageProcessing {
 
   let size: CGSize
 
   init(size: CGSize) {
     self.size = size
   }
-  
-  private func imageWithRoundedCorners(from image: UIImage) -> UIImage {
+
+  /// Returns scaled `image` with rounded corners.
+  func process(image: Image, context: ImageProcessingContext) -> Image? {
     UIGraphicsBeginImageContextWithOptions(size, true, 0)
     
     let ctx = UIGraphicsGetCurrentContext()!
@@ -102,12 +102,7 @@ private struct Scale: ImageProcessing {
     return rounded
   }
 
-  /// Returns scaled `image` with rounded corners.
-  func process(image: Image, context: ImageProcessingContext) -> Image? {
-    return imageWithRoundedCorners(from: image)
-  }
-
-  static func ==(lhs: Scale, rhs: Scale) -> Bool {
+  static func ==(lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
     return lhs.size == rhs.size
   }
 }
@@ -176,8 +171,6 @@ public final class ImageRepository: Images {
   
   fileprivate let preheater = Nuke.ImagePreheater()
   
-  // TODO: Make sure to use Nuke cache efficiently
-  
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
     os_log("image for: %{public}@, %{public}@", log: log,  type: .debug,
            String(describing: item), String(describing: item.iTunes))
@@ -186,28 +179,18 @@ public final class ImageRepository: Images {
       return nil
     }
     
-    let req = ImageRequest(url: url).processed(with: Scale(size: size))
+    var image: UIImage?
+    let req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
+    let blocker = DispatchSemaphore(value: 0)
     
-    if let image = ImageCache.shared[req] {
-      return image
+    Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
+      image = res?.image
+      blocker.signal()
     }
     
-    guard let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) else {
-      return nil
-    }
+    blocker.wait()
     
-    let options: [NSString: NSObject] = [
-      kCGImageSourceThumbnailMaxPixelSize: max(size.width, size.height) as NSObject,
-      kCGImageSourceCreateThumbnailFromImageAlways: true as NSObject
-    ]
-    
-    let cgImage = CGImageSourceCreateThumbnailAtIndex(
-      imageSource, 0, options as CFDictionary)
-    let img = UIImage(cgImage: cgImage!)
-    
-    ImageCache.shared[req] = img
-    
-    return img
+    return image
   }
   
   public func loadImage(
@@ -233,7 +216,7 @@ public final class ImageRepository: Images {
       var urlReq = URLRequest(url: url)
       urlReq.cachePolicy = .returnCacheDataElseLoad
       
-      let proc = Scale(size: size)
+      let proc = ScaledWithRoundedCorners(size: size)
       let req = ImageRequest(urlRequest: urlReq).processed(with: proc)
       
       guard let v = view else { return }
