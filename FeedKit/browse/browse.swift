@@ -175,6 +175,7 @@ public protocol Browsing {
   /// - Returns: The executing operation.
   @discardableResult func feeds(
     _ urls: [String],
+    ttl: CacheTTL,
     feedsBlock: ((Error?, [Feed]) -> Void)?,
     feedsCompletionBlock: ((Error?) -> Void)?
   ) -> Operation

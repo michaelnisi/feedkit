@@ -73,6 +73,7 @@ extension FeedRepository: Browsing {
   
   public func feeds(
     _ urls: [String],
+    ttl: CacheTTL = .long,
     feedsBlock: ((_ feedsError: Error?, _ feeds: [Feed]) -> Void)?,
     feedsCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation {
@@ -80,7 +81,7 @@ extension FeedRepository: Browsing {
     
     let idea = RemoteRepository.ServiceIdea(
       reachability: probe.reach(),
-      expecting: .long,
+      expecting: ttl,
       status: svc.client.status
     )
     

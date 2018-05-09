@@ -128,6 +128,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         }
 
         if !redirectedURLs.isEmpty {
+          // TODO: Update subscriptions with redirected URL
           try cache.remove(redirectedURLs)
         }
 
@@ -173,13 +174,18 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       guard !isCancelled else { return done() }
       
       // Why, compared to EntriesOperation, is needed optional?
-      let x = needed ?? []
+      
       os_log("""
         ttl: %f,
         cached: %{public}@,
         stale: %{public}@,
         missing: %{public}@
-      """, log: Browse.log, type: .debug, ttl.seconds, cached, stale, x)
+      """, log: Browse.log, type: .debug,
+           ttl.seconds,
+           cached.map { $0.url },
+           stale,
+           needed ?? []
+      )
 
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {

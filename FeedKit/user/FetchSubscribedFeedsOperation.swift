@@ -69,7 +69,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     var acc = [Feed]()
     
     // TODO: Extract into dependency chain
-    op = browser.feeds(urls, feedsBlock: { error, feeds in
+    op = browser.feeds(urls, ttl: .forever, feedsBlock: { error, feeds in
       guard !self.isCancelled else {
         return
       }
