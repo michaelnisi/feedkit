@@ -48,32 +48,13 @@ extension FeedRepository: Browsing {
   public func integrate(iTunesItems: [ITunesItem]) throws {
     os_log("integrating metadata: %{public}@",
            log: Browse.log, type: .debug, iTunesItems)
-    try cache.integrate(iTunesItems: iTunesItems)
-  }
-  
-  // TODO: Replace with synchronous version
-  public func integrate(
-    iTunesItems: [ITunesItem],
-    completionBlock: ((_ error: Error?) -> Void)?
-  ) -> Void {
-    os_log("integrating metadata: %{public}@",
-           log: Browse.log, type: .debug, iTunesItems)
     
-    let cache = self.cache
-    queue.addOperation {
-      let q = OperationQueue.current?.underlyingQueue ?? DispatchQueue.global()
-      do {
-        try cache.integrate(iTunesItems: iTunesItems)
-      } catch {
-        q.async { completionBlock?(error) }
-      }
-      q.async { completionBlock?(nil) }
-    }
+    try cache.integrate(iTunesItems: iTunesItems)
   }
   
   public func feeds(
     _ urls: [String],
-    ttl: CacheTTL = .long,
+    ttl: CacheTTL,
     feedsBlock: ((_ feedsError: Error?, _ feeds: [Feed]) -> Void)?,
     feedsCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation {
@@ -97,6 +78,19 @@ extension FeedRepository: Browsing {
     return op
   }
   
+  public func feeds(
+    _ urls: [String],
+    feedsBlock: ((_ feedsError: Error?, _ feeds: [Feed]) -> Void)?,
+    feedsCompletionBlock: ((_ error: Error?) -> Void)?
+  ) -> Operation {
+    return feeds(
+      urls,
+      ttl: .long,
+      feedsBlock: feedsBlock,
+      feedsCompletionBlock: feedsCompletionBlock
+    )
+  }
+
   public func feeds(_ urls: [String]) -> Operation {
     return feeds(urls, feedsBlock: nil, feedsCompletionBlock: nil)
   }

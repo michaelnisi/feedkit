@@ -164,6 +164,7 @@ public protocol Browsing {
   ///
   /// - Parameters:
   ///   - urls: An array of feed URLs.
+  ///   - ttl: The maximum age of cached items before updating them remotely.
   ///   - feedsBlock: Applied zero, one, or two times with the requested
   /// feeds. The error defined in this callback is not being used at the moment.
   ///   - feedsError: The group error of this iteration.
@@ -180,6 +181,14 @@ public protocol Browsing {
     feedsCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
   
+  /// Fetches feeds using `CacheTTL.long`.
+  @discardableResult func feeds(
+    _ urls: [String],
+    feedsBlock: ((Error?, [Feed]) -> Void)?,
+    feedsCompletionBlock: ((Error?) -> Void)?
+  ) -> Operation
+  
+  /// Fetches feeds using `CacheTTL.long`.
   @discardableResult func feeds(_ urls: [String]) -> Operation
 
   @discardableResult func entries(
@@ -238,14 +247,10 @@ public protocol Browsing {
   /// - Returns: Returns an already executing operation.
   func entries(satisfying provider: Operation) -> Operation
   
-  /// Integrates `iTunesItems` into local cache, adding feeds not cached yet,
-  /// which might be a problem. TODO: Review
-  func integrate(
-    iTunesItems: [ITunesItem],
-    completionBlock: ((_ error: Error?) -> Void)?) -> Void
-  
-  /// Integrates `iTunesItems` into local cache, adding feeds not cached yet,
-  /// which might be a problem. TODO: Review
+  /// Integrates `iTunesItems` into local cache, inserting feeds not cached yet.
+  /// If we got a feed not from iTunes, it doesn’t contain iTunes data, image
+  /// URLs in the first place. Having gotten hold of these later, we might
+  /// integrate them here.
   func integrate(iTunesItems: [ITunesItem]) throws
   
 }

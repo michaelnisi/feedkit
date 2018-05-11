@@ -247,6 +247,8 @@ extension UserLibrary: Updating {
     }
   }
   
+  // Within a background fetch we only have 30 seconds to finish.
+  
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: User.log,  type: .info)
@@ -255,9 +257,11 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
+    // Synchronizing first to assure we are including the latest subscriptions.
+    
     synchronize { error in
-      guard error == nil else {
-        fatalError("failed to synchronize")
+      if error != nil {
+        os_log("continuing update despite error", log: User.log)
       }
       
       let preparing = PrepareUpdateOperation(cache: cache)

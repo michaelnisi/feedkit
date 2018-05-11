@@ -32,7 +32,8 @@ public extension Notification.Name {
   public static var FKQueueDidChange =
     NSNotification.Name("FeedKitQueueDidChange")
   
-  /// Posted after a new items has been enqueued to the user‘s queue.
+  /// Posted after a new item has been enqueued to the user‘s queue with the
+  /// notification containing identifying information of the item.
   public static var FKQueueDidEnqueue =
     NSNotification.Name("FeedKitQueueDidEnqueue")
   
@@ -151,16 +152,16 @@ public protocol Queueing {
 
 // MARK: - Updating
 
-/// Updating subscribed feeds.
+/// Updating things users cares about.
 public protocol Updating {
   
-  /// Fetch the latest entries of subscribed feeds from the server. Errors past
-  /// to the completion block aren’t necessarily critical.
+  /// Updates entries of subscribed feeds. Errors passed to the completion
+  /// block may be partial and not necessarily critical.
   ///
   /// - Parameters:
   ///   - updateComplete: The completion block to apply when done.
   ///   - newData: `true` if new data has been received.
-  ///   - error: Optionally, a, not conclusively critical, error.
+  ///   - error: Optionally, not conclusively critical, error.
   func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?)
   
 }
