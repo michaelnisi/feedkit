@@ -224,7 +224,22 @@ public final class ImageRepository: Images {
       os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
              url as CVarArg, size as CVarArg)
 
-      Nuke.loadImage(with: req, into: v, completion: cb)
+      guard let currentImage = v.image else {
+        Nuke.loadImage(with: req, into: v, completion: cb)
+        return
+      }
+      
+      os_log("placeholding with current image", log: log, type: .debug)
+      
+      let opts = ImageLoadingOptions(
+        placeholder: currentImage,
+        transition: nil,
+        failureImage: currentImage,
+        failureImageTransition: nil,
+        contentModes: nil
+      )
+      
+      Nuke.loadImage(with: req, options: opts, into: v, completion: cb)
     }
     
     if let smallURL = urlToPreload(from: item, for: size) {
