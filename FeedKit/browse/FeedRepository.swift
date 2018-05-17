@@ -155,7 +155,7 @@ extension FeedRepository: Browsing {
         locators.count == 1,
         let uri = locators.first?.url,
         self.isEnforceable(uri) {
-        return .forever
+        return .none
       }
       return .short
     }()

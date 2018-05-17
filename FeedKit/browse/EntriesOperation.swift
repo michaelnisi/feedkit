@@ -203,8 +203,15 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
       guard !isCancelled else { return done() }
 
-      os_log("cached: %{public}@", log: Browse.log, type: .debug, cached)
-      os_log("missing: %{public}@", log: Browse.log, type: .debug, missing)
+      os_log("""
+        ttl: %f,
+        cached: %{public}@,
+        missing: %{public}@
+      """, log: Browse.log, type: .debug,
+           ttl.seconds,
+           cached.map { $0.url },
+           missing
+      )
 
       if !cached.isEmpty {
         submit(cached)

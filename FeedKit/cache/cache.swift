@@ -89,10 +89,9 @@ class DateCache {
   
   // Returns `true` if `key` has not been used or is stale.
   func update(_ key: String) -> Bool {
-    if let prev = dates.object(forKey: key as NSString) as Date? {
-      if prev.timeIntervalSinceNow < CacheTTL.short.seconds {
-        return false
-      }
+    if let prev = dates.object(forKey: key as NSString) as Date?,
+      prev.timeIntervalSinceNow < CacheTTL.short.seconds {
+      return false
     }
     dates.setObject(Date() as NSDate, forKey: key as NSString)
     return true
