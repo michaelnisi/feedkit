@@ -242,9 +242,6 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "update")
       user.update { newData, error in
-        guard case EnqueueOperationError.nothingToEnqueue = error! else {
-          return XCTFail("should error") // I think
-        }
         exp.fulfill()
       }
       waitForExpectations(timeout: 10) { er in
@@ -380,7 +377,7 @@ extension UserLibraryTests {
       XCTAssertTrue(self.user.contains(entry: entry))
       
       try! self.user.enqueue(entries: [entry]) { error in
-        guard case .nothingToEnqueue = error as! EnqueueOperationError else {
+        guard case .alreadyInQueue = error as! QueueError else {
           return XCTFail("should throw expectedly")
         }
       }
