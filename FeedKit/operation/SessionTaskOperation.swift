@@ -8,6 +8,8 @@
 
 import Foundation
 import os.log
+import Ola
+import Patron
 
 public extension Notification.Name {
   
@@ -24,40 +26,52 @@ public extension Notification.Name {
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
+
+  let client: JSONService
   
-  var _isOffline: Bool = false
+  init(client: JSONService) {
+    self.client = client
+  }
   
-  /// No network reachability. If this is false, operation dependencies are
-  /// tried. Use `isAvailable` as general check, probe `isOffline` for more
-  /// details. Are we offline?
-  var isOffline: Bool {
-    get {
-      guard _isOffline else {
-        do {
-          let s = try findStatus()
-          _isOffline = s != .reachable && s != .cellular
-          if _isOffline {
-            isAvailable = false
-          }
-        } catch {
-          _isOffline = false
-        }
-        return _isOffline
+  /// Returns `true` if the remote `service` is reachable – and OK or if its
+  /// last known error occured longer than 300 seconds ago,
+  var isAvailable: Bool {
+    let reachability: OlaStatus? = {
+      do {
+        return try findStatus()
+      } catch {
+        os_log("checking reachability: could not find status in dependencies")
+        return Ola(host: client.host)?.reach()
       }
-      return _isOffline
+    }()
+
+    guard let r = reachability else {
+      return true
     }
     
-    set {
-      _isOffline = newValue
+    switch r {
+    case .cellular, .reachable:
+      if let (_, ts) = client.status {
+        return Date().timeIntervalSince1970 - ts > 300
+      } else {
+        return true
+      }
+    case .unknown:
+      return false
     }
   }
   
-  /// If you know in advance that the remote service is currently not available,
-  /// you may set this to `false` to be more effective.
-  var isAvailable: Bool = true
-  
-  /// The maximal age, `CacheTTL.long`, of cached items.
-  var ttl = CacheTTL.long
+  private var _ttl = CacheTTL.long
+
+  /// The maximal age, `CacheTTL.long` by default, of cached items.
+  var ttl: CacheTTL {
+    get {
+      return isAvailable ? _ttl : .forever
+    }
+    set {
+      _ttl = newValue
+    }
+  }
   
   /// Posts `name` to the default notifcation center.
   func post(name: NSNotification.Name) {
@@ -82,3 +96,4 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   }
   
 }
+

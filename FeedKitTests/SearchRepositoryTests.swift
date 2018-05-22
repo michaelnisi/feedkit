@@ -41,15 +41,12 @@ final class SearchRepositoryTests: XCTestCase {
     
     cache = freshCache(self.classForCoder)
     let queue = OperationQueue()
-    // TODO: Determine optimal queue for Ola
-    let probe = Ola(host: "localhost")!
 
     repo = SearchRepository(
       cache: cache,
       svc: svc,
       browser: browser,
-      queue: queue,
-      probe: probe
+      queue: queue
     )
   }
 

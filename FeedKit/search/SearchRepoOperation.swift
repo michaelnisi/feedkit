@@ -32,6 +32,8 @@ class SearchRepoOperation: SessionTaskOperation {
     
     self.originalTerm = term
     self.term = SearchRepoOperation.replaceWhitespaces(in: term.lowercased(), with: " ")
+    
+    super.init(client: svc.client)
   }
   
 }

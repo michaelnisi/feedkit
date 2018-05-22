@@ -40,7 +40,6 @@
 		4C99700A1FE42AB400E0FA30 /* EntriesOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9970091FE42AB400E0FA30 /* EntriesOperation.swift */; };
 		4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B95E2011D66300BE9BD8 /* Providing.swift */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
-		4CB30D0B2097224C001F613F /* RemoteRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB30D0A2097224C001F613F /* RemoteRepositoryTests.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
 		4CD696F61FEA56BE00349580 /* purchase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD696F51FEA56BE00349580 /* purchase.swift */; };
 		4CD696F81FEA56DF00349580 /* download.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD696F71FEA56DF00349580 /* download.swift */; };
@@ -132,7 +131,6 @@
 		4CA3B95E2011D66300BE9BD8 /* Providing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Providing.swift; sourceTree = "<group>"; };
 		4CA3D31D1A89E78900CA58E9 /* serialize.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = serialize.swift; sourceTree = "<group>"; };
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
-		4CB30D0A2097224C001F613F /* RemoteRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRepositoryTests.swift; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
 		4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchRepositoryTests.swift; sourceTree = "<group>"; };
 		4CD696F51FEA56BE00349580 /* purchase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = purchase.swift; sourceTree = "<group>"; };
@@ -237,7 +235,6 @@
 		4C3485A41977C237008A6B53 /* FeedKitTests */ = {
 			isa = PBXGroup;
 			children = (
-				4CB30D0A2097224C001F613F /* RemoteRepositoryTests.swift */,
 				4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */,
 				4C74A6E51F07953300951796 /* UserCacheTests.swift */,
 				4CA3B2BD1A068BC80072E0C4 /* FeedCacheTests.swift */,
@@ -562,7 +559,6 @@
 				4EF5E0FC1E91390800A95D3D /* FeedCacheTests.swift in Sources */,
 				4EF5E1001E91390800A95D3D /* SearchRepositoryTests.swift in Sources */,
 				4C74A6E61F07953300951796 /* UserCacheTests.swift in Sources */,
-				4CB30D0B2097224C001F613F /* RemoteRepositoryTests.swift in Sources */,
 				4EF5E0FE1E91390800A95D3D /* SerializeTests.swift in Sources */,
 				4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */,
 				4E7D10B11F6256CA0048CB43 /* UserLibraryTests.swift in Sources */,

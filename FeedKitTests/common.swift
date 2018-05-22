@@ -162,9 +162,7 @@ func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
   let queue = OperationQueue()
   queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.browsing")
 
-  let probe = Ola(host: "http://localhost:8384")!
-
-  return FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
+  return FeedRepository(cache: cache, svc: svc, queue: queue)
 }
 
 func destroyCache(_ cache: LocalCache) throws {

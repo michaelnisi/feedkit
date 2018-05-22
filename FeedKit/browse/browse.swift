@@ -164,7 +164,8 @@ public protocol Browsing {
   ///
   /// - Parameters:
   ///   - urls: An array of feed URLs.
-  ///   - ttl: The maximum age of cached items before updating them remotely.
+  ///   - ttl: The preferred maximum age of cached feeds before updating them
+  /// remotely.
   ///   - feedsBlock: Applied zero, one, or two times with the requested
   /// feeds. The error defined in this callback is not being used at the moment.
   ///   - feedsError: The group error of this iteration.
@@ -181,7 +182,7 @@ public protocol Browsing {
     feedsCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
   
-  /// Fetches feeds using `CacheTTL.long`.
+  /// Fetches feeds applying the default time-to-live: `CacheTTL.long`.
   @discardableResult func feeds(
     _ urls: [String],
     feedsBlock: ((Error?, [Feed]) -> Void)?,

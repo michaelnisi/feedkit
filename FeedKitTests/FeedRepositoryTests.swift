@@ -29,9 +29,7 @@ final class FeedRepositoryTests: XCTestCase {
     let queue = OperationQueue()
     queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.FeedRepositoryTests")
 
-    let probe = Ola(host: "http://localhost:8384")!
-    
-    repo = FeedRepository(cache: cache, svc: svc, queue: queue, probe: probe)
+    repo = FeedRepository(cache: cache, svc: svc, queue: queue)
   }
   
   override func tearDown() {
@@ -147,9 +145,8 @@ extension FeedRepositoryTests {
       let exp = self.expectation(description: "populating cache")
       
       let queue = OperationQueue()
-      let probe = Ola(host: "localhost")!
       let repo: Browsing = FeedRepository(
-        cache: zeroCache, svc: svc, queue: queue, probe: probe)
+        cache: zeroCache, svc: svc, queue: queue)
       
       var found = [String]()
       var feedsBlockCount = 0
@@ -180,9 +177,8 @@ extension FeedRepositoryTests {
       let falseHost = "http://localhost:8385"
       let unavailable = makeManger(string: falseHost)
       let queue = OperationQueue()
-      let probe = Ola(host: "localhost")!
       let repo: Browsing = FeedRepository(
-        cache: zeroCache, svc: unavailable, queue:queue, probe: probe)
+        cache: zeroCache, svc: unavailable, queue:queue)
       
       var found = [String]()
       var feedsBlockCount = 0

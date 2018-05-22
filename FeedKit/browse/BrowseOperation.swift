@@ -29,6 +29,7 @@ class BrowseOperation: SessionTaskOperation {
   init(cache: FeedCaching, svc: MangerService) {
     self.cache = cache
     self.svc = svc
+    super.init(client: svc.client)
   }
 
 }
