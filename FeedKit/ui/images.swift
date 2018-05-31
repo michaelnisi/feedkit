@@ -155,11 +155,11 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
 ///
 /// - Returns: The image URL or `nil`.
 private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
-  guard size.width > 60 else {
-    return nil
-  }
+//  guard size.width > 60 else {
+//    return nil
+//  }
 
-  let s = min(size.width / 4, 100)
+  let s = min(size.width / 4, 100) / UIScreen.main.scale
   return urlToLoad(from: item, for: CGSize(width: s, height: s))
 }
 
@@ -172,8 +172,11 @@ public final class ImageRepository: Images {
   fileprivate let preheater = Nuke.ImagePreheater()
 
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
-    os_log("image for: %{public}@, %{public}@", log: log,  type: .debug,
-           String(describing: item), String(describing: item.iTunes))
+    os_log("synchronously loading image: %{public}@, %{public}@",
+           log: log,
+           type: .debug,
+           String(describing: item),
+           String(describing: item.iTunes))
 
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
@@ -185,7 +188,7 @@ public final class ImageRepository: Images {
 
     Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
       if let er = error {
-        os_log("image loading error: %{public}@", log: log, er as CVarArg)
+        os_log("synchronous loading error: %{public}@", log: log, er as CVarArg)
       }
       image = res?.image
       blocker.signal()
@@ -199,6 +202,7 @@ public final class ImageRepository: Images {
   private static func load(
     url: URL,
     into view: UIImageView?,
+    sized size: CGSize,
     cb: @escaping ImageTask.Completion
   ) {
     var urlReq = URLRequest(url: url)
@@ -250,13 +254,11 @@ public final class ImageRepository: Images {
     }
 
     if let smallURL = urlToPreload(from: item, for: size) {
-      ImageRepository.load(url: smallURL, into: imageView) {
+      ImageRepository.load(url: smallURL, into: imageView, sized: size) {
         [weak imageView] res, _ in
         DispatchQueue.main.async {
           imageView?.image = res?.image
-        }
-        DispatchQueue.main.async {
-          ImageRepository.load(url: url, into: imageView) {
+          ImageRepository.load(url: url, into: imageView, sized: size) {
             [weak imageView] res, _ in
             DispatchQueue.main.async {
               imageView?.image = res?.image
@@ -265,7 +267,7 @@ public final class ImageRepository: Images {
         }
       }
     } else {
-      ImageRepository.load(url: url, into: imageView) {
+      ImageRepository.load(url: url, into: imageView, sized: size) {
         [weak imageView] res, _ in
         DispatchQueue.main.async {
           imageView?.image = res?.image
