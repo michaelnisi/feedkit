@@ -128,8 +128,15 @@ public struct Queue<Item: Hashable> {
     return i
   }}
   
-  public mutating func forward() -> Item? {
+  public var validIndexAfter: Int? {
     guard let i = currentIndex, i < hashValues.count - 1 else {
+      return nil
+    }
+    return i
+  }
+  
+  public mutating func forward() -> Item? {
+    guard let i = validIndexAfter else {
       return nil
     }
     let n = hashValues.index(after: i)
@@ -138,8 +145,15 @@ public struct Queue<Item: Hashable> {
     return itemsByHashValues[h]
   }
   
-  public mutating func backward() -> Item? {
+  public var validIndexBefore: Int? {
     guard let i = currentIndex, i > 0 else {
+      return nil
+    }
+    return i
+  }
+  
+  public mutating func backward() -> Item? {
+    guard let i = validIndexBefore else {
       return nil
     }
     let n = hashValues.index(before: i)

@@ -148,6 +148,8 @@ public protocol Queueing {
   func skip(to entry: Entry) throws
   
   var isEmpty: Bool { get }
+  var isForwardable: Bool { get }
+  var isBackwardable: Bool { get }
 }
 
 // MARK: - Updating

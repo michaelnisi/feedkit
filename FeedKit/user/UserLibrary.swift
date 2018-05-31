@@ -311,6 +311,14 @@ extension UserLibrary: Updating {
 
 extension UserLibrary: Queueing {
   
+  public var isForwardable: Bool {
+    return queue.validIndexAfter != nil
+  }
+  
+  public var isBackwardable: Bool {
+    return queue.validIndexBefore != nil
+  }
+  
   @discardableResult
   public func fetchQueue(
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
