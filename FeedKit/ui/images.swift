@@ -37,7 +37,7 @@ public protocol Images {
   /// to match the image view’s bounds. For larger sizes a smaller image gets
   /// preloaded and displayed first, which gets replaced when the large image
   /// has been loaded, unless `imageView` is already occupied by an image, in
-  /// that case, that previous image is used as placeholder, while loading.
+  /// that case, that previous image is used for placeholding while loading.
   ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
@@ -46,6 +46,7 @@ public protocol Images {
   func loadImage(for item: Imaginable,
                  into imageView: UIImageView,
                  quality: ImageQuality?)
+
 
   /// Prefetches images of `items`, preheating the image cache.
   ///
@@ -61,7 +62,7 @@ public protocol Images {
 
   /// Synchronously loads an image for the specificied item and size.
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
-
+  
 }
 
 fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
@@ -145,20 +146,26 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
   return url
 }
 
-/// Picks a URL to load a smaller image to preload and show while the actual
-/// size is being loaded. If the requested size is too small for this to
-/// make sense or the item doesn’t contain suitable URLs, `nil` is returned.
-///
-/// - Parameters:
-///   - item: The concerned item.
-///   - size: The target size the loaded image will get scaled to.
-///
-/// - Returns: The image URL or `nil`.
+/// Returns an URL adequate for placeholding.
 private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
-//  guard size.width > 60 else {
-//    return nil
-//  }
-
+  guard let iTunes = item.iTunes else {
+    os_log("aborting: no iTunes", log: log, type: .debug)
+    return nil
+  }
+  
+  var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
+  if let image = item.image { urlStrings.append(image) }
+  
+  for urlString in urlStrings {
+    guard let url = URL(string: urlString) else {
+      continue
+    }
+    let req = ImageRequest(url: url)
+    if Nuke.ImageCache.shared.cachedResponse(for: req) != nil {
+      return url
+    }
+  }
+  
   let s = min(size.width / 4, 100) / UIScreen.main.scale
   return urlToLoad(from: item, for: CGSize(width: s, height: s))
 }
@@ -166,7 +173,7 @@ private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 /// Provides images. Images are cached, including their rounded corners, making
 /// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
-
+  
   public static var shared: Images = ImageRepository()
 
   fileprivate let preheater = Nuke.ImagePreheater()
@@ -199,6 +206,9 @@ public final class ImageRepository: Images {
     return image
   }
 
+  /// Loads image at `url` into `view` sized to `size`, while keeping the
+  /// current image as placeholder until the remote image has been loaded
+  /// successfully. If loading fails, keeps showing the placeholder.
   private static func load(
     url: URL,
     into view: UIImageView?,
@@ -239,7 +249,9 @@ public final class ImageRepository: Images {
     into imageView: UIImageView,
     quality: ImageQuality? = nil
   ) {
-    let size = imageView.frame.size
+    dispatchPrecondition(condition: .onQueue(.main))
+    
+    let (size, tag) = (imageView.bounds.size, imageView.tag)
 
     os_log("handling image request for: %@, with: %@, at: %@",
            log: log, type: .debug,
@@ -247,32 +259,33 @@ public final class ImageRepository: Images {
            String(describing: item.iTunes),
            size as CVarArg)
 
-    guard let url = urlToLoad(from: item, for: scale(size, to: quality)) else {
-      os_log("no image: %{public}@", log: log,  type: .error,
+    guard let itemURL = urlToLoad(from: item, for: scale(size, to: quality)) else {
+      os_log("missing URL: %{public}@", log: log,  type: .error,
              String(describing: item))
       return
     }
-
-    if let smallURL = urlToPreload(from: item, for: size) {
-      ImageRepository.load(url: smallURL, into: imageView, sized: size) {
-        [weak imageView] res, _ in
-        DispatchQueue.main.async {
-          imageView?.image = res?.image
-          ImageRepository.load(url: url, into: imageView, sized: size) {
-            [weak imageView] res, _ in
-            DispatchQueue.main.async {
-              imageView?.image = res?.image
-            }
-          }
-        }
-      }
-    } else {
+    
+    func load(_ url: URL, cb: (() -> Void)? = nil) {
+      dispatchPrecondition(condition: .onQueue(.main))
       ImageRepository.load(url: url, into: imageView, sized: size) {
         [weak imageView] res, _ in
-        DispatchQueue.main.async {
-          imageView?.image = res?.image
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
+        defer { cb?() }
+        guard imageView?.tag == tag else { return }
+        imageView?.image = res?.image
       }
+    }
+    
+    guard imageView.image == nil else {
+      return load(itemURL)
+    }
+    
+    guard let placeholderURL = urlToPreload(from: item, for: size) else {
+      return load(itemURL)
+    }
+    
+    load(placeholderURL) {
+      load(itemURL)
     }
   }
 
