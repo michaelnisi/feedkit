@@ -53,11 +53,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   private var user: EntryQueueHost
   private let cache: QueueCaching
   
-  private var _owner: QueuedOwner?
-  var owner: QueuedOwner {
-    get { return _owner ?? .nobody }
-    set { _owner = newValue }
-  }
+  var owner = QueuedOwner.nobody
   
   init(user: EntryQueueHost, cache: QueueCaching, entries: [Entry]? = nil) {
     self.user = user
@@ -88,6 +84,22 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     }
   }
   
+  /// Returns the latest entries per feed in `entries`.
+  static func latest(entries: [Entry]) -> [Entry] {
+    let latestEntriesByFeeds = entries.reduce([String: Entry]()) { acc, entry in
+      let feed = entry.feed
+      guard let prev = acc[feed], prev.updated > entry.updated else {
+        var tmp = acc
+        tmp[feed] = entry
+        return tmp
+      }
+      
+      return acc
+    }
+
+    return Array(latestEntriesByFeeds.values)
+  }
+  
   override func main() {
     os_log("starting EnqueueOperation", log: User.log, type: .debug)
     
@@ -98,20 +110,31 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         // Although redundant, passing the error again for clarity.
         return done([], error)
       }
-
-      let candidates = try self.candidates.filter {
-        try !cache.isQueued($0.guid)
-      }
-
-      guard !candidates.isEmpty else {
+      
+      let qualifieds: [Entry] = try {
+        let notEnqueuedYet = try candidates.filter {
+          try !cache.isQueued($0.guid)
+        }
+        
+        // For automatic updates, not directly initiated by users, we are
+        // only accepting the latest entry per feed.
+        
+        if case .nobody = owner {
+          return EnqueueOperation.latest(entries: notEnqueuedYet)
+        }
+        
+        return notEnqueuedYet
+      }()
+      
+      guard !qualifieds.isEmpty else {
         return done([])
       }
       
-      os_log("enqueueing: %{public}@", log: User.log, type: .debug, candidates)
+      os_log("enqueueing: %{public}@", log: User.log, type: .debug, qualifieds)
 
-      entries.formUnion(user.queue.prepend(items: candidates))
+      entries.formUnion(user.queue.prepend(items: qualifieds))
       
-      let queued: [Queued] = candidates.map {
+      let queued: [Queued] = qualifieds.map {
         enqueued.append($0)
         let loc = EntryLocator(entry: $0)
         switch owner {

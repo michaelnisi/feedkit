@@ -268,6 +268,30 @@ extension UserLibraryTests {
       XCTAssertEqual(found, wanted)
     }
   }
+  
+  func testEnqueueLatest() {
+    let many = try! entriesFromFile()
+    let latest = EnqueueOperation.latest(entries: many)
+    let urls = latest.map { $0.feed }
+    let unique = Set(urls)
+    XCTAssertEqual(unique.count, urls.count, "should be unique")
+    
+    let found = latest.sorted { $0.updated > $1.updated }.map { $0.title }
+    let wanted = [
+      "Best Of: Gloria Steinem / Carrie Brownstein",
+      "Playing With Perceptions",
+      "Episode Two: Amy Schumer, Jorge Ramos, and the Search for a Lost Father",
+      "`Josh N Chuck\'s Hallowe\'en Spooky Scarefest",
+      "Mini-Episode: Lena Dunham & Emma Stone",
+      "Show 56 - Kings of Kings",
+      "Episode 19: Bite Marks",
+      "#319: And the Call Was Coming from the Basement",
+      "Update: New Normal?",
+      "Episode 12: What We Know"
+    ]
+    XCTAssertEqual(found, wanted)
+  }
+  
 }
 
 // MARK: - Queueing
@@ -291,7 +315,7 @@ extension UserLibraryTests {
     }
     
     let entries = try! entriesFromFile()
-    let entriesToQueue = Array(entries.prefix(5))
+    let entriesToQueue = Array(Set(entries.prefix(5)))
     
     do {
       let exp = expectation(description: "enqueue")
@@ -318,21 +342,8 @@ extension UserLibraryTests {
         
         switch er {
         case .missingEntries(let missing):
-          func guids(lhs: EntryLocator, rhs: EntryLocator) -> Bool  {
-            return lhs.guid!.hashValue < rhs.guid!.hashValue
-          }
-          
-          let found = missing.sorted(by: guids)
-          let wanted = entriesToQueue.map { EntryLocator(entry: $0) }.sorted(by: guids)
-          
-          XCTAssertEqual(found.count, wanted.count)
-         
-          found.enumerated().forEach { offset, a in
-            let b = wanted[offset]
-            XCTAssertEqual(a, b)
-          }
-          
-           XCTAssertEqual(found, wanted)
+          XCTAssertEqual(missing.count, 2)
+
         default:
           XCTFail("should err expectedly")
         }
@@ -377,9 +388,7 @@ extension UserLibraryTests {
       XCTAssertTrue(self.user.contains(entry: entry))
       
       try! self.user.enqueue(entries: [entry]) { error in
-        guard case .alreadyInQueue = error as! QueueError else {
-          return XCTFail("should throw expectedly")
-        }
+        XCTAssertNil(error, "should not error any longer")
       }
     }
     

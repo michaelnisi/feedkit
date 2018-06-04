@@ -247,7 +247,8 @@ extension UserLibrary: Updating {
     }
   }
   
-  // Within a background fetch we only have 30 seconds to finish.
+  // Within a background fetch we only have 30 seconds to finish. It might make
+  // sense to set the timeout for manger http requests to 20 seconds.
   
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
@@ -292,7 +293,8 @@ extension UserLibrary: Updating {
         updateComplete?(newData, error)
       }
       
-      // Routing
+      // After configuring our individual operations, we are now composing them
+      // into a dependency graph, for sequential execution.
       
       // The dependency of fetching on preparing has been satisfied by browser.
       enqueuing.addDependency(fetching)
@@ -365,18 +367,7 @@ extension UserLibrary: Queueing {
     
     op.enqueueCompletionBlock = { enqueued, error in
       self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
-      
-      let er: Error? = {
-        guard error == nil else {
-          return error
-        }
-        if enqueued.count != entries.count {
-          return QueueError.alreadyInQueue
-        }
-        return nil
-      }()
-
-      enqueueCompletionBlock?(er)
+      enqueueCompletionBlock?(error)
     }
 
     operationQueue.addOperation(op)
