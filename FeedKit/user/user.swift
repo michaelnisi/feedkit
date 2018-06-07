@@ -13,11 +13,6 @@ import os.log
 
 struct User {
   static let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
-  
-  // I guess this extra operation queue once made sense.
-  
-  // TODO: Remove extra queue
-  static let queue = OperationQueue()
 }
 
 // MARK: - Notifications

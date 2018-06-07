@@ -371,7 +371,6 @@ extension UserLibrary: Queueing {
     }
 
     operationQueue.addOperation(op)
-//    User.queue.addOperation(op)
   }
   
   public func enqueue(
