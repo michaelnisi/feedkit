@@ -11,8 +11,9 @@ import os.log
 
 extension PrepareUpdateOperation {
 
-  /// Merges `locators` with `subscriptions`, where the timestamps found in
-  /// `locators` override those in `subscriptions`.
+  /// Returns the latest locators to use for updating the queue, merging
+  /// `locators` with `subscriptions`, where the timestamps found in `locators`
+  /// override those in `subscriptions`.
   static func merge(
     _ locators: [EntryLocator],
     with subscriptions: [Subscription]) -> [EntryLocator] {

@@ -87,7 +87,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   /// - Parameters:
   ///   - locators: The locators of entries to request.
   private func request(_ locators: [EntryLocator]) throws {
-    os_log("requesting: %{public}@", log: Browse.log, type: .debug, locators)
+    os_log("%@: requesting entries: %@",
+           log: Browse.log, type: .debug, self, locators)
 
     let reload = ttl == .none
 
@@ -111,8 +112,6 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         return
       }
 
-      os_log("received payload", log: Browse.log, type: .debug)
-
       do {
         let (errors, receivedEntries) = serialize.entries(from: payload!)
         
@@ -123,8 +122,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
                  errors)
         }
         
-        os_log("received: %{public}@", log: Browse.log, type: .debug,
-               receivedEntries)
+        os_log("%@: received entries: %@",
+               log: Browse.log, type: .debug, self!, receivedEntries)
         
         guard !receivedEntries.isEmpty else {
           self?.done()

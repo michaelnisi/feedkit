@@ -116,10 +116,11 @@ final class FetchQueueOperation: FeedKitOperation {
     var accError: Error?
     
     op = browser.entries(locators, entriesBlock: { error, entries in
-      guard error == nil else {
-        accError = error
-        return
-      }
+      // TODO: Handle missing entries correctly, no need to abort
+//      guard error == nil else {
+//        accError = error
+//        return
+//      }
       
       guard !entries.isEmpty else {
         os_log("no entries", log: User.log)

@@ -76,6 +76,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   ///   - urls: The URLs of the feeds to request.
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
+    os_log("requesting feeds: %{public}@",
+           log: Browse.log, type: .debug, urls)
+    
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
     let cache = self.cache

@@ -247,9 +247,6 @@ extension UserLibrary: Updating {
     }
   }
   
-  // Within a background fetch we only have 30 seconds to finish. It might make
-  // sense to set the timeout for manger http requests to 20 seconds.
-  
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: User.log,  type: .info)
