@@ -18,11 +18,13 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   
   private(set) var error: Error?
   private(set) var feeds = Set<Feed>()
+  private(set) var redirects = Set<FeedURL>()
 
   // MARK: Callbacks
 
   var feedsBlock: ((Error?, [Feed]) -> Void)?
   var feedsCompletionBlock: ((Error?) -> Void)?
+  var redirectsBlock: (([FeedURL]) -> Void)?
 
   private var _urls: [String]?
   
@@ -66,6 +68,8 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     feedsBlock = nil
     feedsCompletionBlock = nil
     task = nil
+    
+    redirectsBlock = nil
     
     isFinished = true
   }
@@ -120,19 +124,28 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         // Handling HTTP Redirects
 
         let redirects = Entry.redirects(in: feeds)
-        var redirectedURLs = [String]()
-        for r in redirects {
-          guard let originalURL = r.originalURL else {
-            fatalError("original URL required")
+        var orginalURLsByURLs = [String: String]()
+        
+        if !redirects.isEmpty {
+          os_log("handling redirects: %{public}@", log: Browse.log, redirects)
+          
+          var redirectedURLs = [String]()
+          for r in redirects {
+            guard let originalURL = r.originalURL else {
+              fatalError("original URL required")
+            }
+            freshURLs.remove(originalURL)
+            freshURLs.insert(r.url)
+            redirectedURLs.append(originalURL)
+            
+            orginalURLsByURLs[r.url] = r.originalURL
           }
-          freshURLs.remove(originalURL)
-          freshURLs.insert(r.url)
-          redirectedURLs.append(originalURL)
-        }
-
-        if !redirectedURLs.isEmpty {
-          // TODO: Update subscriptions with redirected URL
-          try cache.remove(redirectedURLs)
+          
+          if !redirectedURLs.isEmpty {
+            try cache.remove(redirectedURLs)
+            self?.redirects = Set(redirectedURLs)
+            self?.redirectsBlock?(redirectedURLs)
+          }
         }
 
         try cache.update(feeds: feeds)
@@ -143,7 +156,31 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         
         let cachedFeeds = try cache.feeds(Array(freshURLs))
         if !cachedFeeds.isEmpty {
-          self?.submit(cachedFeeds)
+          if orginalURLsByURLs.isEmpty {
+            self?.submit(cachedFeeds)
+          } else {
+            self?.submit(cachedFeeds.map {
+              guard let originalURL = orginalURLsByURLs[$0.url] else {
+                return $0
+              }
+              // We don’t persist original URLs and our feed structs are
+              // unmutable, so we are returning a new one adding the
+              // original URL.
+              return Feed(
+                author: $0.author,
+                iTunes: $0.iTunes,
+                image: $0.image,
+                link: $0.link,
+                originalURL: originalURL,
+                summary: $0.summary,
+                title: $0.title,
+                ts: $0.ts,
+                uid: $0.uid,
+                updated: $0.updated,
+                url: $0.url
+              )
+            })
+          }
         }
         self?.done()
       } catch {

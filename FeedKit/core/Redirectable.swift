@@ -17,12 +17,7 @@ extension Redirectable {
   
   /// Filters and returns `items` with redirected URLs.
   static func redirects(in items: [Redirectable]) -> [Redirectable] {
-    return items.filter {
-      guard let originalURL = $0.originalURL, originalURL != $0.url else {
-        return false
-      }
-      return true
-    }
+    return items.filter { $0.isRedirected }
   }
   
   var isRedirected: Bool {
