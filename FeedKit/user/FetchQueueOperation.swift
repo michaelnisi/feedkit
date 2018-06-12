@@ -10,6 +10,7 @@ import Foundation
 import os.log
 
 final class FetchQueueOperation: FeedKitOperation {
+
   let browser: Browsing
   let cache: QueueCaching
   var user: UserLibrary
@@ -47,6 +48,9 @@ final class FetchQueueOperation: FeedKitOperation {
     op = nil
   }
   
+  /// Temporarily counting how often an entry has been missing.
+  private static var missingCounter = [EntryGUID : Int]()
+  
   /// Collects a list of unique GUIDs that should be removed from the queue.
   private static func guidsToDequeue(
     with entries: [Entry], for guids: [String], respecting error: Error?
@@ -63,7 +67,21 @@ final class FetchQueueOperation: FeedKitOperation {
       os_log("service unavailable: kept missing: %{public}@", log: User.log, a)
       return []
     case FeedKitError.missingEntries(let locators):
-      return Array(Set(a + locators.compactMap { $0.guid }))
+      return Array(Set(a + locators.compactMap {
+        guard let guid = $0.guid else {
+          return nil
+        }
+        
+        let count = missingCounter[guid] ?? 0
+        let next = count + 1
+        missingCounter[guid] = next
+        
+        guard next > 5 else {
+          return nil
+        }
+        
+        return guid
+      }))
     default:
       return Array(Set(a))
     }
@@ -99,6 +117,7 @@ final class FetchQueueOperation: FeedKitOperation {
       try cache.removeQueued(missing)
       for guid in missing {
         try user.queue.removeItem(with: guid.hashValue)
+        FetchQueueOperation.missingCounter.removeValue(forKey: guid)
       }
     } catch {
       os_log("could not remove missing: %{public}@", log: User.log, type: .error,
@@ -121,8 +140,12 @@ final class FetchQueueOperation: FeedKitOperation {
     do {
       try cache.removeQueued(guids)
     } catch {
-      // TODO: Take a closer look at these errors
       os_log("could not dequeue: %{public}@", log: User.log, error as CVarArg)
+      
+      // Actually, this is undefined, we should crash here, but without
+      // proper tests, we can’t do that yet.
+      
+      return entries
     }
     
     return entries.filter { !guids.contains($0.guid) }
