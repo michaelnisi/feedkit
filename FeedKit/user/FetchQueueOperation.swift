@@ -80,7 +80,7 @@ final class FetchQueueOperation: FeedKitOperation {
   ///   - error: An optional error to take into consideration.
   private func queuedEntries(
     with entries: [Entry], for guids: [String], respecting error: Error?
-    ) -> [Entry] {
+  ) -> [Entry] {
     let missing = FetchQueueOperation.guidsToDequeue(
       with: entries, for: guids, respecting: error)
     
@@ -93,17 +93,39 @@ final class FetchQueueOperation: FeedKitOperation {
       os_log("removing missing entries: %{public}@",
              log: User.log, type: .debug, String(reflecting: missing))
       
+      // Removing queued from cache first, removing items from queue very
+      // likely will throw uncritical not-in-queue errors.
+      
+      try cache.removeQueued(missing)
       for guid in missing {
         try user.queue.removeItem(with: guid.hashValue)
       }
-      
-      try cache.removeQueued(missing)
     } catch {
       os_log("could not remove missing: %{public}@", log: User.log, type: .error,
              error as CVarArg)
     }
-    
+
     return user.queue.items
+  }
+  
+  private func dequeue(redirected entries: [Entry]) -> [Entry] {
+    let guids = entries.compactMap { $0.isRedirected ? $0.guid : nil }
+    
+    guard !guids.isEmpty else {
+      return entries
+    }
+    
+    os_log("dequeuing entries of redirected feeds: %{public}@",
+           log: User.log, entries.filter { guids.contains($0.guid) })
+    
+    do {
+      try cache.removeQueued(guids)
+    } catch {
+      // TODO: Take a closer look at these errors
+      os_log("could not dequeue: %{public}@", log: User.log, error as CVarArg)
+    }
+    
+    return entries.filter { !guids.contains($0.guid) }
   }
   
   private func fetchEntries(for locators: [EntryLocator]) {
@@ -116,12 +138,8 @@ final class FetchQueueOperation: FeedKitOperation {
     var accError: Error?
     
     op = browser.entries(locators, entriesBlock: { error, entries in
-      // TODO: Handle missing entries correctly, no need to abort
-//      guard error == nil else {
-//        accError = error
-//        return
-//      }
-      
+      accError = error
+
       guard !entries.isEmpty else {
         os_log("no entries", log: User.log)
         return
@@ -138,10 +156,12 @@ final class FetchQueueOperation: FeedKitOperation {
         os_log("got entries and error: %{public}@",
                log: User.log, type: .error, String(describing: er))
       }
+      
+      let cleaned = self.dequeue(redirected: acc)
 
       let sorted: [Entry] = {
         var entriesByGuids = [String : Entry]()
-        acc.forEach { entriesByGuids[$0.guid] = $0 }
+        cleaned.forEach { entriesByGuids[$0.guid] = $0 }
         return guids.compactMap { entriesByGuids[$0] }
       }()
       

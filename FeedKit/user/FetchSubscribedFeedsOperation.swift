@@ -45,18 +45,39 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     op = nil
   }
   
-  private func update(redirected feeds: [Feed]) throws {
-    let r = feeds.filter { $0.isRedirected }
-    guard !r.isEmpty else {
+  private func resubscribe(redirected feeds: [Feed]) throws {
+    let redirects = feeds.filter { $0.isRedirected }
+    
+    guard !redirects.isEmpty else {
       return
     }
     
-    os_log("resubscribing to redirected feeds: %{public}@", log: User.log,
-           r.map {($0.originalURL, $0.url) })
+    os_log("updating redirected subscriptions: %{public}@", log: User.log,
+           redirects.map {($0.originalURL, $0.url) })
     
-    try cache.remove(urls: r.compactMap { $0.originalURL })
-    let s = r.map { Subscription(feed: $0) }
-    try cache.add(subscriptions: s)
+    var originals = [FeedURL]()
+    var resubscriptions = [Subscription]()
+    
+    for redirect in redirects {
+      guard let original = redirect.originalURL else {
+        continue
+      }
+
+      originals.append(original)
+      
+      guard !Cache.redirectedSubscriptions.contains(original) else {
+        continue
+      }
+      
+      Cache.redirectedSubscriptions.insert(original)
+
+      if original != redirect.url  {
+        resubscriptions.append(Subscription(feed: redirect))
+      }
+    }
+    
+    try cache.remove(urls: originals)
+    try cache.add(subscriptions: resubscriptions)
   }
   
   private func fetchFeeds(of subscriptions: [Subscription]) {
@@ -83,7 +104,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       }
       
       do {
-        try self.update(redirected: acc)
+        try self.resubscribe(redirected: acc)
         
         // Preventing overwriting of existing iTunes items here,
         // not sure why though.

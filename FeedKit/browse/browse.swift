@@ -21,13 +21,50 @@ struct Browse {
 /// A persistent cache for feeds and entries.
 public protocol FeedCaching {
 
+  /// Updates feeds in the cache, while new feeds are inserted.
+  ///
+  /// Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
+  /// removed. These doublets may occure, after the feed URL has changed while
+  /// the iTunes GUID stayed the same. Just inserting such a feed would result
+  /// in a unique constraint failure in the database.
+  ///
+  /// - Parameters:
+  ///   - feeds: The feeds to insert or update.
+  ///
+  /// - Throws: Skull errors originating from SQLite.
   func update(feeds: [Feed]) throws
+  
+  /// Returns feeds for `urls` or an empty array.
   func feeds(_ urls: [String]) throws -> [Feed]
 
+  /// Updates entries of cached feeds, adding new ones.
+  ///
+  /// - Parameter entries: An array of entries to be cached.
+  ///
+  /// - Throws: You cannot update entries of feeds that are not cached yet,
+  /// if you do, this method will throw `FeedKitError.feedNotCached`,
+  /// containing the respective URLs.
   func update(entries: [Entry]) throws
+  
+  /// Retrieve entries within the specified locators.
+  ///
+  /// - Parameter locators: An array of time intervals between now and the past.
+  ///
+  /// - Returns: The matching array of entries currently cached.
   func entries(within locators: [EntryLocator]) throws -> [Entry]
+  
+  /// Selects entries with matching guids.
+  ///
+  /// - Parameter guids: An array of entry identifiers.
+  ///
+  /// - Returns: An array of matching the specified guids entries.
+  ///
+  /// - Throws: Might throw database errors.
   func entries(_ guids: [String]) throws -> [Entry]
 
+  /// Removes feeds and their entries.
+  ///
+  /// - Parameter urls: The URL strings of the feeds to remove.
   func remove(_ urls: [String]) throws
 
   /// Integrates `iTunesItems` metadata.
@@ -253,7 +290,7 @@ public protocol Browsing {
   /// URLs in the first place. Having gotten hold of these later, we might
   /// integrate them here.
   func integrate(iTunesItems: [ITunesItem]) throws
-  
+
 }
 
 

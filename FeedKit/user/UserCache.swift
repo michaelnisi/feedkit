@@ -23,6 +23,9 @@ extension UserCache: SubscriptionCaching {
       return
     }
     
+    os_log("adding subscriptions: %{public}@",
+           log: Cache.log, type: .debug, subscriptions)
+    
     try queue.sync {
       let sql = [
         "BEGIN;",
@@ -40,6 +43,9 @@ extension UserCache: SubscriptionCaching {
     guard !urls.isEmpty else {
       return
     }
+    
+    os_log("removing urls: %{public}@",
+           log: Cache.log, type: .debug, urls)
     
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDelete(subscribed: urls))

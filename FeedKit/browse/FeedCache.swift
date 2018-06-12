@@ -323,17 +323,6 @@ extension FeedCache: FeedCaching {
     }
   }
 
-  /// Updates feeds in the cache, while new feeds are inserted.
-  ///
-  /// Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
-  /// removed. These doublets may occure, after the feed URL has changed while
-  /// the iTunes GUID stayed the same. Just inserting such a feed would result
-  /// in a unique constraint failure in the database.
-  ///
-  /// - Parameters:
-  ///   - feeds: The feeds to insert or update.
-  ///
-  /// - Throws: Skull errors originating from SQLite.
   public func update(feeds: [Feed]) throws {
     try update(feeds: feeds) { feed, feedID in
       return self.sqlFormatter.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
@@ -366,7 +355,6 @@ extension FeedCache: FeedCaching {
     return result
   }
 
-  /// Returns feeds for `urls` or an empty array.
   public func feeds(_ urls: [String]) throws -> [Feed] {
     return try queue.sync {
       guard let dicts = try self.feedIDs(matching: urls) else {
@@ -386,13 +374,6 @@ extension FeedCache: FeedCaching {
     return true
   }
 
-  /// Updates entries of cached feeds, adding new ones.
-  ///
-  /// - Parameter entries: An array of entries to be cached.
-  ///
-  /// - Throws: You cannot update entries of feeds that are not cached yet,
-  /// if you do, this method will throw `FeedKitError.feedNotCached`,
-  /// containing the respective URLs.
   public func update(entries: [Entry]) throws {
     guard !entries.isEmpty else {
       return
@@ -425,11 +406,6 @@ extension FeedCache: FeedCaching {
     }
   }
 
-  /// Retrieve entries within the specified locators.
-  ///
-  /// - Parameter locators: An array of time intervals between now and the past.
-  ///
-  /// - Returns: The matching array of entries currently cached.
   public func entries(within locators: [EntryLocator]) throws -> [Entry] {
     guard !locators.isEmpty else {
       return []
@@ -465,13 +441,6 @@ extension FeedCache: FeedCaching {
 
   // TODO: Cache entryIDs too (by guids)
 
-  /// Selects entries with matching guids.
-  ///
-  /// - Parameter guids: An array of entry identifiers.
-  ///
-  /// - Returns: An array of matching the specified guids entries.
-  ///
-  /// - Throws: Might throw database errors.
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
       let chunks = FeedCache.slice(elements: guids, with: 512)
@@ -489,9 +458,6 @@ extension FeedCache: FeedCaching {
     }
   }
 
-  /// Remove feeds and, respectively, their associated entries.
-  ///
-  /// - Parameter urls: The URL strings of the feeds to remove.
   public func remove(_ urls: [String]) throws {
     try queue.sync {
       guard let dicts = try self.feedIDs(matching: urls) else { return }

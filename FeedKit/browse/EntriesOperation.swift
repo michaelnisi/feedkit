@@ -132,10 +132,23 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         
         // Handling HTTP Redirects
 
-        let r = Entry.redirects(in: receivedEntries)
-        if !r.isEmpty {
-          let urls = r.map { $0.originalURL! }
-          try cache.remove(urls)
+        let redirects = Entry.redirects(in: receivedEntries)
+        var orginalURLsByURLs = [FeedURL: FeedURL]()
+
+        if !redirects.isEmpty {
+          os_log("handling redirects: %{public}@", log: Browse.log, redirects)
+          
+          let originalURLs: [FeedURL] = redirects.compactMap {
+            guard let originalURL = $0.originalURL else {
+              return nil
+            }
+            orginalURLsByURLs[$0.url] = originalURL
+            return originalURL
+          }
+          
+          if !originalURLs.isEmpty {
+            try cache.remove(originalURLs)
+          }
         }
     
         try cache.update(entries: receivedEntries)
@@ -166,8 +179,32 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         let fresh = Array(a.subtracting(b))
         
         if !fresh.isEmpty {
-          if (!fresh.isEmpty) {
+          if orginalURLsByURLs.isEmpty {
             self?.submit(fresh, error: error)
+          } else {
+            self?.submit(fresh.map {
+              guard let originalURL = orginalURLsByURLs[$0.url] else {
+                return $0
+              }
+              return Entry(
+                author: $0.author,
+                duration: $0.duration,
+                enclosure: $0.enclosure,
+                feed: $0.feed,
+                feedImage: $0.feedImage,
+                feedTitle: $0.feedTitle,
+                guid: $0.guid,
+                iTunes: $0.iTunes,
+                image: $0.image,
+                link: $0.link,
+                originalURL: originalURL,
+                subtitle: $0.subtitle,
+                summary: $0.summary,
+                title: $0.title,
+                ts: $0.ts,
+                updated: $0.updated
+              )
+            }, error: error)
           }
         } else if error != nil {
           self?.submit([], error: error)

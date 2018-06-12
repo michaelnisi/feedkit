@@ -49,6 +49,6 @@ extension Subscription: Hashable {
 
 extension Subscription: CustomStringConvertible {
   public var description: String {
-    return "Subscription { \(title ?? url) }"
+    return "Subscription: { \(title ?? "Untitled"), \(url) }"
   }
 }

@@ -12,6 +12,7 @@ import os.log
 
 struct Cache {
   static var log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
+  static var redirectedSubscriptions = Set<FeedURL>()
 }
 
 /// Wraps a value into an `NSObject`.
