@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+// TODO: Sync sort order correctly
+
 final class FetchQueueOperation: FeedKitOperation {
 
   let browser: Browsing
@@ -76,6 +78,7 @@ final class FetchQueueOperation: FeedKitOperation {
         let next = count + 1
         missingCounter[guid] = next
         
+        // Giving missing entries five chances to return.
         guard next > 5 else {
           return nil
         }
@@ -192,7 +195,7 @@ final class FetchQueueOperation: FeedKitOperation {
         os_log("appending: %{public}@", log: User.log, type: .debug,
                String(reflecting: sorted))
         
-        try self.user.queue.append(items: sorted)
+        self.user.queue = Queue(items: sorted)
       } catch {
         switch error {
         case QueueError.alreadyInQueue:
@@ -244,13 +247,14 @@ final class FetchQueueOperation: FeedKitOperation {
   }
   
   /// The sorted guids of the items in the queue.
-  private var sortedIds: [String]? {
+  private var sortedIds: [EntryGUID]? {
     didSet {
       guard let guids = sortedIds else {
+        try! cache.removeQueued()
         user.queue.removeAll()
-        try! cache.removeQueued() // redundant
         return
       }
+      
       let queuedGuids = user.queue.map { $0.guid }
       let guidsToRemove = Array(Set(queuedGuids).subtracting(guids))
       

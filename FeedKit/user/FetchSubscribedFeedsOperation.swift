@@ -45,6 +45,11 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     op = nil
   }
   
+  /// A temporary cache of orginal URLs that have been redirected. Helpful to
+  /// guard against reappearing redirects, resulting from incorrect handling in
+  /// upstream systems.
+  static var redirects = Set<FeedURL>()
+  
   private func resubscribe(redirected feeds: [Feed]) throws {
     let redirects = feeds.filter { $0.isRedirected }
     
@@ -65,11 +70,14 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
 
       originals.append(original)
       
-      guard !Cache.redirectedSubscriptions.contains(original) else {
+      // If an URL has already been redirected during this session, we avoid
+      // resubscribeing to the new URL. Fuzzy logic, but resolving a concrete
+      // issue at this moment.
+      guard !FetchSubscribedFeedsOperation.redirects.contains(original) else {
         continue
       }
       
-      Cache.redirectedSubscriptions.insert(original)
+      FetchSubscribedFeedsOperation.redirects.insert(original)
 
       if original != redirect.url  {
         resubscriptions.append(Subscription(feed: redirect))
