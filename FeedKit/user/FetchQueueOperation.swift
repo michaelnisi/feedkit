@@ -191,20 +191,27 @@ final class FetchQueueOperation: FeedKitOperation {
         return guids.compactMap { entriesByGuids[$0] }
       }()
       
-      do {
-        os_log("appending: %{public}@", log: User.log, type: .debug,
-               String(reflecting: sorted))
-        
-        self.user.queue = Queue(items: sorted)
-      } catch {
-        switch error {
-        case QueueError.alreadyInQueue:
-          os_log("already in queue", log: User.log)
-        default:
-          fatalError("unhandled error: \(error)")
+      os_log("setting new queue: %{public}@",
+             log: User.log, type: .debug, String(reflecting: sorted))
+      
+      // Getting current entry first which might be not be enqueued.
+      let prevCurrent = self.user.queue.current
+      self.user.queue = Queue(items: sorted)
+      
+      if let entry = prevCurrent {
+        do {
+          os_log("skipping queue to previous entry: %{public}@",
+                 log: User.log, type: .debug, entry.title)
+          
+          try self.user.queue.skip(to: entry)
+        } catch {
+          os_log("could not skip queue to previous entry %{public}@",
+                 log: User.log, error as CVarArg)
+          
+          // Not sure what could be done here.
         }
       }
-      
+
       let entries = self.queuedEntries(
         with: sorted, for: guids, respecting: accError ?? error)
       
