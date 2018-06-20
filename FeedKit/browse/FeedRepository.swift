@@ -138,7 +138,7 @@ extension FeedRepository: Browsing {
       return .short
     }()
 
-    // We have to aquire according feeds, before we can request their entries,
+    // We have to fetch according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds.
 
     let fetchFeeds = makeFeedsOperationDependency(locators: locators)

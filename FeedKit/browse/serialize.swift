@@ -10,6 +10,8 @@ import Foundation
 import Skull
 import os.log
 
+/// Not much logging is done here, only the two main functions serializing
+/// feed and entry payloads, for inspecting the original payloads served.
 fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "serialize")
 
 /// Returns a new URL string with lowercased scheme and host, the path remains
@@ -26,13 +28,15 @@ func lowercasedURL(string: String) -> String? {
   return c.string
 }
 
-fileprivate func feedURL(from json: [String : Any]) -> String? {
-  // TODO: Replace feed with url in fanboy
+/// Returns feed URL from `json` if is contains one. Unfortunately, *fanboy* and
+/// *manger* APIs are naming the feed URL property differently.
+fileprivate func feedURL(from json: [String : Any]) -> FeedURL? {
   guard
     let rawURL = json["url"] as? String ?? json["feed"] as? String,
     let url = lowercasedURL(string: rawURL) else {
     return nil
   }
+  
   return url
 }
 
@@ -98,8 +102,7 @@ struct serialize {
     let s = serialize.timeIntervalFromJS(ms)
     
     guard s > ts else { // > 1989
-      os_log("** ignoring date: %{public}@", log: log, type: .debug,
-             String(describing: dictionary))
+      os_log("ignoring invalid date in %{public}@", log: log, dictionary)
       return nil
     }
     
@@ -110,10 +113,10 @@ struct serialize {
   ///
   /// - Parameter json: The JSON dictionary to use.
   ///
-  /// - Returns: The newly create feed object.
+  /// - Returns: The resulting feed object from the payload.
   ///
-  /// - Throws: If the required properties `feed` and `title` are invalid, this
-  /// function throws `FeedKitError.InvalidFeed`.
+  /// - Throws: If the required properties are missing or invalid this throws
+  /// `FeedKitError.invalidFeed(reason:)`.
   static func feed(from json: [String : Any]) throws -> Feed {
     
     guard let url = feedURL(from: json) else {
@@ -168,6 +171,8 @@ struct serialize {
   /// - Throws: Doesn't throw but collects its errors and returns them in the
   /// result tuple alongside the feeds.
   static func feeds(from dicts: [[String : Any]]) -> ([Error], [Feed]) {
+    os_log("serializing feeds: %{public}@", log: log, type: .debug, dicts)
+    
     var errors = [Error]()
     let feeds = dicts.reduce([Feed]()) { acc, dict in
       do {
@@ -250,7 +255,7 @@ struct serialize {
     let summary = json["summary"] as? String
     
     var enclosure: Enclosure?
-    if let enc = json["enclosure"] as? [String:AnyObject] {
+    if let enc = json["enclosure"] as? [String : AnyObject] {
       enclosure = try serialize.enclosure(from: enc)
     }
     
@@ -282,8 +287,9 @@ struct serialize {
   
   /// Create an array of entries from a JSON payload.
   ///
-  /// - Parameter dicts: An array of—presumably—entry dictionaries.
-  /// - Parameter podcast: A flag to require an enclosure for each entry.
+  /// - Parameters:
+  ///   - dicts: An array of—presumably—entry dictionaries.
+  ///   - podcast: A flag to require an enclosure for each entry.
   ///
   /// - Returns: A tuple containing errors and entries.
   ///
@@ -291,6 +297,8 @@ struct serialize {
   /// successfully serialized and returns them, additionally it also collects
   /// the occuring errors and returns them too. May its user act wisely!
   static func entries(from dicts: [[String: Any]], podcast: Bool = true) -> ([Error], [Entry]) {
+    os_log("serializing entries: %{public}@", log: log, type: .debug, dicts)
+    
     var errors = [Error]()
     let entries = dicts.reduce([Entry]()) { acc, dict in
       do {

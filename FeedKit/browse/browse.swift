@@ -66,6 +66,11 @@ public protocol FeedCaching {
   ///
   /// - Parameter urls: The URL strings of the feeds to remove.
   func remove(_ urls: [String]) throws
+  
+  /// Removes entries matching `urls`, keeping the feeds.
+  ///
+  /// - Parameter urls: The URLs owning the entries to remove.
+  func removeEntries(matching urls: [FeedURL]) throws
 
   /// Integrates `iTunesItems` metadata.
   func integrate(iTunesItems: [ITunesItem]) throws
@@ -258,11 +263,11 @@ public protocol Browsing {
   ///   - locators: The locators for the entries to request.
   ///   - force: Force remote request ignoring the cache. As this
   /// produces load on the server, it is limited to once per hour per feed. If
-  /// you pass multiple locators, the force parameter is ignored.
+  /// you are passing multiple locators, the force parameter is ignored.
   ///
   ///   - entriesBlock: Applied zero, one, or two times passing fetched
   /// and/or cached entries. The error is currently not in use.
-  ///   - entriesError: An optional error, specific to these entries.
+  ///   - entriesError: An optional error, specific to this block.
   ///   - entries: All or some of the requested entries.
   ///
   ///   - entriesCompletionBlock: The completion block is applied when
@@ -273,8 +278,8 @@ public protocol Browsing {
   @discardableResult func entries(
     _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 
   // MARK: Semi-Internal

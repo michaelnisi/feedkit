@@ -51,9 +51,10 @@ public struct EntryLocator {
   }
   
   /// Returns a new `EntryLocator` with a modified *inclusive* `since`.
-  public var including: EntryLocator { get {
-    return EntryLocator(url: url, since: since.addingTimeInterval(-1), guid: guid)
-    }}
+  public var including: EntryLocator {
+    return EntryLocator(
+      url: url, since: since.addingTimeInterval(-1), guid: guid)
+  }
 }
 
 extension EntryLocator: Hashable {
@@ -75,16 +76,14 @@ extension EntryLocator: Equatable {
 
 extension EntryLocator : CustomStringConvertible {
   public var description: String {
-    guard let title = self.title else {
-      return """
-      EntryLocator: {
-        url: \(url),
-        guid: \(String(describing: guid)),
-        since: \(since)
-      }
-      """
+    return """
+    EntryLocator: {
+      title: \(String(describing: title)),
+      url: \(url),
+      guid: \(String(describing: guid)),
+      since: \(since)
     }
-    return "EntryLocator: { \(title) }"
+    """
   }
 }
 
@@ -117,7 +116,10 @@ extension EntryLocator {
   
   /// Removes doublets, having the same GUID, and merges locators with similar
   /// URLs into a single locator with the longest time-to-live for that URL.
-  static func reduce(_ locators: [EntryLocator], expanding: Bool = true) -> [EntryLocator] {
+  static func reduce(
+    _ locators: [EntryLocator],
+    expanding: Bool = true
+  ) -> [EntryLocator] {
     guard !locators.isEmpty else {
       return []
     }

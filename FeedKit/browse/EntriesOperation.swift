@@ -87,7 +87,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   /// - Parameters:
   ///   - locators: The locators of entries to request.
   private func request(_ locators: [EntryLocator]) throws {
-    os_log("%@: requesting entries: %@",
+    os_log("%{public}@: requesting entries: %{public}@",
            log: Browse.log, type: .debug, self, locators)
 
     let reload = ttl == .none
@@ -106,14 +106,14 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         return
       }
 
-      guard payload != nil else {
+      guard let p = payload else {
         os_log("no payload", log: Browse.log)
         self?.done()
         return
       }
 
       do {
-        let (errors, receivedEntries) = serialize.entries(from: payload!)
+        let (errors, receivedEntries) = serialize.entries(from: p)
         
         guard !me.isCancelled else { return me.done() }
 
@@ -121,14 +121,17 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
           os_log("invalid entries: %{public}@", log: Browse.log,  type: .error,
                  errors)
         }
-        
-        os_log("%@: received entries: %@",
-               log: Browse.log, type: .debug, self!, receivedEntries)
+
         
         guard !receivedEntries.isEmpty else {
+          os_log("** no entries serialized from this payload: %{public}@",
+                 log: Browse.log, p)
           self?.done()
           return
         }
+        
+        os_log("%@: received entries: %@",
+               log: Browse.log, type: .debug, self!, receivedEntries)
         
         // Handling HTTP Redirects
 
@@ -219,9 +222,34 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
     }
   }
+  
+  /// Removes all entries of a feed if time-to-live is zero and we are dealing
+  /// with a single locator specifying no guid and time restriction. There is
+  /// no fallback in this case: if the resulting request should fail, the content
+  /// is gone.
+  private func prepareCache() {
+    guard
+      locators.count == 1,
+      ttl.seconds == 0,
+      let locator = locators.first,
+      locator.guid == nil,
+      locator.since.timeIntervalSince1970 == 0 else {
+      return
+    }
+    
+    do {
+      let url = locator.url
+      os_log("trying to forcefully remove entries of %{public}@",
+             log: Browse.log, type: .debug, url)
+      try cache.removeEntries(matching: [url])
+    } catch {
+      os_log("removing entries failed: %{public}@",
+             log: Browse.log, type: .debug, error as CVarArg)
+    }
+  }
 
   override func start() {
-    os_log("starting EntriesOperation", log: Browse.log, type: .debug)
+    os_log("%{public}@: starting", log: Browse.log, type: .debug, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
@@ -231,6 +259,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
              log: Browse.log, type: .debug)
       return done(error)
     }
+    
+    prepareCache()
     
     do {
       os_log("trying cache: %{public}@", log: Browse.log, type: .debug, locators)
@@ -243,9 +273,10 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         ttl: %f,
         cached: %{public}@,
         missing: %{public}@
-      """, log: Browse.log, type: .debug,
+      """, log: Browse.log,
+           type: .debug,
            ttl.seconds,
-           cached.map { $0.url },
+           cached.map { $0.title },
            missing
       )
 

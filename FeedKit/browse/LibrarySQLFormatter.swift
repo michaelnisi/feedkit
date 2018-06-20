@@ -42,6 +42,14 @@ extension LibrarySQLFormatter {
 
 extension LibrarySQLFormatter {
   
+  static func SQLToRemoveEntries(matching feedIDs: [FeedID]) -> String? {
+    guard !feedIDs.isEmpty else { return nil }
+    let sql = "DELETE FROM entry WHERE feed_id IN(" + feedIDs.map {
+      "\($0.rowid)"
+    }.joined(separator: ", ") + ");"
+    return sql
+  }
+  
   static func SQLToSelectEntriesByEntryIDs(_ entryIDs: [Int]) -> String? {
     guard !entryIDs.isEmpty else {
       return nil
@@ -244,7 +252,7 @@ extension LibrarySQLFormatter {
     let title = SQLString(from: feed.title)
     
     if feed.updated == nil || feed.updated == Date(timeIntervalSince1970: 0) {
-      os_log("** warning: overriding date: %{public}@", type: .debug,
+      os_log("missing proper updated date in feed: %{public}@",
              String(reflecting: feed))
     }
     

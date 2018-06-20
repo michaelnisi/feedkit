@@ -80,8 +80,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   ///   - urls: The URLs of the feeds to request.
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
-    os_log("requesting feeds: %{public}@",
-           log: Browse.log, type: .debug, urls)
+    os_log("%{public}@: requesting feeds: %{public}@",
+           log: Browse.log, type: .debug, self, urls)
+
     
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
@@ -190,7 +191,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   }
 
   override func start() {
-    os_log("starting FeedsOperation", log: Browse.log, type: .debug)
+    os_log("%{public}@: starting", log: Browse.log, type: .debug, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
