@@ -118,7 +118,6 @@ struct serialize {
   /// - Throws: If the required properties are missing or invalid this throws
   /// `FeedKitError.invalidFeed(reason:)`.
   static func feed(from json: [String : Any]) throws -> Feed {
-    
     guard let url = feedURL(from: json) else {
       throw FeedKitError.invalidFeed(reason: "feed missing")
     }

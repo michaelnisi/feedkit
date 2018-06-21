@@ -122,9 +122,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
                  errors)
         }
 
-        
         guard !receivedEntries.isEmpty else {
-          os_log("** no entries serialized from this payload: %{public}@",
+          os_log("no entries serialized from this payload: %{public}@",
                  log: Browse.log, p)
           self?.done()
           return

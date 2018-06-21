@@ -12,7 +12,8 @@ import os.log
 
 public final class FeedCache: LocalCache {
   
-  private var urlCache = DateCache(ttl: CacheTTL.long.seconds)
+  /// The last time entries of an URL have been reported needed.
+  private var lastTimeNeededByURL = DateCache(ttl: CacheTTL.short.seconds)
   
   private lazy var sqlFormatter = LibrarySQLFormatter()
   
@@ -256,7 +257,6 @@ extension FeedCache: FeedCaching {
     """, log: Cache.log, type: .debug, cached, stale, needed ?? "none")
 
     assert(stale.isEmpty, "entries cannot be stale")
-  
 
     let neededLocators: [EntryLocator] = optimized.filter {
       let urls = needed ?? []
@@ -278,9 +278,8 @@ extension FeedCache: FeedCaching {
     
     // Provisionally only for single locators, we are restricting the resulting
     // needed locators to the latest we got from the cache, minimizing request
-    // frequency and response size. Without this, we rely on URLCache, which
-    // works, but using GET request results in fetching the whole feed. Feeds
-    // can be of substantial size.
+    // frequency and response size. Without this, we’d rely on URLCache, which
+    // works, but using GET requests, resulting in fetching entire feeds.
     
     if neededLocators.count == 1,
       !cached.isEmpty,
@@ -289,14 +288,7 @@ extension FeedCache: FeedCaching {
         $0.url == url }.sorted { $0.updated > $1.updated }.first),
       let ts = latest.ts {
       
-      // Replacing requested ttl with .long, once a day is fine. Maybe even that
-      // is too short, for ts only reflects the last update in the database, not
-      // the last fetch. Consider adding a temporary cache of fetch timestamps,
-      // we could additionally check here.
-      
-      let long = CacheTTL.long.seconds
-      
-      if FeedCache.stale(ts, ttl: long), urlCache.update(url) {
+      if FeedCache.stale(ts, ttl: ttl), lastTimeNeededByURL.update(url) {
         return (cached, [EntryLocator(entry: latest)])
       } else {
         return (cached, [])
