@@ -14,6 +14,8 @@ import os.log
 /// A concurrent `Operation` for accessing feeds.
 final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   
+  static var urlCache = DateCache(ttl: 3600)
+  
   // MARK: ProvidingFeeds
   
   private(set) var error: Error?
@@ -190,6 +192,24 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     }
   }
 
+  /// Returns seconds for `ttl` minding service status, etc.
+  override func makeSeconds(ttl: CacheTTL) -> TimeInterval {
+    let seconds = super.makeSeconds(ttl: ttl)
+    
+    // Guarding against excessive cache ignorance, allowing one forced refresh
+    // per day.
+    if seconds == 0 {
+      guard
+        urls.count == 1,
+        let url = urls.first,
+        FeedsOperation.urlCache.update(url) else {
+        return CacheTTL.long.defaults
+      }
+    }
+    
+    return seconds
+  }
+  
   override func start() {
     os_log("%{public}@: starting", log: Browse.log, type: .debug, self)
     
@@ -209,7 +229,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       
       let items = try cache.feeds(urls)
       let (cached, stale, needed) = FeedCache.subtract(
-        items, from: urls, with: ttl.seconds
+        items, from: urls, with: makeSeconds(ttl: ttl)
       )
 
       guard !isCancelled else { return done() }
@@ -222,7 +242,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         stale: %{public}@,
         missing: %{public}@
       """, log: Browse.log, type: .debug,
-           ttl.seconds,
+           String(describing: ttl),
            cached.map { $0.url },
            stale,
            needed ?? []

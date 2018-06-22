@@ -54,8 +54,8 @@ public enum CacheTTL {
   case long
   case forever
   
-  /// The time-to-live interval in seconds.
-  var seconds: TimeInterval {
+  /// The default interpretation in seconds.
+  var defaults: TimeInterval {
     switch self {
     case .none: return 0
     case .short: return 3600
@@ -85,21 +85,24 @@ extension CacheTTL: CustomStringConvertible {
 /// An in-memory date log.
 class DateCache {
   
-  private var dates = NSCache<NSString, NSDate>()
+  private var dates = [String : Date]()
   
   let ttl: TimeInterval
   
-  init(ttl: TimeInterval = CacheTTL.short.seconds) {
+  init(ttl: TimeInterval = CacheTTL.short.defaults) {
     self.ttl = ttl
   }
   
+  func removeAll() {
+    dates.removeAll()
+  }
+  
   /// Returns `true` if `key` has not been used or is stale.
-  func update(_ key: String) -> Bool {
-    if let prev = dates.object(forKey: key as NSString) as Date?,
-      prev.timeIntervalSinceNow < ttl {
+  @discardableResult func update(_ key: String) -> Bool {
+    if let prev = dates[key], prev.timeIntervalSinceNow < ttl {
       return false
     }
-    dates.setObject(Date() as NSDate, forKey: key as NSString)
+    dates[key] = Date()
     return true
   }
   

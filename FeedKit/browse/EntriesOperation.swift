@@ -13,6 +13,8 @@ import os.log
 
 /// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
+  
+  static var urlCache = DateCache(ttl: 3600)
 
   // MARK: ProvidingEntries
 
@@ -94,7 +96,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
     let cache = self.cache
 
-    task = try svc.entries(locators, reload: reload) {
+    task = try svc.entries(locators) {
       [weak self] error, payload in
       guard let me = self, !me.isCancelled else {
         self?.done()
@@ -229,10 +231,10 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   private func prepareCache() {
     guard
       locators.count == 1,
-      ttl.seconds == 0,
       let locator = locators.first,
       locator.guid == nil,
-      locator.since.timeIntervalSince1970 == 0 else {
+      locator.since.timeIntervalSince1970 == 0,
+      makeSeconds(ttl: ttl) == 0 else {
       return
     }
     
@@ -245,6 +247,24 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       os_log("removing entries failed: %{public}@",
              log: Browse.log, type: .debug, error as CVarArg)
     }
+  }
+  
+  /// Returns seconds for `ttl` minding service status, etc.
+  override func makeSeconds(ttl: CacheTTL) -> TimeInterval {
+    let seconds = super.makeSeconds(ttl: ttl)
+    
+    // Guarding against excessive cache ignorance, allowing one forced refresh
+    // per hour.
+    if seconds == 0 {
+      guard
+        locators.count == 1,
+        let url = locators.first?.url,
+        EntriesOperation.urlCache.update(url) else {
+        return CacheTTL.short.defaults
+      }
+    }
+    
+    return seconds
   }
 
   override func start() {
@@ -264,7 +284,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     do {
       os_log("trying cache: %{public}@", log: Browse.log, type: .debug, locators)
 
-      let (cached, missing) = try cache.fulfill(locators, ttl: ttl.seconds)
+      let (cached, missing) = try cache.fulfill(locators, ttl: makeSeconds(ttl: ttl))
 
       guard !isCancelled else { return done() }
 
@@ -274,7 +294,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         missing: %{public}@
       """, log: Browse.log,
            type: .debug,
-           ttl.seconds,
+           String(describing: ttl),
            cached.map { $0.title },
            missing
       )

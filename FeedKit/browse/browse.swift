@@ -87,7 +87,7 @@ public protocol FeedCaching {
   /// - Throws: Might throw database errors.
   func fulfill(_ locators: [EntryLocator], ttl: TimeInterval) throws
     -> ([Entry], [EntryLocator])
-
+  
 }
 
 extension FeedCaching {

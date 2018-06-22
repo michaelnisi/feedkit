@@ -250,7 +250,7 @@ final class SuggestOperation: SearchRepoOperation {
         return resume()
       }
       
-      if !FeedCache.stale(ts, ttl: ttl.seconds) {
+      if !FeedCache.stale(ts, ttl: makeSeconds(ttl: ttl)) {
         let finds = cached.map { Find.suggestedTerm($0) }
         dispatch(nil, finds: finds)
         requestRequired = false

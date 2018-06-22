@@ -174,7 +174,7 @@ final class SearchOperation: SearchRepoOperation {
         return done()
       }
       
-      let shouldRefresh = FeedCache.stale(ts, ttl: CacheTTL.long.seconds)
+      let shouldRefresh = FeedCache.stale(ts, ttl: makeSeconds(ttl: CacheTTL.long))
       
       if shouldRefresh {
         try request(cached)

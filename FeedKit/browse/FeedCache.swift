@@ -13,7 +13,7 @@ import os.log
 public final class FeedCache: LocalCache {
   
   /// The last time entries of an URL have been reported needed.
-  private var lastTimeNeededByURL = DateCache(ttl: CacheTTL.short.seconds)
+  private var lastTimeNeededByURL = DateCache(ttl: CacheTTL.short.defaults)
   
   private lazy var sqlFormatter = LibrarySQLFormatter()
   
@@ -72,6 +72,11 @@ public final class FeedCache: LocalCache {
     guard id != nil else { throw FeedKitError.feedNotCached(urls: [url]) }
 
     return cache(feedID: id!, for: url)
+  }
+  
+  public override func flush() throws {
+    try super.flush()
+    lastTimeNeededByURL.removeAll()
   }
 
 }
@@ -288,11 +293,20 @@ extension FeedCache: FeedCaching {
         $0.url == url }.sorted { $0.updated > $1.updated }.first),
       let ts = latest.ts {
       
-      if FeedCache.stale(ts, ttl: ttl), lastTimeNeededByURL.update(url) {
+      if lastTimeNeededByURL.update(url), FeedCache.stale(ts, ttl: ttl) {
+        // TODO: Move re-timestamping latest into EntriesOperation
+        try self.update(entries: [latest])
         return (cached, [EntryLocator(entry: latest)])
       } else {
         return (cached, [])
       }
+    }
+    
+    for neededLocator in neededLocators {
+      guard neededLocator.guid == nil else {
+        continue
+      }
+      lastTimeNeededByURL.update(neededLocator.url)
     }
 
     return (cached, neededLocators)
@@ -619,7 +633,7 @@ extension FeedCache: SearchCaching {
   public func feeds(for term: String, limit: Int) throws -> [Feed]? {
     return try queue.sync {
       if let ts = self.noSearch[term] {
-        if FeedCache.stale(ts, ttl: CacheTTL.long.seconds) {
+        if FeedCache.stale(ts, ttl: CacheTTL.long.defaults) {
           self.noSearch[term] = nil
           return nil
         } else {
@@ -700,7 +714,7 @@ extension FeedCache: SearchCaching {
   public func suggestions(for term: String, limit: Int) throws -> [Suggestion]? {
     return try queue.sync {
       if let (cachedTerm, ts) = FeedCache.subcached(term, dict: noSuggestions) {
-        if FeedCache.stale(ts, ttl: CacheTTL.long.seconds) {
+        if FeedCache.stale(ts, ttl: CacheTTL.long.defaults) {
           os_log("subcached expired: %{public}@",
                  log: Search.log, type: .debug, term)
           noSuggestions[cachedTerm] = nil

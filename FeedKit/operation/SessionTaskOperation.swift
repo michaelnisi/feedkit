@@ -95,5 +95,44 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
     task = nil
   }
   
+  func makeSeconds(ttl: CacheTTL) -> TimeInterval {
+    let status: OlaStatus = {
+      do {
+        return try findStatus()
+      } catch {
+        return Ola(host: client.host)?.reach() ?? .unknown
+      }
+    }()
+    
+    switch status {
+    case .cellular:
+      switch ttl {
+      case .none:
+        return 3600
+      case .short:
+        return 28800
+      case .medium:
+        return 86400
+      case .long, .forever:
+        return Double.infinity
+      }
+    case .reachable:
+      switch ttl {
+      case .none:
+        return 0
+      case .short:
+        return 3600
+      case .medium:
+        return 28800
+      case .long:
+        return 86400
+      case .forever:
+        return Double.infinity
+      }
+    case .unknown:
+      return Double.infinity
+    }
+  }
+  
 }
 

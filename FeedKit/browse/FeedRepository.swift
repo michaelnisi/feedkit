@@ -42,7 +42,7 @@ extension FeedRepository: Browsing {
 
     try cache.integrate(iTunesItems: iTunesItems)
   }
-
+  
   public func feeds(
     _ urls: [String],
     ttl: CacheTTL,
@@ -128,16 +128,6 @@ extension FeedRepository: Browsing {
     entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    let ttl: CacheTTL = {
-      if force,
-        locators.count == 1,
-        let uri = locators.first?.url,
-        self.isEnforceable(uri) {
-        return .none
-      }
-      return .short
-    }()
-
     // We have to fetch according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds.
 
@@ -145,7 +135,7 @@ extension FeedRepository: Browsing {
 
     let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
 
-    fetchEntries.ttl = ttl
+    fetchEntries.ttl = force ? .none : .short
 
     fetchEntries.entriesBlock = entriesBlock
     fetchEntries.entriesCompletionBlock = entriesCompletionBlock
