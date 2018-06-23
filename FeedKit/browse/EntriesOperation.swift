@@ -14,7 +14,8 @@ import os.log
 /// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
   
-  static var urlCache = DateCache(ttl: 3600)
+  /// URLs that have been reloaded ignoring the cache in the last hour.
+  static var ignorants = DateCache(ttl: 3600)
 
   // MARK: ProvidingEntries
 
@@ -68,6 +69,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   private func done(_ error: Error? = nil) {
     let er: Error? = {
       guard !isCancelled else {
+        os_log("%{public}@: cancelled", log: Browse.log, type: .debug, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
@@ -92,11 +94,10 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     os_log("%{public}@: requesting entries: %{public}@",
            log: Browse.log, type: .debug, self, locators)
 
-    let reload = ttl == .none
-
     let cache = self.cache
+    let policy = recommend(for: ttl)
 
-    task = try svc.entries(locators) {
+    task = try svc.entries(locators, cachePolicy: policy.http) {
       [weak self] error, payload in
       guard let me = self, !me.isCancelled else {
         self?.done()
@@ -109,7 +110,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       guard let p = payload else {
-        os_log("no payload", log: Browse.log)
+        os_log("%{public}@: no payload", log: Browse.log, me)
         self?.done()
         return
       }
@@ -120,19 +121,19 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         guard !me.isCancelled else { return me.done() }
 
         if !errors.isEmpty {
-          os_log("invalid entries: %{public}@", log: Browse.log,  type: .error,
-                 errors)
+          os_log("%{public}@: invalid entries: %{public}@",
+                 log: Browse.log,  type: .error, me, errors)
         }
 
         guard !receivedEntries.isEmpty else {
-          os_log("no entries serialized from this payload: %{public}@",
-                 log: Browse.log, p)
+          os_log("%{public}@: no entries serialized from this payload: %{public}@",
+                 log: Browse.log, me, p)
           self?.done()
           return
         }
         
-        os_log("%@: received entries: %@",
-               log: Browse.log, type: .debug, self!, receivedEntries)
+        os_log("%{public}@: received entries: %{public}@",
+               log: Browse.log, type: .debug, me, receivedEntries)
         
         // Handling HTTP Redirects
 
@@ -140,7 +141,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         var orginalURLsByURLs = [FeedURL: FeedURL]()
 
         if !redirects.isEmpty {
-          os_log("handling redirects: %{public}@", log: Browse.log, redirects)
+          os_log("%{public}@: handling redirects: %{public}@",
+                 log: Browse.log, me, redirects)
           
           let originalURLs: [FeedURL] = redirects.compactMap {
             guard let originalURL = $0.originalURL else {
@@ -216,7 +218,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
         self?.done()
       } catch FeedKitError.feedNotCached(let urls) {
-        os_log("feeds not cached: %{public}@", log: Browse.log, urls)
+        os_log("%{public}@: feeds not cached: %{public}@",
+               log: Browse.log, me, urls)
         self?.done()
       } catch {
         self?.done(error)
@@ -234,37 +237,45 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       let locator = locators.first,
       locator.guid == nil,
       locator.since.timeIntervalSince1970 == 0,
-      makeSeconds(ttl: ttl) == 0 else {
+      recommend(for: ttl).ttl == 0 else {
       return
     }
     
     do {
       let url = locator.url
-      os_log("trying to forcefully remove entries of %{public}@",
-             log: Browse.log, type: .debug, url)
+      os_log("%{public}@: trying to forcefully remove entries of %{public}@",
+             log: Browse.log, type: .debug, self, url)
       try cache.removeEntries(matching: [url])
     } catch {
-      os_log("removing entries failed: %{public}@",
-             log: Browse.log, type: .debug, error as CVarArg)
+      os_log("%{public}@: removing entries failed: %{public}@",
+             log: Browse.log, type: .debug, self, error as CVarArg)
     }
   }
   
-  /// Returns seconds for `ttl` minding service status, etc.
-  override func makeSeconds(ttl: CacheTTL) -> TimeInterval {
-    let seconds = super.makeSeconds(ttl: ttl)
+  private var shouldUseURLCache: Bool {
+    guard locators.count == 1, let l = locators.first, l.guid == nil else {
+      return false
+    }
+    return true
+  }
+  
+  override func recommend(for ttl: CacheTTL) -> CachePolicy {
+    let p = super.recommend(for: ttl)
     
     // Guarding against excessive cache ignorance, allowing one forced refresh
     // per hour.
-    if seconds == 0 {
+    
+    if p.ttl == 0 {
       guard
         locators.count == 1,
         let url = locators.first?.url,
-        EntriesOperation.urlCache.update(url) else {
-        return CacheTTL.short.defaults
+        EntriesOperation.ignorants.update(url) else {
+        return CachePolicy(
+          ttl: CacheTTL.short.defaults, http: .useProtocolCachePolicy)
       }
     }
     
-    return seconds
+    return p
   }
 
   override func start() {
@@ -274,27 +285,32 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     isExecuting = true
     
     guard error == nil, !locators.isEmpty else {
-      os_log("aborting EntriesOperation: no locators provided",
-             log: Browse.log, type: .debug)
+      os_log("%{public}@: aborting: no locators provided",
+             log: Browse.log, type: .debug, self)
       return done(error)
     }
     
     prepareCache()
     
     do {
-      os_log("trying cache: %{public}@", log: Browse.log, type: .debug, locators)
+      os_log("%{public}@: trying cache: %{public}@",
+             log: Browse.log, type: .debug, self, locators)
 
-      let (cached, missing) = try cache.fulfill(locators, ttl: makeSeconds(ttl: ttl))
+      let policy = recommend(for: ttl)
+      let (cached, missing) = try cache.fulfill(locators, ttl: policy.ttl)
 
       guard !isCancelled else { return done() }
 
       os_log("""
+      %{public}@: (
         ttl: %f,
         cached: %{public}@,
         missing: %{public}@
+      )
       """, log: Browse.log,
            type: .debug,
-           String(describing: ttl),
+           self,
+           policy.ttl,
            cached.map { $0.title },
            missing
       )

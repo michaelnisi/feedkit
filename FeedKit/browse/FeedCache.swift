@@ -12,33 +12,28 @@ import os.log
 
 public final class FeedCache: LocalCache {
   
-  /// The last time entries of an URL have been reported needed.
-  private var lastTimeNeededByURL = DateCache(ttl: CacheTTL.short.defaults)
-  
   private lazy var sqlFormatter = LibrarySQLFormatter()
   
   // Access these caches is not synchronized, be aware that this only works,
   // if our users run exactly ONE search operation at a time.
 
-  // TODO: Replace noSuggestions Dictionary with NSCache
-  fileprivate var noSuggestions = [String : Date]()
+  private var noSuggestions = [String : Date]()
 
-  // TODO: Replace noSearch Dictionary with NSCache
-  fileprivate var noSearch = [String : Date]()
+  private var noSearch = [String : Date]()
 
-  fileprivate var feedIDsCache = NSCache<NSString, ValueObject<FeedID>>()
+  private var feedIDsCache = NSCache<NSString, ValueObject<FeedID>>()
 
-  fileprivate func cachedFeedID(for url: String) -> FeedID? {
+  private func cachedFeedID(for url: String) -> FeedID? {
     return feedIDsCache.object(forKey: url as NSString)?.value
   }
 
-  fileprivate func cache(feedID: FeedID, for url: String) -> FeedID {
+  private func cache(feedID: FeedID, for url: String) -> FeedID {
     let obj = ValueObject<FeedID>(feedID)
     feedIDsCache.setObject(obj, forKey: url as NSString)
     return feedID
   }
 
-  fileprivate func removeFeedID(for url: String) {
+  private func removeFeedID(for url: String) {
     feedIDsCache.removeObject(forKey: url as NSString)
   }
 
@@ -76,7 +71,8 @@ public final class FeedCache: LocalCache {
   
   public override func flush() throws {
     try super.flush()
-    lastTimeNeededByURL.removeAll()
+    noSearch.removeAll()
+    noSuggestions.removeAll()
   }
 
 }
@@ -262,6 +258,15 @@ extension FeedCache: FeedCaching {
     """, log: Cache.log, type: .debug, cached, stale, needed ?? "none")
 
     assert(stale.isEmpty, "entries cannot be stale")
+    
+    // Forcing URLCache appliance, further downstream, for unspecific single
+    // locators if ttl isn’t unlimited.
+    
+    if ttl != .infinity, optimized.count == 1, optimized.first?.guid == nil {
+      return (cached, optimized)
+    }
+    
+    // Moving on...
 
     let neededLocators: [EntryLocator] = optimized.filter {
       let urls = needed ?? []
@@ -286,28 +291,19 @@ extension FeedCache: FeedCaching {
     // frequency and response size. Without this, we’d rely on URLCache, which
     // works, but using GET requests, resulting in fetching entire feeds.
     
-    if neededLocators.count == 1,
-      !cached.isEmpty,
-      let url = neededLocators.first?.url,
-      let latest = (cached.filter {
-        $0.url == url }.sorted { $0.updated > $1.updated }.first),
-      let ts = latest.ts {
-      
-      if lastTimeNeededByURL.update(url), FeedCache.stale(ts, ttl: ttl) {
-        // TODO: Move re-timestamping latest into EntriesOperation
-        try self.update(entries: [latest])
-        return (cached, [EntryLocator(entry: latest)])
-      } else {
-        return (cached, [])
-      }
-    }
-    
-    for neededLocator in neededLocators {
-      guard neededLocator.guid == nil else {
-        continue
-      }
-      lastTimeNeededByURL.update(neededLocator.url)
-    }
+//    if neededLocators.count == 1,
+//      !cached.isEmpty,
+//      let url = neededLocators.first?.url,
+//      let latest = (cached.filter {
+//        $0.url == url }.sorted { $0.updated > $1.updated }.first),
+//      let ts = latest.ts {
+//
+//      if FeedCache.stale(ts, ttl: ttl) {
+//        return (cached, [EntryLocator(entry: latest)])
+//      } else {
+//        return (cached, [])
+//      }
+//    }
 
     return (cached, neededLocators)
   }

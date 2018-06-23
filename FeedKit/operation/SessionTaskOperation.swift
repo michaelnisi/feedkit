@@ -27,6 +27,11 @@ public extension Notification.Name {
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
 
+  struct CachePolicy {
+    let ttl: TimeInterval
+    let http: NSURLRequest.CachePolicy
+  }
+  
   let client: JSONService
   
   init(client: JSONService) {
@@ -35,21 +40,8 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   
   /// Returns `true` if the remote `service` is reachable – and OK or if its
   /// last known error occured longer than 300 seconds ago,
-  var isAvailable: Bool {
-    let reachability: OlaStatus? = {
-      do {
-        return try findStatus()
-      } catch {
-        os_log("checking reachability: could not find status in dependencies")
-        return Ola(host: client.host)?.reach()
-      }
-    }()
-
-    guard let r = reachability else {
-      return true
-    }
-    
-    switch r {
+  lazy var isAvailable: Bool = {
+    switch status {
     case .cellular, .reachable:
       if let (_, ts) = client.status {
         return Date().timeIntervalSince1970 - ts > 300
@@ -59,19 +51,10 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
     case .unknown:
       return false
     }
-  }
+  }()
   
-  private var _ttl = CacheTTL.long
-
   /// The maximal age, `CacheTTL.long` by default, of cached items.
-  var ttl: CacheTTL {
-    get {
-      return isAvailable ? _ttl : .forever
-    }
-    set {
-      _ttl = newValue
-    }
-  }
+  var ttl = CacheTTL.long
   
   /// Posts `name` to the default notifcation center.
   func post(name: NSNotification.Name) {
@@ -95,42 +78,47 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
     task = nil
   }
   
-  func makeSeconds(ttl: CacheTTL) -> TimeInterval {
-    let status: OlaStatus = {
-      do {
-        return try findStatus()
-      } catch {
-        return Ola(host: client.host)?.reach() ?? .unknown
-      }
-    }()
-    
+  lazy var status: OlaStatus = {
+    do {
+      return try findStatus()
+    } catch {
+      return Ola(host: client.host)?.reach() ?? .unknown
+    }
+  }()
+  
+  /// Recommends a relative cache policy for `ttl`.
+  ///
+  /// - Parameter ttl: The cache wanted caching time-to-live.
+  ///
+  /// - Returns: The recommended cache policy.
+  func recommend(for ttl: CacheTTL) -> CachePolicy {
     switch status {
     case .cellular:
       switch ttl {
       case .none:
-        return 3600
+        return CachePolicy(ttl: 3600, http: .returnCacheDataElseLoad)
       case .short:
-        return 28800
+        return CachePolicy(ttl: 28800, http: .returnCacheDataElseLoad)
       case .medium:
-        return 86400
+        return CachePolicy(ttl: 86400, http: .returnCacheDataElseLoad)
       case .long, .forever:
-        return Double.infinity
+        return CachePolicy(ttl: Double.infinity, http: .returnCacheDataElseLoad)
       }
     case .reachable:
       switch ttl {
       case .none:
-        return 0
+        return CachePolicy(ttl: 0, http: .reloadIgnoringLocalCacheData)
       case .short:
-        return 3600
+        return CachePolicy(ttl: 3600, http: .useProtocolCachePolicy)
       case .medium:
-        return 28800
+        return CachePolicy(ttl: 28800, http: .useProtocolCachePolicy)
       case .long:
-        return 86400
+        return CachePolicy(ttl: 86400, http: .useProtocolCachePolicy)
       case .forever:
-        return Double.infinity
+        return CachePolicy(ttl: Double.infinity, http: .returnCacheDataElseLoad)
       }
     case .unknown:
-      return Double.infinity
+      return CachePolicy(ttl: Double.infinity, http: .useProtocolCachePolicy)
     }
   }
   

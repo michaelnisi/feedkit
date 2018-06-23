@@ -59,6 +59,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   private func done(_ error: Error? = nil) {
     let er: Error? = {
       guard !isCancelled else {
+        os_log("%{public}@: cancelled", log: Browse.log, type: .debug, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
@@ -89,8 +90,10 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
     let cache = self.cache
+    let policy = recommend(for: ttl)
 
-    task = try svc.feeds(queries) { [weak self] error, payload in
+    task = try svc.feeds(queries, cachePolicy: policy.http) {
+      [weak self] error, payload in
       guard let me = self, !me.isCancelled else {
         self?.done()
         return
@@ -192,22 +195,23 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     }
   }
 
-  /// Returns seconds for `ttl` minding service status, etc.
-  override func makeSeconds(ttl: CacheTTL) -> TimeInterval {
-    let seconds = super.makeSeconds(ttl: ttl)
+  override func recommend(for: CacheTTL) -> CachePolicy {
+    let p = super.recommend(for: ttl)
     
     // Guarding against excessive cache ignorance, allowing one forced refresh
     // per day.
-    if seconds == 0 {
+    
+    if p.ttl == 0 {
       guard
         urls.count == 1,
         let url = urls.first,
         FeedsOperation.urlCache.update(url) else {
-        return CacheTTL.long.defaults
+        return CachePolicy(
+          ttl: CacheTTL.long.defaults, http: .useProtocolCachePolicy)
       }
     }
     
-    return seconds
+    return p
   }
   
   override func start() {
@@ -217,19 +221,19 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
     isExecuting = true
 
     guard error == nil, !urls.isEmpty else {
-      os_log("aborting FeedsOperation: no URLs provided",
-             log: Browse.log, type: .debug)
+      os_log("%{public}@: aborting: no URLs provided",
+             log: Browse.log, type: .debug, self)
       return done(error)
     }
     
     do {
-      os_log("""
-        trying cache: %{public}@
-      """, log: Browse.log, type: .debug, urls)
+      os_log("%{public}@: trying cache: %{public}@",
+             log: Browse.log, type: .debug, self, urls)
       
       let items = try cache.feeds(urls)
+      let policy = recommend(for: ttl)
       let (cached, stale, needed) = FeedCache.subtract(
-        items, from: urls, with: makeSeconds(ttl: ttl)
+        items, from: urls, with: policy.ttl
       )
 
       guard !isCancelled else { return done() }
@@ -237,12 +241,15 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
       // Why, compared to EntriesOperation, is needed optional?
       
       os_log("""
+      %{public}@: (
         ttl: %f,
         cached: %{public}@,
         stale: %{public}@,
         missing: %{public}@
+      )
       """, log: Browse.log, type: .debug,
-           String(describing: ttl),
+           self,
+           policy.ttl,
            cached.map { $0.url },
            stale,
            needed ?? []

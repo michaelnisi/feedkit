@@ -174,7 +174,8 @@ final class SearchOperation: SearchRepoOperation {
         return done()
       }
       
-      let shouldRefresh = FeedCache.stale(ts, ttl: makeSeconds(ttl: CacheTTL.long))
+      let policy = recommend(for: CacheTTL.long)
+      let shouldRefresh = FeedCache.stale(ts, ttl: policy.ttl)
       
       if shouldRefresh {
         try request(cached)
