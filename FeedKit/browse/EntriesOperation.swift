@@ -157,6 +157,11 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
           }
         }
     
+        if let url = me.singlyForced {
+          os_log("%{public}@: ** replacing entries: %{public}@",
+                 log: Browse.log, type: .debug, me, url)
+          try cache.removeEntries(matching: [url])
+        }
         try cache.update(entries: receivedEntries)
         
         guard !me.isCancelled else { return me.done() }
@@ -227,37 +232,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     }
   }
   
-  /// Removes all entries of a feed if time-to-live is zero and we are dealing
-  /// with a single locator specifying no guid and time restriction. There is
-  /// no fallback in this case: if the resulting request should fail, the content
-  /// is gone.
-  private func prepareCache() {
-    guard
-      locators.count == 1,
-      let locator = locators.first,
-      locator.guid == nil,
-      locator.since.timeIntervalSince1970 == 0,
-      recommend(for: ttl).ttl == 0 else {
-      return
-    }
-    
-    do {
-      let url = locator.url
-      os_log("%{public}@: trying to forcefully remove entries of %{public}@",
-             log: Browse.log, type: .debug, self, url)
-      try cache.removeEntries(matching: [url])
-    } catch {
-      os_log("%{public}@: removing entries failed: %{public}@",
-             log: Browse.log, type: .debug, self, error as CVarArg)
-    }
-  }
-  
-  private var shouldUseURLCache: Bool {
-    guard locators.count == 1, let l = locators.first, l.guid == nil else {
-      return false
-    }
-    return true
-  }
+  private var singlyForced: FeedURL?
   
   override func recommend(for ttl: CacheTTL) -> CachePolicy {
     let p = super.recommend(for: ttl)
@@ -290,13 +265,16 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       return done(error)
     }
     
-    prepareCache()
+    let policy = recommend(for: ttl)
+    
+    if policy.ttl == 0, locators.count == 1, let l = locators.first, l.guid == nil {
+      singlyForced = l.url
+    }
     
     do {
       os_log("%{public}@: trying cache: %{public}@",
              log: Browse.log, type: .debug, self, locators)
 
-      let policy = recommend(for: ttl)
       let (cached, missing) = try cache.fulfill(locators, ttl: policy.ttl)
 
       guard !isCancelled else { return done() }
