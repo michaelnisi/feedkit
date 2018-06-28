@@ -54,7 +54,7 @@ public enum CacheTTL {
   case long
   case forever
   
-  /// The default interpretation in seconds.
+  /// The default interpretation of this time interval in seconds.
   var defaults: TimeInterval {
     switch self {
     case .none: return 0

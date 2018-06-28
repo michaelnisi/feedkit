@@ -92,7 +92,7 @@ extension FeedCacheTests {
   
   func testMissingEntriesInCache() {
     let url = "http://abc.de"
-    let age = CacheTTL.forever.seconds
+    let age = CacheTTL.forever.defaults
     
     do {
       let locators = [EntryLocator]()
