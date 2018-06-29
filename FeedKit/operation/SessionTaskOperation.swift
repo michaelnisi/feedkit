@@ -96,12 +96,14 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
     case .cellular:
       switch ttl {
       case .none:
-        return CachePolicy(ttl: 3600, http: .returnCacheDataElseLoad)
+        return CachePolicy(ttl: 0, http: .useProtocolCachePolicy)
       case .short:
-        return CachePolicy(ttl: 28800, http: .returnCacheDataElseLoad)
+        return CachePolicy(ttl: 3600 * 3, http: .returnCacheDataElseLoad)
       case .medium:
-        return CachePolicy(ttl: 86400, http: .returnCacheDataElseLoad)
-      case .long, .forever:
+        return CachePolicy(ttl: 28800 * 3, http: .returnCacheDataElseLoad)
+      case .long:
+        return CachePolicy(ttl: 86400 * 3, http: .returnCacheDataElseLoad)
+      case .forever:
         return CachePolicy(ttl: Double.infinity, http: .returnCacheDataElseLoad)
       }
     case .reachable:
