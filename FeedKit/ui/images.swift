@@ -43,18 +43,20 @@ public protocol Images {
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
   ///   - quality: The expected image quality.
-  func loadImage(for item: Imaginable,
-                 into imageView: UIImageView,
-                 quality: ImageQuality?)
-
+  func loadImage(
+    for item: Imaginable,
+    into imageView: UIImageView,
+    quality: ImageQuality?
+  )
 
   /// Prefetches images of `items`, preheating the image cache.
   ///
   /// - Returns: The resulting image requests, these can be used to cancel
   /// this prefetching batch.
-  func prefetchImages(for items: [Imaginable],
-                      at size: CGSize,
-                      quality: ImageQuality
+  func prefetchImages(
+    for items: [Imaginable],
+    at size: CGSize,
+    quality: ImageQuality
   ) -> [ImageRequest]
 
   /// Cancels prefetching `requests`.
@@ -62,6 +64,9 @@ public protocol Images {
 
   /// Synchronously loads an image for the specificied item and size.
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
+  
+  /// Flushes memory cache.
+  func flush()
   
 }
 
@@ -72,7 +77,7 @@ fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
   return CGSize(width: w, height: h)
 }
 
-// MARK: -
+// MARK: - Image Processing
 
 private struct ScaledWithRoundedCorners: ImageProcessing {
 
@@ -102,9 +107,29 @@ private struct ScaledWithRoundedCorners: ImageProcessing {
     return rounded
   }
 
-  static func ==(lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
+  static func ==(
+    lhs: ScaledWithRoundedCorners,
+    rhs: ScaledWithRoundedCorners
+  ) -> Bool {
     return lhs.size == rhs.size
   }
+}
+
+/// Initializing the same URLs over and over making not much sense, here’s a
+/// temporary in-memory cache of URLs, mapped by URL strings as keys.
+private var urls = [String: URL]()
+private func cache(url: URL, for string: String) {
+  urls[string] = url
+}
+private func cachedURL(string: String) -> URL? {
+  guard let url = urls[string] else {
+    if let fresh = URL(string: string) {
+      cache(url: fresh, for: string)
+      return fresh
+    }
+    return nil
+  }
+  return url
 }
 
 /// Picks and returns the optimal image URL for `size`.
@@ -138,7 +163,7 @@ fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
     urlString = urlString ?? item.image
   }
 
-  guard let string = urlString, let url = URL(string: string) else {
+  guard let string = urlString, let url = cachedURL(string: string) else {
     os_log("no image URL", log: log, type: .error)
     return nil
   }
@@ -157,7 +182,7 @@ private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
   if let image = item.image { urlStrings.append(image) }
   
   for urlString in urlStrings {
-    guard let url = URL(string: urlString) else {
+    guard let url = cachedURL(string: urlString) else {
       continue
     }
     let req = ImageRequest(url: url)
@@ -173,6 +198,53 @@ private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 /// Provides images. Images are cached, including their rounded corners, making
 /// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
+  
+  public func flush() {
+    urls.removeAll()
+    // The Nuke image cache utomatically removes all stored elements when it
+    // received a memory warning. It also automatically removes most of cached
+    // elements when the app enters background.
+  }
+  
+  init() {
+    let pipeline = ImagePipeline {
+      // Shared image cache with a `sizeLimit` equal to ~20% of available RAM.
+      $0.imageCache = ImageCache.shared
+      
+      // Data loader with a `URLSessionConfiguration.default` but with a
+      // custom shared URLCache instance:
+      //
+      // public static let sharedUrlCache = URLCache(
+      //     memoryCapacity: 0,
+      //     diskCapacity: 150 * 1024 * 1024, // 150 MB
+      //     diskPath: "com.github.kean.Nuke.Cache"
+      //  )
+      let config = URLSessionConfiguration.default
+      config.urlCache = nil
+      $0.dataLoader = DataLoader(configuration: config)
+      
+      // Custom disk cache is disabled by default, the native URL cache used
+      // by a `DataLoader` is used instead.
+      $0.dataCache = try! DataCache(name: "ink.codes.podest.images") { name in
+        return String(djb2Hash32(string: name))
+      }
+      
+      // Each stage is executed on a dedicated queue with has its own limits.
+      $0.dataLoadingQueue.maxConcurrentOperationCount = 6
+      $0.imageDecodingQueue.maxConcurrentOperationCount = 1
+      $0.imageProcessingQueue.maxConcurrentOperationCount = 2
+      
+      // Combine the requests for the same original image into one.
+      $0.isDeduplicationEnabled = true
+      
+      // Progressive decoding is a resource intensive feature so it is
+      // disabled by default.
+      $0.isProgressiveDecodingEnabled = false
+    }
+    
+    // When you're done you can make the pipeline a shared one:
+    ImagePipeline.shared = pipeline
+  }
   
   public static var shared: Images = ImageRepository()
 
@@ -215,11 +287,11 @@ public final class ImageRepository: Images {
     sized size: CGSize,
     cb: @escaping ImageTask.Completion
   ) {
-    var urlReq = URLRequest(url: url)
-    urlReq.cachePolicy = .returnCacheDataElseLoad
-
-    let proc = ScaledWithRoundedCorners(size: size)
-    let req = ImageRequest(urlRequest: urlReq).processed(with: proc)
+    let req = ImageRequest(
+      url: url,
+      targetSize: size,
+      contentMode: .aspectFill
+    ).processed(with: ScaledWithRoundedCorners(size: size))
 
     guard let v = view else { return }
 

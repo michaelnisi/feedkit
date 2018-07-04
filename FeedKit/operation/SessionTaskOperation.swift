@@ -54,7 +54,7 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   }()
   
   /// The maximal age, `CacheTTL.long` by default, of cached items.
-  var ttl = CacheTTL.long
+  var ttl: CacheTTL = .long
   
   /// Posts `name` to the default notifcation center.
   func post(name: NSNotification.Name) {
