@@ -62,6 +62,9 @@ public protocol Images {
   /// Cancels prefetching `requests`.
   func cancel(prefetching requests: [ImageRequest])
 
+  /// Cancels request associated with `view`.
+  func cancel(displaying view: UIImageView)
+
   /// Synchronously loads an image for the specificied item and size.
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
   
@@ -198,6 +201,10 @@ private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
 /// Provides images. Images are cached, including their rounded corners, making
 /// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
+  
+  public func cancel(displaying view: UIImageView) {
+    Nuke.cancelRequest(for: view)
+  }
   
   public func flush() {
     urls.removeAll()
