@@ -118,100 +118,9 @@ private struct ScaledWithRoundedCorners: ImageProcessing {
   }
 }
 
-/// Initializing the same URLs over and over making not much sense, here’s a
-/// temporary in-memory cache of URLs, mapped by URL strings as keys.
-private var urls = [String: URL]()
-private func cache(url: URL, for string: String) {
-  urls[string] = url
-}
-private func cachedURL(string: String) -> URL? {
-  guard let url = urls[string] else {
-    if let fresh = URL(string: string) {
-      cache(url: fresh, for: string)
-      return fresh
-    }
-    return nil
-  }
-  return url
-}
-
-/// Picks and returns the optimal image URL for `size`.
-///
-/// - Parameters:
-///   - item: The image URL container.
-///   - size: The size to choose an URL for.
-///
-/// - Returns: An image URL or `nil` if the item doesn’t contain one of the
-/// expected URLs.
-fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
-  let wanted = size.width * UIScreen.main.scale
-
-  var urlString: String?
-
-  if wanted <= 30 {
-    urlString = item.iTunes?.img30
-  } else if wanted <= 60 {
-    urlString = item.iTunes?.img60
-  } else if wanted <= 100 {
-    urlString = item.iTunes?.img100
-  } else {
-    urlString = item.iTunes?.img600
-  }
-
-  if urlString == nil {
-    os_log("falling back on LARGE image", log: log)
-    if let entry = item as? Entry {
-      urlString = entry.feedImage
-    }
-    urlString = urlString ?? item.image
-  }
-
-  guard let string = urlString, let url = cachedURL(string: string) else {
-    os_log("no image URL", log: log, type: .error)
-    return nil
-  }
-
-  return url
-}
-
-/// Returns an URL adequate for placeholding.
-private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
-  guard let iTunes = item.iTunes else {
-    os_log("aborting: no iTunes", log: log, type: .debug)
-    return nil
-  }
-  
-  var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
-  if let image = item.image { urlStrings.append(image) }
-  
-  for urlString in urlStrings {
-    guard let url = cachedURL(string: urlString) else {
-      continue
-    }
-    let req = ImageRequest(url: url)
-    if Nuke.ImageCache.shared.cachedResponse(for: req) != nil {
-      return url
-    }
-  }
-  
-  let s = min(size.width / 4, 100) / UIScreen.main.scale
-  return urlToLoad(from: item, for: CGSize(width: s, height: s))
-}
-
 /// Provides images. Images are cached, including their rounded corners, making
 /// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
-  
-  public func cancel(displaying view: UIImageView) {
-    Nuke.cancelRequest(for: view)
-  }
-  
-  public func flush() {
-    urls.removeAll()
-    // The Nuke image cache utomatically removes all stored elements when it
-    // received a memory warning. It also automatically removes most of cached
-    // elements when the app enters background.
-  }
   
   init() {
     let pipeline = ImagePipeline {
@@ -256,6 +165,21 @@ public final class ImageRepository: Images {
   public static var shared: Images = ImageRepository()
 
   fileprivate let preheater = Nuke.ImagePreheater()
+  
+  public func cancel(displaying view: UIImageView) {
+    Nuke.cancelRequest(for: view)
+  }
+  
+  /// A thread-safe temporary cache for URL objects.
+  private var urls = NSCache<NSString, NSURL>()
+  
+  public func flush() {
+    urls.removeAllObjects()
+    
+    // The Nuke image cache automatically removes all stored elements when it
+    // received a memory warning. It also automatically removes most of cached
+    // elements when the app enters background.
+  }
 
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
     os_log("synchronously loading image: %{public}@, %{public}@",
@@ -371,6 +295,90 @@ public final class ImageRepository: Images {
   public func loadImage(for item: Imaginable, into imageView: UIImageView) {
     loadImage(for: item, into: imageView, quality: .high)
   }
+}
+
+// MARK: - Choosing and Caching URLs
+
+extension ImageRepository {
+  
+  /// Returns a cached URL for `string` creating and caching new URLs.
+  ///
+  /// - Returns: Returns a valid URL or `nil`.
+  private func cachedURL(string: String) -> URL? {
+    guard let url = urls.object(forKey: string as NSString) as URL? else {
+      if let fresh = URL(string: string) {
+        urls.setObject(fresh as NSURL, forKey: string as NSString)
+        return fresh
+      }
+      return nil
+    }
+    
+    return url
+  }
+  
+  /// Picks and returns the optimal image URL for `size`.
+  ///
+  /// - Parameters:
+  ///   - item: The image URL container.
+  ///   - size: The size to choose an URL for.
+  ///
+  /// - Returns: An image URL or `nil` if the item doesn’t contain one of the
+  /// expected URLs.
+  fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
+    let wanted = size.width * UIScreen.main.scale
+    
+    var urlString: String?
+    
+    if wanted <= 30 {
+      urlString = item.iTunes?.img30
+    } else if wanted <= 60 {
+      urlString = item.iTunes?.img60
+    } else if wanted <= 100 {
+      urlString = item.iTunes?.img100
+    } else {
+      urlString = item.iTunes?.img600
+    }
+    
+    if urlString == nil {
+      os_log("falling back on LARGE image", log: log)
+      if let entry = item as? Entry {
+        urlString = entry.feedImage
+      }
+      urlString = urlString ?? item.image
+    }
+    
+    guard let string = urlString, let url = cachedURL(string: string) else {
+      os_log("no image URL", log: log, type: .error)
+      return nil
+    }
+    
+    return url
+  }
+  
+  /// Returns an URL adequate for placeholding.
+  private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
+    guard let iTunes = item.iTunes else {
+      os_log("aborting: no iTunes", log: log, type: .debug)
+      return nil
+    }
+    
+    var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
+    if let image = item.image { urlStrings.append(image) }
+    
+    for urlString in urlStrings {
+      guard let url = cachedURL(string: urlString) else {
+        continue
+      }
+      let req = ImageRequest(url: url)
+      if Nuke.ImageCache.shared.cachedResponse(for: req) != nil {
+        return url
+      }
+    }
+    
+    let s = min(size.width / 4, 100) / UIScreen.main.scale
+    return urlToLoad(from: item, for: CGSize(width: s, height: s))
+  }
+  
 }
 
 // MARK: - Prefetching
