@@ -11,7 +11,8 @@ import Nuke
 import UIKit
 import os.log
 
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+private let log = OSLog.disabled
+//private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 // Hiding Nuke from participants.
 public typealias ImageRequest = Nuke.ImageRequest
@@ -142,7 +143,14 @@ public final class ImageRepository: Images {
       // Custom disk cache is disabled by default, the native URL cache used
       // by a `DataLoader` is used instead.
       $0.dataCache = try! DataCache(name: "ink.codes.podest.images") { name in
-        return String(djb2Hash32(string: name))
+        let hash = String(djb2Hash32(string: name))
+//        os_log("""
+//        using hash: (
+//          %{public}@,
+//          %{public}@
+//        )
+//        """, log: log, type: .debug, name, hash)
+        return hash
       }
       
       // Each stage is executed on a dedicated queue with has its own limits.
