@@ -74,18 +74,7 @@ extension EntryLocator: Equatable {
   }
 }
 
-extension EntryLocator : CustomStringConvertible {
-  public var description: String {
-    return """
-    EntryLocator: {
-      title: \(String(describing: title)),
-      url: \(url),
-      guid: \(String(describing: guid)),
-      since: \(since)
-    }
-    """
-  }
-}
+
 
 extension EntryLocator {
   

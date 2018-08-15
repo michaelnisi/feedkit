@@ -156,6 +156,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
             try cache.remove(originalURLs)
           }
         }
+
+        // TODO: Fix popaganda bug
     
         if let url = me.singlyForced {
           os_log("%{public}@: ** replacing entries: %{public}@",
