@@ -406,10 +406,12 @@ extension UserLibrary: Queueing {
     os_log("dequeueing: %{public}@", log: User.log, type: .debug, url)
 
     operationQueue.addOperation {
+      var guids = [EntryGUID]()
       for entry in self.queue {
         if entry.url == url {
           do {
             try self.queue.remove(entry)
+            guids.append(entry.guid)
           } catch {
             os_log("removing from queue failed: %{public}@",
                    log: User.log, error as CVarArg)
@@ -424,6 +426,9 @@ extension UserLibrary: Queueing {
         dequeueCompletionBlock?(error)
         return
       }
+
+      // Keeping all these structure in sync isn’t fun.
+      self.queuedGUIDs.subtract(guids)
 
       dequeueCompletionBlock?(nil)
       NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
