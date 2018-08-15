@@ -161,4 +161,36 @@ extension FeedRepository: Browsing {
     )
   }
 
+  public func latestEntry(
+    _ url: FeedURL,
+    completionBlock: @escaping (Entry?, Error?) -> Void
+  ) -> Operation {
+    os_log("fetching latest entry: %{public}@", log: Browse.log, url)
+
+    let locators = [EntryLocator(url: url)]
+    var acc: ([Error], [Entry]) = ([], [])
+
+    func accumulate(_ error: Error?, _ entries: [Entry]) {
+      let (a, b) = acc
+      acc = (a + (error != nil ? [error!] : []), b + entries)
+    }
+
+    return entries(locators, entriesBlock: { error, entries in
+      accumulate(error, entries)
+    }) { error in
+      accumulate(error, [])
+
+      let (errors, entries) = acc
+
+      if !errors.isEmpty {
+        os_log("fetching latest entries failed: %{public}@",
+               log: Browse.log, type: .error, errors)
+      }
+
+      let latest = (entries.sorted { $0.updated > $1.updated }.first)
+
+      completionBlock(latest, errors.last)
+    }
+  }
+
 }

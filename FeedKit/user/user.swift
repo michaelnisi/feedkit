@@ -44,6 +44,9 @@ public protocol QueueCaching {
   
   /// Removes queued entries with `guids`.
   func removeQueued(_ guids: [EntryGUID]) throws
+
+  /// Removes queued entries of `feed`.
+  func removeQueued(feed url: FeedURL) throws
   
   /// Trims the queue, keeping only the latest items, and items that have been
   /// explicitly enqueued by users.
@@ -54,6 +57,9 @@ public protocol QueueCaching {
   
   /// Removes previously queued entries from the cache.
   func removePrevious() throws
+
+  /// Removes previously queued entries matching `guids` from the cache.
+  func removePrevious(matching guids: [EntryGUID]) throws
   
   /// Removes all entries, previous and currently queued, from the cache.
   func removeAll() throws
@@ -113,7 +119,12 @@ public protocol Queueing {
   func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
-  
+
+  /// Removes entries of `feed` from queue.
+  func dequeue(
+    feed: FeedURL,
+    dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
+
   /// Fetches entries in the user‘s queue, populating the `queue` object of this
   /// `UserLibrary` instance.
   ///

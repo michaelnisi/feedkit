@@ -71,6 +71,7 @@ extension Queued: CustomDebugStringConvertible {
 }
 
 extension Queued: Hashable {
+
   private static func makeHash(
     marker: String, locator: EntryLocator, timestamp: Date
     ) -> Int {
@@ -87,6 +88,7 @@ extension Queued: Hashable {
       return Queued.makeHash(marker: description, locator: loc, timestamp: ts)
     }
   }
+  
 }
 
 extension Queued {

@@ -232,10 +232,22 @@ extension UserCache: QueueCaching {
       try db.exec(UserSQLFormatter.SQLToUnqueue(guids: guids))
     }
   }
+
+  public func removeQueued(feed url: FeedURL) throws {
+    try queue.sync {
+      try db.exec(UserSQLFormatter.SQLToDeleteQueued(feed: url))
+    }
+  }
   
   public func trim() throws {
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToTrimQueue)
+    }
+  }
+
+  public func removePrevious(matching guids: [EntryGUID]) throws {
+    try queue.sync {
+      try db.exec(UserSQLFormatter.SQLToDeleteFromPrevious(where: guids))
     }
   }
   

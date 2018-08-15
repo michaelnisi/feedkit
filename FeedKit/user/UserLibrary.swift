@@ -87,7 +87,7 @@ extension UserLibrary: Subscribing {
       }
       return
     }
-    
+
     let cache = self.cache
     let urls = self.subscriptions
     
@@ -381,21 +381,50 @@ extension UserLibrary: Queueing {
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
+    os_log("dequeueing: %{public}@",
+           log: User.log, type: .debug, entry.description)
+
     operationQueue.addOperation {
-      os_log("dequeueing: %{public}@",
-             log: User.log, type: .debug, entry.description)
       do {
         try self.queue.remove(entry)
         let guids = [entry.guid]
         try self.cache.removeQueued(guids)
         self.queuedGUIDs.subtract(guids)
       } catch {
-        DispatchQueue.global().async {
-          dequeueCompletionBlock?(error)
-        }
+        dequeueCompletionBlock?(error)
         return
       }
       
+      dequeueCompletionBlock?(nil)
+      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+    }
+  }
+
+  public func dequeue(
+    feed url: FeedURL,
+    dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
+    os_log("dequeueing: %{public}@", log: User.log, type: .debug, url)
+
+    operationQueue.addOperation {
+      for entry in self.queue {
+        if entry.url == url {
+          do {
+            try self.queue.remove(entry)
+          } catch {
+            os_log("removing from queue failed: %{public}@",
+                   log: User.log, error as CVarArg)
+            continue
+          }
+        }
+      }
+
+      do {
+        try self.cache.removeQueued(feed: url)
+      } catch {
+        dequeueCompletionBlock?(error)
+        return
+      }
+
       dequeueCompletionBlock?(nil)
       NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
     }
