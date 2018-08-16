@@ -57,7 +57,7 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let summary: String?
   public let title: String
   public let ts: Date?
-  public let uid: FeedID? // TODO: Rename to feedID
+  public let uid: FeedID?
   public let updated: Date?
   public let url: FeedURL
 }

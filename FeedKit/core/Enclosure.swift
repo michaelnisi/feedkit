@@ -30,9 +30,9 @@ public enum EnclosureType : Int {
     default: self = .unknown
     }
   }
-  
-  // TODO: Correct enclosure types
-  
+
+  /// Returns `true` if the enclosure claims to be video. Of course, total
+  /// bullshit, I would prefer not having `EnclosureType` at all.
   public var isVideo: Bool {
     get {
       switch self {

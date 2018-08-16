@@ -10,7 +10,8 @@ import Foundation
 import os.log
 
 struct Search {
-  static var log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
+//  static var log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
+  static var log = OSLog.disabled
 }
 
 // MARK: - Suggestion

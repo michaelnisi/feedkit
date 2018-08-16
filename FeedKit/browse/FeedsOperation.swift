@@ -117,13 +117,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         let (errors, feeds) = serialize.feeds(from: payload!)
         
         guard !me.isCancelled else { return me.done() }
-        
-        // TODO: Handle serialization errors
-        //
-        // Although, owning the remote service, we can be reasonably sure, these
-        // objects are OK, we should probably still handle these errors.
 
-        assert(errors.isEmpty, "unhandled errors: \(errors)")
+        // https://github.com/michaelnisi/feedkit/issues/22
+        assert(errors.isEmpty, "unhandled: \(errors)")
 
         var freshURLs = Set(urls)
 

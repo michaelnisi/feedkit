@@ -9,8 +9,6 @@
 import Foundation
 import os.log
 
-// TODO: Sync sort order correctly
-
 final class FetchQueueOperation: FeedKitOperation {
 
   let browser: Browsing
