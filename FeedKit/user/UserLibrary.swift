@@ -80,7 +80,8 @@ extension UserLibrary: Subscribing {
   
   public func add(
     subscriptions: [Subscription],
-    addComplete: ((_ error: Error?) -> Void)? = nil) throws {
+    addComplete: ((_ error: Error?) -> Void)? = nil
+  ) {
     guard !subscriptions.isEmpty else {
       DispatchQueue.global().async {
         addComplete?(nil)
@@ -116,7 +117,7 @@ extension UserLibrary: Subscribing {
   
   public func unsubscribe(
     from urls: [FeedURL],
-    unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) throws {
+    unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) {
     func done(_ error: Error? = nil) -> Void {
       DispatchQueue.global().async {
         unsubscribeComplete?(error)
@@ -356,7 +357,8 @@ extension UserLibrary: Queueing {
   public func enqueue(
     entries: [Entry],
     belonging owner: QueuedOwner,
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
+  ) {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
     op.owner = owner
     
@@ -372,10 +374,10 @@ extension UserLibrary: Queueing {
   
   public func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) throws {
-    try enqueue(entries: entries,
-                belonging: .nobody,
-                enqueueCompletionBlock: enqueueCompletionBlock)
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) {
+    enqueue(entries: entries,
+            belonging: .nobody,
+            enqueueCompletionBlock: enqueueCompletionBlock)
   }
 
   /// Atomically removes `entries` from queue.

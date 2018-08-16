@@ -108,12 +108,12 @@ public protocol Queueing {
   func enqueue(
     entries: [Entry],
     belonging: QueuedOwner,
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)?)
   
   /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)?) throws
+    enqueueCompletionBlock: ((_ error: Error?) -> Void)?)
   
   /// Removes `entry` from the queue.
   func dequeue(
@@ -196,7 +196,7 @@ public protocol Subscribing: Updating {
   ///   - error: An error if something went wrong.
   func add(
     subscriptions: [Subscription],
-    addComplete: ((_ error: Error?) -> Void)?) throws
+    addComplete: ((_ error: Error?) -> Void)?)
   
   /// Unsubscribe from `urls`.
   ///
@@ -206,7 +206,7 @@ public protocol Subscribing: Updating {
   ///   - error: An error if something went wrong.
   func unsubscribe(
     from urls: [FeedURL],
-    unsubscribeComplete: ((_ error: Error?) -> Void)?) throws
+    unsubscribeComplete: ((_ error: Error?) -> Void)?)
   
   /// Fetches the feeds currently subscribed.
   ///

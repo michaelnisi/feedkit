@@ -283,7 +283,7 @@ public protocol Browsing {
   ) -> Operation
 
   /// Fetches the latest entry of the feed located at `url`.
-  func latestEntry(
+   @discardableResult func latestEntry(
     _ url: FeedURL,
     completionBlock: @escaping (Entry?, Error?) -> Void
   ) -> Operation
