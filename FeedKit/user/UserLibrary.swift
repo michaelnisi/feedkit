@@ -377,19 +377,38 @@ extension UserLibrary: Queueing {
                 belonging: .nobody,
                 enqueueCompletionBlock: enqueueCompletionBlock)
   }
+
+  /// Atomically removes `entries` from queue.
+  private func dequeue(entries: [Entry]) throws {
+    os_log("dequeueing: %{public}@", log: User.log, type: .debug, entries)
+
+    let guids = entries.map { $0.guid }
+    try cache.removeQueued(guids)
+
+    var removed = Set<EntryGUID>()
+
+    for entry in entries {
+      do {
+        try queue.remove(entry)
+        removed.insert(entry.guid)
+      } catch {
+        os_log("not removed: %{public}@", log: User.log, error as CVarArg)
+        guard entries.count > 1 else {
+          throw error
+        }
+        continue
+      }
+    }
+
+    queuedGUIDs.subtract(removed)
+  }
   
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    os_log("dequeueing: %{public}@",
-           log: User.log, type: .debug, entry.description)
-
     operationQueue.addOperation {
       do {
-        try self.queue.remove(entry)
-        let guids = [entry.guid]
-        try self.cache.removeQueued(guids)
-        self.queuedGUIDs.subtract(guids)
+        try self.dequeue(entries: [entry])
       } catch {
         dequeueCompletionBlock?(error)
         return
@@ -403,32 +422,15 @@ extension UserLibrary: Queueing {
   public func dequeue(
     feed url: FeedURL,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    os_log("dequeueing: %{public}@", log: User.log, type: .debug, url)
-
     operationQueue.addOperation {
-      var guids = [EntryGUID]()
-      for entry in self.queue {
-        if entry.url == url {
-          do {
-            try self.queue.remove(entry)
-            guids.append(entry.guid)
-          } catch {
-            os_log("removing from queue failed: %{public}@",
-                   log: User.log, error as CVarArg)
-            continue
-          }
-        }
-      }
+      let children = self.queue.filter { $0.url == url }
 
       do {
-        try self.cache.removeQueued(feed: url)
+        try self.dequeue(entries: children)
       } catch {
         dequeueCompletionBlock?(error)
         return
       }
-
-      // Keeping all these structure in sync isn’t fun.
-      self.queuedGUIDs.subtract(guids)
 
       dequeueCompletionBlock?(nil)
       NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)

@@ -478,7 +478,37 @@ extension UserLibraryTests {
       NotificationCenter.default.removeObserver(obs!)
     }
   }
-  
+
+  func testDequeueingByFeed() {
+    let entry = try! freshEntry(named: "thetalkshow")
+    XCTAssertFalse(user.contains(entry: entry))
+
+    let exp = expectation(description: "dequeueing")
+    var obs: Any?
+
+    try! user.enqueue(entries: [entry]) { error in
+      XCTAssertNil(error)
+      XCTAssertTrue(self.user.contains(entry: entry))
+
+      self.user.dequeue(feed: entry.feed) { error in
+        XCTAssertNil(error)
+
+        obs = NotificationCenter.default.addObserver(
+          forName: .FKQueueDidChange,
+          object: nil,
+          queue: OperationQueue.main) { notification in
+            assert(Thread.isMainThread)
+            exp.fulfill()
+        }
+      }
+    }
+
+    waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
+      NotificationCenter.default.removeObserver(obs!)
+    }
+  }
+
   func testContainsEntry() {
     let entry = try! freshEntry(named: "thetalkshow")
     XCTAssertFalse(user.contains(entry: entry))
