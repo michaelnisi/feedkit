@@ -29,8 +29,6 @@ final class SearchRepositoryTests: XCTestCase {
   var cache: FeedCache!
   var svc: Fanboy!
 
-  // TODO: Mock remote service
-
   override func setUp() {
     super.setUp()
 

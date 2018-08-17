@@ -424,7 +424,6 @@ extension LibrarySQLFormatter {
   }
   
   static func SQLToSelectEntries(matching term: String, limit: Int) -> String {
-    // TODO: Adjust FTS Match configuration
     let exp = makeTokenQueryExpression(string: term)
     return """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (

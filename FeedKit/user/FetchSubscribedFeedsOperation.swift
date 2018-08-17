@@ -123,7 +123,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
           }
           return $0.iTunes
         }
-        // TODO: Resolve erratic crasher
+
         try self.browser.integrate(iTunesItems: iTunes)
       } catch {
         return self.done(error)

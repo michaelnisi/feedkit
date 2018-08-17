@@ -157,8 +157,6 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
           }
         }
 
-        // TODO: Fix popaganda bug
-    
         if let url = me.singlyForced {
           os_log("%{public}@: ** replacing entries: %{public}@",
                  log: Browse.log, type: .debug, me, url)

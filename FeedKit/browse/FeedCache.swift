@@ -195,8 +195,6 @@ extension FeedCache {
 // MARK: - FeedCaching
 
 extension FeedCache: FeedCaching {
-  
-  // TODO: Review fullfill function
 
   /// Queries the local `cache` for entries and returns a tuple of cached
   /// entries and unfulfilled entry `locators`, if any.
@@ -474,8 +472,6 @@ extension FeedCache: FeedCaching {
     }
   }
 
-  // TODO: Cache entryIDs too (by guids)
-
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
       let chunks = FeedCache.slice(elements: guids, with: 512)
@@ -525,8 +521,6 @@ extension FeedCache: FeedCaching {
 // TODO: Use prepared statements in SearchCaching
 
 extension FeedCache: SearchCaching {
-
-  // TODO: Review subcached function
 
   /// Scan dictionary for a term and its lexicographical predecessors.
   ///
