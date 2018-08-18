@@ -404,27 +404,34 @@ extension UserLibrary: Queueing {
 
     queuedGUIDs.subtract(removed)
   }
-  
+
+  private static func postQueueNotifications(regarding entries: [Entry]) {
+    let nc = NotificationCenter.default
+
+    nc.post(name: .FKQueueDidChange, object: nil)
+
+    for entry in entries {
+      nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
+        "entryGUID": entry.guid,
+        "enclosureURL": entry.enclosure?.url as Any
+      ])
+    }
+  }
+
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
     operationQueue.addOperation {
+      let entries = [entry]
       do {
-        try self.dequeue(entries: [entry])
+        try self.dequeue(entries: entries)
       } catch {
         dequeueCompletionBlock?(error)
         return
       }
       
       dequeueCompletionBlock?(nil)
-
-      let nc = NotificationCenter.default
-
-      nc.post(name: .FKQueueDidChange, object: nil)
-      nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
-        "entryGUID": entry.guid,
-        "enclosureURL": entry.enclosure?.url as Any
-      ])
+      UserLibrary.postQueueNotifications(regarding: entries)
     }
   }
 
@@ -442,17 +449,7 @@ extension UserLibrary: Queueing {
       }
 
       dequeueCompletionBlock?(nil)
-
-      let nc = NotificationCenter.default
-
-      nc.post(name: .FKQueueDidChange, object: nil)
-
-      for child in children {
-        nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
-          "entryGUID": child.guid,
-          "enclosureURL": child.enclosure?.url as Any
-        ])
-      }
+      UserLibrary.postQueueNotifications(regarding: children)
     }
   }
   
