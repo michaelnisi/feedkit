@@ -417,7 +417,14 @@ extension UserLibrary: Queueing {
       }
       
       dequeueCompletionBlock?(nil)
-      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+
+      let nc = NotificationCenter.default
+
+      nc.post(name: .FKQueueDidChange, object: nil)
+      nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
+        "entryGUID": entry.guid,
+        "enclosureURL": entry.enclosure?.url as Any
+      ])
     }
   }
 
@@ -435,7 +442,17 @@ extension UserLibrary: Queueing {
       }
 
       dequeueCompletionBlock?(nil)
-      NotificationCenter.default.post(name: .FKQueueDidChange, object: nil)
+
+      let nc = NotificationCenter.default
+
+      nc.post(name: .FKQueueDidChange, object: nil)
+
+      for child in children {
+        nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
+          "entryGUID": child.guid,
+          "enclosureURL": child.enclosure?.url as Any
+        ])
+      }
     }
   }
   

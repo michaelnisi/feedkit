@@ -31,6 +31,11 @@ public extension Notification.Name {
   /// notification containing identifying information of the item.
   public static var FKQueueDidEnqueue =
     NSNotification.Name("FeedKitQueueDidEnqueue")
+
+  /// Posted after an item has been dequeued from the user‘s queue with the
+  /// notification containing identifying information of the item.
+  public static var FKQueueDidDequeue =
+    NSNotification.Name("FeedKitQueueDidDequeue")
   
 }
 
