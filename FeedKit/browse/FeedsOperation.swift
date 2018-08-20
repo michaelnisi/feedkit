@@ -11,6 +11,8 @@ import MangerKit
 import Ola
 import os.log
 
+private let log = OSLog.disabled
+
 /// A concurrent `Operation` for accessing feeds.
 final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   
@@ -59,7 +61,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   private func done(_ error: Error? = nil) {
     let er: Error? = {
       guard !isCancelled else {
-        os_log("%{public}@: cancelled", log: Browse.log, type: .debug, self)
+        os_log("%{public}@: cancelled", log: log, type: .debug, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
@@ -84,7 +86,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
     os_log("%{public}@: requesting feeds: %{public}@",
-           log: Browse.log, type: .debug, self, urls)
+           log: log, type: .debug, self, urls)
 
     
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
@@ -129,7 +131,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         var orginalURLsByURLs = [String: String]()
         
         if !redirects.isEmpty {
-          os_log("handling redirects: %{public}@", log: Browse.log, redirects)
+          os_log("handling redirects: %{public}@", log: log, redirects)
           
           var redirectedURLs = [String]()
           for r in redirects {
@@ -211,20 +213,20 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
   }
   
   override func start() {
-    os_log("%{public}@: starting", log: Browse.log, type: .debug, self)
+    os_log("%{public}@: starting", log: log, type: .debug, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
 
     guard error == nil, !urls.isEmpty else {
       os_log("%{public}@: aborting: no URLs provided",
-             log: Browse.log, type: .debug, self)
+             log: log, type: .debug, self)
       return done(error)
     }
     
     do {
       os_log("%{public}@: trying cache: %{public}@",
-             log: Browse.log, type: .debug, self, urls)
+             log: log, type: .debug, self, urls)
       
       let items = try cache.feeds(urls)
       let policy = recommend(for: ttl)
@@ -243,7 +245,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent {
         stale: %{public}@,
         missing: %{public}@
       )
-      """, log: Browse.log, type: .debug,
+      """, log: log, type: .debug,
            self,
            policy.ttl,
            cached.map { $0.url },

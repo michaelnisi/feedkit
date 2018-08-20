@@ -9,11 +9,6 @@
 import Foundation
 import os.log
 
-struct Search {
-//  static var log = OSLog(subsystem: "ink.codes.feedkit", category: "search")
-  static var log = OSLog.disabled
-}
-
 // MARK: - Suggestion
 
 /// A suggested search term, bearing the timestamp of when it was added
@@ -125,6 +120,8 @@ public protocol SearchCaching {
   func feeds(for term: String, limit: Int) throws -> [Feed]?
   func feeds(matching term: String, limit: Int) throws -> [Feed]?
   func entries(matching term: String, limit: Int) throws -> [Entry]?
+
+  func remove(_ urls: [String]) throws 
 }
 
 // MARK: - Searching

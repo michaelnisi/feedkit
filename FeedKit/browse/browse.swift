@@ -11,11 +11,6 @@ import MangerKit
 import Ola
 import os.log
 
-/// A static structure representing the browse directory.
-struct Browse {
-  static let log = OSLog(subsystem: "ink.codes.feedkit", category: "browse")
-}
-
 // MARK: - FeedCaching
 
 /// A persistent cache for feeds and entries.

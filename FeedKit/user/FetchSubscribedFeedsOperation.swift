@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 /// Synced data from iCloud might contain additional information, we don’t
 /// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
 /// pre-scaled images. Especially those smaller images are of interest to us,
@@ -57,7 +59,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       return
     }
     
-    os_log("updating redirected subscriptions: %{public}@", log: User.log,
+    os_log("updating redirected subscriptions: %{public}@", log: log,
            redirects.map {($0.originalURL, $0.url) })
     
     var originals = [FeedURL]()
@@ -141,7 +143,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
   }
   
   override func start() {
-    os_log("starting FetchSubscribedFeedsOperation", log: User.log, type: .debug)
+    os_log("starting FetchSubscribedFeedsOperation", log: log, type: .debug)
     
     guard !isCancelled else {
       return done()

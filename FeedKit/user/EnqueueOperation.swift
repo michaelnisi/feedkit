@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
   
@@ -71,7 +73,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     enqueueCompletionBlock?(enqueued, error)
     
     guard !enqueued.isEmpty else {
-      return os_log("nothing to enqueue", log: User.log)
+      return os_log("nothing to enqueue", log: log)
     }
 
     let nc = NotificationCenter.default
@@ -101,7 +103,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   }
   
   override func main() {
-    os_log("starting EnqueueOperation", log: User.log, type: .debug)
+    os_log("starting EnqueueOperation", log: log, type: .debug)
     
     var enqueued = [Entry]()
     
@@ -130,7 +132,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         return done([])
       }
       
-      os_log("enqueueing: %{public}@", log: User.log, type: .debug, qualifieds)
+      os_log("enqueueing: %{public}@", log: log, type: .debug, qualifieds)
 
       entries.formUnion(user.queue.prepend(items: qualifieds))
       
@@ -148,7 +150,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       try cache.add(queued: queued)
     } catch {
       os_log("enqueueing failed: %{public}@",
-             log: User.log, type: .debug, error as CVarArg)
+             log: log, type: .debug, error as CVarArg)
       return done([], error)
     }
     

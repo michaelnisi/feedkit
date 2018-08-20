@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 /// Trims users’ queue, keeping latest and explicitly enqueued items.
 class TrimQueueOperation: Operation, Providing {
   
@@ -70,7 +72,7 @@ class TrimQueueOperation: Operation, Providing {
   }
   
   override func main() {
-    os_log("starting TrimQueueOperation", log: User.log, type: .debug)
+    os_log("starting TrimQueueOperation", log: log, type: .debug)
     
     do {
       try cache.trim()

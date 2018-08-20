@@ -12,7 +12,7 @@ import os.log
 
 /// Not much logging is done here, only the two main functions serializing
 /// feed and entry payloads, for inspecting the original payloads served.
-fileprivate let log = OSLog(subsystem: "ink.codes.feedkit", category: "serialize")
+private let log = OSLog.disabled
 
 /// Returns a new URL string with lowercased scheme and host, the path remains
 /// as it is. Here‘s the spec: https://tools.ietf.org/html/rfc3986

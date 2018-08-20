@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 /// An operation for searching feeds and entries.
 final class SearchOperation: SearchRepoOperation {
   
@@ -35,16 +37,16 @@ final class SearchOperation: SearchRepoOperation {
   fileprivate func request(_ stock: [Feed]? = nil) throws {
     guard isAvailable else {
       guard let feeds = stock, !feeds.isEmpty else {
-        os_log("aborting: service not available", log: Search.log)
+        os_log("aborting: service not available", log: log)
         return done(FeedKitError.serviceUnavailable(nil))
       }
-      os_log("falling back on stock: service not available", log: Search.log)
+      os_log("falling back on stock: service not available", log: log)
       let finds = feeds.map { Find.foundFeed($0) }
       perFindGroupBlock?(nil, finds)
       return done(FeedKitError.serviceUnavailable(nil))
     }
     
-    os_log("requesting: %@", log: Search.log, type: .debug, term)
+    os_log("requesting: %@", log: log, type: .debug, term)
     
     // Capturing self as unowned to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
@@ -80,25 +82,17 @@ final class SearchOperation: SearchRepoOperation {
         let (errors, feeds) = serialize.feeds(from: payload!)
         
         if !errors.isEmpty {
-          os_log("JSON parse errors: %{public}@", log: Search.log,  type: .error, errors)
+          os_log("JSON parse errors: %{public}@", log: log,  type: .error, errors)
         }
         
         try self.cache.update(feeds: feeds, for: self.term)
-        
-        let now = Date()
-        
+
         guard
           !feeds.isEmpty,
           let cb = self.perFindGroupBlock,
-          // Rereading from the cache takes below 3 milliseconds.
           let cached = try self.cache.feeds(for: self.term, limit: 25) else {
           return
         }
-        
-        let diff = Date().timeIntervalSince(now)
-
-        os_log("rereading from the cache took: %{public}@",
-               log: Search.log, type: .debug, String(describing: diff))
         
         let finds = cached.map { Find.foundFeed($0) }
         
@@ -122,6 +116,18 @@ final class SearchOperation: SearchRepoOperation {
     return nil
   }
 
+  /// Returns URLs of pathless `feeds`, like *Popaganda*, which brought this up,
+  /// http://bitchradio.pagatim.libsynpro.com.
+  private static func pathless(feeds: [Feed]) -> [FeedURL] {
+    return feeds.compactMap {
+      let urlString = $0.url
+      guard let url = URL(string: urlString), url.path == "", urlString.last != "/" else {
+        return nil
+      }
+      return urlString
+    }
+  }
+
   override func start() {
     guard !isCancelled else {
       return done()
@@ -131,13 +137,15 @@ final class SearchOperation: SearchRepoOperation {
       return done(FeedKitError.invalidSearchTerm(term: term))
     }
     
-    os_log("""
-           starting search operation: {
-             term: %{public}@,
-             reachable: %i,
-             ttl: %{public}@
-           }
-           """, log: Search.log, type: .debug, term, isAvailable, ttl.description)
+    os_log(
+      """
+      starting search operation: (
+        term: %{public}@,
+        reachable: %i,
+        ttl: %{public}@
+      )
+      """, log: log, type: .debug, term, isAvailable, ttl.description
+    )
     
     isExecuting = true
     
@@ -157,11 +165,18 @@ final class SearchOperation: SearchRepoOperation {
     
     do {
       guard let cached = try cache.feeds(for: term, limit: 25) else {
-        os_log("nothing cached", log: Search.log, type: .debug)
+        os_log("nothing cached", log: log, type: .debug)
         return try request()
       }
-      
-      os_log("cached: %{public}@", log: Search.log, type: .debug, cached)
+
+      let problems = SearchOperation.pathless(feeds: cached)
+      guard problems.isEmpty else {
+        os_log("removing problematic feeds: %{public}@", log: log, problems)
+        try cache.remove(problems)
+        return try request()
+      }
+
+      os_log("cached: %{public}@", log: log, type: .debug, cached)
       
       if isCancelled { return done() }
       

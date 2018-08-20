@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
 public final class UserLibrary: EntryQueueHost {
@@ -191,7 +193,7 @@ extension UserLibrary: Subscribing {
         
         completionBlock?(nil)
       } catch {
-        os_log("failed to reload subscriptions", log: User.log, type: .error,
+        os_log("failed to reload subscriptions", log: log, type: .error,
                error as CVarArg)
         completionBlock?(error)
       }
@@ -250,7 +252,7 @@ extension UserLibrary: Updating {
   
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
-    os_log("updating queue", log: User.log,  type: .info)
+    os_log("updating queue", log: log,  type: .info)
     
     let cache = self.cache
     let operationQueue = self.operationQueue
@@ -260,7 +262,7 @@ extension UserLibrary: Updating {
     
     synchronize { error in
       if error != nil {
-        os_log("continuing update despite error", log: User.log)
+        os_log("continuing update despite error", log: log)
       }
       
       let preparing = PrepareUpdateOperation(cache: cache)
@@ -274,7 +276,7 @@ extension UserLibrary: Updating {
       
       enqueuing.enqueueCompletionBlock = { enqueued, error in
         if let er = error {
-          os_log("enqueue warning: %{public}@", log: User.log, er as CVarArg)
+          os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
         }
         self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
       }
@@ -285,7 +287,7 @@ extension UserLibrary: Updating {
       
       trimming.trimQueueCompletionBlock = { newData, error in
         if let er = error {
-          os_log("trim error: %{public}@", log: User.log, type: .error,
+          os_log("trim error: %{public}@", log: log, type: .error,
                  er as CVarArg)
         }
         updateComplete?(newData, error)
@@ -324,7 +326,7 @@ extension UserLibrary: Queueing {
     entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
     fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation {
-    os_log("fetching queue", log: User.log, type: .debug)
+    os_log("fetching queue", log: log, type: .debug)
     
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
@@ -335,14 +337,14 @@ extension UserLibrary: Queueing {
     fetchingFeeds.feedsBlock = { feeds, error in
       if let er = error {
         os_log("problems fetching subscribed feeds: %{public}@",
-               log: User.log, type: .error, String(describing: er))
+               log: log, type: .error, String(describing: er))
       }
     }
     
     fetchingFeeds.feedsCompletionBlock = { error in
       if let er = error {
         os_log("failed to integrate metadata %{public}@",
-               log: User.log, type: .error, String(describing: er))
+               log: log, type: .error, String(describing: er))
       }
     }
     
@@ -382,7 +384,7 @@ extension UserLibrary: Queueing {
 
   /// Atomically removes `entries` from queue.
   private func dequeue(entries: [Entry]) throws {
-    os_log("dequeueing: %{public}@", log: User.log, type: .debug, entries)
+    os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
 
     let guids = entries.map { $0.guid }
     try cache.removeQueued(guids)
@@ -394,7 +396,7 @@ extension UserLibrary: Queueing {
         try queue.remove(entry)
         removed.insert(entry.guid)
       } catch {
-        os_log("not removed: %{public}@", log: User.log, error as CVarArg)
+        os_log("not removed: %{public}@", log: log, error as CVarArg)
         guard entries.count > 1 else {
           throw error
         }

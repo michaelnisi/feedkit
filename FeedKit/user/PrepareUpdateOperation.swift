@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 extension PrepareUpdateOperation {
 
   /// Returns the latest locators to use for updating the queue, merging
@@ -53,7 +55,7 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
   }
 
   override func main() {
-    os_log("starting PrepareUpdateOperation", log: User.log, type: .debug)
+    os_log("starting PrepareUpdateOperation", log: log, type: .debug)
     
     do {
       let subscriptions = try cache.subscribed()
@@ -61,7 +63,7 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
       
       self.locators = PrepareUpdateOperation.merge(latest, with: subscriptions)
       
-      os_log("prepared: %{public}@", log: User.log, type: .debug, locators)
+      os_log("prepared: %{public}@", log: log, type: .debug, locators)
     } catch {
       self.error = error
     }

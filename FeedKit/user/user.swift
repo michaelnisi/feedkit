@@ -11,10 +11,6 @@ import Foundation
 import Skull
 import os.log
 
-struct User {
-  static let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
-}
-
 // MARK: - Notifications
 
 public extension Notification.Name {

@@ -38,7 +38,7 @@ extension Entry : Cachable {
 
 extension Entry : CustomStringConvertible {
   public var description: String {
-    return "Entry: { \(title), \(guid) }"
+    return "Entry: ( \(title), \(guid) )"
   }
 }
 

@@ -11,6 +11,8 @@ import MangerKit
 import Ola
 import os.log
 
+private let log = OSLog.disabled
+
 /// The `FeedRepository` provides feeds and entries.
 public final class FeedRepository: RemoteRepository {
 
@@ -38,7 +40,7 @@ extension FeedRepository: Browsing {
 
   public func integrate(iTunesItems: [ITunesItem]) throws {
     os_log("integrating metadata: %{public}@",
-           log: Browse.log, type: .debug, iTunesItems)
+           log: log, type: .debug, iTunesItems)
 
     try cache.integrate(iTunesItems: iTunesItems)
   }
@@ -90,14 +92,14 @@ extension FeedRepository: Browsing {
     op.feedsBlock = { error, feeds in
       if let er = error {
         os_log("error while fetching feeds: %{public}@",
-               log: Browse.log, type: .error, String(reflecting: er))
+               log: log, type: .error, String(reflecting: er))
       }
     }
 
     op.feedsCompletionBlock = { error in
       if let er = error {
         os_log("could not fetch feeds: %{public}@",
-               log: Browse.log, type: .error, String(reflecting: er))
+               log: log, type: .error, String(reflecting: er))
       }
     }
 
@@ -165,7 +167,7 @@ extension FeedRepository: Browsing {
     _ url: FeedURL,
     completionBlock: @escaping (Entry?, Error?) -> Void
   ) -> Operation {
-    os_log("fetching latest entry: %{public}@", log: Browse.log, url)
+    os_log("fetching latest entry: %{public}@", log: log, url)
 
     let locators = [EntryLocator(url: url)]
     var acc: ([Error], [Entry]) = ([], [])
@@ -184,7 +186,7 @@ extension FeedRepository: Browsing {
 
       if !errors.isEmpty {
         os_log("fetching latest entries failed: %{public}@",
-               log: Browse.log, type: .error, errors)
+               log: log, type: .error, errors)
       }
 
       let latest = (entries.sorted { $0.updated > $1.updated }.first)

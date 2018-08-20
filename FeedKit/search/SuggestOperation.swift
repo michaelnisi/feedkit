@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 // An operation to get search suggestions.
 final class SuggestOperation: SearchRepoOperation {
   
@@ -49,16 +51,16 @@ final class SuggestOperation: SearchRepoOperation {
   fileprivate func request() throws {
     guard isAvailable else {
       guard let suggestions = stock, !suggestions.isEmpty else {
-        os_log("aborting: service unavailable", log: Search.log)
+        os_log("aborting: service unavailable", log: log)
         return done(FeedKitError.serviceUnavailable(nil))
       }
-      os_log("falling back on stock: service unavailable", log: Search.log)
+      os_log("falling back on stock: service unavailable", log: log)
       let finds = suggestions.map { Find.suggestedTerm($0) }
       dispatch(nil, finds: finds)
       return done(FeedKitError.serviceUnavailable(nil))
     }
     
-    os_log("requesting: %{public}@", log: Search.log, type: .debug, term)
+    os_log("requesting: %{public}@", log: log, type: .debug, term)
     
     task = try svc.suggestions(matching: term, limit: 10) {
       [unowned self] payload, error in
@@ -78,17 +80,17 @@ final class SuggestOperation: SearchRepoOperation {
         er = FeedKitError.serviceUnavailable(error!)
         
         os_log("checking stock: service unavailable: %{public}@",
-               log: Search.log, type: .debug, er! as CVarArg)
+               log: log, type: .debug, er! as CVarArg)
         
         if let suggestions = self.stock {
           guard !suggestions.isEmpty else {
-            os_log("empty stock", log: Search.log, type: .debug)
+            os_log("empty stock", log: log, type: .debug)
             return
           }
           let finds = suggestions.map { Find.suggestedTerm($0) }
           self.dispatch(nil, finds: finds)
         } else {
-          os_log("no stock", log: Search.log, type: .debug)
+          os_log("no stock", log: log, type: .debug)
         }
         return
       }
@@ -224,7 +226,7 @@ final class SuggestOperation: SearchRepoOperation {
              reachable: %i,
              ttl: %{public}@
            }
-           """, log: Search.log, type: .debug, term, isAvailable, ttl.description)
+           """, log: log, type: .debug, term, isAvailable, ttl.description)
     
     isExecuting = true
     
@@ -234,11 +236,11 @@ final class SuggestOperation: SearchRepoOperation {
       dispatch(nil, finds: [original]) // resulting in five suggested terms
 
       guard let cached = try cache.suggestions(for: term, limit: 4) else {
-        os_log("nothing cached", log: Search.log, type: .debug)
+        os_log("nothing cached", log: log, type: .debug)
         return resume()
       }
       
-      os_log("cached: %{public}@", log: Search.log, type: .debug, cached)
+      os_log("cached: %{public}@", log: log, type: .debug, cached)
       
       if isCancelled {
         return done()

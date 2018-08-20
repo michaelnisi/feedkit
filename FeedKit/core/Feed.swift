@@ -71,10 +71,10 @@ extension Feed : CustomStringConvertible {
 extension Feed: CustomDebugStringConvertible {
   public var debugDescription: String {
     return """
-    Feed(
-    title: \(title),
-    url: \(url),
-    summary: \(String(describing: summary))
+    Feed: (
+      title: \(title),
+      url: \(url),
+      summary: \(String(describing: summary))
     )
     """
   }

@@ -10,6 +10,8 @@ import Foundation
 import Skull
 import os.log
 
+private let log = OSLog.disabled
+
 public class UserCache: LocalCache, UserCaching {
   private lazy var sqlFormatter = UserSQLFormatter()
 }
@@ -24,7 +26,7 @@ extension UserCache: SubscriptionCaching {
     }
     
     os_log("adding subscriptions: %{public}@",
-           log: Cache.log, type: .debug, subscriptions)
+           log: log, type: .debug, subscriptions)
     
     try queue.sync {
       let sql = [
@@ -45,7 +47,7 @@ extension UserCache: SubscriptionCaching {
     }
     
     os_log("removing urls: %{public}@",
-           log: Cache.log, type: .debug, urls)
+           log: log, type: .debug, urls)
     
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDelete(subscribed: urls))

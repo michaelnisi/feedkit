@@ -10,6 +10,8 @@ import Foundation
 import os.log
 import Ola
 
+private let log = OSLog.disabled
+
 class ReachHostOperation: Operation, ProvidingReachability {
   var status = OlaStatus.unknown
   var error: Error?
@@ -21,7 +23,7 @@ class ReachHostOperation: Operation, ProvidingReachability {
   }
   
   override func main() {
-    os_log("starting ReachHostOperation: %@", log: Browse.log, type: .debug, host)
+    os_log("starting ReachHostOperation: %@", log: log, type: .debug, host)
     guard let probe = Ola(host: host) else {
       return
     }

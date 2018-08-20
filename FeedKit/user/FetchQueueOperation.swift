@@ -9,6 +9,8 @@
 import Foundation
 import os.log
 
+private let log = OSLog.disabled
+
 final class FetchQueueOperation: FeedKitOperation {
 
   let browser: Browsing
@@ -34,7 +36,7 @@ final class FetchQueueOperation: FeedKitOperation {
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
-    os_log("done: %{public}@", log: User.log, type: .debug,
+    os_log("done: %{public}@", log: log, type: .debug,
            er != nil ? String(reflecting: er) : "OK")
     
     fetchQueueCompletionBlock?(er)
@@ -64,7 +66,7 @@ final class FetchQueueOperation: FeedKitOperation {
     
     switch er {
     case FeedKitError.serviceUnavailable:
-      os_log("service unavailable: kept missing: %{public}@", log: User.log, a)
+      os_log("service unavailable: kept missing: %{public}@", log: log, a)
       return []
     case FeedKitError.missingEntries(let locators):
       return Array(Set(a + locators.compactMap {
@@ -104,13 +106,13 @@ final class FetchQueueOperation: FeedKitOperation {
       with: entries, for: guids, respecting: error)
     
     guard !missing.isEmpty else {
-      os_log("queue complete", log: User.log, type: .debug)
+      os_log("queue complete", log: log, type: .debug)
       return user.queue.items
     }
     
     do {
       os_log("removing missing entries: %{public}@",
-             log: User.log, type: .debug, String(reflecting: missing))
+             log: log, type: .debug, String(reflecting: missing))
       
       // Removing queued from cache first, removing items from queue very
       // likely will throw uncritical not-in-queue errors.
@@ -121,7 +123,7 @@ final class FetchQueueOperation: FeedKitOperation {
         FetchQueueOperation.missingCounter.removeValue(forKey: guid)
       }
     } catch {
-      os_log("could not remove missing: %{public}@", log: User.log, type: .error,
+      os_log("could not remove missing: %{public}@", log: log, type: .error,
              error as CVarArg)
     }
 
@@ -136,12 +138,12 @@ final class FetchQueueOperation: FeedKitOperation {
     }
     
     os_log("dequeuing entries of redirected feeds: %{public}@",
-           log: User.log, entries.filter { guids.contains($0.guid) })
+           log: log, entries.filter { guids.contains($0.guid) })
     
     do {
       try cache.removeQueued(guids)
     } catch {
-      os_log("could not dequeue: %{public}@", log: User.log, error as CVarArg)
+      os_log("could not dequeue: %{public}@", log: log, error as CVarArg)
       
       // Actually, this is undefined, we should crash here, but without
       // proper tests, we can’t do that yet.
@@ -165,7 +167,7 @@ final class FetchQueueOperation: FeedKitOperation {
       accError = error
 
       guard !entries.isEmpty else {
-        os_log("no entries", log: User.log)
+        os_log("no entries", log: log)
         return
       }
       
@@ -174,11 +176,11 @@ final class FetchQueueOperation: FeedKitOperation {
       if let er = error {
         guard !acc.isEmpty else {
           os_log("fetching entries failed: %{public}@",
-                 log: User.log, type: .error, String(describing: er))
+                 log: log, type: .error, String(describing: er))
           return self.done(but: error)
         }
         os_log("got entries and error: %{public}@",
-               log: User.log, type: .error, String(describing: er))
+               log: log, type: .error, String(describing: er))
       }
       
       let cleaned = self.dequeue(redirected: acc)
@@ -190,7 +192,7 @@ final class FetchQueueOperation: FeedKitOperation {
       }()
       
       os_log("setting new queue: %{public}@",
-             log: User.log, type: .debug, String(reflecting: sorted))
+             log: log, type: .debug, String(reflecting: sorted))
       
       // Getting current entry first which might be not be enqueued.
       let prevCurrent = self.user.queue.current
@@ -199,12 +201,12 @@ final class FetchQueueOperation: FeedKitOperation {
       if let entry = prevCurrent {
         do {
           os_log("skipping queue to previous entry: %{public}@",
-                 log: User.log, type: .debug, entry.title)
+                 log: log, type: .debug, entry.title)
           
           try self.user.queue.skip(to: entry)
         } catch {
           os_log("could not skip queue to previous entry %{public}@",
-                 log: User.log, error as CVarArg)
+                 log: log, error as CVarArg)
           
           // Not sure what could be done here.
         }
@@ -213,7 +215,7 @@ final class FetchQueueOperation: FeedKitOperation {
       let entries = self.queuedEntries(
         with: sorted, for: guids, respecting: accError ?? error)
       
-      os_log("entries in queue: %{public}@", log: User.log, type: .debug,
+      os_log("entries in queue: %{public}@", log: log, type: .debug,
              String(reflecting: entries))
       
       func leave(_ error: Error? = nil) {
@@ -281,7 +283,7 @@ final class FetchQueueOperation: FeedKitOperation {
   private var iTunesItems: [ITunesItem]?
   
   override func start() {
-    os_log("starting FetchQueueOperation", log: User.log, type: .debug)
+    os_log("starting FetchQueueOperation", log: log, type: .debug)
     
     guard !isCancelled else {
       return done()

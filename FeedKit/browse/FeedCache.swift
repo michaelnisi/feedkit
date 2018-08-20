@@ -10,6 +10,8 @@ import Foundation
 import Skull
 import os.log
 
+private let log = OSLog.disabled
+
 public final class FeedCache: LocalCache {
   
   private lazy var sqlFormatter = LibrarySQLFormatter()
@@ -41,6 +43,10 @@ public final class FeedCache: LocalCache {
   /// for the given URL. Retrieved identifiers are being cached in memory, for
   /// faster access, although this should probably be measured for prove.
   func feedID(for url: String) throws -> FeedID {
+    if url.last == "/" {
+      os_log("problematic URL detected: %{public}@", log: log, type: .error, url)
+    }
+
     if let cachedFeedID = cachedFeedID(for: url) {
       return cachedFeedID
     }
@@ -215,11 +221,11 @@ extension FeedCache: FeedCaching {
   public func fulfill(_ locators: [EntryLocator], ttl: TimeInterval
   ) throws -> ([Entry], [EntryLocator]) {
     os_log("""
-    fulfilling: {
+    fulfilling: (
       locators: %{public}@,
       ttl: %f
-    }
-    """, log: Cache.log, type: .debug, locators, ttl)
+    )
+    """, log: log, type: .debug, locators, ttl)
     
     let optimized = EntryLocator.reduce(locators)
     
@@ -248,12 +254,12 @@ extension FeedCache: FeedCaching {
     )
 
     os_log("""
-    subtracted: {
+    subtracted: (
       cached: %{public}@,
       stale: %{public}@,
       needed: %{public}@
-    }
-    """, log: Cache.log, type: .debug, cached, stale, needed ?? "none")
+    )
+    """, log: log, type: .debug, cached, stale, needed ?? "none")
 
     assert(stale.isEmpty, "entries cannot be stale")
     
@@ -345,7 +351,7 @@ extension FeedCache: FeedCaching {
           guard code == 19 else {
             break
           }
-          os_log("inconsistent database: %@", log: Cache.log, type: .error, message)
+          os_log("inconsistent database: %@", log: log, type: .error, message)
           // TODO: Handle Skull: 19: UNIQUE constraint failed: feed.itunes_guid
           break
         default:
@@ -377,7 +383,7 @@ extension FeedCache: FeedCaching {
         let feedID = try self.feedID(for: url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
-        os_log("feed not cached: %{public}@", log: Cache.log,  type: .debug, url)
+        os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
       }
     }
 
@@ -586,9 +592,7 @@ extension FeedCache: SearchCaching {
           } catch {
             switch error {
             case FeedKitError.feedNotCached(let urls):
-              if #available(iOS 10.0, *) {
-                os_log("feed not cached: %{public}@", log: Cache.log,  type: .error, urls)
-              }
+              os_log("feed not cached: %{public}@", log: log,  type: .error, urls)
               return acc
             default: throw error
             }
@@ -705,12 +709,11 @@ extension FeedCache: SearchCaching {
     return try queue.sync {
       if let (cachedTerm, ts) = FeedCache.subcached(term, dict: noSuggestions) {
         if FeedCache.stale(ts, ttl: CacheTTL.long.defaults) {
-          os_log("subcached expired: %{public}@",
-                 log: Search.log, type: .debug, term)
+          os_log("subcached expired: %{public}@", log: log, type: .debug, term)
           noSuggestions[cachedTerm] = nil
           return nil
         } else {
-          os_log("nothing cached: %{public}@", log: Search.log, type: .debug, term)
+          os_log("nothing cached: %{public}@", log: log, type: .debug, term)
           return []
         }
       }

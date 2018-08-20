@@ -10,9 +10,7 @@ import Foundation
 import Skull
 import os.log
 
-struct Cache {
-  static var log = OSLog(subsystem: "ink.codes.feedkit", category: "cache")
-}
+private let log = OSLog.disabled
 
 /// Wraps a value into an `NSObject`.
 class ValueObject<T>: NSObject {
@@ -127,7 +125,7 @@ public class LocalCache: Caching {
           _db = try open()
         } catch {
           os_log("could not open database: %{public}@",
-                 log: Cache.log, type: .error, error as CVarArg)
+                 log: log, type: .error, error as CVarArg)
           fatalError(String(describing: error))
         }
         return _db!
@@ -158,12 +156,12 @@ public class LocalCache: Caching {
     
     os_log(
       """
-      initializing: {
+      initializing: (
         schema: %{public}@,
         database: %{public}@,
         queue: %{public}@
-      }
-      """, log: Cache.log, type: .debug, schema, database, label)
+      )
+      """, log: log, type: .debug, schema, database, label)
     
     self.schema = schema
     self.url = url

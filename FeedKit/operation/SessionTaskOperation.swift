@@ -11,6 +11,8 @@ import os.log
 import Ola
 import Patron
 
+private let log = OSLog.disabled
+
 public extension Notification.Name {
   
   /// Posted when a remote request has been started.
@@ -64,13 +66,14 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   }
   
   final var task: URLSessionTask? {
+    willSet {
+      os_log("cancelling task", log: log, type: .debug)
+      task?.cancel()
+    }
+
     didSet {
-      if task != nil {
-        post(name: .FKRemoteRequest)
-      } else if oldValue != nil {
-        oldValue?.cancel()
-        post(name: .FKRemoteResponse)
-      }
+      os_log("posting notification", log: log, type: .debug)
+      post(name: task != nil ? .FKRemoteRequest : .FKRemoteResponse)
     }
   }
   
