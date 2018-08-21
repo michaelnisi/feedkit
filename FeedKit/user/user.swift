@@ -161,7 +161,7 @@ public protocol Queueing {
 
 // MARK: - Updating
 
-/// Updating things users cares about.
+/// Updating things users care about.
 public protocol Updating {
   
   /// Updates entries of subscribed feeds. Errors passed to the completion
@@ -177,16 +177,24 @@ public protocol Updating {
 
 // MARK: - Subscribing
 
+/// Local caching of subscriptions.
 public protocol SubscriptionCaching {
+
+  /// Adds `subscriptions`.
   func add(subscriptions: [Subscription]) throws
+
+  /// Removes subscriptions of `urls`.
   func remove(urls: [FeedURL]) throws
-  
+
+  /// Returns `true` if `url` is subscribed.
   func isSubscribed(_ url: FeedURL) throws -> Bool
-  
+
+  /// Returns current subscriptions.
   func subscribed() throws -> [Subscription]
+
 }
 
-/// Mangages the user’s feed subscriptions.
+/// Manages the user’s feed subscriptions.
 public protocol Subscribing: Updating {
   
   /// Adds `subscriptions` to the user’s library.

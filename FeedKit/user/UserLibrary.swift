@@ -29,7 +29,7 @@ public final class UserLibrary: EntryQueueHost {
     self.browser = browser
     self.operationQueue = queue
     
-    dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
+    dispatchPrecondition(condition: .onQueue(.main))
     precondition(queue.maxConcurrentOperationCount == 1)
 
     synchronize()
@@ -53,7 +53,18 @@ public final class UserLibrary: EntryQueueHost {
     }
     set {
       sQueue.sync {
+        let isChanged = _subscriptions != newValue
+
         _subscriptions = newValue
+
+        guard isChanged else {
+          return
+        }
+
+        DispatchQueue.main.async {
+          NotificationCenter.default.post(
+            name: .FKSubscriptionsDidChange, object: self)
+        }
       }
     }
   }
@@ -69,7 +80,18 @@ public final class UserLibrary: EntryQueueHost {
     }
     set {
       sQueue.sync {
+        let isChanged = _queuedGUIDs != newValue
+
         _queuedGUIDs = newValue
+
+        guard isChanged else {
+          return
+        }
+
+        DispatchQueue.main.async {
+          NotificationCenter.default.post(
+            name: .FKQueueDidChange, object: self)
+        }
       }
     }
   }
@@ -85,10 +107,9 @@ extension UserLibrary: Subscribing {
     addComplete: ((_ error: Error?) -> Void)? = nil
   ) {
     guard !subscriptions.isEmpty else {
-      DispatchQueue.global().async {
+      return DispatchQueue.global().async {
         addComplete?(nil)
       }
-      return
     }
 
     let cache = self.cache
@@ -99,20 +120,11 @@ extension UserLibrary: Subscribing {
         try cache.add(subscriptions: subscriptions)
         self.subscriptions = urls.union(subscriptions.map { $0.url })
       } catch {
-        DispatchQueue.global().async {
-          addComplete?(error)
-        }
+        addComplete?(error)
         return
       }
       
-      DispatchQueue.global().async {
-        addComplete?(nil)
-      }
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: self)
-      }
+      addComplete?(nil)
     }
     
   }
@@ -120,14 +132,10 @@ extension UserLibrary: Subscribing {
   public func unsubscribe(
     from urls: [FeedURL],
     unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) {
-    func done(_ error: Error? = nil) -> Void {
-      DispatchQueue.global().async {
-        unsubscribeComplete?(error)
-      }
-    }
-    
     guard !urls.isEmpty else {
-      return done()
+      return DispatchQueue.global().async {
+        unsubscribeComplete?(nil)
+      }
     }
     
     let cache = self.cache
@@ -138,15 +146,11 @@ extension UserLibrary: Subscribing {
         try cache.remove(urls: urls)
         self.subscriptions = subscriptions.subtracting(urls)
       } catch {
-        return done(error)
+        unsubscribeComplete?(error)
+        return
       }
       
-      done()
-      
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKSubscriptionsDidChange, object: self)
-      }
+      unsubscribeComplete?(nil)
     }
   }
   
@@ -404,13 +408,11 @@ extension UserLibrary: Queueing {
       }
     }
 
-    queuedGUIDs.subtract(removed)
+    queuedGUIDs = queuedGUIDs.subtracting(removed)
   }
 
-  private static func postQueueNotifications(regarding entries: [Entry]) {
+  private static func queueDid(dequeue entries: [Entry]) {
     let nc = NotificationCenter.default
-
-    nc.post(name: .FKQueueDidChange, object: nil)
 
     for entry in entries {
       nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
@@ -433,7 +435,7 @@ extension UserLibrary: Queueing {
       }
       
       dequeueCompletionBlock?(nil)
-      UserLibrary.postQueueNotifications(regarding: entries)
+      UserLibrary.queueDid(dequeue: entries)
     }
   }
 
@@ -451,7 +453,7 @@ extension UserLibrary: Queueing {
       }
 
       dequeueCompletionBlock?(nil)
-      UserLibrary.postQueueNotifications(regarding: children)
+      UserLibrary.queueDid(dequeue: children)
     }
   }
   
