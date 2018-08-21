@@ -345,7 +345,7 @@ extension UserCache: UserCacheSyncing {
   
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
-      return os_log("aborting attempt to add empty array", type: .debug)
+      return os_log("aborting attempt to add empty array", log: log, type: .debug)
     }
     
     var er: Error?
@@ -370,7 +370,7 @@ extension UserCache: UserCacheSyncing {
   
   public func remove(recordNames: [String]) throws {
     guard !recordNames.isEmpty else {
-      os_log("aborting attempt to remove empty array", type: .debug)
+      os_log("aborting attempt to remove empty array", log: log, type: .debug)
       return
     }
     
