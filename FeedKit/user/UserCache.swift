@@ -345,7 +345,8 @@ extension UserCache: UserCacheSyncing {
   
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
-      return os_log("aborting attempt to add empty array", log: log, type: .debug)
+      os_log("aborting attempt to add empty array", log: log, type: .debug)
+      return
     }
     
     var er: Error?
@@ -355,7 +356,7 @@ extension UserCache: UserCacheSyncing {
         let sql = try synced.reduce([String]()) { acc, item in
           let sql = try sqlFormatter.SQLToReplace(synced: item)
           return acc + [sql]
-          }.joined(separator: "\n")
+        }.joined(separator: "\n")
         
         try db.exec(["BEGIN;", sql, "COMMIT;"].joined(separator: "\n"))
       } catch {
