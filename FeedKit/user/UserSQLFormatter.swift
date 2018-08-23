@@ -255,8 +255,9 @@ extension UserSQLFormatter {
   DELETE FROM entry WHERE entry_guid IN(SELECT entry_guid FROM zombie_entry_guid_view);
   """
   
-  // Examplary iCloud record name: C494AD71-AB58-4A00-BFDE-2551A32BC3E4
-  
+  /// Returns SQL to delete records with `names`, for example:
+  ///
+  /// `["C494AD71-AB58-4A00-BFDE-2551A32BC3E4"]`.
   static func SQLToDeleteRecords(with names: [String]) -> String {
     return "DELETE FROM record WHERE record_name IN(" + names.map {
       "'\($0)'"
