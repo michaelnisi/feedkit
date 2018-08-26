@@ -318,22 +318,10 @@ extension UserCache: QueueCaching {
 // MARK: - UserCacheSyncing
 
 extension UserCache: UserCacheSyncing {
-  
-  public func removeQueue() throws {
+
+  public func purgeZone(named name: String) throws {
     try queue.sync {
-      try db.exec(UserSQLFormatter.SQLToDeleteFromQueuedEntry)
-    }
-  }
-  
-  public func removeLibrary() throws {
-    try queue.sync {
-      try db.exec(UserSQLFormatter.SQLToDeleteFromSubscribed)
-    }
-  }
-  
-  public func removeLog() throws {
-    try queue.sync {
-      try db.exec(UserSQLFormatter.SQLToDeleteFromPrevEntry)
+      try db.exec(UserSQLFormatter.SQLToDeleteZone(named: name))
     }
   }
   

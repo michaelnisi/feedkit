@@ -503,12 +503,12 @@ extension UserCacheTests {
     }
     
     do {
-      try! cache.removeQueue()
+      try! cache.purgeZone(named: "queueZone")
       XCTAssertEqual(try! cache.queued(), [])
       XCTAssertEqual(try! cache.locallyQueued(), [])
       XCTAssertTrue(try! cache.zombieRecords().isEmpty)
       
-      try! cache.removeLibrary()
+      try! cache.purgeZone(named: "libraryZone")
       XCTAssertEqual(try! cache.subscribed(), [])
       XCTAssertEqual(try! cache.locallySubscribed(), [])
       XCTAssertTrue(try! cache.zombieRecords().isEmpty)

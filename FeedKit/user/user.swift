@@ -46,15 +46,15 @@ public protocol QueueCaching {
   /// Removes queued entries with `guids`.
   func removeQueued(_ guids: [EntryGUID]) throws
 
+  /// Removes all queued entries.
+  func removeQueued() throws
+  
   /// Removes queued entries of `feed`.
   func removeQueued(feed url: FeedURL) throws
   
   /// Trims the queue, keeping only the latest items, and items that have been
   /// explicitly enqueued by users.
   func trim() throws
-  
-  /// Removes all queued entries.
-  func removeQueued() throws
   
   /// Removes previously queued entries from the cache.
   func removePrevious() throws
@@ -325,16 +325,10 @@ public protocol UserCacheSyncing: QueueCaching, SubscriptionCaching {
   
   /// Deletes zombie records, unused feeds, and unused entries.
   func deleteZombies() throws
-  
-  /// Deletes all queue data.
-  func removeQueue() throws
-  
-  /// Deletes all library data.
-  func removeLibrary() throws
-  
-  /// Deletes all log data.
-  func removeLog() throws
-  
+
+  /// Purges zone with `name`.
+  func purgeZone(named name: String) throws
+
 }
 
 

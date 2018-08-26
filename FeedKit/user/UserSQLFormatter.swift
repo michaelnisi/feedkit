@@ -242,7 +242,7 @@ extension UserSQLFormatter {
   static var SQLToDeleteFromSubscribed = "DELETE FROM subscribed_feed;"
   static var SQLToDeleteFromQueuedEntry = "DELETE FROM queued_entry;"
   static var SQLToDeleteFromPrevEntry = "DELETE FROM prev_entry;"
-  
+
   static var SQLToDeleteAll = """
   DELETE FROM record;
   DELETE FROM feed;
@@ -262,6 +262,11 @@ extension UserSQLFormatter {
     return "DELETE FROM record WHERE record_name IN(" + names.map {
       "'\($0)'"
     }.joined(separator: ", ") + ");"
+  }
+
+  /// Returns SQL deleting records in zone.
+  static func SQLToDeleteZone(named name: String) -> String {
+    return "DELETE FROM record WHERE zone_name = '\(name)';"
   }
   
   private func SQLReplacing(record: RecordMetadata) -> (String, String) {
