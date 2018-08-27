@@ -252,8 +252,7 @@ extension LibrarySQLFormatter {
     let title = SQLString(from: feed.title)
     
     if feed.updated == nil || feed.updated == Date(timeIntervalSince1970: 0) {
-      os_log("missing proper updated date in feed: %{public}@",
-             String(reflecting: feed))
+      os_log("missing proper updated date in feed: %{public}@", feed.description)
     }
     
     let updated = SQLString(from: feed.updated)
