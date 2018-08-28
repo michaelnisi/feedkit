@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user.library")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -25,23 +25,36 @@ public final class UserLibrary: EntryQueueHost {
   ///   - browser: The browser to access feeds and entries.
   ///   - queue: A serial operation queue to execute operations in order.
   public init(cache: UserCaching, browser: Browsing, queue: OperationQueue) {
+    dispatchPrecondition(condition: .onQueue(.main))
+    precondition(queue.maxConcurrentOperationCount == 1)
+
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
-    
-    dispatchPrecondition(condition: .onQueue(.main))
-    precondition(queue.maxConcurrentOperationCount == 1)
 
     synchronize()
   }
   
-  /// The actual queue data structure. Starting off with an empty queue.
-  internal var queue = Queue<Entry>()
-  
   /// Internal serial queue.
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
-  
+
+  var _queue = Queue<Entry>()
+
+  var queue: Queue<Entry> {
+    get {
+      return sQueue.sync {
+        return _queue
+      }
+    }
+
+    set {
+      sQueue.sync {
+        _queue = newValue
+      }
+    }
+  }
+
   private var  _subscriptions = Set<FeedURL>()
   
   /// A synchronized list of subscribed URLs for quick in-memory access.
@@ -207,6 +220,8 @@ extension UserLibrary: Subscribing {
   
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
     operationQueue.addOperation {
+      os_log("synchronizing", log: log, type: .debug)
+
       do {
         // First we are reloading the subscribed feed URLs.
         let subscribed = try self.cache.subscribed()
@@ -425,15 +440,15 @@ extension UserLibrary: Queueing {
             enqueueCompletionBlock: enqueueCompletionBlock)
   }
 
-  /// Dequeues `entries`. Trying to dequeue a single entry that isn’t enqueued
-  /// throws.
+  /// Dequeues `entries`. Trying to dequeue a single entry that’s not enqueued
+  /// throws. Lots of ephemeral state to update here, after writing to the
+  /// database.
   private func dequeue(entries: [Entry]) throws {
     os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
+    dispatchPrecondition(condition: .notOnQueue(.main))
 
     let guids = entries.map { $0.guid }
     try cache.removeQueued(guids)
-
-    // Reloading, making sure we stay in sync.
 
     let queued = try cache.queued().compactMap { $0.entryLocator.guid }
 
