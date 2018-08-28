@@ -71,19 +71,6 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     self.error = error
     
     enqueueCompletionBlock?(enqueued, error)
-    
-    guard !enqueued.isEmpty else {
-      return os_log("nothing to enqueue", log: log)
-    }
-
-    let nc = NotificationCenter.default
-    nc.post(name: .FKQueueDidChange, object: nil)
-    for entry in enqueued {
-      nc.post(name: .FKQueueDidEnqueue, object: nil, userInfo: [
-        "entryGUID": entry.guid,
-        "enclosureURL": entry.enclosure?.url as Any
-      ])
-    }
   }
   
   /// Returns the latest entries per feed in `entries`.

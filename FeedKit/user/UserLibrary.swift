@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -45,7 +45,7 @@ public final class UserLibrary: EntryQueueHost {
   private var  _subscriptions = Set<FeedURL>()
   
   /// A synchronized list of subscribed URLs for quick in-memory access.
-  private var subscriptions:Set<FeedURL> {
+  private var subscriptions: Set<FeedURL> {
     get {
       return sQueue.sync {
         return _subscriptions
@@ -61,15 +61,31 @@ public final class UserLibrary: EntryQueueHost {
           return
         }
 
-        DispatchQueue.main.async {
+        DispatchQueue.global().async {
+          os_log("posting: FKSubscriptionsDidChange", log: log, type: .debug)
           NotificationCenter.default.post(
             name: .FKSubscriptionsDidChange, object: self)
         }
       }
     }
   }
-  
-  private var _queuedGUIDs =  Set<EntryGUID>()
+
+  /// We are keeping an extra cache for enclosure URLs, enabling us include
+  /// these URLs in our notifications, receivers might want to begin
+  /// downloading.
+  private var enclosureURLs = NSCache<NSString, NSString>()
+
+  private func updateEnclosureURLs(_ entries: [Entry]) {
+    for entry in entries {
+      guard let url = entry.enclosure?.url else {
+        continue
+      }
+
+      enclosureURLs.setObject(url as NSString, forKey: entry.guid as NSString)
+    }
+  }
+
+  private var _queuedGUIDs = Set<EntryGUID>()
   
   /// A synchronized list of enqueued entry GUIDs for quick in-memory access.
   private var queuedGUIDs: Set<EntryGUID> {
@@ -78,19 +94,38 @@ public final class UserLibrary: EntryQueueHost {
         return _queuedGUIDs
       }
     }
+
     set {
       sQueue.sync {
-        let isChanged = _queuedGUIDs != newValue
+        let enqueued = newValue.subtracting(_queuedGUIDs)
+        let dequeued = _queuedGUIDs.subtracting(newValue)
 
         _queuedGUIDs = newValue
 
-        guard isChanged else {
+        guard !enqueued.isEmpty || !dequeued.isEmpty else {
           return
         }
 
-        DispatchQueue.main.async {
-          NotificationCenter.default.post(
-            name: .FKQueueDidChange, object: self)
+        let q = DispatchQueue.global()
+
+        func post(_ guid: String, _ n: Notification.Name) {
+          var i = ["entryGUID": guid]
+          if let url = enclosureURLs.object(forKey: guid as NSString) {
+            i["enclosureURL"] = url as String
+          } 
+
+          q.async {
+            os_log("posting: ( %@, %@ )", log: log, type: .debug, n.rawValue, i)
+            NotificationCenter.default.post(name: n, object: self, userInfo: i)
+          }
+        }
+
+        for guid in dequeued { post(guid, .FKQueueDidDequeue) }
+        for guid in enqueued { post(guid, .FKQueueDidEnqueue) }
+
+        q.async {
+          os_log("posting: FKQueueDidChange", log: log, type: .debug)
+          NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
         }
       }
     }
@@ -171,7 +206,7 @@ extension UserLibrary: Subscribing {
   }
   
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
-    DispatchQueue.global().async {
+    operationQueue.addOperation {
       do {
         // First we are reloading the subscribed feed URLs.
         let subscribed = try self.cache.subscribed()
@@ -192,7 +227,7 @@ extension UserLibrary: Subscribing {
             return nil
           }
         }
-        
+
         self.queuedGUIDs = Set(queuedGUIDs)
         
         completionBlock?(nil)
@@ -282,6 +317,8 @@ extension UserLibrary: Updating {
         if let er = error {
           os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
         }
+
+        self.updateEnclosureURLs(enqueued)
         self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
       }
       
@@ -359,7 +396,7 @@ extension UserLibrary: Queueing {
     
     return fetchingQueue
   }
-  
+
   public func enqueue(
     entries: [Entry],
     belonging owner: QueuedOwner,
@@ -371,7 +408,9 @@ extension UserLibrary: Queueing {
     let queuedGUIDs = self.queuedGUIDs
     
     op.enqueueCompletionBlock = { enqueued, error in
+      self.updateEnclosureURLs(enqueued)
       self.queuedGUIDs = queuedGUIDs.union(enqueued.map { $0.guid })
+
       enqueueCompletionBlock?(error)
     }
 
@@ -386,19 +425,21 @@ extension UserLibrary: Queueing {
             enqueueCompletionBlock: enqueueCompletionBlock)
   }
 
-  /// Atomically removes `entries` from queue.
+  /// Dequeues `entries`. Trying to dequeue a single entry that isn’t enqueued
+  /// throws.
   private func dequeue(entries: [Entry]) throws {
     os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
 
     let guids = entries.map { $0.guid }
     try cache.removeQueued(guids)
 
-    var removed = Set<EntryGUID>()
+    // Reloading, making sure we stay in sync.
+
+    let queued = try cache.queued().compactMap { $0.entryLocator.guid }
 
     for entry in entries {
       do {
         try queue.remove(entry)
-        removed.insert(entry.guid)
       } catch {
         os_log("not removed: %{public}@", log: log, error as CVarArg)
         guard entries.count > 1 else {
@@ -406,20 +447,16 @@ extension UserLibrary: Queueing {
         }
         continue
       }
+
+      // Purging URLs.
+
+      guard let url = entry.enclosure?.url else {
+        continue
+      }
+      enclosureURLs.removeObject(forKey: url as NSString)
     }
 
-    queuedGUIDs = queuedGUIDs.subtracting(removed)
-  }
-
-  private static func queueDid(dequeue entries: [Entry]) {
-    let nc = NotificationCenter.default
-
-    for entry in entries {
-      nc.post(name: .FKQueueDidDequeue, object: nil, userInfo: [
-        "entryGUID": entry.guid,
-        "enclosureURL": entry.enclosure?.url as Any
-      ])
-    }
+    queuedGUIDs = Set(queued)
   }
 
   public func dequeue(
@@ -435,7 +472,6 @@ extension UserLibrary: Queueing {
       }
       
       dequeueCompletionBlock?(nil)
-      UserLibrary.queueDid(dequeue: entries)
     }
   }
 
@@ -453,7 +489,6 @@ extension UserLibrary: Queueing {
       }
 
       dequeueCompletionBlock?(nil)
-      UserLibrary.queueDid(dequeue: children)
     }
   }
   
