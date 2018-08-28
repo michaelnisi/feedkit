@@ -25,13 +25,13 @@ public struct Queue<Item: Hashable> {
   
   /// The sorted keys of `itemsByHashValues`, key of last added item last.
   private var hashValues = [Int]()
-  
+
   /// The sorted items in the queue at this moment.
-  public var items: [Item] { get {
+  public var items: [Item] {
     return hashValues.map {
       itemsByHashValues[$0]!
     }
-  }}
+  }
   
   /// Removes all items from the queue.
   public mutating func removeAll() {

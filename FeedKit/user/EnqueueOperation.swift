@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user.enqueue")
 
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
@@ -128,13 +128,15 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         let loc = EntryLocator(entry: $0)
         switch owner {
         case .nobody:
-          return Queued.temporary(loc, Date(), $0.iTunes)
+          return .temporary(loc, Date(), $0.iTunes)
         case .user:
-          return Queued.pinned(loc, Date(), $0.iTunes)
+          return .pinned(loc, Date(), $0.iTunes)
         }
       }
       
       try cache.add(queued: queued)
+  
+
     } catch {
       os_log("enqueueing failed: %{public}@",
              log: log, type: .debug, error as CVarArg)
