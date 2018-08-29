@@ -101,9 +101,18 @@ public enum QueuedOwner: Int {
   case nobody, user
 }
 
+/// Receives queue updates.
+public protocol QueueDelegate: class {
+  func queue(_ queue: Queueing, didEnqueue guid: EntryGUID)
+  func queue(_ queue: Queueing, didDequeue guid: EntryGUID)
+  func queue(_ queue: Queueing, didChangeEnqueued guids: Set<EntryGUID>) 
+}
+
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
+
+  var queueDelegate: QueueDelegate? { get set }
   
   /// Adds `entries` to the queue.
   func enqueue(
@@ -194,28 +203,44 @@ public protocol SubscriptionCaching {
 
 }
 
+/// Receives subscription changes.
+public protocol LibraryDelegate: class {
+  func library(_ library: Subscribing, didSubscribe url: FeedURL)
+  func library(_ library: Subscribing, didUnsubscribe url: FeedURL)
+}
+
 /// Manages the user’s feed subscriptions.
 public protocol Subscribing: Updating {
+
+  var libraryDelegate: LibraryDelegate? { get set }
   
   /// Adds `subscriptions` to the user’s library.
   ///
   /// - Parameters:
   ///   - subscriptions: The subscriptions to add without timestamps.
-  ///   - addComplete: An optional completion block:
+  ///   - completionBlock: An optional completion block:
   ///   - error: An error if something went wrong.
   func add(
     subscriptions: [Subscription],
-    addComplete: ((_ error: Error?) -> Void)?)
+    completionBlock: ((_ error: Error?) -> Void)?)
+
+  /// Subscribes `feed`, enqueueing its latest child.
+  func subscribe(_ feed: Feed)
   
   /// Unsubscribe from `urls`.
   ///
   /// - Parameters:
   ///   - urls: The URLs of feeds to unsubscribe from.
+  ///   - dequeueing: Dequeues children of feeds by default.
   ///   - unsubscribeComplete: An optional completion block:
   ///   - error: An error if something went wrong.
   func unsubscribe(
-    from urls: [FeedURL],
+    _ urls: [FeedURL],
+    dequeueing: Bool,
     unsubscribeComplete: ((_ error: Error?) -> Void)?)
+
+  /// Unsubscribes from feed at `url`, deqeueing all its children.
+  func unsubscribe(_ url: FeedURL)
   
   /// Fetches the feeds currently subscribed.
   ///

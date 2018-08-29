@@ -34,7 +34,9 @@ public final class UserLibrary: EntryQueueHost {
 
     synchronize()
   }
-  
+
+  public weak var libraryDelegate: LibraryDelegate?
+
   /// Internal serial queue.
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
@@ -66,12 +68,21 @@ public final class UserLibrary: EntryQueueHost {
     }
     set {
       sQueue.sync {
-        let isChanged = _subscriptions != newValue
+        let subscribed = newValue.subtracting(_subscriptions)
+        let unsubscribed = _subscriptions.subtracting(newValue)
 
         _subscriptions = newValue
 
-        guard isChanged else {
+        guard !subscribed.isEmpty || !unsubscribed.isEmpty else {
           return
+        }
+
+        for s in subscribed {
+          self.libraryDelegate?.library(self, didSubscribe: s)
+        }
+
+        for s in unsubscribed {
+          self.libraryDelegate?.library(self, didUnsubscribe: s)
         }
 
         DispatchQueue.global().async {
@@ -98,6 +109,8 @@ public final class UserLibrary: EntryQueueHost {
     }
   }
 
+  public weak var queueDelegate: QueueDelegate?
+
   private var _queuedGUIDs = Set<EntryGUID>()
   
   /// A synchronized list of enqueued entry GUIDs for quick in-memory access.
@@ -119,24 +132,31 @@ public final class UserLibrary: EntryQueueHost {
           return
         }
 
-        let q = DispatchQueue.global()
-
         func post(_ guid: String, _ n: Notification.Name) {
           var i = ["entryGUID": guid]
           if let url = enclosureURLs.object(forKey: guid as NSString) {
             i["enclosureURL"] = url as String
           } 
 
-          q.async {
+          DispatchQueue.global().async {
             os_log("posting: ( %@, %@ )", log: log, type: .debug, n.rawValue, i)
             NotificationCenter.default.post(name: n, object: self, userInfo: i)
           }
         }
 
-        for guid in dequeued { post(guid, .FKQueueDidDequeue) }
-        for guid in enqueued { post(guid, .FKQueueDidEnqueue) }
+        for guid in dequeued {
+          self.queueDelegate?.queue(self, didDequeue: guid)
+          post(guid, .FKQueueDidDequeue)
+        }
 
-        q.async {
+        for guid in enqueued {
+          self.queueDelegate?.queue(self, didEnqueue: guid)
+          post(guid, .FKQueueDidEnqueue)
+        }
+
+        self.queueDelegate?.queue(self, didChangeEnqueued: _queuedGUIDs)
+
+        DispatchQueue.global().async {
           os_log("posting: FKQueueDidChange", log: log, type: .debug)
           NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
         }
@@ -152,33 +172,64 @@ extension UserLibrary: Subscribing {
   
   public func add(
     subscriptions: [Subscription],
-    addComplete: ((_ error: Error?) -> Void)? = nil
+    completionBlock: ((_ error: Error?) -> Void)? = nil
   ) {
     guard !subscriptions.isEmpty else {
       return DispatchQueue.global().async {
-        addComplete?(nil)
+        completionBlock?(nil)
       }
     }
 
-    let cache = self.cache
-    let urls = self.subscriptions
-    
     operationQueue.addOperation {
       do {
-        try cache.add(subscriptions: subscriptions)
-        self.subscriptions = urls.union(subscriptions.map { $0.url })
+        try self.cache.add(subscriptions: subscriptions)
+        let subscribed = try self.cache.subscribed()
+        self.subscriptions = Set(subscribed.map { $0.url })
       } catch {
-        addComplete?(error)
+        completionBlock?(error)
         return
       }
       
-      addComplete?(nil)
+      completionBlock?(nil)
     }
     
   }
-  
+
+  public func subscribe(_ feed: Feed) {
+    let s = Subscription(feed: feed)
+
+    add(subscriptions: [s]) { error in
+      guard error == nil else {
+        return os_log(
+          "not subscribed: %{public}@",
+          log: log, type: .error, error! as CVarArg
+        )
+      }
+
+      os_log("subscribed", log: log, type: .debug)
+
+      self.browser.latestEntry(feed.url) { entry, error in
+        guard error == nil, let e = entry else {
+          return os_log("latest entry not found", log: log)
+        }
+
+        self.enqueue(entries: [e], belonging: .nobody) { error in
+          guard error == nil else {
+            return os_log(
+              "not enqueued: %{public}@",
+              log: log, type: .error, error! as CVarArg
+            )
+          }
+
+          os_log("enqueued", log: log, type: .debug)
+        }
+      }
+    }
+  }
+
   public func unsubscribe(
-    from urls: [FeedURL],
+    _ urls: [FeedURL],
+    dequeueing: Bool = true,
     unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) {
     guard !urls.isEmpty else {
       return DispatchQueue.global().async {
@@ -186,13 +237,28 @@ extension UserLibrary: Subscribing {
       }
     }
     
-    let cache = self.cache
-    let subscriptions = self.subscriptions
-    
     operationQueue.addOperation {
+      let oldValue = self.subscriptions
+
       do {
-        try cache.remove(urls: urls)
-        self.subscriptions = subscriptions.subtracting(urls)
+        try self.cache.remove(urls: urls)
+        let subscribed = try self.cache.subscribed()
+        self.subscriptions = Set(subscribed.map { $0.url })
+      } catch {
+        unsubscribeComplete?(error)
+        return
+      }
+
+      guard dequeueing else {
+        unsubscribeComplete?(nil)
+        return
+      }
+
+      let unsubscribed = oldValue.subtracting(self.subscriptions)
+      let children = self.queue.filter { unsubscribed.contains($0.url) }
+
+      do {
+        try self.dequeue(entries: children)
       } catch {
         unsubscribeComplete?(error)
         return
@@ -200,6 +266,10 @@ extension UserLibrary: Subscribing {
       
       unsubscribeComplete?(nil)
     }
+  }
+
+  public func unsubscribe(_ url: FeedURL) {
+    self.unsubscribe([url])
   }
   
   @discardableResult

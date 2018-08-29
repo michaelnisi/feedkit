@@ -6,6 +6,8 @@
 //  Copyright © 2017 Michael Nisi. All rights reserved.
 //
 
+// TODO: Review EnqueueOperation, still not fucking on par
+
 import Foundation
 import os.log
 
@@ -91,9 +93,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   
   override func main() {
     os_log("starting EnqueueOperation", log: log, type: .debug)
-    
-    var enqueued = [Entry]()
-    
+
     do {
       guard error == nil else {
         // Although redundant, passing the error again for clarity.
@@ -121,10 +121,10 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       
       os_log("enqueueing: %{public}@", log: log, type: .debug, qualifieds)
 
-      entries.formUnion(user.queue.prepend(items: qualifieds))
+      let prepended = user.queue.prepend(items: qualifieds)
+      entries.formUnion(prepended)
       
-      let queued: [Queued] = qualifieds.map {
-        enqueued.append($0)
+      let prependedQueued: [Queued] = prepended.map {
         let loc = EntryLocator(entry: $0)
         switch owner {
         case .nobody:
@@ -134,16 +134,19 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         }
       }
       
-      try cache.add(queued: queued)
-  
+      try cache.add(queued: prependedQueued)
 
+      let queued = try cache.queued()
+      let diff = Set(queued).intersection(Set(prependedQueued))
+      let diffGuids = diff.compactMap { $0.entryLocator.guid }
+      let newlyEnqueued = qualifieds.filter { diffGuids.contains($0.guid) }
+
+      done(newlyEnqueued)
     } catch {
       os_log("enqueueing failed: %{public}@",
              log: log, type: .debug, error as CVarArg)
       return done([], error)
     }
-    
-    done(enqueued)
   }
   
 }
