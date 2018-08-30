@@ -99,7 +99,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         // Although redundant, passing the error again for clarity.
         return done([], error)
       }
-      
+
       let qualifieds: [Entry] = try {
         let notEnqueuedYet = try candidates.filter {
           try !cache.isQueued($0.guid)

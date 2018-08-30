@@ -77,7 +77,7 @@ extension UserLibraryTests {
     addComplete: @escaping (Error?) -> Void
   ) -> [Subscription] {
     let subscriptions = [Subscription(url: url)]
-    user.add(subscriptions: subscriptions, addComplete: addComplete)
+    user.add(subscriptions: subscriptions, completionBlock: addComplete)
     return subscriptions
   }
   
@@ -101,7 +101,7 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "unsubscribing empty list")
       
-      user.unsubscribe(from: []) { error in
+      user.unsubscribe([]) { error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()
@@ -111,7 +111,7 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "unsubscribing")
 
-      user.unsubscribe(from: [url]) { error in
+      user.unsubscribe([url]) { error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()

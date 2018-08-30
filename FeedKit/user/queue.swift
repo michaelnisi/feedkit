@@ -27,7 +27,7 @@ public struct Queue<Item: Hashable> {
   private var hashValues = [Int]()
 
   /// The sorted items in the queue at this moment.
-  public var items: [Item] {
+  var items: [Item] {
     return hashValues.map {
       itemsByHashValues[$0]!
     }

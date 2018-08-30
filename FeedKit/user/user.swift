@@ -101,18 +101,9 @@ public enum QueuedOwner: Int {
   case nobody, user
 }
 
-/// Receives queue updates.
-public protocol QueueDelegate: class {
-  func queue(_ queue: Queueing, didEnqueue guid: EntryGUID)
-  func queue(_ queue: Queueing, didDequeue guid: EntryGUID)
-  func queue(_ queue: Queueing, didChangeEnqueued guids: Set<EntryGUID>) 
-}
-
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
-
-  var queueDelegate: QueueDelegate? { get set }
   
   /// Adds `entries` to the queue.
   func enqueue(
@@ -203,17 +194,9 @@ public protocol SubscriptionCaching {
 
 }
 
-/// Receives subscription changes.
-public protocol LibraryDelegate: class {
-  func library(_ library: Subscribing, didSubscribe url: FeedURL)
-  func library(_ library: Subscribing, didUnsubscribe url: FeedURL)
-}
-
 /// Manages the user’s feed subscriptions.
 public protocol Subscribing: Updating {
 
-  var libraryDelegate: LibraryDelegate? { get set }
-  
   /// Adds `subscriptions` to the user’s library.
   ///
   /// - Parameters:
@@ -260,8 +243,7 @@ public protocol Subscribing: Updating {
   /// relying on this.
   func has(subscription url: FeedURL) -> Bool
   
-  /// Reloads the in-memory cache of locally cached subscriptions and enqueued
-  /// items.
+  /// Reloads the in-memory sets of subscriptions and enqueued GUIDs.
   func synchronize(completionBlock: ((Error?) -> Void)?)
   
 }
