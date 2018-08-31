@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user.library")
+private let log = OSLog.disabled
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -136,6 +136,10 @@ extension UserLibrary: Subscribing {
     
   }
 
+  private func queueContains(_ url: FeedURL) -> Bool {
+    return queue.contains { $0.feed == url }
+  }
+
   public func subscribe(_ feed: Feed) {
     let s = Subscription(feed: feed)
 
@@ -148,6 +152,10 @@ extension UserLibrary: Subscribing {
       }
 
       os_log("subscribed", log: log, type: .debug)
+
+      guard !self.queueContains(feed.url) else {
+        return os_log("not enqueueing latest entry", log: log, type: .debug)
+      }
 
       self.browser.latestEntry(feed.url) { entry, error in
         guard error == nil, let e = entry else {

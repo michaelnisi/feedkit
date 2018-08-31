@@ -61,23 +61,32 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   
   private func submit(_ otherEntries: [Entry], error: Error? = nil) {
     if error == nil {
-      assert(!otherEntries.isEmpty)
+      guard !otherEntries.isEmpty else {
+        os_log("not submitting empty entries", log: log)
+        return
+      }
     }
+
+    os_log("%@: submitting: ( %@, %@ )",
+           log: log, type: .debug, self, otherEntries, String(describing: error))
+
     entries.formUnion(otherEntries)
     entriesBlock?(error, otherEntries)
   }
   
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
   private func done(_ error: Error? = nil) {
+    os_log("%@: done: %@",
+           log: log, type: .debug, self, String(describing: error))
+
     let er: Error? = {
       guard !isCancelled else {
-        os_log("%{public}@: cancelled", log: log, type: .debug, self)
+        os_log("%@: cancelled", log: log, type: .debug, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
       return self.error
     }()
-    
 
     entriesCompletionBlock?(er)
     
@@ -92,8 +101,12 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   ///
   /// - Parameters:
   ///   - locators: The locators of entries to request.
-  private func request(_ locators: [EntryLocator]) throws {
-    os_log("%{public}@: requesting entries: %{public}@",
+  ///   - stock: Cached entries as fallback option.
+  private func request(
+    _ locators: [EntryLocator],
+    substantiating stock: [Entry] = []
+  ) throws {
+    os_log("%@: requesting entries: %@",
            log: log, type: .debug, self, locators)
 
     let cache = self.cache
@@ -107,12 +120,23 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       guard error == nil else {
+        if !stock.isEmpty {
+          os_log("** falling back on cached", log: log, type: .debug)
+          self?.submit(stock)
+        }
+
         self?.done(FeedKitError.serviceUnavailable(error!))
         return
       }
 
       guard let p = payload else {
-        os_log("%{public}@: no payload", log: log, me)
+        os_log("%@: no payload", log: log, me)
+
+        if !stock.isEmpty {
+          os_log("** falling back on cached", log: log, type: .debug)
+          self?.submit(stock)
+        }
+
         self?.done()
         return
       }
@@ -123,18 +147,18 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         guard !me.isCancelled else { return me.done() }
 
         if !errors.isEmpty {
-          os_log("%{public}@: invalid entries: %{public}@",
+          os_log("%@: invalid entries: %@",
                  log: log,  type: .error, me, errors)
         }
 
         guard !receivedEntries.isEmpty else {
-          os_log("%{public}@: no entries serialized from this payload: %{public}@",
+          os_log("%@: no entries serialized from this payload: %@",
                  log: log, me, p)
           self?.done()
           return
         }
         
-        os_log("%{public}@: received entries: %{public}@",
+        os_log("%@: received entries: %@",
                log: log, type: .debug, me, receivedEntries)
         
         // Handling HTTP Redirects
@@ -143,7 +167,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         var orginalURLsByURLs = [FeedURL: FeedURL]()
 
         if !redirects.isEmpty {
-          os_log("%{public}@: handling redirects: %{public}@",
+          os_log("%@: handling redirects: %@",
                  log: log, me, redirects)
           
           let originalURLs: [FeedURL] = redirects.compactMap {
@@ -160,10 +184,11 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         }
 
         if let url = me.singlyForced {
-          os_log("%{public}@: ** replacing entries: %{public}@",
+          os_log("%@: ** replacing entries: %@",
                  log: log, type: .debug, me, url)
           try cache.removeEntries(matching: [url])
         }
+
         try cache.update(entries: receivedEntries)
         
         guard !me.isCancelled else { return me.done() }
@@ -225,7 +250,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
         self?.done()
       } catch FeedKitError.feedNotCached(let urls) {
-        os_log("%{public}@: feeds not cached: %{public}@",
+        os_log("%@: feeds not cached: %@",
                log: log, me, urls)
         self?.done()
       } catch {
@@ -248,7 +273,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         let url = locators.first?.url,
         EntriesOperation.ignorants.update(url) else {
         return CachePolicy(
-          ttl: CacheTTL.short.defaults, http: .useProtocolCachePolicy)
+          ttl: CacheTTL.short.defaults, http: .reloadIgnoringCacheData)
       }
     }
     
@@ -256,13 +281,13 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   }
 
   override func start() {
-    os_log("%{public}@: starting", log: log, type: .debug, self)
+    os_log("%@: starting", log: log, type: .debug, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
     
     guard error == nil, !locators.isEmpty else {
-      os_log("%{public}@: aborting: no locators provided",
+      os_log("%@: aborting: no locators provided",
              log: log, type: .debug, self)
       return done(error)
     }
@@ -274,7 +299,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     }
     
     do {
-      os_log("%{public}@: trying cache: %{public}@",
+      os_log("%@: trying cache: %@",
              log: log, type: .debug, self, locators)
 
       let (cached, missing) = try cache.fulfill(locators, ttl: policy.ttl)
@@ -282,10 +307,10 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       guard !isCancelled else { return done() }
 
       os_log("""
-      %{public}@: (
+      %@: (
         ttl: %f,
-        cached: %{public}@,
-        missing: %{public}@
+        cached: %@,
+        missing: %@
       )
       """, log: log,
            type: .debug,
@@ -295,7 +320,12 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
            missing
       )
 
-      if !cached.isEmpty {
+      // Not submitting cached for singly forced reloads, because these might
+      // be attempting to get rid of doublets.
+
+      let isSinglyForced = singlyForced != nil
+
+      if !isSinglyForced, !cached.isEmpty {
         submit(cached)
       }
 
@@ -303,8 +333,12 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         return done()
       }
 
-      if !isAvailable {
-        done(FeedKitError.offline)
+      guard isAvailable else {
+        return done(FeedKitError.offline)
+      }
+
+      if isSinglyForced {
+        try request(missing, substantiating: cached)
       } else {
         try request(missing)
       }
