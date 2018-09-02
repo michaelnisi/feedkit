@@ -101,30 +101,35 @@ public enum QueuedOwner: Int {
   case nobody, user
 }
 
+/// Enumerates errors of the `Queueing` API.
+public enum QueueingError: Error {
+  case outOfSync(Int, Int)
+}
+
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
-  
+
   /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
     belonging: QueuedOwner,
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)?)
+    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?)
   
   /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)?)
+    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?)
   
   /// Removes `entry` from the queue.
   func dequeue(
     entry: Entry,
-    dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
+    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?)
 
   /// Removes entries of `feed` from queue.
   func dequeue(
     feed: FeedURL,
-    dequeueCompletionBlock: ((_ error: Error?) -> Void)?)
+    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?)
 
   /// Fetches entries in the user‘s queue, populating the `queue` object of this
   /// `UserLibrary` instance.
@@ -139,10 +144,10 @@ public protocol Queueing {
   ///
   /// - Returns: Returns an executing `Operation`.
   @discardableResult func fetchQueue(
-    entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
-    fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
+    entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)?,
+    fetchQueueCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation
-  
+
   // MARK: Queue
   
   // These synchronous methods are super fast (AP), but may not be consistent.
@@ -337,6 +342,5 @@ public protocol UserCacheSyncing: QueueCaching, SubscriptionCaching {
   func purgeZone(named name: String) throws
 
 }
-
 
 

@@ -9,11 +9,11 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.podest", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
-public final class UserLibrary {
+public final class UserLibrary: EntryQueueHost {
   private let cache: UserCaching
   private let browser: Browsing
   private let operationQueue: OperationQueue
@@ -65,30 +65,7 @@ public final class UserLibrary {
     }
   }
 
-  private var _guids = Set<EntryGUID>()
-
-  /// GUIDs of entries currently in the queue. Reload with `synchronize()`.
-  private var guids: Set<EntryGUID> {
-    get {
-      return sQueue.sync {
-        return _guids
-      }
-    }
-
-    set {
-      sQueue.sync {
-        _guids = newValue
-      }
-    }
-  }
-
   private var _queue = Queue<Entry>()
-
-}
-
-// MARK: - EntryQueueHost
-
-extension UserLibrary: EntryQueueHost {
 
   /// The actual queue of entries.
   var queue: Queue<Entry> {
@@ -105,7 +82,53 @@ extension UserLibrary: EntryQueueHost {
     }
   }
 
+  private var _guids = Set<EntryGUID>()
+
+  /// GUIDs set of enqueued items.
+  private var guids: Set<EntryGUID> {
+    get {
+      return sQueue.sync {
+        return _guids
+      }
+    }
+
+    set {
+      sQueue.sync {
+        let enqueuedGuids = newValue.subtracting(_guids)
+        let dequeuedGuids = _guids.subtracting(newValue)
+
+        guard !enqueuedGuids.isEmpty || !dequeuedGuids.isEmpty else {
+          os_log("** ignoring guids: unchanged set", log: log, type: .debug)
+          return
+        }
+
+        _guids = newValue
+
+        let enqueued = _queue.filter { enqueuedGuids.contains($0.guid) }
+        let dequeued = _queue.filter { dequeuedGuids.contains($0.guid) }
+
+        func post(_ name: Notification.Name, userInfo: [AnyHashable : Any]? = nil) {
+          DispatchQueue.main.async {
+            NotificationCenter.default.post(
+              name: name, object: self, userInfo: userInfo)
+          }
+        }
+
+        post(.FKQueueDidChange)
+
+        for e in enqueued {
+          post(.FKQueueDidEnqueue, userInfo: UserLibrary.makeUserInfo(entry: e))
+        }
+
+        for e in dequeued {
+          post(.FKQueueDidDequeue, userInfo: UserLibrary.makeUserInfo(entry: e))
+        }
+      }
+    }
+  }
+
 }
+
 
 // MARK: - Subscribing
 
@@ -162,7 +185,7 @@ extension UserLibrary: Subscribing {
           return os_log("latest entry not found", log: log)
         }
 
-        self.enqueue(entries: [e], belonging: .nobody) { error in
+        self.enqueue(entries: [e], belonging: .nobody) { enqueued, error in
           guard error == nil else {
             return os_log(
               "not enqueued: %{public}@",
@@ -185,8 +208,8 @@ extension UserLibrary: Subscribing {
         unsubscribeComplete?(nil)
       }
     }
-    
-    operationQueue.addOperation {
+
+    let op = BlockOperation(block: {
       let oldValue = self.subscriptions
 
       do {
@@ -207,14 +230,19 @@ extension UserLibrary: Subscribing {
       let children = self.queue.filter { unsubscribed.contains($0.url) }
 
       do {
-        try self.dequeue(entries: children)
+        let guids = try self.dequeue(entries: children)
+        os_log("dequeued: %@", log: log, type: .debug, guids)
       } catch {
         unsubscribeComplete?(error)
         return
       }
-      
+
       unsubscribeComplete?(nil)
-    }
+    })
+
+    op.completionBlock = commit
+
+    operationQueue.addOperation(op)
   }
 
   public func unsubscribe(_ url: FeedURL) {
@@ -248,7 +276,22 @@ extension UserLibrary: Subscribing {
         let queued = try self.cache.queued()
         self.guids = Set(queued.compactMap { $0.entryLocator.guid })
 
-        completionBlock?(nil)
+        // Evaluating our state.
+
+        let guids = self.guids
+        let q = Set(self.queue.map { $0.guid })
+
+        let er: Error? = {
+          if q.count == guids.count, q.intersection(guids).count == q.count {
+            return nil
+          }
+
+          os_log("queue out of sync", log: log, type: .error)
+
+          return QueueingError.outOfSync(q.count, guids.count)
+        }()
+
+        completionBlock?(er)
       } catch {
         os_log("failed to synchronize: %@",
                log: log, type: .error, error as CVarArg)
@@ -269,34 +312,6 @@ extension UserLibrary {
       "entryGUID": entry.guid,
       "enclosureURL": entry.enclosure?.url as Any
     ]
-  }
-
-  private func queueChanged(enqueued: Set<Entry>, deqeueud: Set<Entry>) {
-    for e in enqueued {
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKQueueDidEnqueue,
-          object: self,
-          userInfo: UserLibrary.makeUserInfo(entry: e)
-        )
-      }
-    }
-
-    for e in deqeueud {
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: .FKQueueDidDequeue,
-          object: self,
-          userInfo: UserLibrary.makeUserInfo(entry: e)
-        )
-      }
-    }
-
-    DispatchQueue.main.async {
-      NotificationCenter.default.post(name: .FKQueueDidChange, object: self)
-    }
-
-    guids = Set(queue.map { $0.guid} )
   }
 
 }
@@ -348,7 +363,13 @@ extension UserLibrary: Updating {
       return $0.updated > ts
     }
   }
-  
+
+  // TODO: commit(enqueued: [Entry], dequeued: [Entry])
+  private func commit() {
+    os_log("** committing", log: log,  type: .debug)
+    guids = Set(queue.map { $0.guid} )
+  }
+
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: log,  type: .info)
@@ -375,8 +396,6 @@ extension UserLibrary: Updating {
         if let er = error {
           os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
         }
-
-        self.queueChanged(enqueued: Set(enqueued), deqeueud: Set())
       }
       
       // Trimming
@@ -390,6 +409,8 @@ extension UserLibrary: Updating {
         }
         updateComplete?(newData, error)
       }
+
+      trimming.completionBlock = self.commit
       
       // After configuring our individual operations, we are now composing them
       // into a dependency graph, for sequential execution.
@@ -418,11 +439,11 @@ extension UserLibrary: Queueing {
   public var isBackwardable: Bool {
     return queue.validIndexBefore != nil
   }
-  
+
   @discardableResult
   public func fetchQueue(
-    entriesBlock: @escaping (_ queued: [Entry], _ entriesError: Error?) -> Void,
-    fetchQueueCompletionBlock: @escaping (_ error: Error?) -> Void
+    entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
+    fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
     os_log("fetching queue", log: log, type: .debug)
     
@@ -447,6 +468,11 @@ extension UserLibrary: Queueing {
     }
     
     fetchingQueue.addDependency(fetchingFeeds)
+
+    // Forced to commit again, for fetching might have changed the queue,
+    // removing unavailable items. Another reason why it’s important that
+    // commit guards against redundant calls.
+    fetchingQueue.completionBlock = commit
     
     operationQueue.addOperation(fetchingQueue)
     operationQueue.addOperation(fetchingFeeds)
@@ -457,41 +483,49 @@ extension UserLibrary: Queueing {
   public func enqueue(
     entries: [Entry],
     belonging owner: QueuedOwner,
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
+    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)? = nil
   ) {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
     op.owner = owner
 
-    op.enqueueCompletionBlock = { enqueued, error in
-      self.queueChanged(enqueued: Set(enqueued), deqeueud: Set())
-
-      enqueueCompletionBlock?(error)
-    }
+    op.enqueueCompletionBlock = enqueueCompletionBlock
+    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
   
   public func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: ((_ error: Error?) -> Void)? = nil) {
+    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)? = nil) {
     enqueue(entries: entries,
             belonging: .nobody,
             enqueueCompletionBlock: enqueueCompletionBlock)
   }
 
-  /// Dequeues `entries`. Trying to dequeue a single entry that’s not enqueued
-  /// throws. Lots of ephemeral state to update here, after writing to the
-  /// database.
-  private func dequeue(entries: [Entry]) throws {
+  /// Dequeues `entries` and commits the changes. Trying to dequeue a single
+  /// entry that’s not enqueued throws. Lots of ephemeral state to update here,
+  /// after writing to the database.
+  private func dequeue(entries: [Entry]) throws -> [String] {
     os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
     dispatchPrecondition(condition: .notOnQueue(.main))
 
-    let old = Set(queue)
+    let wanted = entries.map { $0.guid }
 
-    let guids = entries.map { $0.guid }
-    try cache.removeQueued(guids)
+    let oldValue = try cache.queued()
+    try cache.removeQueued(wanted)
+    let newValue = try cache.queued()
+
+    let removed = Set(oldValue).subtracting(Set(newValue))
+
+    let found = removed.compactMap {
+      $0.entryLocator.guid
+    }
 
     for entry in entries {
+      guard found.contains(entry.guid) else {
+        continue
+      }
+
       do {
         try queue.remove(entry)
       } catch {
@@ -503,62 +537,59 @@ extension UserLibrary: Queueing {
       }
     }
 
-    let dequeued = old.subtracting(queue)
-
-    queueChanged(enqueued: [], deqeueud: dequeued)
+    return found
   }
 
   public func dequeue(
     entry: Entry,
-    dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    operationQueue.addOperation {
+    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?) {
+    let op = BlockOperation(block: {
       let entries = [entry]
       do {
-        try self.dequeue(entries: entries)
+        let dequeued = try self.dequeue(entries: entries)
+        dequeueCompletionBlock?(dequeued, nil)
       } catch {
-        dequeueCompletionBlock?(error)
-        return
+        dequeueCompletionBlock?([], error)
       }
-      
-      dequeueCompletionBlock?(nil)
-    }
+    })
+
+    op.completionBlock = commit
+
+    operationQueue.addOperation(op)
   }
 
   public func dequeue(
     feed url: FeedURL,
-    dequeueCompletionBlock: ((_ error: Error?) -> Void)?) {
-    operationQueue.addOperation {
+    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?) {
+    let op = BlockOperation(block: {
       let children = self.queue.filter { $0.url == url }
-
       do {
-        try self.dequeue(entries: children)
+        let dequeued = try self.dequeue(entries: children)
+        dequeueCompletionBlock?(dequeued, nil)
       } catch {
-        dequeueCompletionBlock?(error)
-        return
+        dequeueCompletionBlock?([], error)
       }
+    })
 
-      dequeueCompletionBlock?(nil)
-    }
+    op.completionBlock = commit
+
+    operationQueue.addOperation(op)
   }
-  
+
   public func contains(entry: Entry) -> Bool {
-    guard !queue.isEmpty else {
-      return guids.contains(entry.guid)
-    }
-
-    return queue.contains(entry)
+    return guids.contains(entry.guid)
   }
-  
+
+  public var isEmpty: Bool {
+    return guids.isEmpty
+  }
+
   public func next() -> Entry? {
     return queue.forward()
   }
   
   public func previous() -> Entry? {
     return queue.backward()
-  }
-  
-  public var isEmpty: Bool {
-    return queue.isEmpty
   }
   
   public func skip(to entry: Entry) throws {

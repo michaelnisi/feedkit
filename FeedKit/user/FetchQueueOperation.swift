@@ -298,7 +298,12 @@ final class FetchQueueOperation: FeedKitOperation {
       done(but: error)
     }
     
-    guard !isCancelled, !queued.isEmpty else {
+    guard !isCancelled else {
+      return done()
+    }
+
+    guard !queued.isEmpty else {
+      user.queue.removeAll()
       return done()
     }
     
