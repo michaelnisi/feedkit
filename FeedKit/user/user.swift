@@ -135,15 +135,14 @@ public protocol Queueing {
   /// `UserLibrary` instance.
   ///
   /// - Parameters:
-  ///   - entriesBlock: The entries block:
-  ///   - entriesError: An optional error, specific to entries.
-  ///   - entries: All or some of the requested entries.
-  ///
+  ///   - entriesBlock: A block to accumlate received entries.
+  ///   - queued: All, or some, of the currently enqueued entries.
+  ///   - entriesError: An error regarding this batch of entries.
   ///   - fetchQueueCompletionBlock: The completion block:
-  ///   - error: Optionally, an error for this operation.
+  ///   - error: An operational error if something went wrong.
   ///
   /// - Returns: Returns an executing `Operation`.
-  @discardableResult func fetchQueue(
+  @discardableResult func populate(
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)?,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation

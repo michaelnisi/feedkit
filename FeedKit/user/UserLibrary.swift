@@ -441,7 +441,7 @@ extension UserLibrary: Queueing {
   }
 
   @discardableResult
-  public func fetchQueue(
+  public func populate(
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
@@ -496,9 +496,10 @@ extension UserLibrary: Queueing {
             name: Notification.Name.FKQueueDidChange, object: self)
         }
       }
+      self.commit()
       enqueueCompletionBlock?(enqueued, error)
     }
-    op.completionBlock = commit
+//    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
@@ -556,13 +557,14 @@ extension UserLibrary: Queueing {
       let entries = [entry]
       do {
         let dequeued = try self.dequeue(entries: entries)
+        self.commit()
         dequeueCompletionBlock?(dequeued, nil)
       } catch {
         dequeueCompletionBlock?([], error)
       }
     })
 
-    op.completionBlock = commit
+//    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
@@ -574,13 +576,14 @@ extension UserLibrary: Queueing {
       let children = self.queue.filter { $0.url == url }
       do {
         let dequeued = try self.dequeue(entries: children)
+        self.commit()
         dequeueCompletionBlock?(dequeued, nil)
       } catch {
         dequeueCompletionBlock?([], error)
       }
     })
 
-    op.completionBlock = commit
+//    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }

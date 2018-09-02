@@ -284,7 +284,7 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "initially fetching queue")
       
-      user.fetchQueue(entriesBlock: { entries, error in
+      user.populate(entriesBlock: { entries, error in
         XCTFail("should not call block")
       }) { error in
         XCTAssertFalse(Thread.isMainThread)
@@ -303,7 +303,7 @@ extension UserLibraryTests {
     do {
       let exp = expectation(description: "enqueue")
       
-      user.enqueue(entries: entriesToQueue) { error in
+      user.enqueue(entries: entriesToQueue) { enqueued, error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()
@@ -319,7 +319,7 @@ extension UserLibraryTests {
       
       var acc = [Entry]()
       
-      user.fetchQueue(entriesBlock: { entries, error in
+      user.populate(entriesBlock: { entries, error in
         XCTAssertFalse(Thread.isMainThread)
 
         guard let er = error as? FeedKitError else {
@@ -362,12 +362,12 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "enqueueing")
 
-    user.enqueue(entries: [entry]) { error in
+    user.enqueue(entries: [entry]) { enqueued, error in
       XCTAssertFalse(Thread.isMainThread)
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
 
-      self.user.enqueue(entries: [entry]) { error in
+      self.user.enqueue(entries: [entry]) { enqueued, error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error, "should not error any longer")
         exp.fulfill()
@@ -385,20 +385,12 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "dequeueing not enqueued")
     
-    user.dequeue(entry: entry) { error in
+    user.dequeue(entry: entry) { dequeued, error in
       XCTAssertFalse(Thread.isMainThread)
 
-      guard let er = error as? QueueError else {
-        return XCTFail("should err")
-      }
-      
-      switch er {
-      case .notInQueue:
-        break
-      default:
-        XCTFail("should be expected error")
-      }
-      
+      XCTAssertNil(error)
+      XCTAssertTrue(dequeued.isEmpty)
+
       exp.fulfill()
     }
     
@@ -413,7 +405,7 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "enqueueing")
 
-    user.enqueue(entries: [entry]) { error in
+    user.enqueue(entries: [entry]) { enqueued, error in
       XCTAssertFalse(Thread.isMainThread)
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
@@ -431,12 +423,12 @@ extension UserLibraryTests {
     
     let exp = expectation(description: "dequeueing")
     
-    user.enqueue(entries: [entry]) { error in
+    user.enqueue(entries: [entry]) { enqueued, error in
       XCTAssertFalse(Thread.isMainThread)
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
 
-      self.user.dequeue(entry: entry) { error in
+      self.user.dequeue(entry: entry) { dequeued, error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
 
@@ -455,13 +447,13 @@ extension UserLibraryTests {
 
     let exp = expectation(description: "dequeueing")
 
-    user.enqueue(entries: [entry]) { error in
+    user.enqueue(entries: [entry]) { enqueued, error in
       XCTAssertFalse(Thread.isMainThread)
       XCTAssertNil(error)
 
       XCTAssertTrue(self.user.contains(entry: entry))
 
-      self.user.dequeue(feed: entry.feed) { error in
+      self.user.dequeue(feed: entry.feed) { dequeued, error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()
@@ -478,12 +470,12 @@ extension UserLibraryTests {
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueue")
-    user.enqueue(entries: [entry]) { error in
+    user.enqueue(entries: [entry]) { enqueued, error in
       XCTAssertFalse(Thread.isMainThread)
       XCTAssertNil(error)
       XCTAssertTrue(self.user.contains(entry: entry))
       
-      self.user.dequeue(entry: entry) { error in
+      self.user.dequeue(entry: entry) { dequeued, error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         XCTAssertFalse(self.user.contains(entry: entry))

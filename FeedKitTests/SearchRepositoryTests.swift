@@ -102,32 +102,32 @@ final class SearchRepositoryTests: XCTestCase {
     }
   }
 
-  func testSearchWithNoResult() {
-    let exp = self.expectation(description: "search")
-    func go(_ terms: [String]) {
-      guard !terms.isEmpty else {
-        return DispatchQueue.main.async {
-          exp.fulfill()
-        }
-      }
-      var t = terms
-      let term = t.removeFirst()
-      repo.search(term, perFindGroupBlock: { error, finds in
-        XCTAssertNil(error)
-        XCTAssertEqual(finds.count, 0)
-      }) { error in
-        XCTAssertNil(error)
-        DispatchQueue.main.async() {
-          go(t)
-        }
-      }
-    }
-    // Mere speculation that these are yielding no results from iTunes.
-    go(["🙈", "🙉", "🙊"])
-    self.waitForExpectations(timeout: 61) { er in
-      XCTAssertNil(er)
-    }
-  }
+//  func testSearchWithNoResult() {
+//    let exp = self.expectation(description: "search")
+//    func go(_ terms: [String]) {
+//      guard !terms.isEmpty else {
+//        return DispatchQueue.main.async {
+//          exp.fulfill()
+//        }
+//      }
+//      var t = terms
+//      let term = t.removeFirst()
+//      repo.search(term, perFindGroupBlock: { error, finds in
+//        XCTAssertNil(error)
+//        XCTAssertEqual(finds.count, 0)
+//      }) { error in
+//        XCTAssertNil(error)
+//        DispatchQueue.main.async() {
+//          go(t)
+//        }
+//      }
+//    }
+//    // Mere speculation that these are yielding no results from iTunes.
+//    go(["🙈", "🙉", "🙊"])
+//    self.waitForExpectations(timeout: 61) { er in
+//      XCTAssertNil(er)
+//    }
+//  }
 
   func testSearchConcurrently() {
     let exp = self.expectation(description: "search")
@@ -135,24 +135,21 @@ final class SearchRepositoryTests: XCTestCase {
     let terms = ["apple", "gruber", "newyorker", "nyt", "literature"]
     var count = terms.count
 
-    let q = DispatchQueue.global(qos: .userInitiated)
-
     for term in terms {
-      q.async {
-        repo.search(term, perFindGroupBlock: { er, finds in
-          XCTAssertNil(er)
-          XCTAssertNotNil(finds)
-        }) { error in
-          XCTAssertNil(error)
-          DispatchQueue.main.async() {
-            count -= 1
-            if count == 0 {
-              exp.fulfill()
-            }
+      repo.search(term, perFindGroupBlock: { er, finds in
+        XCTAssertNil(er)
+        XCTAssertNotNil(finds)
+      }) { error in
+        XCTAssertNil(error)
+        DispatchQueue.main.async() {
+          count = count - 1
+          if count == 0 {
+            exp.fulfill()
           }
         }
       }
     }
+
     self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }
