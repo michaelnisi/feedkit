@@ -232,15 +232,12 @@ extension UserLibrary: Subscribing {
       do {
         let guids = try self.dequeue(entries: children)
         os_log("dequeued: %@", log: log, type: .debug, guids)
+        self.commit()
+        unsubscribeComplete?(nil)
       } catch {
         unsubscribeComplete?(error)
-        return
       }
-
-      unsubscribeComplete?(nil)
     })
-
-    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
@@ -449,7 +446,16 @@ extension UserLibrary: Queueing {
     
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
-    fetchingQueue.fetchQueueCompletionBlock = fetchQueueCompletionBlock
+
+    fetchingQueue.fetchQueueCompletionBlock = { error in
+      // Forced to commit again, for fetching might have changed the queue,
+      // removing unavailable items. Another reason why it’s important that
+      // commit guards against redundant calls.
+
+      self.commit()
+
+      fetchQueueCompletionBlock?(error)
+    }
     
     let fetchingFeeds = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
     
@@ -468,11 +474,6 @@ extension UserLibrary: Queueing {
     }
     
     fetchingQueue.addDependency(fetchingFeeds)
-
-    // Forced to commit again, for fetching might have changed the queue,
-    // removing unavailable items. Another reason why it’s important that
-    // commit guards against redundant calls.
-    fetchingQueue.completionBlock = commit
     
     operationQueue.addOperation(fetchingQueue)
     operationQueue.addOperation(fetchingFeeds)
@@ -490,7 +491,13 @@ extension UserLibrary: Queueing {
 
     op.enqueueCompletionBlock = { enqueued, error in
       if enqueued.isEmpty {
+        // Working around an issue, where otherwise the UI doesn’t get updated,
+        // locking the add/remove button.
+
+        // TODO: Investigate notification issue
+
         os_log("** reposting: nothing enqueued", log: log, type: .error)
+
         DispatchQueue.main.async {
           NotificationCenter.default.post(
             name: Notification.Name.FKQueueDidChange, object: self)
@@ -499,7 +506,6 @@ extension UserLibrary: Queueing {
       self.commit()
       enqueueCompletionBlock?(enqueued, error)
     }
-//    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
@@ -564,8 +570,6 @@ extension UserLibrary: Queueing {
       }
     })
 
-//    op.completionBlock = commit
-
     operationQueue.addOperation(op)
   }
 
@@ -582,8 +586,6 @@ extension UserLibrary: Queueing {
         dequeueCompletionBlock?([], error)
       }
     })
-
-//    op.completionBlock = commit
 
     operationQueue.addOperation(op)
   }
