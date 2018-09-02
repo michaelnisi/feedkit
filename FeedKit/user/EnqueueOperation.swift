@@ -6,8 +6,6 @@
 //  Copyright © 2017 Michael Nisi. All rights reserved.
 //
 
-// TODO: Review EnqueueOperation, still not fucking on par
-
 import Foundation
 import os.log
 
@@ -119,7 +117,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         return done([])
       }
       
-      os_log("enqueueing: %{public}@", log: log, type: .debug, qualifieds)
+      os_log("enqueueing: %@", log: log, type: .debug, qualifieds)
 
       let prepended = user.queue.prepend(items: qualifieds)
       entries.formUnion(prepended)
@@ -140,6 +138,8 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       let diff = Set(queued).intersection(Set(prependedQueued))
       let diffGuids = diff.compactMap { $0.entryLocator.guid }
       let newlyEnqueued = qualifieds.filter { diffGuids.contains($0.guid) }
+
+      os_log("** enqueued: %@", log: log, type: .debug, newlyEnqueued)
 
       done(newlyEnqueued)
     } catch {

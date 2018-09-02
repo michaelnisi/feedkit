@@ -488,7 +488,16 @@ extension UserLibrary: Queueing {
     let op = EnqueueOperation(user: self, cache: cache, entries: entries)
     op.owner = owner
 
-    op.enqueueCompletionBlock = enqueueCompletionBlock
+    op.enqueueCompletionBlock = { enqueued, error in
+      if enqueued.isEmpty {
+        os_log("** reposting: nothing enqueued", log: log, type: .error)
+        DispatchQueue.main.async {
+          NotificationCenter.default.post(
+            name: Notification.Name.FKQueueDidChange, object: self)
+        }
+      }
+      enqueueCompletionBlock?(enqueued, error)
+    }
     op.completionBlock = commit
 
     operationQueue.addOperation(op)
