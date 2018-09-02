@@ -17,7 +17,7 @@ public final class UserLibrary: EntryQueueHost {
   private let cache: UserCaching
   private let browser: Browsing
   private let operationQueue: OperationQueue
-  
+
   /// Makes a fresh `UserLibrary` object.
   ///
   /// - Parameters:
@@ -40,7 +40,7 @@ public final class UserLibrary: EntryQueueHost {
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
 
   private var  _subscriptions = Set<FeedURL>()
-  
+
   /// The currently subscribed URLs. Reload with `synchronize()`. Fires a
   /// `.FKSubscriptionsDidChange` notification.
   private var subscriptions: Set<FeedURL> {
@@ -133,7 +133,7 @@ public final class UserLibrary: EntryQueueHost {
 // MARK: - Subscribing
 
 extension UserLibrary: Subscribing {
-  
+
   public func add(
     subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)? = nil
@@ -149,14 +149,11 @@ extension UserLibrary: Subscribing {
         try self.cache.add(subscriptions: subscriptions)
         let subscribed = try self.cache.subscribed()
         self.subscriptions = Set(subscribed.map { $0.url })
+        completionBlock?(nil)
       } catch {
         completionBlock?(error)
-        return
       }
-      
-      completionBlock?(nil)
     }
-    
   }
 
   private func queueContains(_ url: FeedURL) -> Bool {
@@ -245,7 +242,7 @@ extension UserLibrary: Subscribing {
   public func unsubscribe(_ url: FeedURL) {
     self.unsubscribe([url])
   }
-  
+
   @discardableResult
   public func fetchFeeds(
     feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
@@ -257,11 +254,11 @@ extension UserLibrary: Subscribing {
     operationQueue.addOperation(op)
     return op
   }
-  
+
   public func has(subscription url: FeedURL) -> Bool {
     return subscriptions.contains(url)
   }
-  
+
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
     operationQueue.addOperation {
       os_log("synchronizing", log: log, type: .debug)
@@ -297,7 +294,7 @@ extension UserLibrary: Subscribing {
       }
     }
   }
-  
+
 }
 
 // MARK: - Queue Notifications
@@ -316,7 +313,7 @@ extension UserLibrary {
 // MARK: - Updating
 
 extension UserLibrary: Updating {
-  
+
   private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
     let previous = try cache.previous()
     return previous.compactMap {
@@ -326,7 +323,7 @@ extension UserLibrary: Updating {
       return nil
     }
   }
-  
+
   private static func locatorsForUpdating(
     from cache: QueueCaching,
     with subscriptions: [Subscription]) throws -> [EntryLocator] {
@@ -334,7 +331,7 @@ extension UserLibrary: Updating {
     let urls = subscriptions.map { $0.url }
     return latest.filter { urls.contains($0.url) }
   }
-  
+
   /// Returns entries in `entries` of `subscriptions`, which are newer than
   /// the subscription date of their containing feed.
   ///
@@ -352,7 +349,7 @@ extension UserLibrary: Updating {
     for s in subscriptions {
       datesByURLs[s.url] = s.ts
     }
-    
+
     return entries.filter {
       guard let ts = datesByURLs[$0.url] else {
         return false
@@ -361,7 +358,7 @@ extension UserLibrary: Updating {
     }
   }
 
-  // TODO: commit(enqueued: [Entry], dequeued: [Entry])
+  /// Commits the queue, notifying observers.
   private func commit() {
     os_log("** committing", log: log,  type: .debug)
     guids = Set(queue.map { $0.guid} )
@@ -370,23 +367,23 @@ extension UserLibrary: Updating {
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: log,  type: .info)
-    
+
     let cache = self.cache
     let operationQueue = self.operationQueue
     let browser = self.browser
 
     // Synchronizing first to assure we are including the latest subscriptions.
-    
+
     synchronize { error in
       if error != nil {
         os_log("continuing update despite error", log: log)
       }
-      
+
       let preparing = PrepareUpdateOperation(cache: cache)
       let fetching = browser.entries(satisfying: preparing)
-      
+
       // Enqueueing
-      
+
       let enqueuing = EnqueueOperation(user: self, cache: cache)
 
       enqueuing.enqueueCompletionBlock = { enqueued, error in
@@ -394,35 +391,34 @@ extension UserLibrary: Updating {
           os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
         }
       }
-      
+
       // Trimming
-      
+
       let trimming = TrimQueueOperation(cache: cache)
-      
+
       trimming.trimQueueCompletionBlock = { newData, error in
         if let er = error {
           os_log("trim error: %{public}@", log: log, type: .error,
                  er as CVarArg)
         }
+        self.commit()
         updateComplete?(newData, error)
       }
 
-      trimming.completionBlock = self.commit
-      
       // After configuring our individual operations, we are now composing them
       // into a dependency graph, for sequential execution.
-      
+
       // The dependency of fetching on preparing has been satisfied by browser.
       enqueuing.addDependency(fetching)
       trimming.addDependency(enqueuing)
-      
+
       operationQueue.addOperation(preparing)
       // Fetching is already executing.
       operationQueue.addOperation(enqueuing)
       operationQueue.addOperation(trimming)
     }
   }
-  
+
 }
 
 // MARK: - Queueing
@@ -432,7 +428,7 @@ extension UserLibrary: Queueing {
   public var isForwardable: Bool {
     return queue.validIndexAfter != nil
   }
-  
+
   public var isBackwardable: Bool {
     return queue.validIndexBefore != nil
   }
@@ -443,7 +439,7 @@ extension UserLibrary: Queueing {
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
     os_log("fetching queue", log: log, type: .debug)
-    
+
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
 
@@ -456,28 +452,28 @@ extension UserLibrary: Queueing {
 
       fetchQueueCompletionBlock?(error)
     }
-    
+
     let fetchingFeeds = FetchSubscribedFeedsOperation(browser: browser, cache: cache)
-    
+
     fetchingFeeds.feedsBlock = { feeds, error in
       if let er = error {
         os_log("problems fetching subscribed feeds: %{public}@",
                log: log, type: .error, String(describing: er))
       }
     }
-    
+
     fetchingFeeds.feedsCompletionBlock = { error in
       if let er = error {
         os_log("failed to integrate metadata %{public}@",
                log: log, type: .error, String(describing: er))
       }
     }
-    
+
     fetchingQueue.addDependency(fetchingFeeds)
-    
+
     operationQueue.addOperation(fetchingQueue)
     operationQueue.addOperation(fetchingFeeds)
-    
+
     return fetchingQueue
   }
 
@@ -509,7 +505,7 @@ extension UserLibrary: Queueing {
 
     operationQueue.addOperation(op)
   }
-  
+
   public func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)? = nil) {
@@ -601,13 +597,13 @@ extension UserLibrary: Queueing {
   public func next() -> Entry? {
     return queue.forward()
   }
-  
+
   public func previous() -> Entry? {
     return queue.backward()
   }
-  
+
   public func skip(to entry: Entry) throws {
     try queue.skip(to: entry)
   }
-  
+
 }
