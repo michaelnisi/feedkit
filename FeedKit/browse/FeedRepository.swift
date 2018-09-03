@@ -125,6 +125,8 @@ extension FeedRepository: Browsing {
   }
 
   /// The `count` parameter just limits to the latest entry, nothing more yet.
+  /// A full implementation will be covered with paging. For now, we have to
+  /// work with this, relying on the cache.
   private func entries(
     _ locators: [EntryLocator],
     forcing: Bool,
@@ -139,8 +141,12 @@ extension FeedRepository: Browsing {
 
     let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
 
-    fetchEntries.ttl = forcing ? .none : .short
-    fetchEntries.isLatest = count != Int.max
+    if count == Int.max {
+      fetchEntries.ttl = forcing ? .none : .short
+    } else {
+      fetchEntries.ttl = .forever
+      fetchEntries.isLatest = true
+    }
 
     fetchEntries.entriesBlock = entriesBlock
     fetchEntries.entriesCompletionBlock = entriesCompletionBlock
@@ -156,8 +162,8 @@ extension FeedRepository: Browsing {
   public func entries(
     _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+    entriesBlock: ((_ entriesError: Error?, _ entries: [Entry]) -> Void)?,
+    entriesCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation {
     return entries(
       locators,
@@ -169,8 +175,8 @@ extension FeedRepository: Browsing {
 
   public func entries(
     _ locators: [EntryLocator],
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+    entriesBlock: ((Error?, [Entry]) -> Void)?,
+    entriesCompletionBlock: ((Error?) -> Void)?
   ) -> Operation {
     return self.entries(
       locators,

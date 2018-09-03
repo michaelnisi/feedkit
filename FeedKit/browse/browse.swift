@@ -231,8 +231,8 @@ public protocol Browsing {
 
   @discardableResult func entries(
     _ locators: [EntryLocator],
-    entriesBlock: @escaping (Error?, [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (Error?) -> Void
+    entriesBlock: ((Error?, [Entry]) -> Void)?,
+    entriesCompletionBlock: ((Error?) -> Void)?
   ) -> Operation
 
   /// Fetches entries for the given locators, aggregating local and remote data.
@@ -273,12 +273,12 @@ public protocol Browsing {
   @discardableResult func entries(
     _ locators: [EntryLocator],
     force: Bool,
-    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+    entriesBlock: ((_ entriesError: Error?, _ entries: [Entry]) -> Void)?,
+    entriesCompletionBlock: ((_ error: Error?) -> Void)?
   ) -> Operation
 
   /// Returns an already executing operation, providing the latest entry of the
-  /// feed at `url`.
+  /// feed at `url`, currently in the cache.
   ///
   /// - Parameter url: The URL of the feed to fetch.
   func latestEntry(_ url: FeedURL) -> Operation
