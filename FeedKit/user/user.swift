@@ -114,22 +114,22 @@ public protocol Queueing {
   func enqueue(
     entries: [Entry],
     belonging: QueuedOwner,
-    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?)
+    enqueueCompletionBlock: ((_ enqueued: Set<Entry>, _ error: Error?) -> Void)?)
   
   /// Adds `entries` to the queue.
   func enqueue(
     entries: [Entry],
-    enqueueCompletionBlock: ((_ enqueued: [Entry], _ error: Error?) -> Void)?)
+    enqueueCompletionBlock: ((_ enqueued: Set<Entry>, _ error: Error?) -> Void)?)
   
   /// Removes `entry` from the queue.
   func dequeue(
     entry: Entry,
-    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?)
+    dequeueCompletionBlock: ((_ dequeued: Set<Entry>, _ error: Error?) -> Void)?)
 
   /// Removes entries of `feed` from queue.
   func dequeue(
     feed: FeedURL,
-    dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?)
+    dequeueCompletionBlock: ((_ dequeued: Set<Entry>, _ error: Error?) -> Void)?)
 
   /// Fetches entries in the user‘s queue, populating the `queue` object of this
   /// `UserLibrary` instance.
