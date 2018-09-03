@@ -209,10 +209,10 @@ public protocol Subscribing: Updating {
   ///   - error: An error if something went wrong.
   func add(
     subscriptions: [Subscription],
-    completionBlock: ((_ error: Error?) -> Void)?)
+    completionBlock: ((_ error: Error?) -> Void)?) -> Operation
 
-  /// Subscribes `feed`, enqueueing its latest child.
-  func subscribe(_ feed: Feed)
+  /// Subscribes `feed`, enqueueing its latest item, fetching it if necessary.
+  func subscribe(_ feed: Feed, completionHandler: ((_ error: Error?) -> Void)?)
   
   /// Unsubscribe from `urls`.
   ///

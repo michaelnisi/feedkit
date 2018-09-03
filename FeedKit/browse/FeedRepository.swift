@@ -124,11 +124,13 @@ extension FeedRepository: Browsing {
     return fetchEntries
   }
 
-  public func entries(
+  /// The `count` parameter just limits to the latest entry, nothing more yet.
+  private func entries(
     _ locators: [EntryLocator],
-    force: Bool,
-    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
-    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+    forcing: Bool,
+    limiting count: Int = Int.max,
+    entriesBlock: ((_ entriesError: Error?, _ entries: [Entry]) -> Void)? = nil,
+    entriesCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
     // We have to fetch according feeds, before we can request their entries,
     // because we cannot update entries of uncached feeds.
@@ -137,7 +139,8 @@ extension FeedRepository: Browsing {
 
     let fetchEntries = EntriesOperation(cache: cache, svc: svc, locators: locators)
 
-    fetchEntries.ttl = force ? .none : .short
+    fetchEntries.ttl = forcing ? .none : .short
+    fetchEntries.isLatest = count != Int.max
 
     fetchEntries.entriesBlock = entriesBlock
     fetchEntries.entriesCompletionBlock = entriesCompletionBlock
@@ -148,6 +151,20 @@ extension FeedRepository: Browsing {
     queue.addOperation(fetchFeeds)
 
     return fetchEntries
+  }
+
+  public func entries(
+    _ locators: [EntryLocator],
+    force: Bool,
+    entriesBlock: @escaping (_ entriesError: Error?, _ entries: [Entry]) -> Void,
+    entriesCompletionBlock: @escaping (_ error: Error?) -> Void
+  ) -> Operation {
+    return entries(
+      locators,
+      forcing: force,
+      entriesBlock: entriesBlock,
+      entriesCompletionBlock: entriesCompletionBlock
+    )
   }
 
   public func entries(
@@ -163,36 +180,10 @@ extension FeedRepository: Browsing {
     )
   }
 
-  public func latestEntry(
-    _ url: FeedURL,
-    completionBlock: @escaping (Entry?, Error?) -> Void
-  ) -> Operation {
+  public func latestEntry(_ url: FeedURL) -> Operation {
     os_log("fetching latest entry: %{public}@", log: log, url)
-
     let locators = [EntryLocator(url: url)]
-    var acc: ([Error], [Entry]) = ([], [])
-
-    func accumulate(_ error: Error?, _ entries: [Entry]) {
-      let (a, b) = acc
-      acc = (a + (error != nil ? [error!] : []), b + entries)
-    }
-
-    return entries(locators, entriesBlock: { error, entries in
-      accumulate(error, entries)
-    }) { error in
-      accumulate(error, [])
-
-      let (errors, entries) = acc
-
-      if !errors.isEmpty {
-        os_log("fetching latest entries failed: %{public}@",
-               log: log, type: .error, errors)
-      }
-
-      let latest = (entries.sorted { $0.updated > $1.updated }.first)
-
-      completionBlock(latest, errors.last)
-    }
+    return entries(locators, forcing: false, limiting: 1)
   }
 
 }

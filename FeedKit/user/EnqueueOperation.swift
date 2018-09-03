@@ -114,6 +114,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }()
       
       guard !qualifieds.isEmpty else {
+        os_log("nothing to enqueue: unqualified", log: log, type: .debug)
         return done([])
       }
       

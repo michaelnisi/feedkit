@@ -29,6 +29,9 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   var entriesBlock: ((Error?, [Entry]) -> Void)?
   var entriesCompletionBlock: ((Error?) -> Void)?
 
+  /// Optionally reduces final entries result to just the latest entry.
+  var isLatest = false
+
   private var _locators: [EntryLocator]?
   private lazy var locators: [EntryLocator] = {
     guard let locs = _locators else {
@@ -93,6 +96,11 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     entriesBlock = nil
     entriesCompletionBlock = nil
     task = nil
+
+    if isLatest, let l = (entries.sorted { $0.updated > $1.updated }.first) {
+      // Reducing our result to just the latest entry.
+      self.entries = Set([l])
+    }
 
     isFinished = true
   }

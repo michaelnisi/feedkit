@@ -277,14 +277,12 @@ public protocol Browsing {
     entriesCompletionBlock: @escaping (_ error: Error?) -> Void
   ) -> Operation
 
-  /// Fetches the latest entry of the feed located at `url`.
-   @discardableResult func latestEntry(
-    _ url: FeedURL,
-    completionBlock: @escaping (Entry?, Error?) -> Void
-  ) -> Operation
+  /// Returns an already executing operation, providing the latest entry of the
+  /// feed at `url`.
+  ///
+  /// - Parameter url: The URL of the feed to fetch.
+  func latestEntry(_ url: FeedURL) -> Operation
 
-  // MARK: Internal Use
-  
   /// Fetches entries, and feeds accordingly, for locators provided by the
   /// dependency `provider` operation.
   ///

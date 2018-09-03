@@ -35,7 +35,7 @@ public final class UserLibrary: EntryQueueHost {
     synchronize()
   }
 
-  /// Internal serial queue.
+  /// Internal serial queue for synchronizing access to shared state.
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
 
@@ -133,69 +133,67 @@ public final class UserLibrary: EntryQueueHost {
 // MARK: - Subscribing
 
 extension UserLibrary: Subscribing {
-  
-  public func add(
+
+  private func makeSubscribeOperation(
     subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)? = nil
-  ) {
-    guard !subscriptions.isEmpty else {
-      return DispatchQueue.global().async {
+  ) -> Operation {
+    return BlockOperation(block: {
+      guard !subscriptions.isEmpty else {
         completionBlock?(nil)
+        return
       }
-    }
 
-    operationQueue.addOperation {
       do {
         try self.cache.add(subscriptions: subscriptions)
         let subscribed = try self.cache.subscribed()
         self.subscriptions = Set(subscribed.map { $0.url })
+        completionBlock?(nil)
       } catch {
         completionBlock?(error)
-        return
       }
-      
-      completionBlock?(nil)
-    }
-    
+    })
+  }
+  
+  public func add(
+    subscriptions: [Subscription],
+    completionBlock: ((_ error: Error?) -> Void)? = nil
+  ) -> Operation {
+    let op = makeSubscribeOperation(
+      subscriptions: subscriptions, completionBlock: completionBlock)
+    operationQueue.addOperation(op)
+    return op
   }
 
   private func queueContains(_ url: FeedURL) -> Bool {
     return queue.contains { $0.feed == url }
   }
 
-  public func subscribe(_ feed: Feed) {
+  public func subscribe(_ feed: Feed, completionHandler: ((Error?) -> Void)?) {
     let s = Subscription(feed: feed)
-
-    add(subscriptions: [s]) { error in
-      guard error == nil else {
-        return os_log(
-          "not subscribed: %{public}@",
-          log: log, type: .error, error! as CVarArg
-        )
+    let subscribing = makeSubscribeOperation(subscriptions: [s]) { error in
+      if let er = error {
+        os_log("subscribing failed: %@", log: log, type: .error, er as CVarArg)
+      } else {
+        os_log("subscribed: %@", log: log, type: .debug, feed.title)
       }
+      completionHandler?(error)
+    }
 
-      os_log("subscribed", log: log, type: .debug)
+    if !queueContains(feed.url) {
+      // This browser operation is already executing.
+      let fetchingLatest = browser.latestEntry(feed.url)
 
-      guard !self.queueContains(feed.url) else {
-        return os_log("not enqueueing latest entry", log: log, type: .debug)
-      }
+      let enqueueing = EnqueueOperation(user: self, cache: cache)
+      enqueueing.addDependency(fetchingLatest)
+      subscribing.addDependency(enqueueing)
+      operationQueue.addOperation(enqueueing)
+    }
 
-      self.browser.latestEntry(feed.url) { entry, error in
-        guard error == nil, let e = entry else {
-          return os_log("latest entry not found", log: log)
-        }
+    operationQueue.addOperation(subscribing)
 
-        self.enqueue(entries: [e], belonging: .nobody) { enqueued, error in
-          guard error == nil else {
-            return os_log(
-              "not enqueued: %{public}@",
-              log: log, type: .error, error! as CVarArg
-            )
-          }
-
-          os_log("enqueued", log: log, type: .debug)
-        }
-      }
+    subscribing.completionBlock = {
+      self.commit()
     }
   }
 
@@ -404,10 +402,9 @@ extension UserLibrary: Updating {
           os_log("trim error: %{public}@", log: log, type: .error,
                  er as CVarArg)
         }
+        self.commit()
         updateComplete?(newData, error)
       }
-
-      trimming.completionBlock = self.commit
       
       // After configuring our individual operations, we are now composing them
       // into a dependency graph, for sequential execution.
