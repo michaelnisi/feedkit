@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
@@ -114,7 +114,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }()
       
       guard !qualifieds.isEmpty else {
-        os_log("nothing to enqueue: unqualified", log: log, type: .debug)
+        os_log("nothing to enqueue", log: log, type: .debug)
         return done([])
       }
       

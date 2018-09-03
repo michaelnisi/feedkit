@@ -207,11 +207,11 @@ public protocol Subscribing: Updating {
   ///   - subscriptions: The subscriptions to add without timestamps.
   ///   - completionBlock: An optional completion block:
   ///   - error: An error if something went wrong.
-  func add(
+  @discardableResult func add(
     subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)?) -> Operation
 
-  /// Subscribes `feed`, enqueueing its latest item, fetching it if necessary.
+  /// Subscribes `feed`, enqueueing its latest locally cached item.
   func subscribe(_ feed: Feed, completionHandler: ((_ error: Error?) -> Void)?)
   
   /// Unsubscribe from `urls`.
@@ -224,10 +224,10 @@ public protocol Subscribing: Updating {
   func unsubscribe(
     _ urls: [FeedURL],
     dequeueing: Bool,
-    unsubscribeComplete: ((_ error: Error?) -> Void)?)
+    completionHandler: ((_ error: Error?) -> Void)?)
 
   /// Unsubscribes from feed at `url`, deqeueing all its children.
-  func unsubscribe(_ url: FeedURL)
+  func unsubscribe(_ url: FeedURL, completionHandler: ((_ error: Error?) -> Void)?)
   
   /// Fetches the feeds currently subscribed.
   ///

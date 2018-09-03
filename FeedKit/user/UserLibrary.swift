@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.podest", category: "user")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -39,7 +39,7 @@ public final class UserLibrary: EntryQueueHost {
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
 
-  private var  _subscriptions = Set<FeedURL>()
+  private var _subscriptions = Set<FeedURL>()
 
   /// The currently subscribed URLs. Reload with `synchronize()`. Fires a
   /// `.FKSubscriptionsDidChange` notification.
@@ -155,7 +155,7 @@ extension UserLibrary: Subscribing {
     })
   }
 
-  public func add(
+  @discardableResult public func add(
     subscriptions: [Subscription],
     completionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
@@ -177,6 +177,7 @@ extension UserLibrary: Subscribing {
       } else {
         os_log("subscribed: %@", log: log, type: .debug, feed.title)
       }
+
       completionHandler?(error)
     }
 
@@ -185,29 +186,29 @@ extension UserLibrary: Subscribing {
       let fetchingLatest = browser.latestEntry(feed.url)
 
       let enqueueing = EnqueueOperation(user: self, cache: cache)
+      enqueueing.completionBlock = {
+        self.commitQueue()
+      }
+
       enqueueing.addDependency(fetchingLatest)
       subscribing.addDependency(enqueueing)
       operationQueue.addOperation(enqueueing)
     }
 
     operationQueue.addOperation(subscribing)
-
-    subscribing.completionBlock = {
-      self.commit()
-    }
   }
 
   public func unsubscribe(
     _ urls: [FeedURL],
     dequeueing: Bool = true,
-    unsubscribeComplete: ((_ error: Error?) -> Void)? = nil) {
+    completionHandler: ((_ error: Error?) -> Void)? = nil) {
     guard !urls.isEmpty else {
       return DispatchQueue.global().async {
-        unsubscribeComplete?(nil)
+        completionHandler?(nil)
       }
     }
 
-    let op = BlockOperation(block: {
+    operationQueue.addOperation {
       let oldValue = self.subscriptions
 
       do {
@@ -215,12 +216,12 @@ extension UserLibrary: Subscribing {
         let subscribed = try self.cache.subscribed()
         self.subscriptions = Set(subscribed.map { $0.url })
       } catch {
-        unsubscribeComplete?(error)
+        completionHandler?(error)
         return
       }
 
       guard dequeueing else {
-        unsubscribeComplete?(nil)
+        completionHandler?(nil)
         return
       }
 
@@ -230,18 +231,18 @@ extension UserLibrary: Subscribing {
       do {
         let guids = try self.dequeue(entries: children)
         os_log("dequeued: %@", log: log, type: .debug, guids)
-        self.commit()
-        unsubscribeComplete?(nil)
+        self.commitQueue()
+        completionHandler?(nil)
       } catch {
-        unsubscribeComplete?(error)
+        completionHandler?(error)
       }
-    })
-
-    operationQueue.addOperation(op)
+    }
   }
 
-  public func unsubscribe(_ url: FeedURL) {
-    self.unsubscribe([url])
+  public func unsubscribe(
+    _ url: FeedURL,
+    completionHandler: ((_ error: Error?) -> Void)?) {
+    self.unsubscribe([url], dequeueing: true, completionHandler: completionHandler)
   }
 
   @discardableResult
@@ -360,8 +361,8 @@ extension UserLibrary: Updating {
   }
 
   /// Commits the queue, notifying observers.
-  private func commit() {
-    os_log("** committing", log: log,  type: .debug)
+  private func commitQueue() {
+    os_log("** committing queue", log: log,  type: .debug)
     guids = Set(queue.map { $0.guid} )
   }
 
@@ -402,8 +403,10 @@ extension UserLibrary: Updating {
           os_log("trim error: %{public}@", log: log, type: .error,
                  er as CVarArg)
         }
-        // Do we commit before or after update complete?
-        self.commit()
+
+        // No events after callback.
+
+        self.commitQueue()
         updateComplete?(newData, error)
       }
 
@@ -445,7 +448,7 @@ extension UserLibrary: Queueing {
       // removing unavailable items. Another reason why it’s important that
       // commit guards against redundant calls.
 
-      self.commit()
+      self.commitQueue()
 
       fetchQueueCompletionBlock?(error)
     }
@@ -489,14 +492,14 @@ extension UserLibrary: Queueing {
 
         // TODO: Investigate notification issue
 
-        os_log("** reposting: nothing enqueued", log: log, type: .error)
+        os_log("** reposting: nothing enqueued though", log: log, type: .error)
 
         DispatchQueue.main.async {
           NotificationCenter.default.post(
             name: Notification.Name.FKQueueDidChange, object: self)
         }
       }
-      self.commit()
+      self.commitQueue()
       enqueueCompletionBlock?(enqueued, error)
     }
 
@@ -552,35 +555,31 @@ extension UserLibrary: Queueing {
   public func dequeue(
     entry: Entry,
     dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?) {
-    let op = BlockOperation(block: {
+    operationQueue.addOperation {
       let entries = [entry]
       do {
         let dequeued = try self.dequeue(entries: entries)
-        self.commit()
+        self.commitQueue()
         dequeueCompletionBlock?(dequeued, nil)
       } catch {
         dequeueCompletionBlock?([], error)
       }
-    })
-
-    operationQueue.addOperation(op)
+    }
   }
 
   public func dequeue(
     feed url: FeedURL,
     dequeueCompletionBlock: ((_ guids: [String], _ error: Error?) -> Void)?) {
-    let op = BlockOperation(block: {
+    operationQueue.addOperation {
       let children = self.queue.filter { $0.url == url }
       do {
         let dequeued = try self.dequeue(entries: children)
-        self.commit()
+        self.commitQueue()
         dequeueCompletionBlock?(dequeued, nil)
       } catch {
         dequeueCompletionBlock?([], error)
       }
-    })
-
-    operationQueue.addOperation(op)
+    }
   }
 
   public func contains(entry: Entry) -> Bool {
