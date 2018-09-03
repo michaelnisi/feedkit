@@ -102,32 +102,32 @@ final class SearchRepositoryTests: XCTestCase {
     }
   }
 
-//  func testSearchWithNoResult() {
-//    let exp = self.expectation(description: "search")
-//    func go(_ terms: [String]) {
-//      guard !terms.isEmpty else {
-//        return DispatchQueue.main.async {
-//          exp.fulfill()
-//        }
-//      }
-//      var t = terms
-//      let term = t.removeFirst()
-//      repo.search(term, perFindGroupBlock: { error, finds in
-//        XCTAssertNil(error)
-//        XCTAssertEqual(finds.count, 0)
-//      }) { error in
-//        XCTAssertNil(error)
-//        DispatchQueue.main.async() {
-//          go(t)
-//        }
-//      }
-//    }
-//    // Mere speculation that these are yielding no results from iTunes.
-//    go(["🙈", "🙉", "🙊"])
-//    self.waitForExpectations(timeout: 61) { er in
-//      XCTAssertNil(er)
-//    }
-//  }
+  func testSearchWithNoResult() {
+    let exp = self.expectation(description: "search")
+    func go(_ terms: [String]) {
+      guard !terms.isEmpty else {
+        return DispatchQueue.main.async {
+          exp.fulfill()
+        }
+      }
+      var t = terms
+      let term = t.removeFirst()
+      repo.search(term, perFindGroupBlock: { error, finds in
+        XCTAssertNil(error)
+        XCTAssertEqual(finds.count, 0)
+      }) { error in
+        XCTAssertNil(error)
+        DispatchQueue.main.async() {
+          go(t)
+        }
+      }
+    }
+    // Mere speculation that these are yielding no results from iTunes.
+    go(["🙈", "🙉", "🙊"])
+    self.waitForExpectations(timeout: 61) { er in
+      XCTAssertNil(er)
+    }
+  }
 
   func testSearchConcurrently() {
     let exp = self.expectation(description: "search")
@@ -156,7 +156,7 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   func testSearchCancel() {
-    for _ in 0...100 {
+    for _ in 0...5 {
       let exp = self.expectation(description: "search")
       let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.search(term, perFindGroupBlock: { _, _ in
@@ -292,7 +292,7 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   func testCancelledSuggest() {
-    for _ in 0...100 {
+    for _ in 0...5 {
       let exp = self.expectation(description: "suggest")
       let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.suggest(term, perFindGroupBlock: { error, finds in
