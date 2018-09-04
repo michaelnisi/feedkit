@@ -10,6 +10,7 @@ import XCTest
 import FanboyKit
 import Ola
 import Patron
+import os.log
 
 @testable import FeedKit
 
@@ -292,24 +293,27 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   func testCancelledSuggest() {
-    for _ in 0...5 {
-      let exp = self.expectation(description: "suggest")
+    let exp = self.expectation(description: "suggest")
+    var c = 0
+    let l = 10
+    for _ in 0...l {
       let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.suggest(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
-        }) { er in
-          do {
-            throw er!
-          } catch FeedKitError.cancelledByUser {
+      }) { er in
+        if case FeedKitError.cancelledByUser = er! {
+          c = c + 1
+          if c == l {
             exp.fulfill()
-          } catch {
-            XCTFail("should not pass unexpected error")
           }
+        } else {
+          XCTFail("should be cancelled by user")
+        }
       }
       op.cancel()
-      self.waitForExpectations(timeout: 10) { er in
-        XCTAssertNil(er)
-      }
+    }
+    self.waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
     }
   }
 }

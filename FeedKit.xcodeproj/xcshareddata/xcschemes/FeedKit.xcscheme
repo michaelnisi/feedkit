@@ -40,9 +40,6 @@
             </BuildableReference>
             <SkippedTests>
                <Test
-                  Identifier = "SearchRepositoryTests/testCancelledSuggest()">
-               </Test>
-               <Test
                   Identifier = "SearchRepositoryTests/testSearchCancel()">
                </Test>
                <Test
