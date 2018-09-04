@@ -42,10 +42,15 @@ extension Common {
     return ITunesItem(url: url, iTunesID: 123, img100: "img100",
                       img30: "img30", img60: "img60", img600: "img600")
   }
+
+  enum FeedName {
+    case gruber
+    case roderick
+  }
   
-  static func makeFeed(name: String) throws -> Feed {
+  static func makeFeed(name: FeedName) -> Feed {
     switch name {
-    case "thetalkshow", "gruber":
+    case .gruber:
       return Feed(
         author: "Daring Fireball / John Gruber",
         iTunes: ITunesItem(
@@ -66,7 +71,7 @@ extension Common {
         updated: Date(timeIntervalSince1970: 1445110501000 / 1000),
         url: "http://daringfireball.net/thetalkshow/rss"
       )
-    case "roderickontheline":
+    case .roderick:
       return Feed(
         author: "Merlin Mann",
         iTunes: ITunesItem(
@@ -87,8 +92,6 @@ extension Common {
         updated: Date(timeIntervalSince1970: 0),
         url: "http://feeds.feedburner.com/RoderickOnTheLine"
       )
-    default:
-      throw FeedKitError.notAFeed
     }
   }
   

@@ -38,14 +38,6 @@
                BlueprintName = "FeedKitTests"
                ReferencedContainer = "container:FeedKit.xcodeproj">
             </BuildableReference>
-            <SkippedTests>
-               <Test
-                  Identifier = "SearchRepositoryTests/testSearchCancel()">
-               </Test>
-               <Test
-                  Identifier = "SearchRepositoryTests/testSearchWithNoResult()">
-               </Test>
-            </SkippedTests>
          </TestableReference>
       </Testables>
       <MacroExpansion>

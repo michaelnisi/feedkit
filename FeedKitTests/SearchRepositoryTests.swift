@@ -105,26 +105,28 @@ final class SearchRepositoryTests: XCTestCase {
 
   func testSearchWithNoResult() {
     let exp = self.expectation(description: "search")
+
     func go(_ terms: [String]) {
       guard !terms.isEmpty else {
-        return DispatchQueue.main.async {
-          exp.fulfill()
-        }
+        return exp.fulfill()
       }
+
       var t = terms
       let term = t.removeFirst()
+      
       repo.search(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
         XCTAssertEqual(finds.count, 0)
       }) { error in
         XCTAssertNil(error)
-        DispatchQueue.main.async() {
-          go(t)
-        }
+        go(t)
       }
     }
-    // Mere speculation that these are yielding no results from iTunes.
+
+    // Mere speculation that these yield no results from iTunes.
+
     go(["🙈", "🙉", "🙊"])
+
     self.waitForExpectations(timeout: 61) { er in
       XCTAssertNil(er)
     }
@@ -157,21 +159,24 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   func testSearchCancel() {
-    for _ in 0...5 {
-      let exp = self.expectation(description: "search")
+    for i in 0...5 {
+      let exp = self.expectation(description: "search-\(i)")
       let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.search(term, perFindGroupBlock: { _, _ in
         XCTFail("should not get dispatched")
       }) { er in
-        do {
-          throw er!
-        } catch FeedKitError.cancelledByUser {
+        if case FeedKitError.cancelledByUser = er! {
           exp.fulfill()
-        } catch {
-          XCTFail("should not pass unexpected error")
+        } else {
+          XCTFail("should be cancelled by user")
         }
       }
-      op.cancel()
+
+      // Cancelling after wait.
+      DispatchQueue.main.async {
+        op.cancel()
+      }
+
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
       }
@@ -293,27 +298,27 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   func testCancelledSuggest() {
-    let exp = self.expectation(description: "suggest")
-    var c = 0
-    let l = 10
-    for _ in 0...l {
+    for i in 0...10 {
+      let exp = self.expectation(description: "suggest-\(i)")
       let term = Common.makeString(length: max(Int(arc4random_uniform(8)), 1))
       let op = repo.suggest(term, perFindGroupBlock: { error, finds in
         XCTAssertNil(error)
       }) { er in
         if case FeedKitError.cancelledByUser = er! {
-          c = c + 1
-          if c == l {
-            exp.fulfill()
-          }
+          exp.fulfill()
         } else {
           XCTFail("should be cancelled by user")
         }
       }
-      op.cancel()
-    }
-    self.waitForExpectations(timeout: 10) { er in
-      XCTAssertNil(er)
+
+      // Cancelling after wait.
+      DispatchQueue.main.async {
+        op.cancel()
+      }
+
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
     }
   }
 }

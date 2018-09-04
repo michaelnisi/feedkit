@@ -261,11 +261,11 @@ extension UserCacheTests {
     }
     
   }
-  
+
   func testRemoveEntries() {
     do {
-      try! cache.add(queued: someQueued)
       let wanted = someQueued
+      try! cache.add(queued: wanted)
       let found = try! cache.queued()
       XCTAssertEqual(found, wanted)
     }

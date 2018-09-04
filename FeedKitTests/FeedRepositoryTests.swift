@@ -216,9 +216,7 @@ extension FeedRepositoryTests {
     func go() {
       // The Talk Show is redirected, I keep it, because it makes for a good
       // test.
-      let extra = try! Common.makeFeed(name: "thetalkshow")
-      let x = urls + [extra.url]
-      dump(x)
+      let extra = try! Common.makeFeed(name: .gruber)
       repo.feeds(urls + [extra.url], feedsBlock: { er, feeds in
         let found = feeds.map { $0.url }
         dump(found)

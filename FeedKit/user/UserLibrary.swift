@@ -301,50 +301,6 @@ extension UserLibrary {
 
 extension UserLibrary: Updating {
 
-  private static func previousGUIDs(from cache: QueueCaching) throws -> [String] {
-    let previous = try cache.previous()
-    return previous.compactMap {
-      if case .temporary(let loc, _, _) = $0 {
-        return loc.guid
-      }
-      return nil
-    }
-  }
-
-  private static func locatorsForUpdating(
-    from cache: QueueCaching,
-    with subscriptions: [Subscription]) throws -> [EntryLocator] {
-    let latest = try cache.newest()
-    let urls = subscriptions.map { $0.url }
-    return latest.filter { urls.contains($0.url) }
-  }
-
-  /// Returns entries in `entries` of `subscriptions`, which are newer than
-  /// the subscription date of their containing feed.
-  ///
-  /// - Parameters:
-  ///   - entries: The source entries to use.
-  ///   - subscriptions: A set of subscriptions to compare against.
-  ///
-  /// - Returns: A subset of `entries` with entries newer than their according
-  /// subscriptions. Entries of missing subscriptions are not included.
-  static func newer(
-    from entries: [Entry],
-    than subscriptions: Set<Subscription>) -> [Entry] {
-    // A dictionary of dates by subscription URLs for quick lookup.
-    var datesByURLs = [FeedURL: Date]()
-    for s in subscriptions {
-      datesByURLs[s.url] = s.ts
-    }
-
-    return entries.filter {
-      guard let ts = datesByURLs[$0.url] else {
-        return false
-      }
-      return $0.updated > ts
-    }
-  }
-
   /// Commits the queue, notifying observers.
   private func commitQueue(enqueued: Set<Entry>, dequeued: Set<Entry>) {
     os_log("** committing queue", log: log,  type: .debug)

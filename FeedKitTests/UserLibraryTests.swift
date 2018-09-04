@@ -24,16 +24,25 @@ class UserLibraryTests: XCTestCase {
     queue.maxConcurrentOperationCount = 1
     
     let user = UserLibrary.init(cache: cache, browser: browser, queue: queue)
+
+    XCTAssert(user.isEmpty)
+    XCTAssertFalse(user.isBackwardable)
+    XCTAssertFalse(user.isForwardable)
     
     self.user = user
     self.cache = cache
   }
-  
+
   override func tearDown() {
     user = nil
     cache = nil
     super.tearDown()
   }
+
+  // Specifying APIs.
+
+  fileprivate var library: Subscribing { return user }
+  fileprivate var queue: Queueing { return user }
   
 }
 
@@ -41,11 +50,11 @@ class UserLibraryTests: XCTestCase {
 
 extension UserLibraryTests {
   
-  func testSubscribe() {
+  func testAdd() {
     do {
       let exp = self.expectation(description: "subscribing empty list")
       
-      user.add(subscriptions: []) { error in
+      library.add(subscriptions: []) { error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()
@@ -59,11 +68,39 @@ extension UserLibraryTests {
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
       
-      user.add(subscriptions: subscriptions) { error in
+      library.add(subscriptions: subscriptions) { error in
         XCTAssertNil(error)
         exp.fulfill()
       }
       
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+      }
+    }
+  }
+
+  func testSubscribe() {
+    do {
+      let exp = self.expectation(description: "subscribing to a feed")
+      let feed = Common.makeFeed(name: .gruber)
+      library.subscribe(feed) { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
+      self.waitForExpectations(timeout: 10) { er in
+        XCTAssertNil(er)
+        XCTAssert(self.library.has(subscription: feed.url))
+      }
+    }
+  }
+
+  func testSynchronize() {
+    do {
+      let exp = self.expectation(description: "synchronizing")
+      library.synchronize { error in
+        XCTAssertNil(error)
+        exp.fulfill()
+      }
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
       }
@@ -77,7 +114,7 @@ extension UserLibraryTests {
     addComplete: @escaping (Error?) -> Void
   ) -> [Subscription] {
     let subscriptions = [Subscription(url: url)]
-    user.add(subscriptions: subscriptions, completionBlock: addComplete)
+    library.add(subscriptions: subscriptions, completionBlock: addComplete)
     return subscriptions
   }
   
@@ -109,9 +146,11 @@ extension UserLibraryTests {
     }
     
     do {
+      XCTAssert(self.user.has(subscription: url))
+
       let exp = self.expectation(description: "unsubscribing")
 
-      user.unsubscribe([url]) { error in
+      library.unsubscribe(url) { error in
         XCTAssertFalse(Thread.isMainThread)
         XCTAssertNil(error)
         exp.fulfill()
@@ -119,6 +158,7 @@ extension UserLibraryTests {
       
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
+        XCTAssertFalse(self.user.has(subscription: url))
       }
     }
   }
@@ -171,7 +211,10 @@ extension UserLibraryTests {
       user.fetchFeeds(feedsBlock: { feeds, error in
         XCTAssertFalse(Thread.isMainThread)
         let found = feeds.first!.url
-        let wanted = "http://feeds.feedburner.com/Monocle24TheUrbanist"
+
+        // Not sure if we should be testing redirects here. ↑
+
+        let wanted = "https://omny.fm/shows/monocle-24-the-urbanist/playlists/podcast.rss"
         XCTAssertEqual(found, wanted)
       }) { error in
         XCTAssertFalse(Thread.isMainThread)
@@ -190,32 +233,6 @@ extension UserLibraryTests {
 // MARK: - Updating
 
 extension UserLibraryTests {
-
-  func testLatestEntriesUsingSubscriptions() {
-    let entries = try! entriesFromFile()
-    let urls = Set(entries.map { $0.url })
-    
-    do {
-      let subscriptions = Set(urls.map { Subscription(url: $0) })
-      let found = UserLibrary.newer(from: entries, than: subscriptions)
-      XCTAssertEqual(found, [])
-    }
-    
-    do {
-      // 2015-10-23T04:00:00.000Z
-      let ts = Date(timeIntervalSince1970:
-        serialize.timeIntervalFromJS(1445572800000)
-      )
-      let subscriptions: Set<Subscription> = [
-        Subscription(url: "http://feeds.wnyc.org/newyorkerradiohour", ts: ts)
-      ]
-      let found = UserLibrary.newer(from: entries, than: subscriptions)
-      XCTAssertEqual(found.count, 1)
-      XCTAssertEqual(
-        found.first!.title,
-        "Episode Two: Amy Schumer, Jorge Ramos, and the Search for a Lost Father")
-    }
-  }
   
   func testUpdate() {
     do {
