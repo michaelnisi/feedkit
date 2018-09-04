@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+private let log = OSLog.disabled
 
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
