@@ -17,21 +17,15 @@ final class FeedCacheTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    cache = freshCache(self.classForCoder)
+    cache = Common.makeCache()
     if let url = cache.url {
       XCTAssert(fm.fileExists(atPath: url.path))
     }
   }
 
   override func tearDown() {
-    try! destroyCache(cache)
+    try! Common.destroyCache(cache)
     super.tearDown()
-  }
-
-  func feedsFromFile(_ name: String = "feeds") throws -> [Feed] {
-    let bundle = Bundle(for: self.classForCoder)
-    let feedsURL = bundle.url(forResource: name, withExtension: "json")!
-    return try feedsFromFileAtURL(feedsURL)
   }
 
   func testFeedIDForURL() {
@@ -53,7 +47,7 @@ final class FeedCacheTests: XCTestCase {
     var feed: Feed?
 
     do {
-      let feeds = try! feedsFromFile()
+      let feeds = try! Common.feedsFromFile()
       try! cache.update(feeds: feeds)
       feed = feeds.first!
       url = feed!.url
@@ -211,7 +205,7 @@ extension FeedCacheTests {
   }
 
   func testUpdateFeeds() {
-    let feeds = try! feedsFromFile()
+    let feeds = try! Common.feedsFromFile()
 
     try! cache.update(feeds: feeds)
 
@@ -253,7 +247,7 @@ extension FeedCacheTests {
 
   func testUpdateEntriesOfUncachedFeeds() {
     let entries = [
-      try! freshEntry(named: "thetalkshow")
+      Common.makeEntry(name: .gruber)
     ]
     var foundURLs: [String]? = nil
     let wantedURLs = ["http://daringfireball.net/thetalkshow/rss"]
@@ -265,16 +259,6 @@ extension FeedCacheTests {
       XCTFail("should throw expected error")
     }
     XCTAssertEqual(foundURLs!, wantedURLs)
-  }
-
-  func populate() throws -> ([Feed], [Entry]) {
-    let feeds = try! feedsFromFile()
-    try! cache.update(feeds: feeds)
-
-    let entries = try! entriesFromFile()
-    try! cache.update(entries: entries)
-
-    return (feeds, entries)
   }
   
   func checkEntries(_ found: [Entry], wanted: [Entry]) {
@@ -301,7 +285,7 @@ extension FeedCacheTests {
   }
 
   func testUpdateEntries() {
-    let (feeds, entries) = try! populate()
+    let (feeds, entries) = try! Common.populate(cache: cache)
     let urls = feeds.map { $0.url }
 
     if let p = cache.url?.path {
@@ -321,7 +305,7 @@ extension FeedCacheTests {
   }
 
   func testEntriesWithGUIDs() {
-    let (_, entries) = try! populate()
+    let (_, entries) = try! Common.populate(cache: cache)
     for entry in entries {
       XCTAssertNotNil(entry.guid)
     }
@@ -352,7 +336,7 @@ extension FeedCacheTests {
   }
 
   func testRemoveFeedsWithURLs() {
-    let (feeds, _) = try! populate()
+    let (feeds, _) = try! Common.populate(cache: cache)
     let urls = feeds.map { $0.url }
 
     urls.forEach { url in
@@ -378,7 +362,7 @@ extension FeedCacheTests {
 extension FeedCacheTests {
 
   func testUpdateFeedsForTerm() {
-    let feeds = try! feedsFromFile("search")
+    let feeds = try! Common.feedsFromFile(named: "search")
     let term = "newyorker"
     
     // Granular scoping.
@@ -436,7 +420,7 @@ extension FeedCacheTests {
   }
 
   func testFeedsForTerm() {
-    let feeds = try! feedsFromFile("search")
+    let feeds = try! Common.feedsFromFile(named: "search")
     let term = "newyorker"
     
     XCTAssertEqual(feeds.count, 12)
@@ -475,7 +459,7 @@ extension FeedCacheTests {
   }
 
   func testFeedsMatchingTerm() {
-    let feeds = try! feedsFromFile("search")
+    let feeds = try! Common.feedsFromFile(named: "search")
     let term = "newyorker"
     XCTAssertNil(try! cache.feeds(for: term, limit: 50))
 
@@ -498,7 +482,7 @@ extension FeedCacheTests {
   }
 
   func testEntriesMatchingTerm() {
-    let _ = try! populate()
+    let _ = try! Common.populate(cache: cache)
     
     guard let found = try! cache.entries(matching: "Dead", limit: 3) else {
       return XCTFail("not found")

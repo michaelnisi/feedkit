@@ -22,20 +22,20 @@ final class FeedRepositoryTests: XCTestCase {
   override func setUp() {
     super.setUp()
     
-    cache = freshCache(self.classForCoder)
-    svc = makeManger(string: "http://localhost:8384")
+    cache = Common.makeCache()
+    svc = Common.makeManger(url: "http://localhost:8384")
     repo = FeedRepository(cache: cache, svc: svc, queue:  OperationQueue())
   }
   
   override func tearDown() {
-    try! destroyCache(cache)
+    try! Common.destroyCache(cache)
     super.tearDown()
   }
   
   lazy var urls: [String] = {
     let bundle = Bundle(for: self.classForCoder)
     let url = bundle.url(forResource: "feed_query", withExtension: "json")
-    let json = try! JSONFromFileAtURL(url!)
+    let json = try! Common.JSON(contentsOf: url!)
     let urls = json.map { $0["url"] as! String }
     return urls
   }()
@@ -134,7 +134,7 @@ extension FeedRepositoryTests {
   }
   
   func testCachedFeeds() {
-    let zeroCache = freshCache(classForCoder)
+    let zeroCache = Common.makeCache()
     
     do {
       let exp = self.expectation(description: "populating cache")
@@ -170,7 +170,7 @@ extension FeedRepositoryTests {
     
     do {
       let falseHost = "http://localhost:8385"
-      let unavailable = makeManger(string: falseHost)
+      let unavailable = Common.makeManger(url: falseHost)
       let queue = OperationQueue()
       let repo: Browsing = FeedRepository(
         cache: zeroCache, svc: unavailable, queue:queue)

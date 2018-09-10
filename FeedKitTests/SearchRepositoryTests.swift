@@ -36,9 +36,9 @@ final class SearchRepositoryTests: XCTestCase {
     let url = URL(string: "http://localhost:8383")!
     svc = freshFanboy(url: url)
 
-    let browser = freshBrowser(self.classForCoder)
+    let browser = Common.makeBrowser()
     
-    cache = freshCache(self.classForCoder)
+    cache = Common.makeCache()
     let queue = OperationQueue()
 
     repo = SearchRepository(
@@ -50,7 +50,7 @@ final class SearchRepositoryTests: XCTestCase {
   }
 
   override func tearDown() {
-    try! destroyCache(cache)
+    try! Common.destroyCache(cache)
     super.tearDown()
   }
 
@@ -188,14 +188,14 @@ final class SearchRepositoryTests: XCTestCase {
   func feedsFromFile(_ name: String = "feeds") throws -> [Feed] {
     let bundle = Bundle(for: self.classForCoder)
     let feedsURL = bundle.url(forResource: name, withExtension: "json")
-    return try feedsFromFileAtURL(feedsURL!)
+    return try Common.loadFeeds(url: feedsURL!)
   }
 
   @discardableResult func populate() throws -> ([Feed], [Entry]) {
     let feeds = try! feedsFromFile()
     try! cache.update(feeds: feeds)
 
-    let entries = try! entriesFromFile()
+    let entries = try! Common.loadEntries()
     try! cache.update(entries: entries)
 
     return (feeds, entries)

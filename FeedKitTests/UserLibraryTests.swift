@@ -17,9 +17,9 @@ class UserLibraryTests: XCTestCase {
   override func setUp() {
     super.setUp()
 
-    let cache = freshUserCache(self.classForCoder)
-    let browser = freshBrowser(self.classForCoder)
-    
+    let cache = Common.makeUserCache()
+    let browser = Common.makeBrowser()
+
     let queue = OperationQueue()
     queue.maxConcurrentOperationCount = 1
     
@@ -87,9 +87,15 @@ extension UserLibraryTests {
         XCTAssertNil(error)
         exp.fulfill()
       }
+
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
         XCTAssert(self.library.has(subscription: feed.url))
+
+        // The queue is still empty, because only cached entries are enqueued
+        // automatically and our qeue hasn’t been populated.
+
+        XCTAssert(self.queue.isEmpty)
       }
     }
   }
@@ -269,7 +275,7 @@ extension UserLibraryTests {
   }
   
   func testEnqueueLatest() {
-    let many = try! entriesFromFile()
+    let many = try! Common.loadEntries()
     let latest = EnqueueOperation.latest(entries: many)
     let urls = latest.map { $0.feed }
     let unique = Set(urls)
@@ -314,7 +320,7 @@ extension UserLibraryTests {
       }
     }
     
-    let entries = try! entriesFromFile()
+    let entries = try! Common.loadEntries()
     let entriesToQueue = Array(Set(entries.prefix(5)))
     
     do {
@@ -374,7 +380,7 @@ extension UserLibraryTests {
   }
   
   func testEnqueueEntry() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueueing")
@@ -397,7 +403,7 @@ extension UserLibraryTests {
   }
   
   func testDequeingNotEnqueued() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "dequeueing not enqueued")
@@ -417,7 +423,7 @@ extension UserLibraryTests {
   }
   
   func testEnqueueing() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueueing")
@@ -435,7 +441,7 @@ extension UserLibraryTests {
   }
   
   func testDequeueing() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "dequeueing")
@@ -459,7 +465,7 @@ extension UserLibraryTests {
   }
 
   func testDequeueingByFeed() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
 
     let exp = expectation(description: "dequeueing")
@@ -483,7 +489,7 @@ extension UserLibraryTests {
   }
 
   func testContainsEntry() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     XCTAssertFalse(user.contains(entry: entry))
     
     let exp = expectation(description: "enqueue")

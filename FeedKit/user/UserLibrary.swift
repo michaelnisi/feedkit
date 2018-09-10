@@ -352,27 +352,13 @@ extension UserLibrary: Updating {
 
         // The dequeued, we don’t know.
         self.commitQueue(enqueued: Set(enqueued), dequeued: Set())
-      }
-
-      // Trimming
-
-      let trimming = TrimQueueOperation(cache: cache)
-
-      trimming.trimQueueCompletionBlock = { newData, error in
-        if let er = error {
-          os_log("trim error: %{public}@", log: log, type: .error,
-                 er as CVarArg)
-        }
-
-        updateComplete?(newData, error)
+        updateComplete?(!enqueued.isEmpty, error)
       }
 
       enqueuing.addDependency(fetching)
-      trimming.addDependency(enqueuing)
 
       operationQueue.addOperation(preparing)
       operationQueue.addOperation(enqueuing)
-      operationQueue.addOperation(trimming)
     }
   }
 

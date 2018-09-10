@@ -141,7 +141,7 @@ extension LibrarySQLTests {
   }
   
   func testSQLToInsertEntry() {
-    let entry = try! freshEntry(named: "thetalkshow")
+    let entry = Common.makeEntry(name: .gruber)
     let feedID = FeedID(rowid: 1, url: entry.feed)
     let found = formatter.SQLToInsert(entry: entry, for: feedID)
     

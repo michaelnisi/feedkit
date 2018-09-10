@@ -40,6 +40,8 @@ public struct FeedID: Equatable {
   
 }
 
+extension FeedID: Codable {}
+
 /// Feeds are the central object of this framework.
 ///
 /// The initializer is inconvenient for a reason: **it shouldn't be used
@@ -61,6 +63,8 @@ public struct Feed: Cachable, Redirectable, Imaginable {
   public let updated: Date?
   public let url: FeedURL
 }
+
+extension Feed: Codable {}
 
 extension Feed : CustomStringConvertible {
   public var description: String {

@@ -51,6 +51,8 @@ public struct ITunesItem {
   
 }
 
+extension ITunesItem: Codable {}
+
 extension ITunesItem: Equatable {
   public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
     return lhs.url == rhs.url && lhs.iTunesID == rhs.iTunesID

@@ -135,6 +135,10 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       
       try cache.add(queued: prependedQueued)
 
+      // This is new, having removed the TrimQueueOperation, we are trimming
+      // the cache here now. No code is the best code.
+      try cache.trim()
+
       let queued = try cache.queued()
       let diff = Set(queued).intersection(Set(prependedQueued))
       let diffGuids = diff.compactMap { $0.entryLocator.guid }

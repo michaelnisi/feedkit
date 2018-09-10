@@ -30,6 +30,8 @@ public struct Entry: Redirectable, Imaginable {
   public let updated: Date
 }
 
+extension Entry: Codable {}
+
 extension Entry : Cachable {
   public var url: String {
     get { return feed }

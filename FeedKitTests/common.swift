@@ -15,37 +15,39 @@ import Ola
 
 @testable import FeedKit
 
-enum Common {
-  
+/// Common things that are helpful for testing FeedKit.
+final class Common {
+  private init() {}
+
+  /// Names of mock feeds.
+  enum FeedName {
+    case gruber
+    case roderick
+  }
+}
+
+// MARK: - Making Basic Types
+
+extension Common {
+
   /// Returns a random String of `length`.
   static func makeString(length: Int) -> String {
     let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     let max = UInt32(chars.count)
     var str = ""
-    
+
     for _ in 0..<length {
       let offset = Int(arc4random_uniform(max))
       let index = chars.index(chars.startIndex, offsetBy: offset)
       str += String(chars[index])
     }
-    
+
     return str
   }
-  
-}
 
-// MARK: - Core
-
-extension Common {
-  
   static func makeITunesItem(url: String) -> ITunesItem {
     return ITunesItem(url: url, iTunesID: 123, img100: "img100",
                       img30: "img30", img60: "img60", img600: "img600")
-  }
-
-  enum FeedName {
-    case gruber
-    case roderick
   }
   
   static func makeFeed(name: FeedName) -> Feed {
@@ -94,117 +96,10 @@ extension Common {
       )
     }
   }
-  
-}
 
-// TODO: Move global functions into Common
-
-func makeManger(string: String = "http://localhost:8384") -> Manger {
-  let url = URL(string: string)!
-
-  let conf = URLSessionConfiguration.default
-  conf.httpShouldUsePipelining = true
-  conf.requestCachePolicy = .reloadIgnoringLocalCacheData
-  let session = URLSession(configuration: conf)
-
-  let client = Patron(URL: url, session: session)
-
-  return Manger(client: client)
-}
-
-func schema(for aClass: AnyClass!, forResource name: String) -> String {
-  let bundle = Bundle(for: aClass)
-  return bundle.path(forResource: name, ofType: "sql")!
-}
-
-private func cacheURL(_ name: String) -> URL {
-  let fm = FileManager.default
-  let dir = try! fm.url(
-    for: .cachesDirectory,
-    in: .userDomainMask,
-    appropriateFor: nil,
-    create: true
-  )
-  return URL(string: name, relativeTo: dir)!
-}
-
-func freshCache(_ aClass: AnyClass!) -> FeedCache {
-  let name = "ink.codes.feedkit.test.cache.db"
-  let url = cacheURL(name)
-
-  let fm = FileManager.default
-  let exists = fm.fileExists(atPath: url.path)
-  if exists {
-    try! fm.removeItem(at: url)
-  }
-  return try! FeedCache(
-    schema: schema(for: aClass, forResource: "cache"),
-    url: nil
-  )
-}
-
-func freshUserCache(_ aClass: AnyClass!) -> UserCache {
-  let name = "ink.codes.feedkit.test.user.db"
-  let url = cacheURL(name)
-
-  let fm = FileManager.default
-  let exists = fm.fileExists(atPath: url.path)
-  if exists {
-    try! fm.removeItem(at: url)
-  }
-  return try! UserCache(
-    schema: schema(for: aClass, forResource: "user"),
-    url: nil
-  )
-}
-
-func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
-  let cache = freshCache(aClass)
-  let svc = makeManger(string: "http://localhost:8384")
-  return FeedRepository(cache: cache, svc: svc, queue: OperationQueue())
-}
-
-func destroyCache(_ cache: LocalCache) throws {
-  if let url = cache.url {
-    let fm = FileManager.default
-    try fm.removeItem(at: url)
-    XCTAssertFalse(fm.fileExists(atPath: url.path), "should remove database file")
-  }
-}
-
-func JSONFromFileAtURL(_ url: URL) throws -> [[String : Any]] {
-  let data = try? Data(contentsOf: url)
-  let json = try JSONSerialization.jsonObject(with: data!, options: .allowFragments)
-  if let dict = json as? [String : Any] {
-    return dict.isEmpty ? [] : [dict]
-  } else if let arr = json as? [[String : Any]] {
-    return arr
-  }
-  throw FeedKitError.unexpectedJSON
-}
-
-func feedsFromFileAtURL(_ url: URL) throws -> [Feed] {
-  let json = try JSONFromFileAtURL(url as URL)
-  let (errors, feeds) = serialize.feeds(from: json)
-  XCTAssert(errors.isEmpty, "should return no errors")
-  return feeds
-}
-
-func entriesFromFile(at url: URL? = nil) throws -> [Entry] {
-  let entriesURL = url ?? {
-    let bundle = Bundle(identifier: "ink.codes.FeedKitTests")!
-    return bundle.url(forResource: "entries", withExtension: "json")!
-  }()
-  let json = try JSONFromFileAtURL(entriesURL)
-  let (errors, entries) = serialize.entries(from: json)
-  XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
-  return entries
-}
-
-/// A new test `Entry` distinguished by `name`.
-func freshEntry(named name: String) throws -> Entry {
-  switch name {
-    case "thetalkshow":
+  static func makeEntry(name: FeedName) -> Entry {
+    switch name {
+    case .gruber:
       let feed = "http://daringfireball.net/thetalkshow/rss"
       let link = "http://daringfireball.net/thetalkshow/2015/10/17/ep-133"
 
@@ -237,7 +132,169 @@ func freshEntry(named name: String) throws -> Entry {
         updated: updated
       )
     default:
-      throw FeedKitError.notAnEntry
+      // TODO: Add roderick entry
+      fatalError("not implemented yet")
+    }
   }
+  
 }
+
+// MARK: - Loading Things
+
+extension Common {
+
+  static func decodeFeeds(reading url: URL) throws -> [Feed] {
+    let data = try! Data(contentsOf: url)
+    return try JSONDecoder().decode([Feed].self, from: data)
+  }
+
+  static func decodeEntries(reading url: URL) throws -> [Entry] {
+    let data = try! Data(contentsOf: url)
+    return try JSONDecoder().decode([Entry].self, from: data)
+  }
+
+  /// Returns an Array of Dictionaries read and parsed from `url`.
+  static func JSON(contentsOf url: URL) throws -> [[String : Any]] {
+    let data = try? Data(contentsOf: url)
+    let json = try JSONSerialization.jsonObject(with: data!, options: .allowFragments)
+    if let dict = json as? [String : Any] {
+      return dict.isEmpty ? [] : [dict]
+    } else if let arr = json as? [[String : Any]] {
+      return arr
+    }
+    throw FeedKitError.unexpectedJSON
+  }
+
+  static func loadFeeds(url: URL) throws -> [Feed] {
+    let json = try JSON(contentsOf: url as URL)
+    let (errors, feeds) = serialize.feeds(from: json)
+    XCTAssert(errors.isEmpty, "should return no errors")
+    return feeds
+  }
+
+  static func loadEntries(url: URL? = nil) throws -> [Entry] {
+    let entriesURL = url ?? {
+      let bundle = Bundle(identifier: "ink.codes.FeedKitTests")!
+      return bundle.url(forResource: "entries", withExtension: "json")!
+      }()
+    let json = try JSON(contentsOf: entriesURL)
+    let (errors, entries) = serialize.entries(from: json)
+    XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
+    return entries
+  }
+
+}
+
+// MARK: - FeedCaching
+
+extension Common {
+
+  static var bundle: Bundle {
+    class Stooge {}
+    return Bundle(for: type(of: Stooge()))
+  }
+
+  /// Returns feeds from a file in this bundle with the matching `name` without
+  /// extension.
+  static func feedsFromFile(named name: String = "feeds") throws -> [Feed] {
+    let feedsURL = bundle.url(forResource: name, withExtension: "json")!
+    return try loadFeeds(url: feedsURL)
+  }
+
+  /// Populates `cache` with data from common test files and returns a tuple
+  /// with the population of feeds and entries.
+  static func populate(cache: FeedCaching) throws -> ([Feed], [Entry]) {
+    let feeds = try! feedsFromFile()
+    try! cache.update(feeds: feeds)
+
+    let entries = try! loadEntries()
+    try! cache.update(entries: entries)
+
+    return (feeds, entries)
+  }
+
+}
+
+// MARK: - Making Services
+
+extension Common {
+
+  static func makeManger(url: String = "http://localhost:8384") -> Manger {
+    let conf = URLSessionConfiguration.default
+    conf.httpShouldUsePipelining = true
+    conf.requestCachePolicy = .reloadIgnoringLocalCacheData
+    let session = URLSession(configuration: conf)
+
+    let client = Patron(URL: URL(string: url)!, session: session)
+
+    return Manger(client: client)
+  }
+
+}
+
+// MARK: Making Complex Things
+
+extension Common {
+
+  private static func makeCacheURL(string: String) -> URL {
+    let fm = FileManager.default
+    let dir = try! fm.url(
+      for: .cachesDirectory,
+      in: .userDomainMask,
+      appropriateFor: nil,
+      create: true
+    )
+    return URL(string: string, relativeTo: dir)!
+  }
+
+  static func makeCache() -> FeedCache {
+    let name = "ink.codes.feedkit.test.cache.db"
+    let url = makeCacheURL(string: name)
+
+    let fm = FileManager.default
+    let exists = fm.fileExists(atPath: url.path)
+    if exists {
+      try! fm.removeItem(at: url)
+    }
+
+    let schema = bundle.path(forResource: "cache", ofType: "sql")!
+    return try! FeedCache(schema: schema, url: nil)
+  }
+
+  static func makeUserCache() -> UserCache {
+    let name = "ink.codes.feedkit.test.user.db"
+    let url = makeCacheURL(string: name)
+
+    let fm = FileManager.default
+    let exists = fm.fileExists(atPath: url.path)
+    if exists {
+      try! fm.removeItem(at: url)
+    }
+
+    let schema = bundle.path(forResource: "user", ofType: "sql")!
+    return try! UserCache(schema: schema, url: nil)
+  }
+
+  static func makeBrowser() -> FeedRepository {
+    let cache = makeCache()
+    let svc = Common.makeManger(url: "http://localhost:8384")
+    return FeedRepository(cache: cache, svc: svc, queue: OperationQueue())
+  }
+
+}
+
+// MARK: - Destroying Things
+
+extension Common {
+
+  static func destroyCache(_ cache: LocalCache) throws {
+    if let url = cache.url {
+      let fm = FileManager.default
+      try fm.removeItem(at: url)
+      XCTAssertFalse(fm.fileExists(atPath: url.path), "should remove database file")
+    }
+  }
+
+}
+
 

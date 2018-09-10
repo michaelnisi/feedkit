@@ -45,12 +45,16 @@ public enum EnclosureType : Int {
   }
 }
 
+extension EnclosureType: Codable {}
+
 /// The infamous RSS enclosure tag is mapped to this structure.
 public struct Enclosure {
   public let url: String
   public let length: Int?
   public let type: EnclosureType
 }
+
+extension Enclosure: Codable {}
 
 extension Enclosure: Equatable {
   public static func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
