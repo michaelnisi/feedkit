@@ -163,7 +163,6 @@ extension UserLibrary: Subscribing {
     }
 
     if !queueContains(feed.url) {
-      // This browser operation is already executing.
       let fetchingLatest = browser.latestEntry(feed.url)
 
       let enqueueing = EnqueueOperation(user: self, cache: cache)

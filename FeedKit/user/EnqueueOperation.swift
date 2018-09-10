@@ -99,18 +99,21 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }
 
       let qualifieds: [Entry] = try {
-        let notEnqueuedYet = try candidates.filter {
+        let notQueued = try candidates.filter {
           try !cache.isQueued($0.guid)
         }
         
-        // For automatic updates, not directly initiated by users, we are
-        // only accepting the latest entry per feed.
+        // For automatic updates, enqueueing not directly initiated by users,
+        // we are only accepting the latest, not previously enqueued, entry
+        // per feed.
         
         if case .nobody = owner {
-          return EnqueueOperation.latest(entries: notEnqueuedYet)
+          return try EnqueueOperation.latest(entries: notQueued).filter {
+            try !cache.isPrevious($0.guid)
+          }
         }
         
-        return notEnqueuedYet
+        return notQueued
       }()
       
       guard !qualifieds.isEmpty else {
