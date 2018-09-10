@@ -161,11 +161,7 @@ func freshUserCache(_ aClass: AnyClass!) -> UserCache {
 func freshBrowser(_ aClass: AnyClass!) -> FeedRepository {
   let cache = freshCache(aClass)
   let svc = makeManger(string: "http://localhost:8384")
-
-  let queue = OperationQueue()
-  queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.browsing")
-
-  return FeedRepository(cache: cache, svc: svc, queue: queue)
+  return FeedRepository(cache: cache, svc: svc, queue: OperationQueue())
 }
 
 func destroyCache(_ cache: LocalCache) throws {

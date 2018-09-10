@@ -444,12 +444,14 @@ extension UserLibrary: Queueing {
     op.owner = owner
 
     op.enqueueCompletionBlock = { enqueued, error in
-      // Why isn’t this a fucking set?
+      // Why isn’t enqueued a fucking set?
 
       let e = Set(enqueued)
       self.commitQueue(enqueued: e, dequeued: Set())
       enqueueCompletionBlock?(e, error)
     }
+
+    // TODO: Trim, disallowing old entries
 
     operationQueue.addOperation(op)
   }

@@ -110,13 +110,13 @@ public enum QueueingError: Error {
 /// change events regarding the user’s queue.
 public protocol Queueing {
 
-  /// Adds `entries` to the queue.
+  /// Adds `entries` to the queue, belonging to `owner`.
   func enqueue(
     entries: [Entry],
-    belonging: QueuedOwner,
+    belonging owner: QueuedOwner,
     enqueueCompletionBlock: ((_ enqueued: Set<Entry>, _ error: Error?) -> Void)?)
   
-  /// Adds `entries` to the queue.
+  /// Adds `entries` to the queue, belonging to `.nobody`.
   func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ enqueued: Set<Entry>, _ error: Error?) -> Void)?)

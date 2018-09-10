@@ -104,7 +104,7 @@ extension LibrarySQLTests {
   }
   
   func testSQLToInsertFeed() {
-    let feed = try! Common.makeFeed(name: .gruber)
+    let feed = Common.makeFeed(name: .gruber)
     let found = formatter.SQLToInsert(feed: feed)
     
     let wanted = """
@@ -121,7 +121,7 @@ extension LibrarySQLTests {
   }
   
   func testSQLToUpdateFeed() {
-    let feed = try! Common.makeFeed(name: .gruber)
+    let feed = Common.makeFeed(name: .gruber)
     let feedID = FeedID(rowid: 1, url: feed.url)
     let found = formatter.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
     
@@ -131,7 +131,7 @@ extension LibrarySQLTests {
   }
   
   func testSQLToUpdateITunesFeed() {
-    let feed = try! Common.makeFeed(name: .gruber)
+    let feed = Common.makeFeed(name: .gruber)
     let feedID = FeedID(rowid: 1, url: feed.url)
     let found = formatter.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
     

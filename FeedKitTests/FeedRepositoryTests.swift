@@ -23,13 +23,8 @@ final class FeedRepositoryTests: XCTestCase {
     super.setUp()
     
     cache = freshCache(self.classForCoder)
-    
     svc = makeManger(string: "http://localhost:8384")
-    
-    let queue = OperationQueue()
-    queue.underlyingQueue = DispatchQueue(label: "ink.codes.feedkit.FeedRepositoryTests")
-
-    repo = FeedRepository(cache: cache, svc: svc, queue: queue)
+    repo = FeedRepository(cache: cache, svc: svc, queue:  OperationQueue())
   }
   
   override func tearDown() {
@@ -214,9 +209,8 @@ extension FeedRepositoryTests {
     var count = 0
     
     func go() {
-      // The Talk Show is redirected, I keep it, because it makes for a good
-      // test.
-      let extra = try! Common.makeFeed(name: .gruber)
+      // The Talk Show is redirected, making the test more interesting.
+      let extra = Common.makeFeed(name: .gruber)
       repo.feeds(urls + [extra.url], feedsBlock: { er, feeds in
         let found = feeds.map { $0.url }
         dump(found)
