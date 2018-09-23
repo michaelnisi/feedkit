@@ -141,16 +141,7 @@ public final class ImageRepository: Images {
       
       // Custom disk cache is disabled by default, the native URL cache used
       // by a `DataLoader` is used instead.
-      $0.dataCache = try! DataCache(name: "ink.codes.podest.images") { name in
-        let hash = String(djb2Hash32(string: name))
-//        os_log("""
-//        using hash: (
-//          %{public}@,
-//          %{public}@
-//        )
-//        """, log: log, type: .debug, name, hash)
-        return hash
-      }
+      $0.dataCache = try! DataCache(name: "ink.codes.podest.images")
       
       // Each stage is executed on a dedicated queue with has its own limits.
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
