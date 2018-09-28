@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 // Hiding Nuke from participants.
 public typealias ImageRequest = Nuke.ImageRequest
@@ -27,6 +27,7 @@ public enum ImageQuality: CGFloat {
 public protocol Imaginable {
   var iTunes: ITunesItem? { get }
   var image: String? { get }
+  var title: String { get }
 }
 
 public protocol Images {
@@ -121,43 +122,29 @@ private struct ScaledWithRoundedCorners: ImageProcessing {
 /// Provides images. Images are cached, including their rounded corners, making
 /// it impossible to get an image without rounded corners, at the moment.
 public final class ImageRepository: Images {
-  
-  init() {
-    let pipeline = ImagePipeline {
-      // Shared image cache with a `sizeLimit` equal to ~20% of available RAM.
+
+  private static func makeImagePipeline() -> ImagePipeline {
+    return ImagePipeline {
       $0.imageCache = ImageCache.shared
-      
-      // Data loader with a `URLSessionConfiguration.default` but with a
-      // custom shared URLCache instance:
-      //
-      // public static let sharedUrlCache = URLCache(
-      //     memoryCapacity: 0,
-      //     diskCapacity: 150 * 1024 * 1024, // 150 MB
-      //     diskPath: "com.github.kean.Nuke.Cache"
-      //  )
+
       let config = URLSessionConfiguration.default
-      config.urlCache = nil
       $0.dataLoader = DataLoader(configuration: config)
-      
-      // Custom disk cache is disabled by default, the native URL cache used
-      // by a `DataLoader` is used instead.
-      $0.dataCache = try! DataCache(name: "ink.codes.podest.images")
-      
-      // Each stage is executed on a dedicated queue with has its own limits.
+
+      let cache = try! DataCache(name: "ink.codes.podest.images")
+      $0.dataCache = cache
+
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
       $0.imageDecodingQueue.maxConcurrentOperationCount = 1
       $0.imageProcessingQueue.maxConcurrentOperationCount = 2
-      
-      // Combine the requests for the same original image into one.
+
       $0.isDeduplicationEnabled = true
-      
-      // Progressive decoding is a resource intensive feature so it is
-      // disabled by default.
+
       $0.isProgressiveDecodingEnabled = false
     }
-    
-    // When you're done you can make the pipeline a shared one:
-    ImagePipeline.shared = pipeline
+  }
+  
+  init() {
+    ImagePipeline.shared = ImageRepository.makeImagePipeline()
   }
   
   public static var shared: Images = ImageRepository()
@@ -168,7 +155,7 @@ public final class ImageRepository: Images {
     Nuke.cancelRequest(for: view)
   }
   
-  /// A thread-safe temporary cache for URL objects.
+  /// A thread-safe temporary cache for URL objects, which are expensive.
   private var urls = NSCache<NSString, NSURL>()
   
   public func flush() {
@@ -181,10 +168,7 @@ public final class ImageRepository: Images {
 
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
     os_log("synchronously loading image: %{public}@, %{public}@",
-           log: log,
-           type: .debug,
-           String(describing: item),
-           String(describing: item.iTunes))
+           log: log, type: .debug, item.title, String(describing: item.iTunes))
 
     guard let url = urlToLoad(from: item, for: size) else {
       return nil
@@ -196,7 +180,7 @@ public final class ImageRepository: Images {
 
     Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
       if let er = error {
-        os_log("synchronous loading error: %{public}@", log: log, er as CVarArg)
+        os_log("synchronously loading image failed: %{public}@", er as CVarArg)
       }
       image = res?.image
       blocker.signal()
@@ -207,42 +191,48 @@ public final class ImageRepository: Images {
     return image
   }
 
-  /// Loads image at `url` into `view` sized to `size`, while keeping the
-  /// current image as placeholder until the remote image has been loaded
-  /// successfully. If loading fails, keeps showing the placeholder.
-  private static func load(
-    url: URL,
-    into view: UIImageView?,
-    sized size: CGSize,
-    cb: @escaping ImageTask.Completion
-  ) {
-    let req = ImageRequest(
+  private static func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
+    return ImageRequest(
       url: url,
       targetSize: size,
       contentMode: .aspectFill
     ).processed(with: ScaledWithRoundedCorners(size: size))
+  }
 
-    guard let v = view else { return }
+  private static func makeImageLoadingOptions(image: UIImage) -> ImageLoadingOptions {
+    return ImageLoadingOptions(
+      placeholder: image,
+      transition: nil,
+      failureImage: image,
+      failureImageTransition: nil,
+      contentModes: nil
+    )
+  }
+
+  /// Loads image at `url` into `view` sized to `size`, while keeping the
+  /// current image as placeholder until the remote image has been loaded
+  /// successfully. If loading fails, keeps showing the placeholder.
+  private func load(
+    url: URL,
+    into view: UIImageView,
+    sized size: CGSize,
+    cb: @escaping ImageTask.Completion
+  ) {
+    let req = ImageRepository.makeImageRequest(url: url, size: size)
 
     os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
            url as CVarArg, size as CVarArg)
 
-    guard let currentImage = v.image else {
-      Nuke.loadImage(with: req, into: v, completion: cb)
+    guard let currentImage = view.image else {
+      Nuke.loadImage(with: req, into: view, completion: cb)
       return
     }
 
     os_log("placeholding with current image", log: log, type: .debug)
 
-    let opts = ImageLoadingOptions(
-      placeholder: currentImage,
-      transition: nil,
-      failureImage: currentImage,
-      failureImageTransition: nil,
-      contentModes: nil
-    )
+    let opts = ImageRepository.makeImageLoadingOptions(image: currentImage)
 
-    Nuke.loadImage(with: req, options: opts, into: v, completion: cb)
+    Nuke.loadImage(with: req, options: opts, into: view, completion: cb)
   }
 
   public func loadImage(
@@ -254,11 +244,8 @@ public final class ImageRepository: Images {
     
     let (size, tag) = (imageView.bounds.size, imageView.tag)
 
-    os_log("handling image request for: %@, with: %@, at: %@",
-           log: log, type: .debug,
-           String(describing: item),
-           String(describing: item.iTunes),
-           size as CVarArg)
+    os_log("** requesting: ( %@, %@ )",
+           log: log, type: .debug, item.title, size as CVarArg)
 
     guard let itemURL = urlToLoad(from: item, for: scale(size, to: quality)) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
@@ -266,27 +253,28 @@ public final class ImageRepository: Images {
       return
     }
     
-    func load(_ url: URL, cb: (() -> Void)? = nil) {
+    func go(_ url: URL, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
-      ImageRepository.load(url: url, into: imageView, sized: size) {
-        [weak imageView] res, _ in
+
+      load(url: url, into: imageView, sized: size) { _, error in
         dispatchPrecondition(condition: .onQueue(.main))
-        defer { cb?() }
-        guard imageView?.tag == tag else { return }
-        imageView?.image = res?.image
+        if let er = error {
+          os_log("image loading failed: %{public}@", er as CVarArg)
+        }
+        cb?()
       }
     }
     
-    guard imageView.image == nil else {
-      return load(itemURL)
+    guard imageView.image == nil,
+      let placeholderURL = makePlaceholderURL(item: item, size: size) else {
+      return go(itemURL)
     }
+
+    os_log("preloading placeholder: %@",
+           log: log, type: .debug, placeholderURL as CVarArg)
     
-    guard let placeholderURL = urlToPreload(from: item, for: size) else {
-      return load(itemURL)
-    }
-    
-    load(placeholderURL) {
-      load(itemURL)
+    go(placeholderURL) {
+      go(itemURL)
     }
   }
 
@@ -353,8 +341,8 @@ extension ImageRepository {
     return url
   }
   
-  /// Returns an URL adequate for placeholding.
-  private func urlToPreload(from item: Imaginable, for size: CGSize) -> URL? {
+  /// Returns adequate URL for placeholding if possible.
+  private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
     guard let iTunes = item.iTunes else {
       os_log("aborting: no iTunes", log: log, type: .debug)
       return nil
@@ -397,6 +385,7 @@ extension ImageRepository {
   public func prefetchImages(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
+    return []
     let reqs = requests(with: items, at: size, quality: quality)
     os_log("starting preheating: %{public}@", log: log, type: .debug, items)
     preheater.startPreheating(with: reqs)
@@ -405,6 +394,7 @@ extension ImageRepository {
 
   public func cancel(prefetching requests: [ImageRequest]) {
     os_log("stopping preheating: %{public}@", log: log, type: .debug, requests)
+    return
     preheater.stopPreheating(with: requests)
   }
 
