@@ -74,7 +74,7 @@ public protocol Images {
   
 }
 
-fileprivate func scale(_ size: CGSize, to quality: ImageQuality?) -> CGSize {
+fileprivate func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
   let q = quality?.rawValue ?? ImageQuality.high.rawValue
   let w = size.width / q
   let h = size.height / q
@@ -170,7 +170,7 @@ public final class ImageRepository: Images {
     os_log("synchronously loading image: %{public}@, %{public}@",
            log: log, type: .debug, item.title, String(describing: item.iTunes))
 
-    guard let url = urlToLoad(from: item, for: size) else {
+    guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
 
@@ -191,7 +191,8 @@ public final class ImageRepository: Images {
     return image
   }
 
-  private static func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
+  private static
+  func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
     return ImageRequest(
       url: url,
       targetSize: size,
@@ -199,7 +200,8 @@ public final class ImageRepository: Images {
     ).processed(with: ScaledWithRoundedCorners(size: size))
   }
 
-  private static func makeImageLoadingOptions(image: UIImage) -> ImageLoadingOptions {
+  private static
+  func makeImageLoadingOptions(image: UIImage? = nil) -> ImageLoadingOptions {
     return ImageLoadingOptions(
       placeholder: image,
       transition: nil,
@@ -209,7 +211,7 @@ public final class ImageRepository: Images {
     )
   }
 
-  /// Loads image at `url` into `view` sized to `size`, while keeping the
+  /// Loads an image at `url` into `view` sized to `size`, while keeping the
   /// current image as placeholder until the remote image has been loaded
   /// successfully. If loading fails, keeps showing the placeholder.
   private func load(
@@ -218,19 +220,11 @@ public final class ImageRepository: Images {
     sized size: CGSize,
     cb: @escaping ImageTask.Completion
   ) {
-    let req = ImageRepository.makeImageRequest(url: url, size: size)
-
     os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
            url as CVarArg, size as CVarArg)
 
-    guard let currentImage = view.image else {
-      Nuke.loadImage(with: req, into: view, completion: cb)
-      return
-    }
-
-    os_log("placeholding with current image", log: log, type: .debug)
-
-    let opts = ImageRepository.makeImageLoadingOptions(image: currentImage)
+    let req = ImageRepository.makeImageRequest(url: url, size: size)
+    let opts = ImageRepository.makeImageLoadingOptions(image: view.image)
 
     Nuke.loadImage(with: req, options: opts, into: view, completion: cb)
   }
@@ -247,34 +241,37 @@ public final class ImageRepository: Images {
     os_log("** requesting: ( %@, %@ )",
            log: log, type: .debug, item.title, size as CVarArg)
 
-    guard let itemURL = urlToLoad(from: item, for: scale(size, to: quality)) else {
+    let s = makeSize(size: size, quality: quality)
+    guard let itemURL = imageURL(representing: item, at: s) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
              String(describing: item))
       return
     }
     
-    func go(_ url: URL, cb: (() -> Void)? = nil) {
+    func l(_ url: URL, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
 
-      load(url: url, into: imageView, sized: size) { _, error in
+      load(url: url, into: imageView, sized: size) { response, error in
         dispatchPrecondition(condition: .onQueue(.main))
+
         if let er = error {
           os_log("image loading failed: %{public}@", er as CVarArg)
         }
+
         cb?()
       }
     }
     
     guard imageView.image == nil,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
-      return go(itemURL)
+      return l(itemURL)
     }
 
-    os_log("preloading placeholder: %@",
+    os_log("loading placeholder: %@",
            log: log, type: .debug, placeholderURL as CVarArg)
     
-    go(placeholderURL) {
-      go(itemURL)
+    l(placeholderURL) {
+      l(itemURL)
     }
   }
 
@@ -310,7 +307,8 @@ extension ImageRepository {
   ///
   /// - Returns: An image URL or `nil` if the item doesn’t contain one of the
   /// expected URLs.
-  fileprivate func urlToLoad(from item: Imaginable, for size: CGSize) -> URL? {
+  fileprivate
+  func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
     let wanted = size.width * UIScreen.main.scale
     
     var urlString: String?
@@ -362,7 +360,7 @@ extension ImageRepository {
     }
     
     let s = min(size.width / 4, 100) / UIScreen.main.scale
-    return urlToLoad(from: item, for: CGSize(width: s, height: s))
+    return imageURL(representing: item, at: CGSize(width: s, height: s))
   }
   
 }
@@ -375,7 +373,8 @@ extension ImageRepository {
     with items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     return items.compactMap {
-      guard let url = urlToLoad(from: $0, for: scale(size, to: quality)) else {
+      let s = makeSize(size: size, quality: quality)
+      guard let url = imageURL(representing: $0, at: s) else {
         return nil
       }
       return ImageRequest(url: url)
