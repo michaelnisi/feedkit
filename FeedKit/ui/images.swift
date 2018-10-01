@@ -68,10 +68,10 @@ public protocol Images {
 
   /// Synchronously loads an image for the specificied item and size.
   func image(for item: Imaginable, in size: CGSize) -> UIImage?
-  
+
   /// Flushes memory cache.
   func flush()
-  
+
 }
 
 fileprivate func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
@@ -142,25 +142,25 @@ public final class ImageRepository: Images {
       $0.isProgressiveDecodingEnabled = false
     }
   }
-  
+
   init() {
     ImagePipeline.shared = ImageRepository.makeImagePipeline()
   }
-  
+
   public static var shared: Images = ImageRepository()
 
   fileprivate let preheater = Nuke.ImagePreheater()
-  
+
   public func cancel(displaying view: UIImageView) {
     Nuke.cancelRequest(for: view)
   }
-  
+
   /// A thread-safe temporary cache for URL objects, which are expensive.
   private var urls = NSCache<NSString, NSURL>()
-  
+
   public func flush() {
     urls.removeAllObjects()
-    
+
     // The Nuke image cache automatically removes all stored elements when it
     // received a memory warning. It also automatically removes most of cached
     // elements when the app enters background.
@@ -235,7 +235,7 @@ public final class ImageRepository: Images {
     quality: ImageQuality? = nil
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
-    
+
     let (size, tag) = (imageView.bounds.size, imageView.tag)
 
     os_log("** requesting: ( %@, %@ )",
@@ -247,7 +247,7 @@ public final class ImageRepository: Images {
              String(describing: item))
       return
     }
-    
+
     func l(_ url: URL, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
 
@@ -261,7 +261,7 @@ public final class ImageRepository: Images {
         cb?()
       }
     }
-    
+
     guard imageView.image == nil,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
       return l(itemURL)
@@ -269,7 +269,7 @@ public final class ImageRepository: Images {
 
     os_log("loading placeholder: %@",
            log: log, type: .debug, placeholderURL as CVarArg)
-    
+
     l(placeholderURL) {
       l(itemURL)
     }
@@ -283,7 +283,7 @@ public final class ImageRepository: Images {
 // MARK: - Choosing and Caching URLs
 
 extension ImageRepository {
-  
+
   /// Returns a cached URL for `string` creating and caching new URLs.
   ///
   /// - Returns: Returns a valid URL or `nil`.
@@ -295,10 +295,10 @@ extension ImageRepository {
       }
       return nil
     }
-    
+
     return url
   }
-  
+
   /// Picks and returns the optimal image URL for `size`.
   ///
   /// - Parameters:
@@ -310,9 +310,9 @@ extension ImageRepository {
   fileprivate
   func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
     let wanted = size.width * UIScreen.main.scale
-    
+
     var urlString: String?
-    
+
     if wanted <= 30 {
       urlString = item.iTunes?.img30
     } else if wanted <= 60 {
@@ -322,7 +322,7 @@ extension ImageRepository {
     } else {
       urlString = item.iTunes?.img600
     }
-    
+
     if urlString == nil {
       os_log("falling back on LARGE image", log: log)
       if let entry = item as? Entry {
@@ -330,25 +330,25 @@ extension ImageRepository {
       }
       urlString = urlString ?? item.image
     }
-    
+
     guard let string = urlString, let url = cachedURL(string: string) else {
       os_log("no image URL", log: log, type: .error)
       return nil
     }
-    
+
     return url
   }
-  
+
   /// Returns adequate URL for placeholding if possible.
   private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
     guard let iTunes = item.iTunes else {
       os_log("aborting: no iTunes", log: log, type: .debug)
       return nil
     }
-    
+
     var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
     if let image = item.image { urlStrings.append(image) }
-    
+
     for urlString in urlStrings {
       guard let url = cachedURL(string: urlString) else {
         continue
@@ -358,11 +358,11 @@ extension ImageRepository {
         return url
       }
     }
-    
+
     let s = min(size.width / 4, 100) / UIScreen.main.scale
     return imageURL(representing: item, at: CGSize(width: s, height: s))
   }
-  
+
 }
 
 // MARK: - Prefetching
