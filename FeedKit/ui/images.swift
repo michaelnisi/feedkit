@@ -130,8 +130,7 @@ public final class ImageRepository: Images {
       let config = URLSessionConfiguration.default
       $0.dataLoader = DataLoader(configuration: config)
 
-      let cache = try! DataCache(name: "ink.codes.podest.images")
-      $0.dataCache = cache
+      $0.dataCache = try! DataCache(name: "ink.codes.podest.images")
 
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
       $0.imageDecodingQueue.maxConcurrentOperationCount = 1
