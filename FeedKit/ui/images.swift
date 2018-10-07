@@ -119,8 +119,7 @@ private struct ScaledWithRoundedCorners: ImageProcessing {
   }
 }
 
-/// Provides images. Images are cached, including their rounded corners, making
-/// it impossible to get an image without rounded corners, at the moment.
+/// Provides processed images as fast as possible.
 public final class ImageRepository: Images {
 
   private static func makeImagePipeline() -> ImagePipeline {
@@ -130,7 +129,8 @@ public final class ImageRepository: Images {
       let config = URLSessionConfiguration.default
       $0.dataLoader = DataLoader(configuration: config)
 
-      $0.dataCache = try! DataCache(name: "ink.codes.podest.images")
+      let dataCache = try! DataCache(name: "ink.codes.podest.images")
+      $0.dataCache = dataCache
 
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
       $0.imageDecodingQueue.maxConcurrentOperationCount = 1
@@ -286,7 +286,7 @@ extension ImageRepository {
   /// Returns a cached URL for `string` creating and caching new URLs.
   ///
   /// - Returns: Returns a valid URL or `nil`.
-  private func cachedURL(string: String) -> URL? {
+  private func makeURL(string: String) -> URL? {
     guard let url = urls.object(forKey: string as NSString) as URL? else {
       if let fresh = URL(string: string) {
         urls.setObject(fresh as NSURL, forKey: string as NSString)
@@ -330,7 +330,7 @@ extension ImageRepository {
       urlString = urlString ?? item.image
     }
 
-    guard let string = urlString, let url = cachedURL(string: string) else {
+    guard let string = urlString, let url = makeURL(string: string) else {
       os_log("no image URL", log: log, type: .error)
       return nil
     }
@@ -340,6 +340,8 @@ extension ImageRepository {
 
   /// Returns adequate URL for placeholding if possible.
   private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
+    os_log("making placeholder URL", log: log, type: .debug)
+
     guard let iTunes = item.iTunes else {
       os_log("aborting: no iTunes", log: log, type: .debug)
       return nil
@@ -349,7 +351,7 @@ extension ImageRepository {
     if let image = item.image { urlStrings.append(image) }
 
     for urlString in urlStrings {
-      guard let url = cachedURL(string: urlString) else {
+      guard let url = makeURL(string: urlString) else {
         continue
       }
       let req = ImageRequest(url: url)
@@ -358,8 +360,14 @@ extension ImageRepository {
       }
     }
 
-    let s = min(size.width / 4, 100) / UIScreen.main.scale
-    return imageURL(representing: item, at: CGSize(width: s, height: s))
+    // Scaling placeholder to a quarter of the original size, additionally
+    // dividing by the screen scale factor to compensate multiplication in
+    // imageURL(representing:, at:).
+
+    let l =  1 / 4 / UIScreen.main.scale
+    let s = size.applying(CGAffineTransform(scaleX: l, y: l))
+
+    return imageURL(representing: item, at: s)
   }
 
 }
@@ -383,7 +391,6 @@ extension ImageRepository {
   public func prefetchImages(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
-    return []
     let reqs = requests(with: items, at: size, quality: quality)
     os_log("starting preheating: %{public}@", log: log, type: .debug, items)
     preheater.startPreheating(with: reqs)
@@ -392,7 +399,6 @@ extension ImageRepository {
 
   public func cancel(prefetching requests: [ImageRequest]) {
     os_log("stopping preheating: %{public}@", log: log, type: .debug, requests)
-    return
     preheater.stopPreheating(with: requests)
   }
 
