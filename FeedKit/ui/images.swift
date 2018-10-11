@@ -166,12 +166,12 @@ public final class ImageRepository: Images {
   }
 
   public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
-    os_log("synchronously loading image: %{public}@, %{public}@",
-           log: log, type: .debug, item.title, String(describing: item.iTunes))
-
     guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
+
+    os_log("synchronously loading: ( %{public}@, %{public}@ )",
+           log: log, type: .debug, item.title, url as CVarArg)
 
     var image: UIImage?
     let req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
@@ -179,7 +179,7 @@ public final class ImageRepository: Images {
 
     Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
       if let er = error {
-        os_log("synchronously loading image failed: %{public}@", er as CVarArg)
+        os_log("synchronously loading failed: %{public}@", er as CVarArg)
       }
       image = res?.image
       blocker.signal()
@@ -192,11 +192,18 @@ public final class ImageRepository: Images {
 
   private static
   func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
-    return ImageRequest(
+     var req = ImageRequest(
       url: url,
       targetSize: size,
       contentMode: .aspectFill
-    ).processed(with: ScaledWithRoundedCorners(size: size))
+    )
+
+    // Preferring smaller images, assuming they’re placeholders or lists.
+    if size.width <= 120 {
+      req.priority = .veryHigh
+    }
+
+    return req.processed(with: ScaledWithRoundedCorners(size: size))
   }
 
   private static
@@ -219,13 +226,32 @@ public final class ImageRepository: Images {
     sized size: CGSize,
     cb: @escaping ImageTask.Completion
   ) {
-    os_log("loading image: %{public}@ %{public}@", log: log, type: .debug,
+    os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
            url as CVarArg, size as CVarArg)
 
     let req = ImageRepository.makeImageRequest(url: url, size: size)
     let opts = ImageRepository.makeImageLoadingOptions(image: view.image)
 
     Nuke.loadImage(with: req, options: opts, into: view, completion: cb)
+  }
+
+  /// Returns `true` if there’s a cached response matching `url`.
+  private func hasCachedResponse(matching url: URL) -> Bool {
+    let req = ImageRequest(url: url)
+    return Nuke.ImageCache.shared.cachedResponse(for: req) != nil
+  }
+
+  /// Returns high quality if `item` is cached or `nil` if not.
+  private func makeHighQuality(item: Imaginable, size: CGSize) -> ImageQuality? {
+    guard let url = imageURL(representing: item, at: size),
+      hasCachedResponse(matching: url) else {
+      return nil
+    }
+
+    os_log("** upgrading to high quality: %{public}@",
+           log: log, type: .debug, item.title)
+
+    return .high
   }
 
   public func loadImage(
@@ -237,10 +263,12 @@ public final class ImageRepository: Images {
 
     let (size, tag) = (imageView.bounds.size, imageView.tag)
 
-    os_log("** requesting: ( %@, %@ )",
-           log: log, type: .debug, item.title, size as CVarArg)
+    os_log("requesting: ( %@, %@ )",
+           log: log, type: .info, item.title, size as CVarArg)
 
-    let s = makeSize(size: size, quality: quality)
+    let q = makeHighQuality(item: item, size: size) ?? quality
+    let s = makeSize(size: size, quality: q)
+
     guard let itemURL = imageURL(representing: item, at: s) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
              String(describing: item))
@@ -308,6 +336,9 @@ extension ImageRepository {
   /// expected URLs.
   fileprivate
   func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
+    os_log("looking up URL representing: ( %{public}@, %{public}@ )",
+           log: log, type: .debug, item.title, size as CVarArg)
+
     let wanted = size.width * UIScreen.main.scale
 
     var urlString: String?
@@ -316,7 +347,7 @@ extension ImageRepository {
       urlString = item.iTunes?.img30
     } else if wanted <= 60 {
       urlString = item.iTunes?.img60
-    } else if wanted <= 100 {
+    } else if wanted <= 180 {
       urlString = item.iTunes?.img100
     } else {
       urlString = item.iTunes?.img600
@@ -354,8 +385,8 @@ extension ImageRepository {
       guard let url = makeURL(string: urlString) else {
         continue
       }
-      let req = ImageRequest(url: url)
-      if Nuke.ImageCache.shared.cachedResponse(for: req) != nil {
+
+      if hasCachedResponse(matching: url) {
         return url
       }
     }
