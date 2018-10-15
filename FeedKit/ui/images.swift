@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+private let log = OSLog.disabled
 
 // Hiding Nuke from participants.
 public typealias ImageRequest = Nuke.ImageRequest
