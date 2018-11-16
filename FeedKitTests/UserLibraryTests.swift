@@ -422,19 +422,38 @@ extension UserLibraryTests {
     }
   }
   
-  func testEnqueueing() {
-    let entry = Common.makeEntry(name: .gruber)
-    XCTAssertFalse(user.contains(entry: entry))
-    
+  func testEnqueuingByUser() {
     let exp = expectation(description: "enqueueing")
 
-    user.enqueue(entries: [entry]) { enqueued, error in
-      XCTAssertFalse(Thread.isMainThread)
-      XCTAssertNil(error)
-      XCTAssertTrue(self.user.contains(entry: entry))
-      exp.fulfill()
+    func go(_ count: Int) {
+      guard count != 0 else {
+        return exp.fulfill()
+      }
+
+      let entry = Common.makeEntry(name: .gruber)
+      let u = self.user!
+
+      XCTAssertFalse(u.contains(entry: entry))
+
+      u.enqueue(entries: [entry], belonging: .user) { enqueued, error in
+        XCTAssertFalse(Thread.isMainThread)
+        XCTAssertNil(error)
+        XCTAssertTrue(u.contains(entry: entry))
+        XCTAssertTrue(enqueued.contains(entry), "\(count)")
+
+        u.dequeue(entry: entry) { dequeued, error in
+          XCTAssertFalse(Thread.isMainThread)
+          XCTAssertNil(error)
+          XCTAssertFalse(u.contains(entry: entry))
+          XCTAssertTrue(dequeued.contains(entry))
+          
+          go(count - 1)
+        }
+      }
     }
-    
+
+    go(10)
+
     waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
     }
