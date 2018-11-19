@@ -14,6 +14,11 @@ private let log = OSLog.disabled
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
 public final class UserLibrary: EntryQueueHost {
+
+  public weak var queueDelegate: QueueDelegate?
+
+  public weak var libraryDelegate: LibraryDelegate?
+
   private let cache: UserCaching
   private let browser: Browsing
   private let operationQueue: OperationQueue
@@ -31,8 +36,6 @@ public final class UserLibrary: EntryQueueHost {
     self.cache = cache
     self.browser = browser
     self.operationQueue = queue
-
-    synchronize()
   }
 
   /// Internal serial queue for synchronizing access to shared state.
@@ -41,8 +44,7 @@ public final class UserLibrary: EntryQueueHost {
 
   private var _subscriptions = Set<FeedURL>()
 
-  /// The currently subscribed URLs. Reload with `synchronize()`. Fires a
-  /// `.FKSubscriptionsDidChange` notification.
+  /// The currently subscribed URLs.
   private var subscriptions: Set<FeedURL> {
     get {
       return sQueue.sync {
@@ -57,10 +59,7 @@ public final class UserLibrary: EntryQueueHost {
 
         _subscriptions = newValue
 
-        DispatchQueue.main.async {
-          NotificationCenter.default.post(
-            name: .FKSubscriptionsDidChange, object: self)
-        }
+        libraryDelegate?.library(self, changed: _subscriptions)
       }
     }
   }
@@ -84,7 +83,7 @@ public final class UserLibrary: EntryQueueHost {
 
   private var _guids = Set<EntryGUID>()
 
-  /// GUIDs set of enqueued items.
+  /// GUIDs of currently enqueued items.
   private var guids: Set<EntryGUID> {
     get {
       return sQueue.sync {
@@ -100,10 +99,7 @@ public final class UserLibrary: EntryQueueHost {
 
         _guids = newValue
 
-        DispatchQueue.main.async {
-          NotificationCenter.default.post(
-            name: .FKQueueDidChange, object: self)
-        }
+        queueDelegate?.queue(self, changed: _guids)
       }
     }
   }
@@ -302,23 +298,16 @@ extension UserLibrary: Updating {
 
   /// Commits the queue, notifying observers.
   private func commitQueue(enqueued: Set<Entry>, dequeued: Set<Entry>) {
-    os_log("** committing queue", log: log,  type: .debug)
+    os_log("committing queue", log: log,  type: .debug)
 
-    guids = Set(queue.map { $0.guid} )
-
-    func post(_ name: Notification.Name, userInfo: [AnyHashable : Any]? = nil) {
-      DispatchQueue.main.async {
-        NotificationCenter.default.post(
-          name: name, object: self, userInfo: userInfo)
-      }
-    }
+    guids = Set(queue.map { $0.guid } )
 
     for e in enqueued {
-      post(.FKQueueDidEnqueue, userInfo: UserLibrary.makeUserInfo(entry: e))
+      queueDelegate?.queue(self, enqueued: e.guid, enclosure: e.enclosure)
     }
 
     for e in dequeued {
-      post(.FKQueueDidDequeue, userInfo: UserLibrary.makeUserInfo(entry: e))
+      queueDelegate?.queue(self, dequeued: e.guid, enclosure: e.enclosure)
     }
   }
 
