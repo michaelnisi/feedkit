@@ -41,7 +41,6 @@
 		4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3B95E2011D66300BE9BD8 /* Providing.swift */; };
 		4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3D31D1A89E78900CA58E9 /* serialize.swift */; };
 		4CCC8C991C0598F100120D07 /* search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCC8C981C0598F100120D07 /* search.swift */; };
-		4CD696F81FEA56DF00349580 /* download.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD696F71FEA56DF00349580 /* download.swift */; };
 		4CF1A59D200C876C008C2550 /* SearchRepoOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A59C200C876C008C2550 /* SearchRepoOperation.swift */; };
 		4CF1A59F200C87BC008C2550 /* SearchOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A59E200C87BC008C2550 /* SearchOperation.swift */; };
 		4CF1A5A1200C887D008C2550 /* SuggestOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A5A0200C887D008C2550 /* SuggestOperation.swift */; };
@@ -131,7 +130,6 @@
 		4CA3D31F1A89EC4400CA58E9 /* SerializeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SerializeTests.swift; sourceTree = "<group>"; };
 		4CCC8C981C0598F100120D07 /* search.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = search.swift; sourceTree = "<group>"; };
 		4CD2201E1C2315CF001EBE70 /* SearchRepositoryTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchRepositoryTests.swift; sourceTree = "<group>"; };
-		4CD696F71FEA56DF00349580 /* download.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = download.swift; sourceTree = "<group>"; };
 		4CDA594D1BE340AB00EA7780 /* SQLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SQLTests.swift; sourceTree = "<group>"; };
 		4CDA59531BE6931900EA7780 /* feed_query.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = feed_query.json; sourceTree = "<group>"; };
 		4CDA59571BE69AC200EA7780 /* entries.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = entries.json; sourceTree = "<group>"; };
@@ -212,7 +210,6 @@
 				4CF1A59B200C872B008C2550 /* search */,
 				4C996FFA1FDF951300E0FA30 /* browse */,
 				4C996FF91FDF93FE00E0FA30 /* user */,
-				4CD696F41FEA548900349580 /* download */,
 				4C996FFC1FDF95CC00E0FA30 /* ui */,
 				4C3485981977C236008A6B53 /* Supporting Files */,
 			);
@@ -348,14 +345,6 @@
 				4E34B5171E3CB58B007517FB /* Skull.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		4CD696F41FEA548900349580 /* download */ = {
-			isa = PBXGroup;
-			children = (
-				4CD696F71FEA56DF00349580 /* download.swift */,
-			);
-			path = download;
 			sourceTree = "<group>";
 		};
 		4CF1A59B200C872B008C2550 /* search */ = {
@@ -531,7 +520,6 @@
 				4C5838792036B30B00BF8BFB /* ReachHostOperation.swift in Sources */,
 				4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
-				4CD696F81FEA56DF00349580 /* download.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
