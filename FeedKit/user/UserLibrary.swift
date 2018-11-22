@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -243,18 +243,26 @@ extension UserLibrary: Subscribing {
 
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
     operationQueue.addOperation {
+      let start = Date()
+
       os_log("synchronizing", log: log, type: .debug)
 
       do {
         let subscribed = try self.cache.subscribed()
-        self.subscriptions = Set(subscribed.map { $0.url })
+        let s = Set(subscribed.map { $0.url })
+        self.subscriptions = s
 
         let queued = try self.cache.queued()
-        self.guids = Set(queued.compactMap { $0.entryLocator.guid })
+        let guids = Set(queued.compactMap { $0.entryLocator.guid })
+        self.guids = guids
 
-        // Evaluating our state.
+        let took = Date().timeIntervalSince(start)
 
-        let guids = self.guids
+        os_log("queue and subscriptions: ( %{public}i, %{public}i, %f )",
+               log: log, type: .debug, guids.count, s.count, took)
+
+        // Does the queue line up with our assumptions?
+
         let q = Set(self.queue.map { $0.guid })
 
         let er: Error? = {
@@ -262,7 +270,7 @@ extension UserLibrary: Subscribing {
             return nil
           }
 
-          os_log("queue out of sync", log: log, type: .error)
+          os_log("** queue out of sync", log: log, type: .error)
 
           return QueueingError.outOfSync(q.count, guids.count)
         }()
@@ -296,10 +304,15 @@ extension UserLibrary {
 
 extension UserLibrary: Updating {
 
-  /// Commits the queue, notifying observers.
+  /// Commits the queue, notifying delegates if anything changed, picking up
+  /// guids from the queue.
+  ///
+  /// For just syncing `self.guids`, passing empty sets is fine.
+  ///
+  /// - Parameters:
+  ///   - enqueued: Entries that have been added to the queue.
+  ///   - dequeued: Entries that have been removed from the queue.
   private func commitQueue(enqueued: Set<Entry>, dequeued: Set<Entry>) {
-    os_log("committing queue", log: log,  type: .debug)
-
     guids = Set(queue.map { $0.guid } )
 
     for e in enqueued {
@@ -319,7 +332,7 @@ extension UserLibrary: Updating {
     let operationQueue = self.operationQueue
     let browser = self.browser
 
-    // Synchronizing first to assure we are including the latest subscriptions.
+    // Synchronizing first, for including the latest subscriptions.
 
     synchronize { error in
       if error != nil {
@@ -369,17 +382,24 @@ extension UserLibrary: Queueing {
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
-    os_log("fetching queue", log: log, type: .debug)
+    os_log("populating queue", log: log, type: .debug)
 
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
 
+    // Having no subscriptions might mean they haven’t been loaded yet.
+    let isSynchronized = !subscriptions.isEmpty
+
     fetchingQueue.fetchQueueCompletionBlock = { error in
+      guard isSynchronized else {
+        return self.synchronize { syncError in
+          fetchQueueCompletionBlock?(error ?? syncError)
+        }
+      }
+
       // Forced to commit again, for fetching might have changed the queue,
       // removing unavailable items. Another reason why it’s important that
-      // commit guards against redundant calls.
-
-      // We don’t details here.
+      // commitQueue must guard against redundant calls.
       self.commitQueue(enqueued: Set(), dequeued: Set())
 
       fetchQueueCompletionBlock?(error)
@@ -418,14 +438,10 @@ extension UserLibrary: Queueing {
     op.owner = owner
 
     op.enqueueCompletionBlock = { enqueued, error in
-      // Why isn’t enqueued a fucking set?
-
       let e = Set(enqueued)
       self.commitQueue(enqueued: e, dequeued: Set())
       enqueueCompletionBlock?(e, error)
     }
-
-    // TODO: Trim, disallowing old entries
 
     operationQueue.addOperation(op)
   }
