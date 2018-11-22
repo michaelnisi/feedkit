@@ -242,9 +242,18 @@ extension UserLibrary: Subscribing {
   }
 
   public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
-    operationQueue.addOperation {
-      let start = Date()
+    var done: () -> Void
+    if #available(iOS 12.0, *) {
+      let sp = OSSignpostID(log: log)
+      os_signpost(.begin, log: log, name: "synchronizing", signpostID: sp)
+      done = {
+        os_signpost(.end, log: log, name: "synchronizing", signpostID: sp)
+      }
+    } else {
+      done = {}
+    }
 
+    operationQueue.addOperation {
       os_log("synchronizing", log: log, type: .debug)
 
       do {
@@ -256,24 +265,23 @@ extension UserLibrary: Subscribing {
         let guids = Set(queued.compactMap { $0.entryLocator.guid })
         self.guids = guids
 
-        let took = Date().timeIntervalSince(start)
-
-        os_log("queue and subscriptions: ( %{public}i, %{public}i, %f )",
-               log: log, type: .debug, guids.count, s.count, took)
+        os_log("queue and subscriptions: ( %{public}i, %{public}i)",
+               log: log, type: .debug, guids.count, s.count)
 
         // Does the queue line up with our assumptions?
 
         let q = Set(self.queue.map { $0.guid })
 
         let er: Error? = {
-          if q.count == guids.count, q.intersection(guids).count == q.count {
-            return nil
+          guard q.count == guids.count, // prechecking
+            q.intersection(guids).count == q.count else {
+            os_log("queue out of sync", log: log)
+            return QueueingError.outOfSync(q.count, guids.count)
           }
-
-          os_log("** queue out of sync", log: log, type: .error)
-
-          return QueueingError.outOfSync(q.count, guids.count)
+          return nil
         }()
+
+        done()
 
         completionBlock?(er)
       } catch {
