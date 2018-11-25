@@ -295,7 +295,7 @@ final class FetchQueueOperation: FeedKitOperation {
     do {
       queued = try cache.queued()
     } catch {
-      done(but: error)
+      return done(but: error)
     }
     
     guard !isCancelled else {
