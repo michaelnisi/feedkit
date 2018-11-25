@@ -102,18 +102,20 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         let notQueued = try candidates.filter {
           try !cache.isQueued($0.guid)
         }
-        
-        // For automatic updates, enqueueing not directly initiated by users,
-        // we are only accepting the latest, not previously enqueued, entry
-        // per feed.
-        
-        if case .nobody = owner {
+
+        switch owner {
+        case .user:
+          return notQueued
+        case .nobody:
+          // For automatic updates, enqueueing not directly initiated by users,
+          // we are only accepting the latest, not previously enqueued, entry
+          // per feed.
           return try EnqueueOperation.latest(entries: notQueued).filter {
             try !cache.isPrevious($0.guid)
           }
+        case .subscriber:
+          return EnqueueOperation.latest(entries: notQueued)
         }
-        
-        return notQueued
       }()
       
       guard !qualifieds.isEmpty else {
@@ -129,7 +131,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       let prependedQueued: [Queued] = prepended.map {
         let loc = EntryLocator(entry: $0)
         switch owner {
-        case .nobody:
+        case .nobody, .subscriber:
           return .temporary(loc, Date(), $0.iTunes)
         case .user:
           return .pinned(loc, Date(), $0.iTunes)

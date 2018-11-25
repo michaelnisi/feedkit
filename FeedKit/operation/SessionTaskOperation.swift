@@ -13,18 +13,6 @@ import Patron
 
 private let log = OSLog.disabled
 
-public extension Notification.Name {
-  
-  /// Posted when a remote request has been started.
-  static var FKRemoteRequest =
-    NSNotification.Name("FeedKitRemoteRequest")
-  
-  /// Posted when a remote response has been received.
-  static var FKRemoteResponse =
-    NSNotification.Name("FeedKitRemoteResponse")
-  
-}
-
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
 class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
@@ -57,14 +45,7 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   
   /// The maximal age, `CacheTTL.long` by default, of cached items.
   var ttl: CacheTTL = .long
-  
-  /// Posts `name` to the default notifcation center.
-  func post(name: NSNotification.Name) {
-    DispatchQueue.main.async {
-      NotificationCenter.default.post(name: name, object: nil)
-    }
-  }
-  
+
   final var task: URLSessionTask? {
     willSet {
       os_log("cancelling task", log: log, type: .debug)
@@ -72,8 +53,14 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
     }
 
     didSet {
-      os_log("posting notification", log: log, type: .debug)
-      post(name: task != nil ? .FKRemoteRequest : .FKRemoteResponse)
+      guard oldValue != task else {
+        return
+      }
+
+      guard task != nil else {
+        return NetworkActivityCounter.shared.decrease()
+      }
+      NetworkActivityCounter.shared.increase()
     }
   }
   

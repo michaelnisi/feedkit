@@ -74,7 +74,7 @@ protocol EntryQueueHost {
 
 /// Enumerates possible owners of enqueued items, default is `.nobody`.
 public enum QueuedOwner: Int {
-  case nobody, user
+  case nobody, user, subscriber
 }
 
 /// Enumerates errors of the `Queueing` API.

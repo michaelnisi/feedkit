@@ -8,6 +8,7 @@
 
 import Foundation
 import os.log
+import Ola
 
 private let log = OSLog.disabled
 
@@ -33,6 +34,8 @@ final class SuggestOperation: SearchRepoOperation {
     
     perFindGroupBlock = nil
     suggestCompletionBlock = nil
+    task = nil
+    
     isFinished = true
   }
   
@@ -64,10 +67,8 @@ final class SuggestOperation: SearchRepoOperation {
     
     task = try svc.suggestions(matching: term, limit: 10) {
       [unowned self] payload, error in
-      
-      self.post(name: Notification.Name.FKRemoteResponse)
-      
       var er: Error?
+      
       defer {
         self.done(er)
       }

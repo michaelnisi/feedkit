@@ -8,6 +8,7 @@
 
 import Foundation
 import os.log
+import Ola
 
 private let log = OSLog.disabled
 
@@ -25,6 +26,8 @@ final class SearchOperation: SearchRepoOperation {
     
     perFindGroupBlock = nil
     searchCompletionBlock = nil
+    task = nil
+    
     isFinished = true
   }
   
@@ -50,10 +53,10 @@ final class SearchOperation: SearchRepoOperation {
     
     // Capturing self as unowned to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
-    task = try svc.search(term: term) { [unowned self] payload, error in
-      self.post(name: Notification.Name.FKRemoteResponse)
-      
+    task = try svc.search(term: term) {
+      [unowned self] payload, error in
       var er: Error?
+
       defer {
         self.done(er)
       }

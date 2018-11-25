@@ -13,6 +13,9 @@ private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
+///
+/// All actions emerge from imperative operation trees combining explicit
+/// Operation classes with inline block operations.
 public final class UserLibrary: EntryQueueHost {
 
   public weak var queueDelegate: QueueDelegate?
@@ -142,10 +145,6 @@ extension UserLibrary: Subscribing {
     return op
   }
 
-  private func queueContains(_ url: FeedURL) -> Bool {
-    return queue.contains { $0.feed == url }
-  }
-
   public func subscribe(_ feed: Feed, completionHandler: ((Error?) -> Void)?) {
     let s = Subscription(feed: feed)
     let subscribing = makeSubscribeOperation(subscriptions: [s]) { error in
@@ -158,23 +157,23 @@ extension UserLibrary: Subscribing {
       completionHandler?(error)
     }
 
-    if !queueContains(feed.url) {
-      let fetchingLatest = browser.latestEntry(feed.url)
+    let fetchingLatest = browser.latestEntry(feed.url)
 
-      let enqueueing = EnqueueOperation(user: self, cache: cache)
-      enqueueing.enqueueCompletionBlock = { enqueued, error in
-        guard error == nil else {
-          return
-        }
+    let enqueueing = EnqueueOperation(user: self, cache: cache)
+    enqueueing.owner = .subscriber
 
-        self.commitQueue(enqueued: Set(enqueued), dequeued: Set())
+    enqueueing.enqueueCompletionBlock = { enqueued, error in
+      guard error == nil else {
+        return
       }
 
-      enqueueing.addDependency(fetchingLatest)
-      subscribing.addDependency(enqueueing)
-      operationQueue.addOperation(enqueueing)
+      self.commitQueue(enqueued: Set(enqueued))
     }
 
+    enqueueing.addDependency(fetchingLatest)
+    subscribing.addDependency(enqueueing)
+
+    operationQueue.addOperation(enqueueing)
     operationQueue.addOperation(subscribing)
   }
 
@@ -189,32 +188,43 @@ extension UserLibrary: Subscribing {
     }
 
     operationQueue.addOperation {
+      var er: Error?
       let oldValue = self.subscriptions
+      var newValue: Set<FeedURL>?
+
+      defer {
+        self.subscriptions = newValue ?? oldValue
+        completionHandler?(er)
+      }
 
       do {
         try self.cache.remove(urls: urls)
         let subscribed = try self.cache.subscribed()
-        self.subscriptions = Set(subscribed.map { $0.url })
+        newValue = Set(subscribed.map { $0.url })
       } catch {
-        completionHandler?(error)
+        return er = error
+      }
+
+      guard dequeueing, let nv = newValue else {
         return
       }
 
-      guard dequeueing else {
-        completionHandler?(nil)
-        return
-      }
-
-      let unsubscribed = oldValue.subtracting(self.subscriptions)
+      let unsubscribed = oldValue.subtracting(nv)
       let children = self.queue.filter { unsubscribed.contains($0.url) }
 
       do {
         let dequeued = try self.dequeue(entries: children)
         os_log("dequeued: %@", log: log, type: .debug, dequeued)
         self.commitQueue(enqueued: Set(), dequeued: dequeued)
-        completionHandler?(nil)
+
+        // Obsoleted by the new .subscriber owner type, I hope.
+
+        // Removing previous to allow automatic enqueueing when resubscribing.
+//        let newest = try self.cache.newest()
+//        let guids = newest.compactMap { urls.contains($0.url) ? $0.guid : nil }
+//        try self.cache.removePrevious(matching: guids)
       } catch {
-        completionHandler?(error)
+        return er = error
       }
     }
   }
@@ -315,12 +325,13 @@ extension UserLibrary: Updating {
   /// Commits the queue, notifying delegates if anything changed, picking up
   /// guids from the queue.
   ///
-  /// For just syncing `self.guids`, passing empty sets is fine.
+  /// For just syncing `self.guids`, passing empty or no sets is fine.
   ///
   /// - Parameters:
   ///   - enqueued: Entries that have been added to the queue.
   ///   - dequeued: Entries that have been removed from the queue.
-  private func commitQueue(enqueued: Set<Entry>, dequeued: Set<Entry>) {
+  private func commitQueue(
+    enqueued: Set<Entry> = Set(), dequeued: Set<Entry> = Set()) {
     guids = Set(queue.map { $0.guid } )
 
     for e in enqueued {
@@ -467,6 +478,8 @@ extension UserLibrary: Queueing {
   /// after writing to the database.
   ///
   /// - Returns: The dequeued entries.
+  ///
+  /// - Throws: Throws if not at least one entry in `entries` was removed.
   private func dequeue(entries: [Entry]) throws -> Set<Entry> {
     os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
     dispatchPrecondition(condition: .notOnQueue(.main))
