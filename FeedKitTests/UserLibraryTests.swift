@@ -11,14 +11,18 @@ import XCTest
 
 class UserLibraryTests: XCTestCase {
   
-  fileprivate var user: UserLibrary!
-  fileprivate var cache: UserCache!
+  private var user: UserLibrary!
+  private var cache: UserCache!
+
+  private var browserCache: FeedCaching!
 
   override func setUp() {
     super.setUp()
 
     let cache = Common.makeUserCache()
+
     let browser = Common.makeBrowser()
+    browserCache = browser.cache
 
     let queue = OperationQueue()
     queue.maxConcurrentOperationCount = 1
@@ -41,8 +45,8 @@ class UserLibraryTests: XCTestCase {
 
   // Specifying APIs.
 
-  fileprivate var library: Subscribing { return user }
-  fileprivate var queue: Queueing { return user }
+  private var library: Subscribing { return user }
+  private var queue: Queueing { return user }
   
 }
 
@@ -64,7 +68,6 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "subscribing")
 
-      
       let url = "http://abc.de"
       let subscriptions = [Subscription(url: url)]
       
@@ -82,20 +85,37 @@ extension UserLibraryTests {
   func testSubscribe() {
     do {
       let exp = self.expectation(description: "subscribing to a feed")
+
+      let entry = Common.makeEntry(name: .gruber)
       let feed = Common.makeFeed(name: .gruber)
-      library.subscribe(feed) { error in
+
+      try! browserCache.update(feeds: [feed])
+      try! browserCache.update(entries: [entry])
+
+      queue.enqueue(entries: [entry]) { enqueued, error in
         XCTAssertNil(error)
-        exp.fulfill()
+        XCTAssert(enqueued.contains(entry))
+
+        XCTAssertFalse(self.queue.isEmpty)
+
+        self.queue.dequeue(entry: entry) { dequeued, error in
+          XCTAssertNil(error)
+          XCTAssert(dequeued.contains(entry))
+
+          XCTAssert(self.queue.isEmpty)
+
+          self.library.subscribe(feed) { error in
+            XCTAssertNil(error)
+            exp.fulfill()
+          }
+        }
       }
 
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
         XCTAssert(self.library.has(subscription: feed.url))
 
-        // The queue is still empty, because only cached entries are enqueued
-        // automatically and our qeue hasn’t been populated.
-
-        XCTAssert(self.queue.isEmpty)
+        XCTAssert(self.queue.contains(entry: entry))
       }
     }
   }
