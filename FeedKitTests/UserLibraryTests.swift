@@ -83,50 +83,88 @@ extension UserLibraryTests {
   }
 
   func testSubscribe() {
-    do {
-      let exp = self.expectation(description: "subscribing to a feed")
+    let exp = self.expectation(description: "subscribing to a feed")
 
-      let entry = Common.makeEntry(name: .gruber)
-      let feed = Common.makeFeed(name: .gruber)
+    let entry = Common.makeEntry(name: .gruber)
+    let feed = Common.makeFeed(name: .gruber)
 
-      try! browserCache.update(feeds: [feed])
-      try! browserCache.update(entries: [entry])
+    try! browserCache.update(feeds: [feed])
+    try! browserCache.update(entries: [entry])
 
-      queue.enqueue(entries: [entry]) { enqueued, error in
+    let queue = self.queue
+    let library = self.library
+
+    queue.enqueue(entries: [entry]) { enqueued, error in
+      XCTAssertNil(error)
+      XCTAssert(enqueued.contains(entry))
+      XCTAssertFalse(queue.isEmpty)
+
+      queue.dequeue(entry: entry) { dequeued, error in
         XCTAssertNil(error)
-        XCTAssert(enqueued.contains(entry))
+        XCTAssert(dequeued.contains(entry))
+        XCTAssert(queue.isEmpty)
 
-        XCTAssertFalse(self.queue.isEmpty)
-
-        self.queue.dequeue(entry: entry) { dequeued, error in
+        library.subscribe(feed) { error in
           XCTAssertNil(error)
-          XCTAssert(dequeued.contains(entry))
+          XCTAssert(library.has(subscription: feed.url))
+          XCTAssert(queue.contains(entry: entry))
 
-          XCTAssert(self.queue.isEmpty)
-
-          self.library.subscribe(feed) { error in
+          library.unsubscribe(feed.url) { error in
             XCTAssertNil(error)
-            exp.fulfill()
+            XCTAssertFalse(library.has(subscription: feed.url))
+            XCTAssertFalse(queue.contains(entry: entry))
+
+            library.subscribe(feed) { error in
+              XCTAssertNil(error)
+              XCTAssert(library.has(subscription: feed.url))
+              XCTAssert(queue.contains(entry: entry))
+
+              exp.fulfill()
+            }
           }
         }
       }
+    }
 
-      self.waitForExpectations(timeout: 10) { er in
-        XCTAssertNil(er)
-        XCTAssert(self.library.has(subscription: feed.url))
-
-        XCTAssert(self.queue.contains(entry: entry))
-      }
+    self.waitForExpectations(timeout: 10) { er in
+      XCTAssertNil(er)
     }
   }
 
   func testSynchronize() {
+    let entry = Common.makeEntry(name: .gruber)
+    let loc = EntryLocator(entry: entry)
+    let q = Queued.init(entry: loc)
+
+    try! cache.add(queued: [q])
+
+    let queue = self.queue
+
+    XCTAssertFalse(queue.contains(entry: entry))
+
     do {
       let exp = self.expectation(description: "synchronizing")
+
       library.synchronize { error in
-        XCTAssertNil(error)
+        switch error {
+        case .none:
+          break
+        case let er as QueueingError:
+          switch er {
+          case .outOfSync:
+            // We have added q to the cache without committing the queue.
+            break
+          }
+          break
+        case .some:
+          XCTFail()
+        }
+
+        XCTAssert(queue.contains(entry: entry))
+
         exp.fulfill()
       }
+
       self.waitForExpectations(timeout: 10) { er in
         XCTAssertNil(er)
       }
