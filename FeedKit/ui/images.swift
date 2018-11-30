@@ -30,25 +30,50 @@ public protocol Imaginable {
   var title: String { get }
 }
 
+/// Configures image loading.
+public struct FKImageLoadingOptions {
+  let fallbackImage: UIImage?
+  let quality: ImageQuality
+  let isDirect: Bool
+
+  /// Creates new options for image loading.
+  ///
+  /// For larger sizes a smaller image gets preloaded and displayed first,
+  /// which gets replaced when the large image has been loaded. Use `isDirect`
+  /// to skip this preloading step.
+  ///
+  /// - Parameters:
+  ///   - fallbackImage: A failure image for using as fallback.
+  ///   - quality: The image quality defaults to medium.
+  ///   - isDirect: Skip preloading smaller images, which is the default.
+  public init(
+    fallbackImage: UIImage? = nil,
+    quality: ImageQuality = .medium,
+    isDirect: Bool = false) {
+    self.fallbackImage = fallbackImage
+    self.quality = quality
+    self.isDirect = isDirect
+  }
+}
+
 public protocol Images {
 
-  func loadImage(for item: Imaginable, into imageView: UIImageView)
-
   /// Loads an image to represent `item` into `imageView`, scaling the image
-  /// to match the image view’s bounds. For larger sizes a smaller image gets
-  /// preloaded and displayed first, which gets replaced when the large image
-  /// has been loaded, unless `imageView` is already occupied by an image, in
-  /// that case, that previous image is used for placeholding while loading.
+  /// to match the image view’s bounds.
   ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
-  ///   - quality: The expected image quality.
+  ///   - options: Some options for image loading.
   func loadImage(
-    for item: Imaginable,
+    representing item: Imaginable,
     into imageView: UIImageView,
-    quality: ImageQuality?
+    options: FKImageLoadingOptions
   )
+
+  /// Loads an image using default options: falling back on existing image,
+  /// medium quality, and preloading smaller images for large sizes.
+  func loadImage(representing item: Imaginable, into imageView: UIImageView)
 
   /// Prefetches images of `items`, preheating the image cache.
   ///
@@ -95,16 +120,22 @@ private struct ScaledWithRoundedCorners: ImageProcessing {
   func process(image: Image, context: ImageProcessingContext) -> Image? {
     UIGraphicsBeginImageContextWithOptions(size, true, 0)
 
-    let ctx = UIGraphicsGetCurrentContext()!
+    guard let ctx = UIGraphicsGetCurrentContext() else {
+      return nil
+    }
 
     UIColor.white.setFill()
     ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
 
     let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
     let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+
     UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius).addClip()
     image.draw(in: rect)
-    let rounded: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
+
+    guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
+      return nil
+    }
 
     UIGraphicsEndImageContext()
 
@@ -206,15 +237,8 @@ public final class ImageRepository: Images {
     return req.processed(with: ScaledWithRoundedCorners(size: size))
   }
 
-  private static
-  func makeImageLoadingOptions(image: UIImage? = nil) -> ImageLoadingOptions {
-    return ImageLoadingOptions(
-      placeholder: image,
-      transition: nil,
-      failureImage: image,
-      failureImageTransition: nil,
-      contentModes: nil
-    )
+  private static func makeURL(url: URL) -> URL {
+    return Int.random(in: 0...1) == 1 ? URL(string: "http://localhost/nowhere")! : url
   }
 
   /// Loads an image at `url` into `view` sized to `size`, while keeping the
@@ -224,13 +248,25 @@ public final class ImageRepository: Images {
     url: URL,
     into view: UIImageView,
     sized size: CGSize,
+    placeholder: UIImage?,
+    failureImage: UIImage?,
     cb: @escaping ImageTask.Completion
   ) {
     os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
            url as CVarArg, size as CVarArg)
 
+    // TODO: Remove failure injection
+    let x = Int.random(in: 0...1) == 1 ? URL(string: "http://localhost/nowhere")! : url
+
     let req = ImageRepository.makeImageRequest(url: url, size: size)
-    let opts = ImageRepository.makeImageLoadingOptions(image: view.image)
+
+    let opts = ImageLoadingOptions(
+      placeholder: placeholder,
+      transition: nil,
+      failureImage: failureImage,
+      failureImageTransition: nil,
+      contentModes: nil
+    )
 
     Nuke.loadImage(with: req, options: opts, into: view, completion: cb)
   }
@@ -255,9 +291,9 @@ public final class ImageRepository: Images {
   }
 
   public func loadImage(
-    for item: Imaginable,
+    representing item: Imaginable,
     into imageView: UIImageView,
-    quality: ImageQuality? = nil
+    options: FKImageLoadingOptions
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
 
@@ -266,7 +302,7 @@ public final class ImageRepository: Images {
     os_log("requesting: ( %@, %@ )",
            log: log, type: .info, item.title, size as CVarArg)
 
-    let q = makeHighQuality(item: item, size: size) ?? quality
+    let q = makeHighQuality(item: item, size: size) ?? options.quality
     let s = makeSize(size: size, quality: q)
 
     guard let itemURL = imageURL(representing: item, at: s) else {
@@ -275,10 +311,14 @@ public final class ImageRepository: Images {
       return
     }
 
-    func l(_ url: URL, cb: (() -> Void)? = nil) {
+    func l(_ url: URL, hasPlaceHolder: Bool = false, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
 
-      load(url: url, into: imageView, sized: size) { response, error in
+      // Having a placeholder, we don’t have to fallback on generic image.
+      let f = hasPlaceHolder ? imageView.image : options.fallbackImage
+
+      load(url: url, into: imageView, sized: size,
+           placeholder: imageView.image, failureImage: f) { response, error in
         dispatchPrecondition(condition: .onQueue(.main))
 
         if let er = error {
@@ -289,7 +329,10 @@ public final class ImageRepository: Images {
       }
     }
 
-    guard imageView.image == nil,
+    // If direct loading wasn’t requested and we can find a suitable URL for
+    // placeholding, we are loading a smaller image first.
+
+    guard !options.isDirect ,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
       return l(itemURL)
     }
@@ -298,13 +341,16 @@ public final class ImageRepository: Images {
            log: log, type: .debug, placeholderURL as CVarArg)
 
     l(placeholderURL) {
-      l(itemURL)
+      l(itemURL, hasPlaceHolder: true)
     }
   }
 
-  public func loadImage(for item: Imaginable, into imageView: UIImageView) {
-    loadImage(for: item, into: imageView, quality: .high)
+  public func loadImage(
+    representing item: Imaginable, into imageView: UIImageView) {
+    let defaults = FKImageLoadingOptions()
+    loadImage(representing: item, into: imageView, options: defaults)
   }
+
 }
 
 // MARK: - Choosing and Caching URLs
