@@ -61,10 +61,20 @@ public protocol Images {
   /// Loads an image to represent `item` into `imageView`, scaling the image
   /// to match the image view’s bounds.
   ///
+  /// Passing no result to the completion block of this high level image loader.
+  ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
   ///   - options: Some options for image loading.
+  ///   - completionBlock: A block to execute when the image has been loaded.
+  func loadImage(
+    representing item: Imaginable,
+    into imageView: UIImageView,
+    options: FKImageLoadingOptions,
+    completionBlock: (() -> Void)?
+  )
+
   func loadImage(
     representing item: Imaginable,
     into imageView: UIImageView,
@@ -293,7 +303,8 @@ public final class ImageRepository: Images {
   public func loadImage(
     representing item: Imaginable,
     into imageView: UIImageView,
-    options: FKImageLoadingOptions
+    options: FKImageLoadingOptions,
+    completionBlock: (() -> Void)? = nil
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
 
@@ -334,15 +345,27 @@ public final class ImageRepository: Images {
 
     guard !options.isDirect ,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
-      return l(itemURL)
+      return l(itemURL) {
+        completionBlock?()
+      }
     }
 
     os_log("loading placeholder: %@",
            log: log, type: .debug, placeholderURL as CVarArg)
 
     l(placeholderURL) {
-      l(itemURL, hasPlaceHolder: true)
+      l(itemURL, hasPlaceHolder: true) {
+        completionBlock?()
+      }
     }
+  }
+
+  public func loadImage(
+    representing item: Imaginable,
+    into imageView: UIImageView,
+    options: FKImageLoadingOptions
+  ) {
+    loadImage(representing: item, into: imageView, options: options, completionBlock: nil)
   }
 
   public func loadImage(
