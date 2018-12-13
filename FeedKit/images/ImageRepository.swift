@@ -71,7 +71,7 @@ extension ImageRepository: Images {
     }
 
     os_log("synchronously loading: %{public}@",
-           log: log, type: .debug, url as CVarArg)
+           log: log, type: .info, url.lastPathComponent)
 
     var image: UIImage?
     let req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
@@ -102,7 +102,7 @@ extension ImageRepository: Images {
     cb: @escaping ImageTask.Completion
   ) {
     os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
-           url as CVarArg, size as CVarArg)
+           url.lastPathComponent, size as CVarArg)
 
     let req = ImageRepository.makeImageRequest(url: url, size: size)
 
@@ -130,9 +130,6 @@ extension ImageRepository: Images {
       return nil
     }
 
-    os_log("** upgrading to high quality: %{public}@",
-           log: log, type: .debug, item.title)
-
     return .high
   }
 
@@ -153,8 +150,8 @@ extension ImageRepository: Images {
 
     let (size, tag) = (imageView.bounds.size, imageView.tag)
 
-    os_log("handling: ( %@, %@ )",
-           log: log, type: .debug, item.title, size as CVarArg)
+    os_log("req: ( %@, %@ )",
+           log: log, type: .info, item.title, size as CVarArg)
 
     let q = makeHighQuality(item: item, size: size) ?? options.quality
     let s = ImageRepository.makeSize(size: size, quality: q)
@@ -197,9 +194,6 @@ extension ImageRepository: Images {
         completionBlock?()
       }
     }
-
-    os_log("loading placeholder: %@",
-           log: log, type: .debug, placeholderURL as CVarArg)
 
     l(placeholderURL) {
       l(itemURL, hasPlaceHolder: true) {
@@ -322,9 +316,6 @@ extension ImageRepository {
   /// expected URLs.
   fileprivate
   func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
-    os_log("looking up URL: ( %{public}@, %{public}@ )",
-           log: log, type: .debug, item.title, size as CVarArg)
-
     let wanted = size.width * UIScreen.main.scale
 
     var urlString: String?
@@ -357,10 +348,8 @@ extension ImageRepository {
 
   /// Returns adequate URL for placeholding if possible.
   private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
-    os_log("making placeholder URL", log: log, type: .debug)
-
     guard let iTunes = item.iTunes else {
-      os_log("aborting: no iTunes", log: log, type: .debug)
+      os_log("aborting: iTunes object not found", log: log)
       return nil
     }
 
@@ -409,13 +398,11 @@ extension ImageRepository {
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     let reqs = requests(with: items, at: size, quality: quality)
-    os_log("starting preheating: %{public}@", log: log, type: .debug, items)
     preheater.startPreheating(with: reqs)
     return reqs
   }
 
   public func cancel(prefetching requests: [ImageRequest]) {
-    os_log("stopping preheating: %{public}@", log: log, type: .debug, requests)
     preheater.stopPreheating(with: requests)
   }
 
