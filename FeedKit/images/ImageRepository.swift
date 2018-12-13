@@ -1,9 +1,9 @@
 //
-//  images.swift - Load images
-//  Podest
+//  ImageRepository.swift
+//  FeedKit
 //
-//  Created by Michael on 3/19/17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+//  Created by Michael Nisi on 13.12.18.
+//  Copyright © 2018 Michael Nisi. All rights reserved.
 //
 
 import Foundation
@@ -11,157 +11,10 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog.disabled
-
-// Hiding Nuke from participants.
-public typealias ImageRequest = Nuke.ImageRequest
-
-// MARK: - API
-
-public enum ImageQuality: CGFloat {
-  case high = 1
-  case medium = 2
-  case low = 4
-}
-
-public protocol Imaginable {
-  var iTunes: ITunesItem? { get }
-  var image: String? { get }
-  var title: String { get }
-}
-
-/// Configures image loading.
-public struct FKImageLoadingOptions {
-  let fallbackImage: UIImage?
-  let quality: ImageQuality
-  let isDirect: Bool
-
-  /// Creates new options for image loading.
-  ///
-  /// For larger sizes a smaller image gets preloaded and displayed first,
-  /// which gets replaced when the large image has been loaded. Use `isDirect`
-  /// to skip this preloading step.
-  ///
-  /// - Parameters:
-  ///   - fallbackImage: A failure image for using as fallback.
-  ///   - quality: The image quality defaults to medium.
-  ///   - isDirect: Skip preloading smaller images, which is the default.
-  public init(
-    fallbackImage: UIImage? = nil,
-    quality: ImageQuality = .medium,
-    isDirect: Bool = false) {
-    self.fallbackImage = fallbackImage
-    self.quality = quality
-    self.isDirect = isDirect
-  }
-}
-
-public protocol Images {
-
-  /// Loads an image to represent `item` into `imageView`, scaling the image
-  /// to match the image view’s bounds.
-  ///
-  /// Passing no result to the completion block of this high level image loader.
-  ///
-  /// - Parameters:
-  ///   - item: The item the loaded image should represent.
-  ///   - imageView: The target view to display the image.
-  ///   - options: Some options for image loading.
-  ///   - completionBlock: A block to execute when the image has been loaded.
-  func loadImage(
-    representing item: Imaginable,
-    into imageView: UIImageView,
-    options: FKImageLoadingOptions,
-    completionBlock: (() -> Void)?
-  )
-
-  func loadImage(
-    representing item: Imaginable,
-    into imageView: UIImageView,
-    options: FKImageLoadingOptions
-  )
-
-  /// Loads an image using default options: falling back on existing image,
-  /// medium quality, and preloading smaller images for large sizes.
-  func loadImage(representing item: Imaginable, into imageView: UIImageView)
-
-  /// Prefetches images of `items`, preheating the image cache.
-  ///
-  /// - Returns: The resulting image requests, these can be used to cancel
-  /// this prefetching batch.
-  func prefetchImages(
-    for items: [Imaginable],
-    at size: CGSize,
-    quality: ImageQuality
-  ) -> [ImageRequest]
-
-  /// Cancels prefetching `requests`.
-  func cancel(prefetching requests: [ImageRequest])
-
-  /// Cancels request associated with `view`.
-  func cancel(displaying view: UIImageView)
-
-  /// Synchronously loads an image for the specificied item and size.
-  func image(for item: Imaginable, in size: CGSize) -> UIImage?
-
-  /// Flushes memory cache.
-  func flush()
-
-}
-
-fileprivate func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
-  let q = quality?.rawValue ?? ImageQuality.high.rawValue
-  let w = size.width / q
-  let h = size.height / q
-  return CGSize(width: w, height: h)
-}
-
-// MARK: - Image Processing
-
-private struct ScaledWithRoundedCorners: ImageProcessing {
-
-  let size: CGSize
-
-  init(size: CGSize) {
-    self.size = size
-  }
-
-  /// Returns scaled `image` with rounded corners.
-  func process(image: Image, context: ImageProcessingContext) -> Image? {
-    UIGraphicsBeginImageContextWithOptions(size, true, 0)
-
-    guard let ctx = UIGraphicsGetCurrentContext() else {
-      return nil
-    }
-
-    UIColor.white.setFill()
-    ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
-
-    let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
-    let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
-
-    UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius).addClip()
-    image.draw(in: rect)
-
-    guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
-      return nil
-    }
-
-    UIGraphicsEndImageContext()
-
-    return rounded
-  }
-
-  static func ==(
-    lhs: ScaledWithRoundedCorners,
-    rhs: ScaledWithRoundedCorners
-  ) -> Bool {
-    return lhs.size == rhs.size
-  }
-}
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 /// Provides processed images as fast as possible.
-public final class ImageRepository: Images {
+public final class ImageRepository {
 
   private static func makeImagePipeline() -> ImagePipeline {
     return ImagePipeline {
@@ -191,12 +44,18 @@ public final class ImageRepository: Images {
 
   fileprivate let preheater = Nuke.ImagePreheater()
 
+  /// A thread-safe temporary cache for URL objects.
+  private var urls = NSCache<NSString, NSURL>()
+
+}
+
+// MARK: - Images
+
+extension ImageRepository: Images {
+
   public func cancel(displaying view: UIImageView) {
     Nuke.cancelRequest(for: view)
   }
-
-  /// A thread-safe temporary cache for URL objects, which are expensive.
-  private var urls = NSCache<NSString, NSURL>()
 
   public func flush() {
     urls.removeAllObjects()
@@ -211,8 +70,8 @@ public final class ImageRepository: Images {
       return nil
     }
 
-    os_log("synchronously loading: ( %{public}@, %{public}@ )",
-           log: log, type: .debug, item.title, url as CVarArg)
+    os_log("synchronously loading: %{public}@",
+           log: log, type: .debug, url as CVarArg)
 
     var image: UIImage?
     let req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
@@ -231,29 +90,9 @@ public final class ImageRepository: Images {
     return image
   }
 
-  private static
-  func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
-     var req = ImageRequest(
-      url: url,
-      targetSize: size,
-      contentMode: .aspectFill
-    )
-
-    // Preferring smaller images, assuming they’re placeholders or lists.
-    if size.width <= 120 {
-      req.priority = .veryHigh
-    }
-
-    return req.processed(with: ScaledWithRoundedCorners(size: size))
-  }
-
-  private static func makeURL(url: URL) -> URL {
-    return Int.random(in: 0...1) == 1 ? URL(string: "http://localhost/nowhere")! : url
-  }
-
   /// Loads an image at `url` into `view` sized to `size`, while keeping the
   /// current image as placeholder until the remote image has been loaded
-  /// successfully. If loading fails, keeps showing the placeholder.
+  /// successfully. If loading fails, keeps showing said placeholder.
   private func load(
     url: URL,
     into view: UIImageView,
@@ -264,9 +103,6 @@ public final class ImageRepository: Images {
   ) {
     os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
            url as CVarArg, size as CVarArg)
-
-    // TODO: Remove failure injection
-    let x = Int.random(in: 0...1) == 1 ? URL(string: "http://localhost/nowhere")! : url
 
     let req = ImageRepository.makeImageRequest(url: url, size: size)
 
@@ -300,6 +136,13 @@ public final class ImageRepository: Images {
     return .high
   }
 
+  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
+    let q = quality?.rawValue ?? ImageQuality.high.rawValue
+    let w = size.width / q
+    let h = size.height / q
+    return CGSize(width: w, height: h)
+  }
+
   public func loadImage(
     representing item: Imaginable,
     into imageView: UIImageView,
@@ -310,11 +153,11 @@ public final class ImageRepository: Images {
 
     let (size, tag) = (imageView.bounds.size, imageView.tag)
 
-    os_log("requesting: ( %@, %@ )",
-           log: log, type: .info, item.title, size as CVarArg)
+    os_log("handling: ( %@, %@ )",
+           log: log, type: .debug, item.title, size as CVarArg)
 
     let q = makeHighQuality(item: item, size: size) ?? options.quality
-    let s = makeSize(size: size, quality: q)
+    let s = ImageRepository.makeSize(size: size, quality: q)
 
     guard let itemURL = imageURL(representing: item, at: s) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
@@ -328,12 +171,17 @@ public final class ImageRepository: Images {
       // Having a placeholder, we don’t have to fallback on generic image.
       let f = hasPlaceHolder ? imageView.image : options.fallbackImage
 
-      load(url: url, into: imageView, sized: size,
-           placeholder: imageView.image, failureImage: f) { response, error in
+      load(
+        url: url,
+        into: imageView,
+        sized: size,
+        placeholder: imageView.image,
+        failureImage: f
+      ) { response, error in
         dispatchPrecondition(condition: .onQueue(.main))
 
         if let er = error {
-          os_log("image loading failed: %{public}@", er as CVarArg)
+          os_log("image loading failed: %{public}@", log: log, er as CVarArg)
         }
 
         cb?()
@@ -343,7 +191,7 @@ public final class ImageRepository: Images {
     // If direct loading wasn’t requested and we can find a suitable URL for
     // placeholding, we are loading a smaller image first.
 
-    guard !options.isDirect ,
+    guard !options.isDirect,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
       return l(itemURL) {
         completionBlock?()
@@ -365,13 +213,82 @@ public final class ImageRepository: Images {
     into imageView: UIImageView,
     options: FKImageLoadingOptions
   ) {
-    loadImage(representing: item, into: imageView, options: options, completionBlock: nil)
+    loadImage(
+      representing: item,
+      into: imageView,
+      options: options,
+      completionBlock: nil
+    )
   }
 
   public func loadImage(
     representing item: Imaginable, into imageView: UIImageView) {
     let defaults = FKImageLoadingOptions()
     loadImage(representing: item, into: imageView, options: defaults)
+  }
+
+}
+
+// MARK: - Making Image Requests
+
+extension ImageRepository {
+
+  private static func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
+    var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
+
+    // Preferring smaller images, assuming they’re placeholders or lists.
+    if size.width <= 120 {
+      req.priority = .veryHigh
+    }
+
+    return req.processed(with: ScaledWithRoundedCorners(size: size))
+  }
+
+}
+
+// MARK: - Image Processing
+
+extension ImageRepository {
+
+  struct ScaledWithRoundedCorners: ImageProcessing {
+
+    let size: CGSize
+
+    init(size: CGSize) {
+      self.size = size
+    }
+
+    /// Returns scaled `image` with rounded corners.
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+      UIGraphicsBeginImageContextWithOptions(size, true, 0)
+
+      guard let ctx = UIGraphicsGetCurrentContext() else {
+        return nil
+      }
+
+      UIColor.white.setFill()
+      ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
+
+      let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
+      let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+
+      UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius).addClip()
+      image.draw(in: rect)
+
+      guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
+        return nil
+      }
+
+      UIGraphicsEndImageContext()
+
+      return rounded
+    }
+
+    static func ==(
+      lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
+      return lhs.size == rhs.size
+    }
+
   }
 
 }
@@ -405,7 +322,7 @@ extension ImageRepository {
   /// expected URLs.
   fileprivate
   func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
-    os_log("looking up URL representing: ( %{public}@, %{public}@ )",
+    os_log("looking up URL: ( %{public}@, %{public}@ )",
            log: log, type: .debug, item.title, size as CVarArg)
 
     let wanted = size.width * UIScreen.main.scale
@@ -416,7 +333,7 @@ extension ImageRepository {
       urlString = item.iTunes?.img30
     } else if wanted <= 60 {
       urlString = item.iTunes?.img60
-    } else if wanted <= 180 {
+    } else if wanted <= 120 {
       urlString = item.iTunes?.img100
     } else {
       urlString = item.iTunes?.img600
@@ -480,7 +397,7 @@ extension ImageRepository {
     with items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     return items.compactMap {
-      let s = makeSize(size: size, quality: quality)
+      let s = ImageRepository.makeSize(size: size, quality: quality)
       guard let url = imageURL(representing: $0, at: s) else {
         return nil
       }
