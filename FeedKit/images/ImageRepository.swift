@@ -118,19 +118,18 @@ extension ImageRepository: Images {
   }
 
   /// Returns `true` if there’s a cached response matching `url`.
-  private func hasCachedResponse(matching url: URL) -> Bool {
-    let req = ImageRequest(url: url)
+  private func hasCachedResponse(matching url: URL, at size: CGSize) -> Bool {
+    let req = ImageRepository.makeImageRequest(url: url, size: size)
     return Nuke.ImageCache.shared.cachedResponse(for: req) != nil
   }
 
-  /// Returns high quality if `item` is cached or `nil` if not.
-  private func makeHighQuality(item: Imaginable, size: CGSize) -> ImageQuality? {
+  private func hasCachedResponse(matching item: Imaginable, at size: CGSize) -> Bool {
     guard let url = imageURL(representing: item, at: size),
-      hasCachedResponse(matching: url) else {
-      return nil
+      hasCachedResponse(matching: url, at: size) else {
+      return false
     }
 
-    return .high
+    return true
   }
 
   private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
@@ -148,12 +147,17 @@ extension ImageRepository: Images {
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
 
-    let (size, tag) = (imageView.bounds.size, imageView.tag)
+    let size = imageView.bounds.size
 
-    os_log("req: ( %@, %@ )",
+    os_log("getting: ( %@, %@ )",
            log: log, type: .info, item.title, size as CVarArg)
 
-    let q = makeHighQuality(item: item, size: size) ?? options.quality
+    let isCached = hasCachedResponse(matching: item, at: size)
+
+    // Overriding quality to high if there’s a cached response.
+    let q = isCached ? .high : options.quality
+
+    // Picking size for quality.
     let s = ImageRepository.makeSize(size: size, quality: q)
 
     guard let itemURL = imageURL(representing: item, at: s) else {
@@ -185,10 +189,12 @@ extension ImageRepository: Images {
       }
     }
 
-    // If direct loading wasn’t requested and we can find a suitable URL for
-    // placeholding, we are loading a smaller image first.
+    // If this isn’t specifically direct, no cached response is available,
+    // and we can find a suitable URL for placeholding, we are loading a
+    // smaller image first.
 
     guard !options.isDirect,
+      !isCached,
       let placeholderURL = makePlaceholderURL(item: item, size: size) else {
       return l(itemURL) {
         completionBlock?()
@@ -324,7 +330,7 @@ extension ImageRepository {
       urlString = item.iTunes?.img30
     } else if wanted <= 60 {
       urlString = item.iTunes?.img60
-    } else if wanted <= 120 {
+    } else if wanted <= 180 {
       urlString = item.iTunes?.img100
     } else {
       urlString = item.iTunes?.img600
@@ -361,7 +367,13 @@ extension ImageRepository {
         continue
       }
 
-      if hasCachedResponse(matching: url) {
+      if hasCachedResponse(matching: url, at: size) {
+        return url
+      }
+
+      // Assumingly a common size.
+
+      if hasCachedResponse(matching: url, at: CGSize(width: 50, height: 50)) {
         return url
       }
     }
