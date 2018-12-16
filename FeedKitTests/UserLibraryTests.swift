@@ -145,7 +145,7 @@ extension UserLibraryTests {
     do {
       let exp = self.expectation(description: "synchronizing")
 
-      library.synchronize { error in
+      library.synchronize { urls, guids, error in
         switch error {
         case .none:
           break
@@ -160,6 +160,9 @@ extension UserLibraryTests {
           XCTFail()
         }
 
+        XCTAssert(urls.isEmpty)
+
+        XCTAssert(guids.contains(entry.guid))
         XCTAssert(queue.contains(entry: entry))
 
         exp.fulfill()

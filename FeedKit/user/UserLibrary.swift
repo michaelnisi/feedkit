@@ -216,13 +216,6 @@ extension UserLibrary: Subscribing {
         let dequeued = try self.dequeue(entries: children)
         os_log("dequeued: %@", log: log, type: .debug, dequeued)
         self.commitQueue(enqueued: Set(), dequeued: dequeued)
-
-        // Obsoleted by the new .subscriber owner type, I hope.
-
-        // Removing previous to allow automatic enqueueing when resubscribing.
-//        let newest = try self.cache.newest()
-//        let guids = newest.compactMap { urls.contains($0.url) ? $0.guid : nil }
-//        try self.cache.removePrevious(matching: guids)
       } catch {
         return er = error
       }
@@ -251,18 +244,12 @@ extension UserLibrary: Subscribing {
     return subscriptions.contains(url)
   }
 
-  public func synchronize(completionBlock: ((Error?) -> Void)? = nil) {
-    var done: () -> Void
-    if #available(iOS 12.0, *) {
-      let sp = OSSignpostID(log: log)
-      os_signpost(.begin, log: log, name: "synchronizing", signpostID: sp)
-      done = {
-        os_signpost(.end, log: log, name: "synchronizing", signpostID: sp)
-      }
-    } else {
-      done = {}
-    }
+  public var hasNoSubscriptions: Bool {
+    return subscriptions.isEmpty
+  }
 
+  public func synchronize(
+    completionBlock: ((Set<FeedURL>?, Set<EntryGUID>?, Error?) -> Void)? = nil) {
     operationQueue.addOperation {
       os_log("synchronizing", log: log, type: .debug)
 
@@ -291,14 +278,12 @@ extension UserLibrary: Subscribing {
           return nil
         }()
 
-        done()
-
-        completionBlock?(er)
+        completionBlock?(s, guids, er)
       } catch {
         os_log("failed to synchronize: %@",
                log: log, type: .error, error as CVarArg)
 
-        completionBlock?(error)
+        completionBlock?(nil, nil, error)
       }
     }
   }
@@ -353,7 +338,7 @@ extension UserLibrary: Updating {
 
     // Synchronizing first, for including the latest subscriptions.
 
-    synchronize { error in
+    synchronize { _, _, error in
       if error != nil {
         os_log("continuing update despite error", log: log)
       }
@@ -411,7 +396,7 @@ extension UserLibrary: Queueing {
 
     fetchingQueue.fetchQueueCompletionBlock = { error in
       guard isSynchronized else {
-        return self.synchronize { syncError in
+        return self.synchronize { _, _, syncError in
           fetchQueueCompletionBlock?(error ?? syncError)
         }
       }

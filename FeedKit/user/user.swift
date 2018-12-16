@@ -11,7 +11,7 @@ import Foundation
 import Skull
 import os.log
 
-// MARK: - Queueing
+// MARK: - QueueCaching
 
 /// Cache the user`s queue locally.
 public protocol QueueCaching {
@@ -66,6 +66,8 @@ public protocol QueueCaching {
   func isPrevious(_ guid: EntryGUID) throws -> Bool
 
 }
+
+// MARK: - Queueing
 
 /// Confines `Queue` state dependency.
 protocol EntryQueueHost {
@@ -244,14 +246,31 @@ public protocol Subscribing: Updating {
   func fetchFeeds(
     feedsBlock: @escaping (_ feeds: [Feed], _ feedsError: Error?) -> Void,
     feedsCompletionBlock: @escaping (_ error: Error?) -> Void
-    ) -> Operation
+  ) -> Operation
 
   /// Returns `true` if `url` is subscribed. You must `fetchFeeds` first, before
   /// relying on this.
   func has(subscription url: FeedURL) -> Bool
 
-  /// Reloads the in-memory sets of subscriptions and enqueued GUIDs.
-  func synchronize(completionBlock: ((Error?) -> Void)?)
+  /// Reloads in-memory sets of subscribed feed URLs and enqueued entry GUIDs,
+  /// passing them to the completionBlock.
+  ///
+  /// These in-memory sets are used for faster containment lookup.
+  ///
+  /// - `has(subscription:) -> Bool`
+  /// - `contains(entry:) -> Bool`
+  ///
+  /// If the queue does not match the reloaded GUIDs, the callback receives an
+  /// error with both respective counts, queue and GUIDs:
+  ///
+  /// ```
+  /// QueueingError.outOfSync(Int, Int)
+  /// ```
+  func synchronize(completionBlock:
+    ((Set<FeedURL>?, Set<EntryGUID>?, Error?) -> Void)?)
+
+  /// `true` if the in-memory subscriptions set is empty.
+  var hasNoSubscriptions: Bool { get }
 
 }
 
