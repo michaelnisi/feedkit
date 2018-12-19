@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+private let log = OSLog.disabled
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -271,9 +271,13 @@ extension ImageRepository {
 
       let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
       let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+      let p = UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius)
 
-      UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius).addClip()
+      p.addClip()
       image.draw(in: rect)
+
+      ctx.setStrokeColor(UIColor.lightGray.cgColor)
+      p.stroke()
 
       guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
         return nil
