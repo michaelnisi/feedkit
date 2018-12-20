@@ -276,7 +276,9 @@ extension ImageRepository {
       p.addClip()
       image.draw(in: rect)
 
-      ctx.setStrokeColor(UIColor.lightGray.cgColor)
+      let gray = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.0)
+
+      ctx.setStrokeColor(gray.cgColor)
       p.stroke()
 
       guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
