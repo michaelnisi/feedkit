@@ -160,9 +160,9 @@ extension UserLibraryTests {
           XCTFail()
         }
 
-        XCTAssert(urls.isEmpty)
+        XCTAssert(urls!.isEmpty)
 
-        XCTAssert(guids.contains(entry.guid))
+        XCTAssert(guids!.contains(entry.guid))
         XCTAssert(queue.contains(entry: entry))
 
         exp.fulfill()
