@@ -12,7 +12,7 @@ import os.log
 
 /// Providing protocols are implemented by operations to provide results to
 /// another operation while being its dependency.
-protocol Providing {
+public protocol Providing {
   var error: Error? { get }
 }
 
@@ -24,15 +24,15 @@ protocol ProvidingFeedURLs: Providing {
   var urls: [FeedURL]  { get }
 }
 
-protocol ProvidingLocators: Providing {
+public protocol ProvidingLocators: Providing {
   var locators: [EntryLocator]  { get }
 }
 
-protocol ProvidingEntries: Providing {
+public protocol ProvidingEntries: Providing {
   var entries: Set<Entry> { get }
 }
 
-protocol ProdvidingFeeds: Providing {
+public protocol ProdvidingFeeds: Providing {
   var feeds: Set<Feed> { get }
 }
 

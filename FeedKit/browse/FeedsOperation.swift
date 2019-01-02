@@ -14,7 +14,8 @@ import os.log
 private let log = OSLog.disabled
 
 /// A concurrent `Operation` for accessing feeds.
-final class FeedsOperation: BrowseOperation, FeedURLsDependent {
+final class FeedsOperation: BrowseOperation,
+FeedURLsDependent, ProdvidingFeeds {
   
   static var urlCache = DateCache(ttl: 3600)
   
