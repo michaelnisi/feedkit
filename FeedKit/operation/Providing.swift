@@ -36,6 +36,40 @@ public protocol ProdvidingFeeds: Providing {
   var feeds: Set<Feed> { get }
 }
 
+/// Receives stuff from dependencies.
+public protocol Receiving {}
+
+extension Receiving where Self: Operation {
+
+  public func findFeed() -> Feed? {
+    guard let p = dependencies.first(where: { $0 is ProdvidingFeeds })
+      as? ProdvidingFeeds else {
+        return nil
+    }
+
+    return p.feeds.first
+  }
+
+  public func findEntries() -> Set<Entry> {
+    guard let p = dependencies.first(where: { $0 is ProvidingEntries })
+      as? ProvidingEntries else {
+        return Set()
+    }
+
+    return p.entries
+  }
+
+  public func findError() -> Error? {
+    guard let p = dependencies.first(where: { $0 is Providing })
+      as? Providing else {
+        return nil
+    }
+
+    return p.error
+  }
+  
+}
+
 // This grows into a global access hub. Operation dependencies are terribly
 // opaque. I think, I don’t like this pattern.
 
