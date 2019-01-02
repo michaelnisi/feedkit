@@ -13,6 +13,8 @@ import os.log
 
 /// A suggested search term, bearing the timestamp of when it was added
 /// (to the cache) or updated.
+///
+/// Two Suggestions are equal if their terms are equal.
 public struct Suggestion {
   public let term: String
   public var ts: Date? // if cached
@@ -50,7 +52,7 @@ extension Suggestion: Hashable {
 
 /// Enumerates findable things hiding their type. The word 'suggested' is used
 /// synonymously with 'found' here: a suggested feed is also a found feed, etc.
-public enum Find {
+public enum Find: Hashable {
   case recentSearch(Feed)
   case suggestedTerm(Suggestion)
   case suggestedEntry(Entry)
@@ -68,31 +70,6 @@ public enum Find {
     }
   }
 }
-
-extension Find: Equatable {
-  static public func ==(lhs: Find, rhs: Find) -> Bool {
-    switch (lhs, rhs) {
-    case (.suggestedEntry(let a), .suggestedEntry(let b)):
-      return a == b
-    case (.suggestedTerm(let a), .suggestedTerm(let b)):
-      return a == b
-    case (.suggestedFeed(let a), .suggestedFeed(let b)):
-      return a == b
-    case (.recentSearch(let a), .recentSearch(let b)):
-      return a == b
-    case (.foundFeed(let a), .foundFeed(let b)):
-      return a == b
-    case (.suggestedEntry, _),
-         (.suggestedTerm, _),
-         (.suggestedFeed, _),
-         (.recentSearch, _),
-         (.foundFeed, _):
-      return false
-    }
-  }
-}
-
-extension Find: Hashable {}
 
 // MARK: - SearchCaching
 
