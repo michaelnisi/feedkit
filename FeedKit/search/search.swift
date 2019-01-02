@@ -32,7 +32,7 @@ extension Suggestion: Equatable {
 
 extension Suggestion: Hashable {
   public var hashValue: Int {
-    get { return term.hashValue }
+    return term.hashValue
   }
 }
 
@@ -92,22 +92,7 @@ extension Find: Equatable {
   }
 }
 
-extension Find: Hashable {
-  public var hashValue: Int {
-    get {
-      switch self {
-      case .foundFeed(let feed),
-           .recentSearch(let feed),
-           .suggestedFeed(let feed):
-        return feed.hashValue
-      case .suggestedEntry(let entry):
-        return entry.hashValue
-      case .suggestedTerm(let suggestion):
-        return suggestion.hashValue
-      }
-    }
-  }
-}
+extension Find: Hashable {}
 
 // MARK: - SearchCaching
 
