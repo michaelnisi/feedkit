@@ -9,7 +9,7 @@
 import Foundation
 
 /// Enumerate all error types possibly thrown within the FeedKit framework.
-public enum FeedKitError : Error {
+public enum FeedKitError: Error {
   case unknown
   case niy
   case notAString
@@ -35,12 +35,6 @@ public enum FeedKitError : Error {
   case missingEntries(locators: [EntryLocator])
   case unexpectedDatabaseRow
   case unidentifiedFeed
-}
-
-extension FeedKitError: Equatable {
-  public static func ==(lhs: FeedKitError, rhs: FeedKitError) -> Bool {
-    return lhs._code == rhs._code
-  }
 }
 
 extension FeedKitError: CustomStringConvertible {
