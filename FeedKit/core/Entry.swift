@@ -52,6 +52,6 @@ extension Entry: Equatable {
 
 extension Entry: Hashable {
   public var hashValue: Int {
-    get { return guid.hashValue }
+    return guid.hashValue
   }
 }

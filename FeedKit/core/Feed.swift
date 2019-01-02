@@ -92,6 +92,6 @@ extension Feed: Equatable {
 
 extension Feed: Hashable {
   public var hashValue: Int {
-    get { return url.hashValue }
+    return url.hashValue
   }
 }
