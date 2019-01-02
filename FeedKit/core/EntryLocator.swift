@@ -58,23 +58,23 @@ public struct EntryLocator {
 }
 
 extension EntryLocator: Hashable {
+
   public var hashValue: Int {
-    get {
-      guard let guid = self.guid else {
-        return url.hashValue ^ since.hashValue
-      }
-      return guid.hashValue
+    guard let guid = self.guid else {
+      return url.hashValue ^ since.hashValue
     }
+    return guid.hashValue
   }
+
 }
 
 extension EntryLocator: Equatable {
+
   public static func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
     return lhs.hashValue == rhs.hashValue
   }
+
 }
-
-
 
 extension EntryLocator {
   
@@ -145,9 +145,11 @@ extension EntryLocator {
     
     for it in withoutGuidsByUrl {
       let sorted = it.value.sorted(by: areInIncreasingOrder)
+
       guard let loc = sorted.first else {
         continue
       }
+      
       withoutGuids.append(loc)
     }
     
