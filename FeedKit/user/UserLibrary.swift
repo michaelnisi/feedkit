@@ -262,7 +262,7 @@ extension UserLibrary: Subscribing {
         let guids = Set(queued.compactMap { $0.entryLocator.guid })
         self.guids = guids
 
-        os_log("queue and subscriptions: ( %{public}i, %{public}i)",
+        os_log("queue and subscriptions: (%{public}i, %{public}i)",
                log: log, type: .debug, guids.count, s.count)
 
         // Does the queue line up with our assumptions?
