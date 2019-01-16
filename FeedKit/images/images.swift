@@ -33,6 +33,7 @@ public struct FKImageLoadingOptions {
   let fallbackImage: UIImage?
   let quality: ImageQuality
   let isDirect: Bool
+  let isClean: Bool
 
   /// Creates new options for image loading.
   ///
@@ -44,14 +45,17 @@ public struct FKImageLoadingOptions {
   ///   - fallbackImage: A failure image for using as fallback.
   ///   - quality: The image quality defaults to medium.
   ///   - isDirect: Skip preloading smaller images, which is the default.
+  ///   - isClean: Skip processing, just load.
   public init(
     fallbackImage: UIImage? = nil,
     quality: ImageQuality = .medium,
-    isDirect: Bool = false
+    isDirect: Bool = false,
+    isClean: Bool = false
   ) {
     self.fallbackImage = fallbackImage
     self.quality = quality
     self.isDirect = isDirect
+    self.isClean = isClean
   }
 
 }

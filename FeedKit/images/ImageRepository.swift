@@ -94,17 +94,14 @@ extension ImageRepository: Images {
   /// current image as placeholder until the remote image has been loaded
   /// successfully. If loading fails, keeps showing said placeholder.
   private func load(
-    url: URL,
+    request: ImageRequest,
     into view: UIImageView,
-    sized size: CGSize,
     placeholder: UIImage?,
     failureImage: UIImage?,
     cb: @escaping ImageTask.Completion
   ) {
     os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
-           url.lastPathComponent, size as CVarArg)
-
-    let req = ImageRepository.makeImageRequest(url: url, size: size)
+           request.urlRequest as CVarArg)
 
     let opts = ImageLoadingOptions(
       placeholder: placeholder,
@@ -114,7 +111,7 @@ extension ImageRepository: Images {
       contentModes: nil
     )
 
-    Nuke.loadImage(with: req, options: opts, into: view, completion: cb)
+    Nuke.loadImage(with: request, options: opts, into: view, completion: cb)
   }
 
   /// Returns `true` if there’s a cached response matching `url`.
@@ -172,10 +169,12 @@ extension ImageRepository: Images {
       // Having a placeholder, we don’t have to fallback on generic image.
       let f = hasPlaceHolder ? imageView.image : options.fallbackImage
 
+      let req = ImageRepository.makeImageRequest(
+        url: url, size: size, isClean: options.isClean)
+
       load(
-        url: url,
+        request: req,
         into: imageView,
-        sized: size,
         placeholder: imageView.image,
         failureImage: f
       ) { response, error in
@@ -233,12 +232,25 @@ extension ImageRepository: Images {
 
 extension ImageRepository {
 
-  private static func makeImageRequest(url: URL, size: CGSize) -> ImageRequest {
+  /// Returns an image request for `url` at `size`.
+  ///
+  /// - Parameters:
+  ///   - url: The URL of the image to load.
+  ///   - size: The target size of the image.
+  ///   - isClean: Append no processors to the request.
+  ///
+  /// The default processor adds rounded corners and a gray frame.
+  private static func makeImageRequest(
+    url: URL, size: CGSize, isClean: Bool = false) -> ImageRequest {
     var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
 
-    // Preferring smaller images, assuming they’re placeholders or lists.
+    // Preferring smaller images, assuming they are placeholders or lists.
     if size.width <= 120 {
       req.priority = .veryHigh
+    }
+
+    guard !isClean else {
+      return req
     }
 
     return req.processed(with: ScaledWithRoundedCorners(size: size))
