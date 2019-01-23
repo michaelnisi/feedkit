@@ -10,17 +10,21 @@ import Foundation
 import Nuke
 import UIKit
 
-// Hiding Nuke from participants.
+// Hiding Nuke from users.
+//
+// Dependencies should never leak into user code bases.
 public typealias ImageRequest = Nuke.ImageRequest
 
 // MARK: - API
 
+/// Enumerates possible image qualities.
 public enum ImageQuality: CGFloat {
   case high = 1
   case medium = 2
   case low = 4
 }
 
+/// An item for which an image can be loaded.
 public protocol Imaginable {
   var iTunes: ITunesItem? { get }
   var image: String? { get }
@@ -60,10 +64,11 @@ public struct FKImageLoadingOptions {
 
 }
 
+/// An image loading API.
 public protocol Images {
 
-  /// Loads an image to represent `item` into `imageView`, scaling the image
-  /// to match the image view’s bounds.
+  /// Loads an image representing`item` into `imageView`, scaling the image
+  /// to match the image view’s bounds size.
   ///
   /// Passing no result to the completion block of this high level image loader.
   ///
@@ -85,7 +90,7 @@ public protocol Images {
     options: FKImageLoadingOptions
   )
 
-  /// Loads an image using default options: falling back on existing image,
+  /// Loads an image using default options, falling back on existing image,
   /// medium quality, and preloading smaller images for large sizes.
   func loadImage(representing item: Imaginable, into imageView: UIImageView)
 
@@ -105,10 +110,10 @@ public protocol Images {
   /// Cancels request associated with `view`.
   func cancel(displaying view: UIImageView)
 
-  /// Synchronously loads an image for the specificied item and size.
-  func image(for item: Imaginable, in size: CGSize) -> UIImage?
+  /// Synchronously loads image for specificied `item` at `size`.
+  func loadImage(item: Imaginable, size: CGSize) -> UIImage?
 
-  /// Flushes memory cache.
+  /// Flushes in-memory caches.
   func flush()
 
 }

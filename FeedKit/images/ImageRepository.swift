@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -65,7 +65,7 @@ extension ImageRepository: Images {
     // elements when the app enters background.
   }
 
-  public func image(for item: Imaginable, in size: CGSize) -> UIImage? {
+  public func loadImage(item: Imaginable, size: CGSize) -> UIImage? {
     guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
@@ -100,8 +100,8 @@ extension ImageRepository: Images {
     failureImage: UIImage?,
     cb: @escaping ImageTask.Completion
   ) {
-    os_log("loading: ( %{public}@, %{public}@ )", log: log, type: .info,
-           request.urlRequest as CVarArg)
+    os_log("loading: %@", log: log, type: .debug,
+           request.urlRequest.url?.lastPathComponent ?? "some")
 
     let opts = ImageLoadingOptions(
       placeholder: placeholder,
@@ -112,28 +112,6 @@ extension ImageRepository: Images {
     )
 
     Nuke.loadImage(with: request, options: opts, into: view, completion: cb)
-  }
-
-  /// Returns `true` if there’s a cached response matching `url`.
-  private func hasCachedResponse(matching url: URL, at size: CGSize) -> Bool {
-    let req = ImageRepository.makeImageRequest(url: url, size: size)
-    return Nuke.ImageCache.shared.cachedResponse(for: req) != nil
-  }
-
-  private func hasCachedResponse(matching item: Imaginable, at size: CGSize) -> Bool {
-    guard let url = imageURL(representing: item, at: size),
-      hasCachedResponse(matching: url, at: size) else {
-      return false
-    }
-
-    return true
-  }
-
-  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
-    let q = quality?.rawValue ?? ImageQuality.high.rawValue
-    let w = size.width / q
-    let h = size.height / q
-    return CGSize(width: w, height: h)
   }
 
   public func loadImage(
@@ -149,15 +127,11 @@ extension ImageRepository: Images {
     os_log("getting: ( %@, %@ )",
            log: log, type: .info, item.title, size as CVarArg)
 
-    let isCached = hasCachedResponse(matching: item, at: size)
+    let urlWithCachedResponse = hasCachedResponse(matching: item, at: size)
 
-    // Overriding quality to high if there’s a cached response.
-    let q = isCached ? .high : options.quality
-
-    // Picking size for quality.
-    let s = ImageRepository.makeSize(size: size, quality: q)
-
-    guard let itemURL = imageURL(representing: item, at: s) else {
+    guard let itemURL = urlWithCachedResponse ??
+      imageURL(representing: item, at:
+        ImageRepository.makeSize(size: size, quality: options.quality)) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
              String(describing: item))
       return
@@ -166,7 +140,7 @@ extension ImageRepository: Images {
     func l(_ url: URL, hasPlaceHolder: Bool = false, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
 
-      // Having a placeholder, we don’t have to fallback on generic image.
+      // Having a placeholder, we don’t have to fallback on a generic image.
       let f = hasPlaceHolder ? imageView.image : options.fallbackImage
 
       let req = ImageRepository.makeImageRequest(
@@ -188,13 +162,18 @@ extension ImageRepository: Images {
       }
     }
 
-    // If this isn’t specifically direct, no cached response is available,
-    // and we can find a suitable URL for placeholding, we are loading a
+    // If this isn’t specifically direct, no cached response is available…
+
+    guard !options.isDirect, urlWithCachedResponse == nil else {
+      return l(itemURL) {
+        completionBlock?()
+      }
+    }
+
+    // …and we can find a suitable URL for placeholding, we are loading a
     // smaller image first.
 
-    guard !options.isDirect,
-      !isCached,
-      let placeholderURL = makePlaceholderURL(item: item, size: size) else {
+    guard let placeholderURL = makePlaceholderURL(item: item, size: size) else {
       return l(itemURL) {
         completionBlock?()
       }
@@ -228,40 +207,11 @@ extension ImageRepository: Images {
 
 }
 
-// MARK: - Making Image Requests
+// MARK: - Processing Images
 
 extension ImageRepository {
 
-  /// Returns an image request for `url` at `size`.
-  ///
-  /// - Parameters:
-  ///   - url: The URL of the image to load.
-  ///   - size: The target size of the image.
-  ///   - isClean: Append no processors to the request.
-  ///
-  /// The default processor adds rounded corners and a gray frame.
-  private static func makeImageRequest(
-    url: URL, size: CGSize, isClean: Bool = false) -> ImageRequest {
-    var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
-
-    // Preferring smaller images, assuming they are placeholders or lists.
-    if size.width <= 120 {
-      req.priority = .veryHigh
-    }
-
-    guard !isClean else {
-      return req
-    }
-
-    return req.processed(with: ScaledWithRoundedCorners(size: size))
-  }
-
-}
-
-// MARK: - Image Processing
-
-extension ImageRepository {
-
+  /// Produces a scaled image with rounded corners within a thin gray frame.
   struct ScaledWithRoundedCorners: ImageProcessing {
 
     let size: CGSize
@@ -270,7 +220,6 @@ extension ImageRepository {
       self.size = size
     }
 
-    /// Returns scaled `image` with rounded corners.
     func process(image: Image, context: ImageProcessingContext) -> Image? {
       UIGraphicsBeginImageContextWithOptions(size, true, 0)
 
@@ -315,19 +264,36 @@ extension ImageRepository {
 
 extension ImageRepository {
 
-  /// Returns a cached URL for `string` creating and caching new URLs.
+  /// Returns a request for image `url` at `size`.
   ///
-  /// - Returns: Returns a valid URL or `nil`.
-  private func makeURL(string: String) -> URL? {
-    guard let url = urls.object(forKey: string as NSString) as URL? else {
-      if let fresh = URL(string: string) {
-        urls.setObject(fresh as NSURL, forKey: string as NSString)
-        return fresh
-      }
-      return nil
+  /// - Parameters:
+  ///   - url: The URL of the image to load.
+  ///   - size: The target size of the image.
+  ///   - isClean: Append no processors to this request.
+  ///
+  /// The default processor adds rounded corners and a gray frame.
+  private static func makeImageRequest(
+    url: URL, size: CGSize, isClean: Bool = false) -> ImageRequest {
+    var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
+
+    // Preferring smaller images, assuming they are placeholders or lists.
+    if size.width <= 120 {
+      req.priority = .veryHigh
     }
 
-    return url
+    guard !isClean else {
+      return req
+    }
+
+    return req.processed(with: ScaledWithRoundedCorners(size: size))
+  }
+
+  /// Returns `url` if there’s a cached response matching `url` at `size`.
+  private func hasCachedResponse(
+    matching url: URL, at size: CGSize) -> URL? {
+    let req = ImageRepository.makeImageRequest(url: url, size: size)
+
+    return Nuke.ImageCache.shared.cachedResponse(for: req) != nil ? url : nil
   }
 
   /// Picks and returns the optimal image URL for `size`.
@@ -338,8 +304,10 @@ extension ImageRepository {
   ///
   /// - Returns: An image URL or `nil` if the item doesn’t contain one of the
   /// expected URLs.
-  fileprivate
-  func imageURL(representing item: Imaginable, at size: CGSize) -> URL? {
+  private func imageURL(
+    representing item: Imaginable, at size: CGSize) -> URL? {
+    os_log("choosing URL representing: %@", log: log, type: .debug, item.title)
+
     let wanted = size.width * UIScreen.main.scale
 
     var urlString: String?
@@ -370,35 +338,67 @@ extension ImageRepository {
     return url
   }
 
+  /// Returns URL if there’s a cached response matching `item` at `size`.
+  private func hasCachedResponse(
+    matching item: Imaginable, at size: CGSize) -> URL? {
+    guard let url = imageURL(representing: item, at: size) else {
+      return nil
+    }
+
+    return hasCachedResponse(matching: url, at: size)
+  }
+
+  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
+    let q = quality?.rawValue ?? ImageQuality.high.rawValue
+    let w = size.width / q
+    let h = size.height / q
+
+    return CGSize(width: w, height: h)
+  }
+
+  /// Returns a cached URL for `string` creating and caching new URLs.
+  ///
+  /// - Returns: Returns a valid URL or `nil`.
+  private func makeURL(string: String) -> URL? {
+    guard let url = urls.object(forKey: string as NSString) as URL? else {
+      os_log("making URL: %@", log: log, type: .debug, string)
+      if let fresh = URL(string: string) {
+        urls.setObject(fresh as NSURL, forKey: string as NSString)
+        return fresh
+      }
+      return nil
+    }
+
+    os_log("using cached URL: %@", log: log, type: .debug, url.absoluteString)
+    return url
+  }
+
   /// Returns adequate URL for placeholding if possible.
   private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
+    os_log("making placeholder URL: %@", log: log, type: .debug, item.title)
+
     guard let iTunes = item.iTunes else {
-      os_log("aborting: iTunes object not found", log: log)
+      os_log("aborting placeholding: iTunes object not found", log: log)
       return nil
     }
 
     var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
     if let image = item.image { urlStrings.append(image) }
 
+    // Finding the first cached response.
     for urlString in urlStrings {
       guard let url = makeURL(string: urlString) else {
         continue
       }
 
-      if hasCachedResponse(matching: url, at: size) {
-        return url
-      }
-
-      // Assumingly a common size.
-
-      if hasCachedResponse(matching: url, at: CGSize(width: 50, height: 50)) {
-        return url
-      }
+      return hasCachedResponse(matching: url, at: size) ??
+        // Trying any common small size for imageURL(representing:at:).
+        hasCachedResponse(matching: url, at: CGSize(width: 50, height: 50))
     }
 
-    // Scaling placeholder to a quarter of the original size, additionally
-    // dividing by the screen scale factor to compensate multiplication in
-    // imageURL(representing:, at:).
+    // Got no cached response, scaling placeholder to a quarter of the original
+    // size, additionally dividing by the screen scale factor to compensate
+    // multiplication in imageURL(representing:at:).
 
     let l =  1 / 4 / UIScreen.main.scale
     let s = size.applying(CGAffineTransform(scaleX: l, y: l))
@@ -417,6 +417,7 @@ extension ImageRepository {
   ) -> [ImageRequest] {
     return items.compactMap {
       let s = ImageRepository.makeSize(size: size, quality: quality)
+
       guard let url = imageURL(representing: $0, at: s) else {
         return nil
       }
@@ -428,6 +429,7 @@ extension ImageRepository {
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     let reqs = requests(with: items, at: size, quality: quality)
+
     preheater.startPreheating(with: reqs)
     return reqs
   }
