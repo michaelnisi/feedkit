@@ -272,7 +272,7 @@ FeedURLsDependent, ProdvidingFeeds {
           submit(stale)
           done()
         } else {
-          done(FeedKitError.offline)
+          done(FeedKitError.serviceUnavailable(nil))
         }
       } else {
         try request(urlsToRequest, stale: stale)

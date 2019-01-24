@@ -342,7 +342,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       guard isAvailable else {
-        return done(FeedKitError.offline)
+        return done(FeedKitError.serviceUnavailable(nil))
       }
 
       if isSinglyForced {

@@ -29,7 +29,10 @@ class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
   }
   
   /// Returns `true` if the remote `service` is reachable – and OK or if its
-  /// last known error occured longer than 300 seconds ago,
+  /// last known error occured longer than 300 seconds ago.
+  ///
+  /// Combining reachability and service health in one property is incorrect,
+  /// we have to be more explicit here.
   lazy var isAvailable: Bool = {
     switch status {
     case .cellular, .reachable:
