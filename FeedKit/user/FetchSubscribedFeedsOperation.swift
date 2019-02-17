@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// Synced data from iCloud might contain additional information, we don’t
 /// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
@@ -99,7 +99,8 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     
     var acc = [Feed]()
     
-    // TODO: Extract into dependency chain
+    // TODO: Extract feeds operation into dependency chain
+
     op = browser.feeds(urls, ttl: .forever, feedsBlock: { error, feeds in
       guard !self.isCancelled else {
         return
@@ -115,15 +116,19 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
       
       do {
         try self.resubscribe(redirected: acc)
-        
-        // Preventing overwriting of existing iTunes items here, can’t remember
-        // why though.
 
+        // Not replacing existing iTunes items.
         let missing = acc.compactMap { $0.iTunes == nil ? $0.url : nil }
+        
         let iTunes: [ITunesItem] = subscriptions.compactMap {
           guard missing.contains($0.url) else {
             return nil
           }
+
+          if $0.iTunes == nil {
+             os_log("missing iTunes item: %{public}@", log: log, $0.url)
+          }
+
           return $0.iTunes
         }
 
