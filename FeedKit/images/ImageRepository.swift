@@ -23,7 +23,7 @@ public final class ImageRepository {
       let config = URLSessionConfiguration.default
       $0.dataLoader = DataLoader(configuration: config)
 
-      let dataCache = try! DataCache(name: "ink.codes.podest.images")
+      let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
 
       #warning("Remove dev code")
       dataCache.removeAll()
@@ -317,20 +317,23 @@ extension ImageRepository: Images {
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
 
-    let size = imageView.bounds.size
+    let originalSize = imageView.bounds.size
+    let relativeSize = ImageRepository.makeSize(
+      size: originalSize, quality: options.quality)
 
-    guard let itemURL = imageURL(representing: item, at: size) else {
+    guard let itemURL = imageURL(representing: item, at: relativeSize) else {
       os_log("missing URL: %{public}@", log: log,  type: .error,
              String(describing: item))
       return
     }
 
     os_log("getting: ( %@, %@ )",
-           log: log, type: .info, item.title, size as CVarArg)
+           log: log, type: .info, item.title, originalSize as CVarArg)
 
     let isClean = options.isClean
 
-    if let res = cachedResponse(matching: itemURL, at: size, isClean: isClean) {
+    if let res = cachedResponse(
+      matching: itemURL, at: originalSize, isClean: isClean) {
       os_log("** setting image: %@", log: log, type: .debug, item.title)
 
       imageView.image = res.image
@@ -344,7 +347,7 @@ extension ImageRepository: Images {
       dispatchPrecondition(condition: .onQueue(.main))
 
       let req = ImageRepository.makeImageRequest(
-        url: url, size: size, isClean: options.isClean)
+        url: url, size: originalSize, isClean: options.isClean)
 
       let opts = ImageRepository.makeImageLoadingOptions(
         placeholder: imageView.image,
@@ -374,7 +377,8 @@ extension ImageRepository: Images {
       }
     }
 
-    let (placeholderURL, placeholder) = makePlaceholder(item: item, size: size)
+    let (placeholderURL, placeholder) = makePlaceholder(
+      item: item, size: originalSize)
 
     guard placeholderURL != nil || placeholder != nil else {
       return issue(itemURL) {
@@ -425,8 +429,8 @@ extension ImageRepository: Images {
 
 extension ImageRepository {
 
-  fileprivate func requests(
-    with items: [Imaginable], at size: CGSize, quality: ImageQuality
+  private func makeRequests(
+    items: [Imaginable], size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     return items.compactMap {
       let s = ImageRepository.makeSize(size: size, quality: quality)
@@ -444,7 +448,7 @@ extension ImageRepository {
   ) -> [ImageRequest] {
     os_log("prefetching: %i", log: log, type: .debug, items.count)
 
-    let reqs = requests(with: items, at: size, quality: quality)
+    let reqs = makeRequests(items: items, size: size, quality: quality)
 
     preheater.startPreheating(with: reqs)
 
