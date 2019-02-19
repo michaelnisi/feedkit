@@ -53,6 +53,177 @@ public final class ImageRepository {
 
 }
 
+// MARK: - Processing Images
+
+extension ImageRepository {
+
+  /// Produces a scaled image with rounded corners within a thin gray frame.
+  struct ScaledWithRoundedCorners: ImageProcessing {
+
+    let size: CGSize
+
+    init(size: CGSize) {
+      self.size = size
+    }
+
+    func process(image: Image, context: ImageProcessingContext) -> Image? {
+      UIGraphicsBeginImageContextWithOptions(size, true, 0)
+
+      guard let ctx = UIGraphicsGetCurrentContext() else {
+        return nil
+      }
+
+      UIColor.white.setFill()
+      ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
+
+      let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
+      let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
+      let p = UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius)
+
+      p.addClip()
+      image.draw(in: rect)
+
+      let gray = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.0)
+
+      ctx.setStrokeColor(gray.cgColor)
+      p.stroke()
+
+      guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
+        return nil
+      }
+
+      UIGraphicsEndImageContext()
+
+      return rounded
+    }
+
+    static func ==(
+      lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
+      return lhs.size == rhs.size
+    }
+
+  }
+
+}
+
+// MARK: - Choosing and Caching URLs
+
+extension ImageRepository {
+
+  /// Picks and returns the optimal image URL for `size`.
+  ///
+  /// - Parameters:
+  ///   - item: The image URL container.
+  ///   - size: The size to choose an URL for.
+  ///
+  /// - Returns: An image URL or `nil` if the item doesn’t contain one of the
+  /// expected URLs.
+  private func imageURL(
+    representing item: Imaginable, at size: CGSize) -> URL? {
+    let wanted = size.width * UIScreen.main.scale
+
+    var urlString: String?
+
+    if wanted <= 30 {
+      urlString = item.iTunes?.img30
+    } else if wanted <= 60 {
+      urlString = item.iTunes?.img60
+    } else if wanted <= 180 {
+      urlString = item.iTunes?.img100
+    } else {
+      urlString = item.iTunes?.img600
+    }
+
+    if urlString == nil {
+      os_log("falling back on LARGE image", log: log)
+
+      if let entry = item as? Entry {
+        urlString = entry.feedImage
+      }
+
+      urlString = urlString ?? item.image
+    }
+
+    guard let string = urlString, let url = makeURL(string: string) else {
+      os_log("no image URL", log: log, type: .error)
+      return nil
+    }
+
+    return url
+  }
+
+  /// Scales `size` for`quality`.
+  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
+    let q = quality?.rawValue ?? ImageQuality.high.rawValue
+    let w = size.width / q
+    let h = size.height / q
+
+    return CGSize(width: w, height: h)
+  }
+
+  /// Returns a cached URL for `string` creating and caching new URLs.
+  private func makeURL(string: String) -> URL? {
+    guard let url = urls.object(forKey: string as NSString) as URL? else {
+      os_log("making URL: %@", log: log, type: .debug, string)
+
+      if let fresh = URL(string: string) {
+        urls.setObject(fresh as NSURL, forKey: string as NSString)
+        return fresh
+      }
+
+      return nil
+    }
+
+    return url
+  }
+
+  /// Returns URL and/or cached response for placeholding.
+  private func makePlaceholder(
+    item: Imaginable, size: CGSize) -> (URL?, ImageResponse?) {
+    os_log("making placeholder URL: %@", log: log, type: .debug, item.title)
+
+    guard let iTunes = item.iTunes else {
+      os_log("aborting placeholding: iTunes object not found", log: log)
+      return (nil, nil)
+    }
+
+    var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
+
+    if let image = item.image {
+      urlStrings.append(image)
+    }
+
+    // Finding the first cached response.
+
+    for urlString in urlStrings {
+      guard let url = makeURL(string: urlString) else {
+        continue
+      }
+
+      // Arbritrary size drawn from anecdotal evidence.
+      let commonSize = CGSize(width: 82, height: 82)
+
+      if let res =
+        cachedResponse(matching: url, at: size) ??
+        cachedResponse(matching: url, at: commonSize) {
+        os_log("** found cached placeholder: %@",
+               log: log, type: .debug, item.title)
+        return (url, res)
+      }
+    }
+
+    // Got no cached response, scaling placeholder to a quarter of the original
+    // size, dividided by the screen scale factor to compensate multiplication
+    // in imageURL(representing:at:).
+
+    let l =  1 / 4 / UIScreen.main.scale
+    let s = size.applying(CGAffineTransform(scaleX: l, y: l))
+
+    return (imageURL(representing: item, at: s), nil)
+  }
+
+}
+
 // MARK: - Images
 
 extension ImageRepository: Images {
@@ -170,9 +341,13 @@ extension ImageRepository: Images {
 
     if let res =
       cachedResponse(matching: item, at: largeSize, isClean: isClean) ??
-      cachedResponse(matching: item, at: relativeSize, isClean: isClean)  {
-      os_log("** completing with cached response: %@",
-             log: log, type: .debug, item.title)
+      cachedResponse(matching: item, at: relativeSize, isClean: isClean) {
+
+      if largeSize != relativeSize {
+        os_log("** upgraded quality", log: log, type: .debug)
+      }
+
+      os_log("** done: setting image: %@", log: log, type: .debug, item.title)
 
       imageView.image = res.image
 
@@ -213,8 +388,7 @@ extension ImageRepository: Images {
     }
 
     // If this isn’t specifically direct, no cached response is available, and
-    // we can find a suitable URL for placeholding, we are loading a smaller
-    // image first.
+    // we can find a suitable placeholder, we are loading a smaller image first.
 
     guard !options.isDirect else {
       return issue(itemURL) {
@@ -222,13 +396,25 @@ extension ImageRepository: Images {
       }
     }
 
-    guard let placeholderURL = makePlaceholderURL(item: item, size: size) else {
+    let (placeholderURL, placeholder) = makePlaceholder(item: item, size: size)
+
+    guard placeholderURL != nil || placeholder != nil else {
       return issue(itemURL) {
         completionBlock?()
       }
     }
 
-    issue(placeholderURL) {
+    if let image = placeholder?.image {
+      os_log("** setting placeholder: %@", log: log, type: .debug, item.title)
+      
+      imageView.image = image
+
+      return issue(itemURL) {
+        completionBlock?()
+      }
+    }
+
+    issue(placeholderURL!) {
       issue(itemURL) {
         completionBlock?()
       }
@@ -253,174 +439,6 @@ extension ImageRepository: Images {
     let defaults = FKImageLoadingOptions()
 
     loadImage(representing: item, into: imageView, options: defaults)
-  }
-
-}
-
-// MARK: - Processing Images
-
-extension ImageRepository {
-
-  /// Produces a scaled image with rounded corners within a thin gray frame.
-  struct ScaledWithRoundedCorners: ImageProcessing {
-
-    let size: CGSize
-
-    init(size: CGSize) {
-      self.size = size
-    }
-
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
-      UIGraphicsBeginImageContextWithOptions(size, true, 0)
-
-      guard let ctx = UIGraphicsGetCurrentContext() else {
-        return nil
-      }
-
-      UIColor.white.setFill()
-      ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
-
-      let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
-      let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
-      let p = UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius)
-
-      p.addClip()
-      image.draw(in: rect)
-
-      let gray = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.0)
-
-      ctx.setStrokeColor(gray.cgColor)
-      p.stroke()
-
-      guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
-        return nil
-      }
-
-      UIGraphicsEndImageContext()
-
-      return rounded
-    }
-
-    static func ==(
-      lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
-      return lhs.size == rhs.size
-    }
-
-  }
-
-}
-
-// MARK: - Choosing and Caching URLs
-
-extension ImageRepository {
-
-  /// Picks and returns the optimal image URL for `size`.
-  ///
-  /// - Parameters:
-  ///   - item: The image URL container.
-  ///   - size: The size to choose an URL for.
-  ///
-  /// - Returns: An image URL or `nil` if the item doesn’t contain one of the
-  /// expected URLs.
-  private func imageURL(
-    representing item: Imaginable, at size: CGSize) -> URL? {
-    os_log("choosing URL representing: %@", log: log, type: .debug, item.title)
-
-    let wanted = size.width * UIScreen.main.scale
-
-    var urlString: String?
-
-    if wanted <= 30 {
-      urlString = item.iTunes?.img30
-    } else if wanted <= 60 {
-      urlString = item.iTunes?.img60
-    } else if wanted <= 180 {
-      urlString = item.iTunes?.img100
-    } else {
-      urlString = item.iTunes?.img600
-    }
-
-    if urlString == nil {
-      os_log("falling back on LARGE image", log: log)
-      if let entry = item as? Entry {
-        urlString = entry.feedImage
-      }
-      urlString = urlString ?? item.image
-    }
-
-    guard let string = urlString, let url = makeURL(string: string) else {
-      os_log("no image URL", log: log, type: .error)
-      return nil
-    }
-
-    return url
-  }
-
-  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
-    let q = quality?.rawValue ?? ImageQuality.high.rawValue
-    let w = size.width / q
-    let h = size.height / q
-
-    return CGSize(width: w, height: h)
-  }
-
-  /// Returns a cached URL for `string` creating and caching new URLs.
-  ///
-  /// - Returns: Returns a valid URL or `nil`.
-  private func makeURL(string: String) -> URL? {
-    guard let url = urls.object(forKey: string as NSString) as URL? else {
-      os_log("making URL: %@", log: log, type: .debug, string)
-
-      if let fresh = URL(string: string) {
-        urls.setObject(fresh as NSURL, forKey: string as NSString)
-        return fresh
-      }
-
-      return nil
-    }
-
-    return url
-  }
-
-  /// Returns adequate URL for placeholding if possible.
-  private func makePlaceholderURL(item: Imaginable, size: CGSize) -> URL? {
-    os_log("making placeholder URL: %@", log: log, type: .debug, item.title)
-
-    guard let iTunes = item.iTunes else {
-      os_log("aborting placeholding: iTunes object not found", log: log)
-      return nil
-    }
-
-    var urlStrings = [iTunes.img30, iTunes.img60, iTunes.img100, iTunes.img600]
-
-    if let image = item.image {
-      urlStrings.append(image)
-    }
-
-    // Finding the first cached response.
-    for urlString in urlStrings {
-      guard let url = makeURL(string: urlString) else {
-        continue
-      }
-
-      let commonSize = CGSize(width: 82, height: 82)
-
-      if cachedResponse(matching: url, at: size) != nil ||
-        cachedResponse(matching: url, at: commonSize) != nil {
-        os_log("** returning cached placeholder URL: %@",
-               log: log, type: .debug, item.title)
-        return url
-      }
-    }
-
-    // Got no cached response, scaling placeholder to a quarter of the original
-    // size, dividided by the screen scale factor to compensate multiplication
-    // in imageURL(representing:at:).
-
-    let l =  1 / 4 / UIScreen.main.scale
-    let s = size.applying(CGAffineTransform(scaleX: l, y: l))
-
-    return imageURL(representing: item, at: s)
   }
 
 }

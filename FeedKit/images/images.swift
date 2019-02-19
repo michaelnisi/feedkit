@@ -70,12 +70,12 @@ public protocol Images {
   /// Loads an image representing`item` into `imageView`, scaling the image
   /// to match the image view’s bounds size.
   ///
-  /// Passing no result to the completion block of this high level image loader.
+  /// Smallest possible latency is critical here.
   ///
   /// - Parameters:
   ///   - item: The item the loaded image should represent.
   ///   - imageView: The target view to display the image.
-  ///   - options: Some options for image loading.
+  ///   - options: Some options specify details about how to load this image.
   ///   - completionBlock: A block to execute when the image has been loaded.
   func loadImage(
     representing item: Imaginable,
