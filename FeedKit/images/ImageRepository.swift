@@ -180,7 +180,7 @@ extension ImageRepository {
   /// Returns URL and/or cached response for placeholding.
   private func makePlaceholder(
     item: Imaginable, size: CGSize) -> (URL?, ImageResponse?) {
-    os_log("making placeholder URL: %@", log: log, type: .debug, item.title)
+    os_log("making placeholder: %@", log: log, type: .debug, item.title)
 
     guard let iTunes = item.iTunes else {
       os_log("aborting placeholding: iTunes object not found", log: log)
@@ -206,8 +206,6 @@ extension ImageRepository {
       if let res =
         cachedResponse(matching: url, at: size) ??
         cachedResponse(matching: url, at: commonSize) {
-        os_log("** found cached placeholder: %@",
-               log: log, type: .debug, item.title)
         return (url, res)
       }
     }
@@ -311,16 +309,6 @@ extension ImageRepository: Images {
     return Nuke.ImageCache.shared.cachedResponse(for: req)
   }
 
-  private func cachedResponse(
-    matching item: Imaginable, at size: CGSize, isClean: Bool = false
-  ) -> ImageResponse? {
-    guard let url = imageURL(representing: item, at: size) else {
-      return nil
-    }
-
-    return cachedResponse(matching: url, at: size, isClean: isClean)
-  }
-
   public func loadImage(
     representing item: Imaginable,
     into imageView: UIImageView,
@@ -331,33 +319,23 @@ extension ImageRepository: Images {
 
     let size = imageView.bounds.size
 
+    guard let itemURL = imageURL(representing: item, at: size) else {
+      os_log("missing URL: %{public}@", log: log,  type: .error,
+             String(describing: item))
+      return
+    }
+
     os_log("getting: ( %@, %@ )",
            log: log, type: .info, item.title, size as CVarArg)
 
-    let largeSize = ImageRepository.makeSize(size: size, quality: .high)
-    let relativeSize = ImageRepository.makeSize(size: size, quality: options.quality)
-
     let isClean = options.isClean
 
-    if let res =
-      cachedResponse(matching: item, at: largeSize, isClean: isClean) ??
-      cachedResponse(matching: item, at: relativeSize, isClean: isClean) {
-
-      if largeSize != relativeSize {
-        os_log("** upgraded quality", log: log, type: .debug)
-      }
-
-      os_log("** done: setting image: %@", log: log, type: .debug, item.title)
+    if let res = cachedResponse(matching: itemURL, at: size, isClean: isClean) {
+      os_log("** setting image: %@", log: log, type: .debug, item.title)
 
       imageView.image = res.image
 
       completionBlock?()
-      return
-    }
-
-    guard let itemURL = imageURL(representing: item, at: relativeSize) else {
-      os_log("missing URL: %{public}@", log: log,  type: .error,
-             String(describing: item))
       return
     }
 
