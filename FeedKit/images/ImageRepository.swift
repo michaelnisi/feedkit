@@ -152,20 +152,9 @@ extension ImageRepository {
     return url
   }
 
-  /// Scales `size` for`quality`.
-  private static func makeSize(size: CGSize, quality: ImageQuality?) -> CGSize {
-    let q = quality?.rawValue ?? ImageQuality.high.rawValue
-    let w = size.width / q
-    let h = size.height / q
-
-    return CGSize(width: w, height: h)
-  }
-
   /// Returns a cached URL for `string` creating and caching new URLs.
   private func makeURL(string: String) -> URL? {
     guard let url = urls.object(forKey: string as NSString) as URL? else {
-      os_log("making URL: %@", log: log, type: .debug, string)
-
       if let fresh = URL(string: string) {
         urls.setObject(fresh as NSURL, forKey: string as NSString)
         return fresh
@@ -286,6 +275,9 @@ extension ImageRepository: Images {
   /// The default processor adds rounded corners and a gray frame.
   private static func makeImageRequest(
     url: URL, size: CGSize, isClean: Bool = false) -> ImageRequest {
+    os_log("making request: ( %@, %@, %i )",
+           log: log, type: .debug, url.lastPathComponent, size as CVarArg, isClean)
+
     var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
 
     // Preferring smaller images, assuming they are placeholders or lists.
@@ -307,6 +299,19 @@ extension ImageRepository: Images {
       url: url, size: size, isClean: isClean)
 
     return Nuke.ImageCache.shared.cachedResponse(for: req)
+  }
+
+  /// Scales `size` for`quality`.
+  private static func makeSize(
+    size: CGSize, quality: ImageQuality = .medium) -> CGSize {
+    os_log("making size: ( %@, %f )",
+           log: log, type: .debug, size as CVarArg, quality.rawValue)
+
+    let q = quality.rawValue
+    let w = size.width / q
+    let h = size.height / q
+
+    return CGSize(width: w, height: h)
   }
 
   public func loadImage(
@@ -433,13 +438,13 @@ extension ImageRepository {
     items: [Imaginable], size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     return items.compactMap {
-      let s = ImageRepository.makeSize(size: size, quality: quality)
+      let relativeSize = ImageRepository.makeSize(size: size, quality: quality)
 
-      guard let url = imageURL(representing: $0, at: s) else {
+      guard let url = imageURL(representing: $0, at: relativeSize) else {
         return nil
       }
 
-      return ImageRequest(url: url)
+      return ImageRepository.makeImageRequest(url: url, size: size)
     }
   }
 
@@ -449,7 +454,7 @@ extension ImageRepository {
     os_log("prefetching: %i", log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
-
+    
     preheater.startPreheating(with: reqs)
 
     return reqs
