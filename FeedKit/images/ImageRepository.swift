@@ -166,9 +166,24 @@ extension ImageRepository {
     return url
   }
 
+  /// Represents an image internally.
+  private struct FKImage {
+
+    /// Identifies an image.
+    struct ID: CustomStringConvertible {
+      let url: URL
+      let size: CGSize
+      let isClean: Bool
+
+      var description: String {
+        return "( \(url.lastPathComponent), \(size), \(isClean) )"
+      }
+    }
+  }
+
   /// Returns URL and/or cached response for placeholding.
   private func makePlaceholder(
-    item: Imaginable, size: CGSize) -> (URL?, ImageResponse?) {
+    item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageResponse?) {
     os_log("making placeholder: %@", log: log, type: .debug, item.title)
 
     guard let iTunes = item.iTunes else {
@@ -189,12 +204,15 @@ extension ImageRepository {
         continue
       }
 
+      let exact = FKImage.ID(url: url, size: size, isClean: isClean)
+
       // Arbritrary size drawn from anecdotal evidence.
       let commonSize = CGSize(width: 82, height: 82)
+      let common = FKImage.ID(url: url, size: commonSize, isClean: isClean)
 
       if let res =
-        cachedResponse(matching: url, at: size) ??
-        cachedResponse(matching: url, at: commonSize) {
+        cachedResponse(matching: exact) ??
+        cachedResponse(matching: common) {
         return (url, res)
       }
     }
@@ -273,30 +291,25 @@ extension ImageRepository: Images {
   ///   - isClean: Append no processors to this request.
   ///
   /// The default processor adds rounded corners and a gray frame.
-  private static func makeImageRequest(
-    url: URL, size: CGSize, isClean: Bool = false) -> ImageRequest {
-    os_log("making request: ( %@, %@, %i )",
-           log: log, type: .debug, url.lastPathComponent, size as CVarArg, isClean)
+  private static func makeImageRequest(identifier id: FKImage.ID) -> ImageRequest {
+    os_log("making request: %@", log: log, type: .debug, String(describing: id))
 
-    var req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
+    var req = ImageRequest(url: id.url, targetSize: id.size, contentMode: .aspectFill)
 
     // Preferring smaller images, assuming they are placeholders or lists.
-    if size.width <= 120 {
+    if id.size.width <= 120 {
       req.priority = .veryHigh
     }
 
-    guard !isClean else {
+    guard !id.isClean else {
       return req
     }
 
-    return req.processed(with: ScaledWithRoundedCorners(size: size))
+    return req.processed(with: ScaledWithRoundedCorners(size: id.size))
   }
 
-  private func cachedResponse(
-    matching url: URL, at size: CGSize, isClean: Bool = false
-  ) -> ImageResponse? {
-    let req = ImageRepository.makeImageRequest(
-      url: url, size: size, isClean: isClean)
+  private func cachedResponse(matching id: FKImage.ID) -> ImageResponse? {
+    let req = ImageRepository.makeImageRequest(identifier: id)
 
     return Nuke.ImageCache.shared.cachedResponse(for: req)
   }
@@ -323,6 +336,10 @@ extension ImageRepository: Images {
     dispatchPrecondition(condition: .onQueue(.main))
 
     let originalSize = imageView.bounds.size
+
+    os_log("getting: ( %@, %@ )",
+           log: log, type: .info, item.title, originalSize as CVarArg)
+
     let relativeSize = ImageRepository.makeSize(
       size: originalSize, quality: options.quality)
 
@@ -332,13 +349,9 @@ extension ImageRepository: Images {
       return
     }
 
-    os_log("getting: ( %@, %@ )",
-           log: log, type: .info, item.title, originalSize as CVarArg)
+    let id = FKImage.ID(url: itemURL, size: originalSize, isClean: options.isClean)
 
-    let isClean = options.isClean
-
-    if let res = cachedResponse(
-      matching: itemURL, at: originalSize, isClean: isClean) {
+    if let res = cachedResponse(matching: id) {
       os_log("** setting image: %@", log: log, type: .debug, item.title)
 
       imageView.image = res.image
@@ -351,8 +364,8 @@ extension ImageRepository: Images {
     func issue(_ url: URL, cb: (() -> Void)? = nil) {
       dispatchPrecondition(condition: .onQueue(.main))
 
-      let req = ImageRepository.makeImageRequest(
-        url: url, size: originalSize, isClean: options.isClean)
+      let req = ImageRepository.makeImageRequest(identifier: FKImage.ID(
+        url: url, size: originalSize, isClean: options.isClean))
 
       let opts = ImageRepository.makeImageLoadingOptions(
         placeholder: imageView.image,
@@ -383,7 +396,7 @@ extension ImageRepository: Images {
     }
 
     let (placeholderURL, placeholder) = makePlaceholder(
-      item: item, size: originalSize)
+      item: item, size: originalSize, isClean: options.isClean)
 
     guard placeholderURL != nil || placeholder != nil else {
       return issue(itemURL) {
@@ -444,7 +457,9 @@ extension ImageRepository {
         return nil
       }
 
-      return ImageRepository.makeImageRequest(url: url, size: size)
+      let id = FKImage.ID(url: url, size: size, isClean: false)
+
+      return ImageRepository.makeImageRequest(identifier: id)
     }
   }
 

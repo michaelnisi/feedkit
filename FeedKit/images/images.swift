@@ -17,7 +17,7 @@ public typealias ImageRequest = Nuke.ImageRequest
 
 // MARK: - API
 
-/// Enumerates possible image qualities.
+/// Enumerates possible image qualities (100%, 50%, 25%).
 public enum ImageQuality: CGFloat {
   case high = 1
   case medium = 2
