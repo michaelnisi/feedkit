@@ -209,6 +209,8 @@ extension ImageRepository {
   }
 
   /// Returns URL and/or cached response for placeholding.
+  ///
+  /// Receiving an image response but no URL is impossible.
   private func makePlaceholder(
     item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageResponse?) {
 
@@ -277,7 +279,7 @@ extension ImageRepository: Images {
     }
 
     os_log("synchronously loading: %{public}@",
-           log: log, type: .info, url.lastPathComponent)
+           log: log, type: .debug, url.lastPathComponent)
 
     var image: UIImage?
 
@@ -361,21 +363,22 @@ extension ImageRepository: Images {
     let originalSize = imageView.bounds.size
 
     os_log("getting: ( %@, %@ )",
-           log: log, type: .info, item.title, originalSize as CVarArg)
+           log: log, type: .debug, item.title, originalSize as CVarArg)
 
     let relativeSize = ImageRepository.makeSize(
       size: originalSize, quality: options.quality)
 
     guard let itemURL = imageURL(representing: item, at: relativeSize) else {
-      os_log("missing URL: %{public}@", log: log,  type: .error,
-             String(describing: item))
+      os_log("missing URL: %{public}@",
+             log: log,  type: .error, String(describing: item))
       return
     }
 
     let id = FKImage.ID(url: itemURL, size: originalSize, isClean: options.isClean)
 
     if let res = cachedResponse(matching: id) {
-      os_log("** setting image: ( %@, %@ )", log: log, type: .debug, item.title, itemURL.lastPathComponent)
+      os_log("cache hit: ( %@, %@ )",
+             log: log, type: .debug, item.title, itemURL.lastPathComponent)
 
       imageView.image = res.image
 
@@ -395,7 +398,7 @@ extension ImageRepository: Images {
         failureImage: options.fallbackImage ?? imageView.image
       )
 
-      os_log("loading: %@", log: log, type: .info, url.lastPathComponent)
+      os_log("loading: %@", log: log, type: .debug, url.lastPathComponent)
 
       Nuke.loadImage(with: req, options: opts, into: imageView) {
         response, error in
@@ -428,8 +431,8 @@ extension ImageRepository: Images {
     }
 
     if let image = placeholder?.image {
-      os_log("** setting placeholder: ( %@, %@ )", log: log, type: .debug,
-             item.title, placeholderURL?.lastPathComponent ?? "no URL")
+      let p = placeholderURL?.lastPathComponent ?? "weirdly got no URL"
+      os_log("cache hit: ( %@, %@ )", log: log, type: .debug, item.title, p)
       
       imageView.image = image
 
@@ -490,7 +493,7 @@ extension ImageRepository {
   public func prefetchImages(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
-    os_log("prefetching: %i", log: log, type: .info, items.count)
+    os_log("prefetching: %i", log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
     
@@ -500,7 +503,7 @@ extension ImageRepository {
   }
 
   public func cancel(prefetching requests: [ImageRequest]) {
-    os_log("cancelling prefetching", log: log, type: .info)
+    os_log("cancelling prefetching", log: log, type: .debug)
     preheater.stopPreheating(with: requests)
   }
 
