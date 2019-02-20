@@ -16,7 +16,7 @@ private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
 
-  private static func removePreviousCache(_ name: String) throws {
+  private static func removeAllFromCache(named name: String) throws {
     guard let root = FileManager.default.urls(
       for: .cachesDirectory, in: .userDomainMask).first else {
       throw NSError(
@@ -43,15 +43,21 @@ public final class ImageRepository {
       $0.dataLoader = DataLoader(configuration: config)
 
       do {
-        let name = "ink.codes.podest.images"
-        os_log("removing previous cache: %{public}@",
-               log: log, type: .info, name)
-        try removePreviousCache(name)
+        let oldName = "ink.codes.podest.images"
+
+        os_log("removing old cache: %{public}@",
+               log: log, type: .info, oldName)
+
+        try removeAllFromCache(named: oldName)
       } catch {
-        os_log("no previous cache: %@", log: log, error.localizedDescription)
+        os_log("no old cache: %@", log: log, error.localizedDescription)
       }
 
       let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
+
+      #warning("temporary code")
+      os_log("** removing all from cache", log: log)
+      dataCache.removeAll()
 
       $0.dataCache = dataCache
 
@@ -373,7 +379,7 @@ extension ImageRepository: Images {
     let id = FKImage.ID(url: itemURL, size: originalSize, isClean: options.isClean)
 
     if let res = cachedResponse(matching: id) {
-      os_log("** setting image: %@", log: log, type: .debug, item.title)
+      os_log("** setting image: ( %@, %@ )", log: log, type: .debug, item.title, itemURL.lastPathComponent)
 
       imageView.image = res.image
 
@@ -426,7 +432,8 @@ extension ImageRepository: Images {
     }
 
     if let image = placeholder?.image {
-      os_log("** setting placeholder: %@", log: log, type: .debug, item.title)
+      os_log("** setting placeholder: ( %@, %@ )", log: log, type: .debug,
+             item.title, placeholderURL?.lastPathComponent ?? "no URL")
       
       imageView.image = image
 
