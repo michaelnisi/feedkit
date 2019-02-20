@@ -10,12 +10,8 @@ import Foundation
 import Nuke
 import UIKit
 
-// Hiding Nuke from users.
-//
-// Dependencies should never leak into user code bases.
+/// Represents an image request.
 public typealias ImageRequest = Nuke.ImageRequest
-
-// MARK: - API
 
 /// Enumerates possible image qualities (100%, 50%, 25%).
 public enum ImageQuality: CGFloat {
@@ -34,22 +30,23 @@ public protocol Imaginable {
 /// Configures image loading.
 public struct FKImageLoadingOptions {
 
+  /// A failure image for using as a fallback.
   let fallbackImage: UIImage?
+
+  /// The image quality defaults to medium.
   let quality: ImageQuality
+
+  /// Skip preloading smaller images, which is the default.
   let isDirect: Bool
+
+  /// Skip processing, just load.
   let isClean: Bool
 
   /// Creates new options for image loading.
   ///
   /// For larger sizes a smaller image gets preloaded and displayed first,
-  /// which gets replaced when the large image has been loaded. Use `isDirect`
+  /// getting replaced when the large image has been loaded. Use `isDirect`
   /// to skip this preloading step.
-  ///
-  /// - Parameters:
-  ///   - fallbackImage: A failure image for using as fallback.
-  ///   - quality: The image quality defaults to medium.
-  ///   - isDirect: Skip preloading smaller images, which is the default.
-  ///   - isClean: Skip processing, just load.
   public init(
     fallbackImage: UIImage? = nil,
     quality: ImageQuality = .medium,

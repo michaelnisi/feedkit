@@ -16,17 +16,42 @@ private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
 
+  private static func removePreviousCache(_ name: String) throws {
+    guard let root = FileManager.default.urls(
+      for: .cachesDirectory, in: .userDomainMask).first else {
+      throw NSError(
+        domain: NSCocoaErrorDomain,
+        code: NSFileNoSuchFileError,
+        userInfo: nil
+      )
+    }
+
+    let url = root.appendingPathComponent(name)
+
+    try FileManager.default.removeItem(at: url)
+  }
+
+  /// Creates a new image pipeline and removes the previous data cache.
+  ///
+  /// Removing the previous data cache will become unnecessary at some point.
   private static func makeImagePipeline() -> ImagePipeline {
     return ImagePipeline {
       $0.imageCache = ImageCache.shared
 
       let config = URLSessionConfiguration.default
+
       $0.dataLoader = DataLoader(configuration: config)
 
-      let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
+      do {
+        let name = "ink.codes.podest.images"
+        os_log("removing previous cache: %{public}@",
+               log: log, type: .info, name)
+        try removePreviousCache(name)
+      } catch {
+        os_log("no previous cache: %@", log: log, error.localizedDescription)
+      }
 
-      #warning("Remove dev code")
-      dataCache.removeAll()
+      let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
 
       $0.dataCache = dataCache
 
@@ -184,7 +209,6 @@ extension ImageRepository {
   /// Returns URL and/or cached response for placeholding.
   private func makePlaceholder(
     item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageResponse?) {
-    os_log("making placeholder: %@", log: log, type: .debug, item.title)
 
     guard let iTunes = item.iTunes else {
       os_log("aborting placeholding: iTunes object not found", log: log)
@@ -254,7 +278,9 @@ extension ImageRepository: Images {
            log: log, type: .info, url.lastPathComponent)
 
     var image: UIImage?
-    let req = ImageRequest(url: url, targetSize: size, contentMode: .aspectFill)
+
+    let id = FKImage.ID(url: url, size: size, isClean: true)
+    let req = ImageRepository.makeImageRequest(identifier: id)
     let blocker = DispatchSemaphore(value: 0)
 
     Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
@@ -292,8 +318,6 @@ extension ImageRepository: Images {
   ///
   /// The default processor adds rounded corners and a gray frame.
   private static func makeImageRequest(identifier id: FKImage.ID) -> ImageRequest {
-    os_log("making request: %@", log: log, type: .debug, String(describing: id))
-
     var req = ImageRequest(url: id.url, targetSize: id.size, contentMode: .aspectFill)
 
     // Preferring smaller images, assuming they are placeholders or lists.
@@ -315,11 +339,8 @@ extension ImageRepository: Images {
   }
 
   /// Scales `size` for`quality`.
-  private static func makeSize(
-    size: CGSize, quality: ImageQuality = .medium) -> CGSize {
-    os_log("making size: ( %@, %f )",
-           log: log, type: .debug, size as CVarArg, quality.rawValue)
-
+  private static
+  func makeSize(size: CGSize, quality: ImageQuality = .medium) -> CGSize {
     let q = quality.rawValue
     let w = size.width / q
     let h = size.height / q
@@ -372,7 +393,7 @@ extension ImageRepository: Images {
         failureImage: options.fallbackImage ?? imageView.image
       )
 
-      os_log("loading: %@", log: log, type: .debug, url.lastPathComponent)
+      os_log("loading: %@", log: log, type: .info, url.lastPathComponent)
 
       Nuke.loadImage(with: req, options: opts, into: imageView) {
         response, error in
@@ -466,7 +487,7 @@ extension ImageRepository {
   public func prefetchImages(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
-    os_log("prefetching: %i", log: log, type: .debug, items.count)
+    os_log("prefetching: %i", log: log, type: .info, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
     
@@ -476,7 +497,7 @@ extension ImageRepository {
   }
 
   public func cancel(prefetching requests: [ImageRequest]) {
-    os_log("cancelling prefetching", log: log, type: .debug)
+    os_log("cancelling prefetching", log: log, type: .info)
     preheater.stopPreheating(with: requests)
   }
 
