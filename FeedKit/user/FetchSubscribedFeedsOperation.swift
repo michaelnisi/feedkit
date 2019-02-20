@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+private let log = OSLog.disabled
 
 /// Synced data from iCloud might contain additional information, we don’t
 /// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of

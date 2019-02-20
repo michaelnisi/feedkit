@@ -55,10 +55,6 @@ public final class ImageRepository {
 
       let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
 
-      #warning("temporary code")
-      os_log("** removing all from cache", log: log)
-      dataCache.removeAll()
-
       $0.dataCache = dataCache
 
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
