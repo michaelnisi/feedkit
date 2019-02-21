@@ -11,7 +11,9 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+/// Local log object for monitoring cache hits. For these are mainly debug
+/// messages, disabling it before shipping makes sense.
+private let log = OSLog.disabled
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
