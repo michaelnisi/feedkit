@@ -95,11 +95,14 @@ public protocol Images {
   ///
   /// - Returns: The resulting image requests, these can be used to cancel
   /// this prefetching batch.
+  @discardableResult
   func prefetchImages(
-    for items: [Imaginable],
-    at size: CGSize,
-    quality: ImageQuality
+    for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest]
+
+  /// Cancels prefetching images for `items` at `size` of `quality`.
+  func cancelPrefetching(
+    for items: [Imaginable], at size: CGSize, quality: ImageQuality)
 
   /// Cancels prefetching `requests`.
   func cancel(prefetching requests: [ImageRequest])

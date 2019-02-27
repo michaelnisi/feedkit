@@ -11,9 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-/// Local log object for monitoring cache hits. For these are mainly debug
-/// messages, disabling it before shipping makes sense.
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -507,6 +505,15 @@ extension ImageRepository {
   public func cancel(prefetching requests: [ImageRequest]) {
     os_log("cancelling prefetching", log: log, type: .debug)
     preheater.stopPreheating(with: requests)
+  }
+
+  public func cancelPrefetching(
+    for items: [Imaginable], at size: CGSize, quality: ImageQuality) {
+    os_log("cancelling prefetching: %i", log: log, type: .debug, items.count)
+
+    let reqs = makeRequests(items: items, size: size, quality: quality)
+
+    preheater.stopPreheating(with: reqs)
   }
 
 }
