@@ -45,26 +45,26 @@ extension Queued: CustomDebugStringConvertible {
     switch self {
     case .temporary(let loc, let ts, let iTunes):
       return """
-      Queued.temporary {
-      locator: \(loc),
-      ts: \(ts),
-      iTunes: \(String(describing: iTunes))
-      }
+      Queued.temporary (
+        locator: \(loc),
+        ts: \(ts),
+        iTunes: \(String(describing: iTunes))
+      )
       """
     case .pinned(let loc, let ts, let iTunes):
       return """
-      Queued.pinned {
-      locator: \(loc),
-      ts: \(ts),
-      iTunes: \(String(describing: iTunes))
-      }
+      Queued.pinned (
+        locator: \(loc),
+        ts: \(ts),
+        iTunes: \(String(describing: iTunes))
+      )
       """
     case .previous(let loc, let ts):
       return """
-      Queued.previous {
-      locator: \(loc),
-      ts: \(ts)
-      }
+      Queued.previous (
+        locator: \(loc),
+        ts: \(ts)
+      )
       """
     }
   }
@@ -92,6 +92,8 @@ extension Queued: Hashable {
 }
 
 extension Queued {
+
+  /// Locates the entry of this queued item.
   public var entryLocator: EntryLocator {
     switch self {
     case .temporary(let loc, _, _),
@@ -99,6 +101,11 @@ extension Queued {
          .previous(let loc, _):
       return loc
     }
+  }
+
+  /// The identifier of a unique entry if the locator provides one.
+  public var guid: String? {
+    return entryLocator.guid
   }
 }
 

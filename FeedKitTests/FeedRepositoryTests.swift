@@ -146,7 +146,16 @@ extension FeedRepositoryTests {
       var found = [String]()
       var feedsBlockCount = 0
       
-      let wanted = urls
+      let wanted = [
+        "http://feed.thisamericanlife.org/talpodcast",
+        "https://www.npr.org/rss/podcast.php?id=510298",
+        "http://feeds.serialpodcast.org/serialpodcast",
+        "https://www.npr.org/rss/podcast.php?id=381444908",
+        "http://feeds.wnyc.org/radiolab",
+        "https://feeds.megaphone.fm/lore",
+        "http://feeds.feedburner.com/dancarlin/history",
+        "http://feeds.wnyc.org/newyorkerradiohour"
+      ]
       
       repo.feeds(urls, feedsBlock: { er, feeds in
         XCTAssertNil(er)
@@ -174,12 +183,10 @@ extension FeedRepositoryTests {
       let queue = OperationQueue()
       let repo: Browsing = FeedRepository(
         cache: zeroCache, svc: unavailable, queue:queue)
-      
       var found = [String]()
       var feedsBlockCount = 0
-      
+
       let wanted = urls
-      
       let exp = self.expectation(description: "falling back on cache")
       
       repo.feeds(urls, feedsBlock: { er, feeds in
@@ -277,9 +284,13 @@ extension FeedRepositoryTests {
       XCTAssertNil(er)
       XCTAssert(feeds.isEmpty)
     }) { er in
-      XCTAssertEqual(er as? FeedKitError, FeedKitError.cancelledByUser)
+      guard case .cancelledByUser = er as! FeedKitError else {
+        return XCTFail("should be cancelled")
+      }
+
       exp.fulfill()
     }
+
     op.cancel()
     self.waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
@@ -298,6 +309,7 @@ extension FeedRepositoryTests {
     repo.entries(locators, entriesBlock: { error, entries in
       XCTAssertNil(error)
       XCTAssertFalse(entries.isEmpty)
+
       found += entries
     }) { er in
       XCTAssertNil(er, "should succeed without error: \(String(describing: er))")
@@ -368,7 +380,10 @@ extension FeedRepositoryTests {
     let op = repo.entries(locators, entriesBlock: { er, entries in
       XCTFail("should not be applied")
     }) { er in
-      XCTAssertEqual(er as? FeedKitError , FeedKitError.cancelledByUser)
+      guard case .cancelledByUser = er as! FeedKitError else {
+        return XCTFail("should be cancelled")
+      }
+
       exp.fulfill()
     }
     op.cancel()
@@ -416,8 +431,13 @@ extension FeedRepositoryTests {
       var ok = false
       var found = [Entry]()
       
-      repo.entries(locators, entriesBlock: { er, entries in
-        XCTAssertNil(er)
+      repo.entries(locators, entriesBlock: { error, entries in
+        if let er = error as? FeedKitError {
+          guard case .missingEntries = er else {
+            return XCTFail("unexpected error")
+          }
+        }
+
         XCTAssertFalse(entries.isEmpty)
         DispatchQueue.main.async {
           ok = true
@@ -443,8 +463,9 @@ extension FeedRepositoryTests {
     do {
       var ok = false
       var found = [Entry]()
-      repo.entries(locators, entriesBlock: { er, entries in
-        XCTAssertNil(er)
+
+      repo.entries(locators, entriesBlock: { error, entries in
+        XCTAssertNil(error)
         XCTAssertFalse(entries.isEmpty)
         DispatchQueue.main.async {
           ok = true

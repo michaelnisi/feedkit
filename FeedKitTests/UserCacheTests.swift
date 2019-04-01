@@ -267,7 +267,7 @@ extension UserCacheTests {
       let wanted = someQueued
       try! cache.add(queued: wanted)
       let found = try! cache.queued()
-      XCTAssertEqual(found, wanted)
+      XCTAssertEqual(found.map { $0.guid }, wanted.map { $0.guid })
     }
     
     do {

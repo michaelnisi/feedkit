@@ -89,7 +89,6 @@ FeedURLsDependent, ProdvidingFeeds {
     os_log("%{public}@: requesting feeds: %{public}@",
            log: log, type: .debug, self, urls)
 
-    
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
     let cache = self.cache

@@ -59,7 +59,7 @@ public enum CacheTTL {
     case .short: return 3600
     case .medium: return 28800
     case .long: return 86400
-    case .forever: return Double.infinity
+    case .forever: return .infinity
     }
   }
 }
