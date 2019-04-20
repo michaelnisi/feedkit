@@ -6,16 +6,17 @@ FeedKit sits at the core of the [Podest](https://github.com/michaelnisi/podest) 
 
 ## Dependencies
 
-- [fanboy-kit](https://github.com/michaelnisi/fanboy-kit), Search podcasts via proxy
-- [manger-kit](https://github.com/michaelnisi/manger-kit), Request podcasts via proxy
-- [nuke](https://github.com/michaelnisi/nuke), A powerful image loading and caching system
-- [ola](https://github.com/michaelnisi/ola), Check reachability
-- [skull](https://github.com/michaelnisi/skull), Swift SQLite
+- [kean/Nuke](https://github.com/kean/Nuke), A powerful image loading and caching system
+- [michaelnisi/fanboy-kit](https://github.com/michaelnisi/fanboy-kit), Search podcasts via proxy
+- [michaelnisi/manger-kit](https://github.com/michaelnisi/manger-kit), Request podcasts via proxy
+- [michaelnisi/ola](https://github.com/michaelnisi/ola), Check reachability
+- [michaelnisi/skull](https://github.com/michaelnisi/skull), Swift SQLite
+- [pointfreeco/swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing), 📸 Delightful Swift snapshot testing
 
 ## Services
 
-- [fanboy-http](https://github.com/michaelnisi/fanboy-http), Search podcasts
-- [manger-http](https://github.com/michaelnisi/manger-http), Browse podcasts
+- [michaelnisi/fanboy-http](https://github.com/michaelnisi/fanboy-http), Search podcasts
+- [michaelnisi/manger-http](https://github.com/michaelnisi/manger-http), Browse podcasts
 
 ## Core
 
@@ -48,6 +49,10 @@ Access specific entries and ranges of entries with locators.
 ## User
 
 FeedKit manages feed subscriptions of a single user.
+
+## Documentation
+
+Want to know more? Browse the [docs](https://michaelnisi.github.io/feedkit/).
 
 ## Installation
 
