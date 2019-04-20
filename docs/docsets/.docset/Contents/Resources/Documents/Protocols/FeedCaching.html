@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>FeedCaching Protocol Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Protocol/FeedCaching" class="dashAnchor"></a>
+    <a title="FeedCaching Protocol Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html"> Docs</a> (52% documented)</p>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html"> Reference</a>
+        <img id="carat" src="../img/carat.png" />
+        FeedCaching Protocol Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/BrowseOperation.html">BrowseOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DateCache.html">DateCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EnqueueOperation.html">EnqueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EntriesOperation.html">EntriesOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedCache.html">FeedCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedKitOperation.html">FeedKitOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedRepository.html">FeedRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedsOperation.html">FeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchQueueOperation.html">FetchQueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchSubscribedFeedsOperation.html">FetchSubscribedFeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository.html">ImageRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository/ScaledWithRoundedCorners.html">– ScaledWithRoundedCorners</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter.html">LibrarySQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter/FeedOrigin.html">– FeedOrigin</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LocalCache.html">LocalCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/PrepareUpdateOperation.html">PrepareUpdateOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ReachHostOperation.html">ReachHostOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/RemoteRepository.html">RemoteRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SQLFormatter.html">SQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchOperation.html">SearchOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepoOperation.html">SearchRepoOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepository.html">SearchRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation.html">SessionTaskOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation/CachePolicy.html">– CachePolicy</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SuggestOperation.html">SuggestOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserCache.html">UserCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserLibrary.html">UserLibrary</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserSQLFormatter.html">UserSQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ValueObject.html">ValueObject</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/CacheTTL.html">CacheTTL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/EnclosureType.html">EnclosureType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/FeedKitError.html">FeedKitError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Find.html">Find</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ImageQuality.html">ImageQuality</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ProvidingError.html">ProvidingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueError.html">QueueError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Queued.html">Queued</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueuedOwner.html">QueuedOwner</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueingError.html">QueueingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Synced.html">Synced</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit10djb2Hash326strings5Int32VSS_tF">djb2Hash32(string:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit13lowercasedURL6stringSSSgSS_tF">lowercasedURL(string:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Protocols/Browsing.html">Browsing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Cachable.html">Cachable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Caching.html">Caching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/EntryQueueHost.html">EntryQueueHost</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedCaching.html">FeedCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedURLsDependent.html">FeedURLsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Images.html">Images</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Imaginable.html">Imaginable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LibraryDelegate.html">LibraryDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LocatorsDependent.html">LocatorsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProdvidingFeeds.html">ProdvidingFeeds</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Providing.html">Providing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingEntries.html">ProvidingEntries</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingFeedURLs.html">ProvidingFeedURLs</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingLocators.html">ProvidingLocators</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingReachability.html">ProvidingReachability</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueCaching.html">QueueCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueDelegate.html">QueueDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Queueing.html">Queueing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ReachabilityDependent.html">ReachabilityDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Receiving.html">Receiving</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Redirectable.html">Redirectable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SearchCaching.html">SearchCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Searching.html">Searching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Subscribing.html">Subscribing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SubscriptionCaching.html">SubscriptionCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Updating.html">Updating</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/UserCacheSyncing.html">UserCacheSyncing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols.html#/s:7FeedKit11UserCachingP">UserCaching</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/Enclosure.html">Enclosure</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Entry.html">Entry</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/EntryLocator.html">EntryLocator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FKImageLoadingOptions.html">FKImageLoadingOptions</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Feed.html">Feed</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FeedID.html">FeedID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/ITunesItem.html">ITunesItem</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Queue.html">Queue</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/RecordMetadata.html">RecordMetadata</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Subscription.html">Subscription</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Suggestion.html">Suggestion</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/serialize.html">serialize</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit9EntryGUIDa">EntryGUID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit12ImageRequesta">ImageRequest</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>FeedCaching</h1>
+              <div class="declaration">
+                <div class="language">
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">protocol</span> <span class="kt">FeedCaching</span></code></pre>
+
+                </div>
+              </div>
+            <p>A persistent cache for feeds and entries.</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP6update5feedsySayAA0A0VG_tKF"></a>
+                    <a name="//apple_ref/swift/Method/update(feeds:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP6update5feedsySayAA0A0VG_tKF">update(feeds:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Updates feeds in the cache, while new feeds are inserted.</p>
+
+<p>Before insertion, to avoid doublets, feeds with matching iTunes GUIDs are
+removed. These doublets may occure, after the feed URL has changed while
+the iTunes GUID stayed the same. Just inserting such a feed would result
+in a unique constraint failure in the database.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>Skull errors originating from SQLite.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">update</span><span class="p">(</span><span class="nv">feeds</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/Feed.html">Feed</a></span><span class="p">])</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>feeds</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The feeds to insert or update.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP5feedsySayAA0A0VGSaySSGKF"></a>
+                    <a name="//apple_ref/swift/Method/feeds(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP5feedsySayAA0A0VGSaySSGKF">feeds(_:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns feeds for <code>urls</code> or an empty array.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">feeds</span><span class="p">(</span><span class="n">_</span> <span class="nv">urls</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="kt"><a href="../Structs/Feed.html">Feed</a></span><span class="p">]</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP6update7entriesySayAA5EntryVG_tKF"></a>
+                    <a name="//apple_ref/swift/Method/update(entries:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP6update7entriesySayAA5EntryVG_tKF">update(entries:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Updates entries of cached feeds, adding new ones.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>You cannot update entries of feeds that are not cached yet,
+if you do, this method will throw <code>FeedKitError.feedNotCached</code>,
+containing the respective URLs.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">update</span><span class="p">(</span><span class="nv">entries</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/Entry.html">Entry</a></span><span class="p">])</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>entries</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An array of entries to be cached.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP7entries6withinSayAA5EntryVGSayAA0F7LocatorVG_tKF"></a>
+                    <a name="//apple_ref/swift/Method/entries(within:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP7entries6withinSayAA5EntryVGSayAA0F7LocatorVG_tKF">entries(within:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Retrieve entries within the specified locators.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">entries</span><span class="p">(</span><span class="n">within</span> <span class="nv">locators</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/EntryLocator.html">EntryLocator</a></span><span class="p">])</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="kt"><a href="../Structs/Entry.html">Entry</a></span><span class="p">]</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>locators</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An array of time intervals between now and the past.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The matching array of entries currently cached.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP7entriesySayAA5EntryVGSaySSGKF"></a>
+                    <a name="//apple_ref/swift/Method/entries(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP7entriesySayAA5EntryVGSaySSGKF">entries(_:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Selects entries with matching guids.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>Might throw database errors.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">entries</span><span class="p">(</span><span class="n">_</span> <span class="nv">guids</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="kt"><a href="../Structs/Entry.html">Entry</a></span><span class="p">]</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>guids</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An array of entry identifiers.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>An array of matching the specified guids entries.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP6removeyySaySSGKF"></a>
+                    <a name="//apple_ref/swift/Method/remove(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP6removeyySaySSGKF">remove(_:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Removes feeds and their entries.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">remove</span><span class="p">(</span><span class="n">_</span> <span class="nv">urls</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>urls</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The URL strings of the feeds to remove.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP13removeEntries8matchingySaySSG_tKF"></a>
+                    <a name="//apple_ref/swift/Method/removeEntries(matching:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP13removeEntries8matchingySaySSG_tKF">removeEntries(matching:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Removes entries matching <code>urls</code>, keeping the feeds.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">removeEntries</span><span class="p">(</span><span class="n">matching</span> <span class="nv">urls</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a></span><span class="p">])</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>urls</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The URLs owning the entries to remove.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP9integrate11iTunesItemsySayAA10ITunesItemVG_tKF"></a>
+                    <a name="//apple_ref/swift/Method/integrate(iTunesItems:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP9integrate11iTunesItemsySayAA10ITunesItemVG_tKF">integrate(iTunesItems:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Integrates <code>iTunesItems</code> metadata.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">integrate</span><span class="p">(</span><span class="nv">iTunesItems</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/ITunesItem.html">ITunesItem</a></span><span class="p">])</span> <span class="k">throws</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingP7fulfill_3ttlSayAA5EntryVG_SayAA0F7LocatorVGtAK_SdtKF"></a>
+                    <a name="//apple_ref/swift/Method/fulfill(_:ttl:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingP7fulfill_3ttlSayAA5EntryVG_SayAA0F7LocatorVGtAK_SdtKF">fulfill(_:ttl:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Queries the local <code>cache</code> for entries and returns a tuple of cached
+entries and unfullfilled entry <code>locators</code>, if any.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>Might throw database errors.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">fulfill</span><span class="p">(</span><span class="n">_</span> <span class="nv">locators</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Structs/EntryLocator.html">EntryLocator</a></span><span class="p">],</span> <span class="nv">ttl</span><span class="p">:</span> <span class="kt">TimeInterval</span><span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="p">([</span><span class="kt"><a href="../Structs/Entry.html">Entry</a></span><span class="p">],</span> <span class="p">[</span><span class="kt"><a href="../Structs/EntryLocator.html">EntryLocator</a></span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>locators</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The selection of entries to fetch.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>ttl</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The maximum age of entries to use.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A tuple of cached entries and URLs not satisfied by the cache.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/FeedCaching"></a>
+                <a name="//apple_ref/swift/Section/FeedCaching" class="dashAnchor"></a>
+                <a href="#/FeedCaching">
+                  <h3 class="section-name">FeedCaching</h3>
+                </a>
+              </div>
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingPAAE6latestyqd__Sayqd__GAA8CachableRd__lFZ"></a>
+                    <a name="//apple_ref/swift/Method/latest(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingPAAE6latestyqd__Sayqd__GAA8CachableRd__lFZ">latest(_:)</a>
+                    </code>
+                      <span class="declaration-note">
+                        Extension method
+                      </span>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Find and return the newest item in the specified array of cachable items.
+Attention: this intentionally crashes if you pass an empty items array or
+if one of the items doesn&rsquo;t bear a timestamp.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="n">latest</span><span class="o">&lt;</span><span class="kt">T</span><span class="o">&gt;</span><span class="p">(</span><span class="n">_</span> <span class="nv">items</span><span class="p">:</span> <span class="p">[</span><span class="kt">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">T</span> <span class="k">where</span> <span class="kt">T</span> <span class="p">:</span> <span class="kt"><a href="../Protocols/Cachable.html">Cachable</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>items</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The cachable items to iterate and compare.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The item with the latest timestamp.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingPAAE5stale_3ttlSb10Foundation4DateV_SdtFZ"></a>
+                    <a name="//apple_ref/swift/Method/stale(_:ttl:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingPAAE5stale_3ttlSb10Foundation4DateV_SdtFZ">stale(_:ttl:)</a>
+                    </code>
+                      <span class="declaration-note">
+                        Extension method
+                      </span>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns <code>true</code> if the specified timestamp is older than the specified time
+to live.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">stale</span><span class="p">(</span><span class="n">_</span> <span class="nv">ts</span><span class="p">:</span> <span class="kt">Date</span><span class="p">,</span> <span class="nv">ttl</span><span class="p">:</span> <span class="kt">TimeInterval</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Bool</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>ts</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The timestamp to check if it&rsquo;s older than the specified ttl.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>ttl</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The maximal age to allow.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p><code>true</code> if the timestamp is older than the maximal age.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit0A7CachingPAAE8subtract_4from4withSayqd__G_AGSaySSGSgtAG_AHSdtAA8CachableRd__lFZ"></a>
+                    <a name="//apple_ref/swift/Method/subtract(_:from:with:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit0A7CachingPAAE8subtract_4from4withSayqd__G_AGSaySSGSgtAG_AHSdtAA8CachableRd__lFZ">subtract(_:from:with:)</a>
+                    </code>
+                      <span class="declaration-note">
+                        Extension method
+                      </span>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Figures out which URLs still need to be consulted, after items have been
+received from the cache, respecting a maximal time cached items stay
+valid (ttl) before becoming stale.</p>
+
+<p>Stale items are also returned, because they might useful to fall back on,
+in case the resulting request to refresh them fails.</p>
+
+<p>Because <strong>entries don’t really get stale</strong>, this function collects and
+adds them to the cached items array. Other item types, like feeds, are
+checked for their age and put in the cached items or, respectively, the
+stale items array.</p>
+
+<p>URLs of stale items, as well as URLs not represented in <code>items</code>, get added
+to the URLs array. Finally the latest entry of each feed is checked for
+its age and, if stale, its feed URL is added to the needed URLs.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="n">subtract</span><span class="o">&lt;</span><span class="kt">T</span><span class="p">:</span> <span class="kt"><a href="../Protocols/Cachable.html">Cachable</a></span><span class="o">&gt;</span> <span class="p">(</span>
+  <span class="n">_</span> <span class="nv">items</span><span class="p">:</span> <span class="p">[</span><span class="kt">T</span><span class="p">],</span> <span class="n">from</span> <span class="nv">urls</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">],</span> <span class="n">with</span> <span class="nv">ttl</span><span class="p">:</span> <span class="kt">TimeInterval</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="p">([</span><span class="kt">T</span><span class="p">],</span> <span class="p">[</span><span class="kt">T</span><span class="p">],</span> <span class="p">[</span><span class="kt">String</span><span class="p">]?)</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>items</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An array of items from the cache.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>urls</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The originally requested URLs.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>ttl</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The maximal age of cached items before they’re stale.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A tuple of cached items, stale items, and URLs still needed.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-20)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.9.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</div>
+</html>

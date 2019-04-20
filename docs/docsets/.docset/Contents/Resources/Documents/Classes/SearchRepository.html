@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>SearchRepository Class Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Class/SearchRepository" class="dashAnchor"></a>
+    <a title="SearchRepository Class Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html"> Docs</a> (52% documented)</p>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html"> Reference</a>
+        <img id="carat" src="../img/carat.png" />
+        SearchRepository Class Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/BrowseOperation.html">BrowseOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DateCache.html">DateCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EnqueueOperation.html">EnqueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EntriesOperation.html">EntriesOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedCache.html">FeedCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedKitOperation.html">FeedKitOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedRepository.html">FeedRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedsOperation.html">FeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchQueueOperation.html">FetchQueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchSubscribedFeedsOperation.html">FetchSubscribedFeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository.html">ImageRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository/ScaledWithRoundedCorners.html">– ScaledWithRoundedCorners</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter.html">LibrarySQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter/FeedOrigin.html">– FeedOrigin</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LocalCache.html">LocalCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/PrepareUpdateOperation.html">PrepareUpdateOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ReachHostOperation.html">ReachHostOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/RemoteRepository.html">RemoteRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SQLFormatter.html">SQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchOperation.html">SearchOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepoOperation.html">SearchRepoOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepository.html">SearchRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation.html">SessionTaskOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation/CachePolicy.html">– CachePolicy</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SuggestOperation.html">SuggestOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserCache.html">UserCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserLibrary.html">UserLibrary</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserSQLFormatter.html">UserSQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ValueObject.html">ValueObject</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/CacheTTL.html">CacheTTL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/EnclosureType.html">EnclosureType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/FeedKitError.html">FeedKitError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Find.html">Find</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ImageQuality.html">ImageQuality</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ProvidingError.html">ProvidingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueError.html">QueueError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Queued.html">Queued</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueuedOwner.html">QueuedOwner</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueingError.html">QueueingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Synced.html">Synced</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit10djb2Hash326strings5Int32VSS_tF">djb2Hash32(string:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit13lowercasedURL6stringSSSgSS_tF">lowercasedURL(string:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Protocols/Browsing.html">Browsing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Cachable.html">Cachable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Caching.html">Caching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/EntryQueueHost.html">EntryQueueHost</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedCaching.html">FeedCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedURLsDependent.html">FeedURLsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Images.html">Images</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Imaginable.html">Imaginable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LibraryDelegate.html">LibraryDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LocatorsDependent.html">LocatorsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProdvidingFeeds.html">ProdvidingFeeds</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Providing.html">Providing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingEntries.html">ProvidingEntries</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingFeedURLs.html">ProvidingFeedURLs</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingLocators.html">ProvidingLocators</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingReachability.html">ProvidingReachability</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueCaching.html">QueueCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueDelegate.html">QueueDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Queueing.html">Queueing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ReachabilityDependent.html">ReachabilityDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Receiving.html">Receiving</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Redirectable.html">Redirectable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SearchCaching.html">SearchCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Searching.html">Searching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Subscribing.html">Subscribing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SubscriptionCaching.html">SubscriptionCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Updating.html">Updating</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/UserCacheSyncing.html">UserCacheSyncing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols.html#/s:7FeedKit11UserCachingP">UserCaching</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/Enclosure.html">Enclosure</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Entry.html">Entry</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/EntryLocator.html">EntryLocator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FKImageLoadingOptions.html">FKImageLoadingOptions</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Feed.html">Feed</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FeedID.html">FeedID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/ITunesItem.html">ITunesItem</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Queue.html">Queue</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/RecordMetadata.html">RecordMetadata</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Subscription.html">Subscription</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Suggestion.html">Suggestion</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/serialize.html">serialize</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit9EntryGUIDa">EntryGUID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit12ImageRequesta">ImageRequest</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>SearchRepository</h1>
+              <div class="declaration">
+                <div class="language">
+                  <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="kt">SearchRepository</span> <span class="p">:</span> <span class="kt"><a href="../Classes/RemoteRepository.html">RemoteRepository</a></span><span class="p">,</span> <span class="kt"><a href="../Protocols/Searching.html">Searching</a></span></code></pre>
+
+                </div>
+              </div>
+            <p>The search repository provides a search API orchestrating remote services
+and persistent caching.</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16SearchRepositoryC5cacheAA0C7Caching_pvp"></a>
+                    <a name="//apple_ref/swift/Property/cache" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16SearchRepositoryC5cacheAA0C7Caching_pvp">cache</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">let</span> <span class="nv">cache</span><span class="p">:</span> <span class="kt"><a href="../Protocols/SearchCaching.html">SearchCaching</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16SearchRepositoryC3svc06FanboyB00F7Service_pvp"></a>
+                    <a name="//apple_ref/swift/Property/svc" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16SearchRepositoryC3svc06FanboyB00F7Service_pvp">svc</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">let</span> <span class="nv">svc</span><span class="p">:</span> <span class="kt">FanboyService</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16SearchRepositoryC7browserAA8Browsing_pvp"></a>
+                    <a name="//apple_ref/swift/Property/browser" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16SearchRepositoryC7browserAA8Browsing_pvp">browser</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="k">let</span> <span class="nv">browser</span><span class="p">:</span> <span class="kt"><a href="../Protocols/Browsing.html">Browsing</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16SearchRepositoryC5cache3svc7browser5queueAcA0C7Caching_p_06FanboyB00J7Service_pAA8Browsing_pSo16NSOperationQueueCtcfc"></a>
+                    <a name="//apple_ref/swift/Method/init(cache:svc:browser:queue:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16SearchRepositoryC5cache3svc7browser5queueAcA0C7Caching_p_06FanboyB00J7Service_pAA8Browsing_pSo16NSOperationQueueCtcfc">init(cache:svc:browser:queue:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Initializes and returns a new search repository object.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="nf">init</span><span class="p">(</span>
+  <span class="nv">cache</span><span class="p">:</span> <span class="kt"><a href="../Protocols/SearchCaching.html">SearchCaching</a></span><span class="p">,</span>
+  <span class="nv">svc</span><span class="p">:</span> <span class="kt">FanboyService</span><span class="p">,</span>
+  <span class="nv">browser</span><span class="p">:</span> <span class="kt"><a href="../Protocols/Browsing.html">Browsing</a></span><span class="p">,</span>
+  <span class="nv">queue</span><span class="p">:</span> <span class="kt">OperationQueue</span>
+<span class="p">)</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>cache</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The search cache.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>svc</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The fanboy service to handle remote queries.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>browser</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The browser to fetch feeds.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>queue</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An operation queue to run the search operations.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9SearchingP6search_17perFindGroupBlock0d10CompletionH0So11NSOperationCSS_ys5Error_pSg_SayAA0F0OGtcSgyAJcSgtF"></a>
+                    <a name="//apple_ref/swift/Method/search(_:perFindGroupBlock:searchCompletionBlock:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9SearchingP6search_17perFindGroupBlock0d10CompletionH0So11NSOperationCSS_ys5Error_pSg_SayAA0F0OGtcSgyAJcSgtF">search(_:perFindGroupBlock:searchCompletionBlock:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">search</span><span class="p">(</span>
+  <span class="n">_</span> <span class="nv">term</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+  <span class="nv">perFindGroupBlock</span><span class="p">:</span> <span class="p">((</span><span class="kt">Error</span><span class="p">?,</span> <span class="p">[</span><span class="kt"><a href="../Enums/Find.html">Find</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?,</span>
+  <span class="nv">searchCompletionBlock</span><span class="p">:</span> <span class="p">((</span><span class="kt">Error</span><span class="p">?)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Operation</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9SearchingP7suggest_17perFindGroupBlock0d10CompletionH0So11NSOperationCSS_ys5Error_pSg_SayAA0F0OGtcSgyAJcSgtF"></a>
+                    <a name="//apple_ref/swift/Method/suggest(_:perFindGroupBlock:suggestCompletionBlock:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9SearchingP7suggest_17perFindGroupBlock0d10CompletionH0So11NSOperationCSS_ys5Error_pSg_SayAA0F0OGtcSgyAJcSgtF">suggest(_:perFindGroupBlock:suggestCompletionBlock:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">func</span> <span class="nf">suggest</span><span class="p">(</span>
+  <span class="n">_</span> <span class="nv">term</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+  <span class="nv">perFindGroupBlock</span><span class="p">:</span> <span class="p">((</span><span class="kt">Error</span><span class="p">?,</span> <span class="p">[</span><span class="kt"><a href="../Enums/Find.html">Find</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?,</span>
+  <span class="nv">suggestCompletionBlock</span><span class="p">:</span> <span class="p">((</span><span class="kt">Error</span><span class="p">?)</span> <span class="o">-&gt;</span> <span class="kt">Void</span><span class="p">)?</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Operation</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-20)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.9.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</div>
+</html>

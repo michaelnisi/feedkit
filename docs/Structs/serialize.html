@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>serialize Structure Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Struct/serialize" class="dashAnchor"></a>
+    <a title="serialize Structure Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html"> Docs</a> (52% documented)</p>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html"> Reference</a>
+        <img id="carat" src="../img/carat.png" />
+        serialize Structure Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/BrowseOperation.html">BrowseOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DateCache.html">DateCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EnqueueOperation.html">EnqueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EntriesOperation.html">EntriesOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedCache.html">FeedCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedKitOperation.html">FeedKitOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedRepository.html">FeedRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedsOperation.html">FeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchQueueOperation.html">FetchQueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchSubscribedFeedsOperation.html">FetchSubscribedFeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository.html">ImageRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository/ScaledWithRoundedCorners.html">– ScaledWithRoundedCorners</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter.html">LibrarySQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter/FeedOrigin.html">– FeedOrigin</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LocalCache.html">LocalCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/PrepareUpdateOperation.html">PrepareUpdateOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ReachHostOperation.html">ReachHostOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/RemoteRepository.html">RemoteRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SQLFormatter.html">SQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchOperation.html">SearchOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepoOperation.html">SearchRepoOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepository.html">SearchRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation.html">SessionTaskOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation/CachePolicy.html">– CachePolicy</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SuggestOperation.html">SuggestOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserCache.html">UserCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserLibrary.html">UserLibrary</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserSQLFormatter.html">UserSQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ValueObject.html">ValueObject</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/CacheTTL.html">CacheTTL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/EnclosureType.html">EnclosureType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/FeedKitError.html">FeedKitError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Find.html">Find</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ImageQuality.html">ImageQuality</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ProvidingError.html">ProvidingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueError.html">QueueError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Queued.html">Queued</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueuedOwner.html">QueuedOwner</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueingError.html">QueueingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Synced.html">Synced</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit10djb2Hash326strings5Int32VSS_tF">djb2Hash32(string:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit13lowercasedURL6stringSSSgSS_tF">lowercasedURL(string:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Protocols/Browsing.html">Browsing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Cachable.html">Cachable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Caching.html">Caching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/EntryQueueHost.html">EntryQueueHost</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedCaching.html">FeedCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedURLsDependent.html">FeedURLsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Images.html">Images</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Imaginable.html">Imaginable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LibraryDelegate.html">LibraryDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LocatorsDependent.html">LocatorsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProdvidingFeeds.html">ProdvidingFeeds</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Providing.html">Providing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingEntries.html">ProvidingEntries</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingFeedURLs.html">ProvidingFeedURLs</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingLocators.html">ProvidingLocators</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingReachability.html">ProvidingReachability</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueCaching.html">QueueCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueDelegate.html">QueueDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Queueing.html">Queueing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ReachabilityDependent.html">ReachabilityDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Receiving.html">Receiving</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Redirectable.html">Redirectable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SearchCaching.html">SearchCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Searching.html">Searching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Subscribing.html">Subscribing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SubscriptionCaching.html">SubscriptionCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Updating.html">Updating</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/UserCacheSyncing.html">UserCacheSyncing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols.html#/s:7FeedKit11UserCachingP">UserCaching</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/Enclosure.html">Enclosure</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Entry.html">Entry</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/EntryLocator.html">EntryLocator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FKImageLoadingOptions.html">FKImageLoadingOptions</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Feed.html">Feed</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FeedID.html">FeedID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/ITunesItem.html">ITunesItem</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Queue.html">Queue</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/RecordMetadata.html">RecordMetadata</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Subscription.html">Subscription</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Suggestion.html">Suggestion</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/serialize.html">serialize</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit9EntryGUIDa">EntryGUID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit12ImageRequesta">ImageRequest</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>serialize</h1>
+              <div class="declaration">
+                <div class="language">
+                  <pre class="highlight swift"><code><span class="kd">struct</span> <span class="n">serialize</span></code></pre>
+
+                </div>
+              </div>
+            <p>A collection of serialization functions.</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV18timeIntervalFromJSySdSo8NSNumberCFZ"></a>
+                    <a name="//apple_ref/swift/Method/timeIntervalFromJS(_:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV18timeIntervalFromJSySdSo8NSNumberCFZ">timeIntervalFromJS(_:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create Cocoa time interval from JavaScript time.</p>
+
+<p>As <code>NSJSONSerialization</code> returns Foundation objects, the input for this needs
+to be <code>NSNumber</code>, especially to ensure we are OK on 32 bit as well.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">timeIntervalFromJS</span><span class="p">(</span><span class="n">_</span> <span class="nv">value</span><span class="p">:</span> <span class="kt">NSNumber</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">TimeInterval</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>value</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>A timestamp from JSON in milliseconds.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The respective time interval (in seconds):</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV14makeITunesItem3url7payloadAA0eF0VSgSS_SDySSypGtFZ"></a>
+                    <a name="//apple_ref/swift/Method/makeITunesItem(url:payload:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV14makeITunesItem3url7payloadAA0eF0VSgSS_SDySSypGtFZ">makeITunesItem(url:payload:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an iTunes item from a JSON <code>payload</code> for the feed at <code>url</code>. All
+properties: guid, img100, img30, img60, and img600 must be present.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">makeITunesItem</span><span class="p">(</span><span class="nv">url</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a></span><span class="p">,</span> <span class="nv">payload</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/ITunesItem.html">ITunesItem</a></span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV9watershedSdvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/watershed" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV9watershedSdvpZ">watershed</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Arbitrary date watershed, 1990-01-01 00:00:00 +0000.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">watershed</span><span class="p">:</span> <span class="kt">TimeInterval</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV4date4from6forKey5newer10Foundation4DateVSgSDySSypG_SSSdtFZ"></a>
+                    <a name="//apple_ref/swift/Method/date(from:forKey:newer:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV4date4from6forKey5newer10Foundation4DateVSgSDySSypG_SSSdtFZ">date(from:forKey:newer:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create and return a foundation date from a universal timestamp in
+milliseconds, contained in a a dictionary, matching a specified key. If the
+dictionary does not contain a value for the key or the value cannot be used
+to create a date <code>nil</code> is returned.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">date</span><span class="p">(</span>
+  <span class="n">from</span> <span class="nv">dictionary</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">],</span>
+  <span class="n">forKey</span> <span class="nv">key</span><span class="p">:</span> <span class="kt">String</span><span class="p">,</span>
+  <span class="n">newer</span> <span class="nv">ts</span><span class="p">:</span> <span class="kt">TimeInterval</span> <span class="o">=</span> <span class="n">serialize</span><span class="o">.</span><span class="n"><a href="../Structs/serialize.html#/s:7FeedKit9serializeV9watershedSdvpZ">watershed</a></span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">Date</span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>dictionary</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The dictionary to look at.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>key</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The key of a potential UTC timestamp in milliseconds.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>ts</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The oldest valid date.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The date or <code>nil</code>.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV4feed4fromAA0A0VSDySSypG_tKFZ"></a>
+                    <a name="//apple_ref/swift/Method/feed(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV4feed4fromAA0A0VSDySSypG_tKFZ">feed(from:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Tries to create and return a feed from the specified dictionary.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>If the required properties are missing or invalid this throws
+<code><a href="../Enums/FeedKitError.html#/s:7FeedKit0aB5ErrorO07invalidA0yACSS_tcACmF">FeedKitError.invalidFeed(reason:)</a></code>.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">feed</span><span class="p">(</span><span class="n">from</span> <span class="nv">json</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">])</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/Feed.html">Feed</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>json</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The JSON dictionary to use.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The resulting feed object from the payload.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV5feeds4fromSays5Error_pG_SayAA0A0VGtSaySDySSypGG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/feeds(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV5feeds4fromSays5Error_pG_SayAA0A0VGtSaySDySSypGG_tFZ">feeds(from:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an array of feeds from a JSON payload.</p>
+
+<p>It should be noted, relying on our service written by ourselves, there
+shouldn&rsquo;t be any errors, handling these should be a mere safety measure for
+more transparent debugging. Doublets are filtered out and reported.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>Doesn&rsquo;t throw but collects its errors and returns them in the
+result tuple alongside the feeds.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">feeds</span><span class="p">(</span><span class="n">from</span> <span class="nv">dicts</span><span class="p">:</span> <span class="p">[[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="p">([</span><span class="kt">Error</span><span class="p">],</span> <span class="p">[</span><span class="kt"><a href="../Structs/Feed.html">Feed</a></span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>dicts</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>A JSON array of dictionaries to serialize.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A tuple of errors and feeds.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV9enclosure4fromAA9EnclosureVSgSDySSypG_tKFZ"></a>
+                    <a name="//apple_ref/swift/Method/enclosure(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV9enclosure4fromAA9EnclosureVSgSDySSypG_tKFZ">enclosure(from:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an enclosure from a JSON payload.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">enclosure</span><span class="p">(</span><span class="n">from</span> <span class="nv">json</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">])</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/Enclosure.html">Enclosure</a></span><span class="p">?</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV5entry4from7podcastAA5EntryVSDySSypG_SbtKFZ"></a>
+                    <a name="//apple_ref/swift/Method/entry(from:podcast:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV5entry4from7podcastAA5EntryVSDySSypG_SbtKFZ">entry(from:podcast:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Tries to create and return an entry from the specified dictionary.</p>
+
+<p>To create a valid entry feed, title, and id are required. Also the updated
+timestamp is relevant, but if this isn&rsquo;t present, its value will be set to
+zero (1970-01-01 00:00:00 UTC).</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>Might throw <code>FeedKitError.InvalidEntry</code> if <code>&quot;feed&quot;</code>, <code>&quot;title&quot;</code>, or
+<code>&quot;id&quot;</code> are missing from the dictionary. If enclosure is required, <code>podcast</code>
+is <code>true</code>, and not present, also invalid entry is thrown.</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">entry</span><span class="p">(</span><span class="n">from</span> <span class="nv">json</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">],</span> <span class="nv">podcast</span><span class="p">:</span> <span class="kt">Bool</span> <span class="o">=</span> <span class="kc">true</span><span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/Entry.html">Entry</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>json</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The JSON dictionary to serialize.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>podcast</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>Flag that having an enclosure is required.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>The valid entry.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit9serializeV7entries4from7podcastSays5Error_pG_SayAA5EntryVGtSaySDySSypGG_SbtFZ"></a>
+                    <a name="//apple_ref/swift/Method/entries(from:podcast:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit9serializeV7entries4from7podcastSays5Error_pG_SayAA5EntryVGtSaySDySSypGG_SbtFZ">entries(from:podcast:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Create an array of entries from a JSON payload.</p>
+<div class="aside aside-throws">
+    <p class="aside-title">Throws</p>
+    <p>This function doesn&rsquo;t throw because it collects the entries it
+successfully serialized and returns them, additionally it also collects
+the occuring errors and returns them too. May its user act wisely!</p>
+
+</div>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="nf">entries</span><span class="p">(</span><span class="n">from</span> <span class="nv">dicts</span><span class="p">:</span> <span class="p">[[</span><span class="kt">String</span> <span class="p">:</span> <span class="kt">Any</span><span class="p">]],</span> <span class="nv">podcast</span><span class="p">:</span> <span class="kt">Bool</span> <span class="o">=</span> <span class="kc">true</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">([</span><span class="kt">Error</span><span class="p">],</span> <span class="p">[</span><span class="kt"><a href="../Structs/Entry.html">Entry</a></span><span class="p">])</span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>dicts</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>An array of—presumably—entry dictionaries.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>podcast</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>A flag to require an enclosure for each entry.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div>
+                        <h4>Return Value</h4>
+                        <p>A tuple containing errors and entries.</p>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-20)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.9.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</div>
+</html>

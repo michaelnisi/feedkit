@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>UserSQLFormatter Class Reference</title>
+    <link rel="stylesheet" type="text/css" href="../css/jazzy.css" />
+    <link rel="stylesheet" type="text/css" href="../css/highlight.css" />
+    <meta charset='utf-8'>
+    <script src="../js/jquery.min.js" defer></script>
+    <script src="../js/jazzy.js" defer></script>
+    
+  </head>
+  <body>
+    <a name="//apple_ref/swift/Class/UserSQLFormatter" class="dashAnchor"></a>
+    <a title="UserSQLFormatter Class Reference"></a>
+    <header>
+      <div class="content-wrapper">
+        <p><a href="../index.html"> Docs</a> (52% documented)</p>
+      </div>
+    </header>
+    <div class="content-wrapper">
+      <p id="breadcrumbs">
+        <a href="../index.html"> Reference</a>
+        <img id="carat" src="../img/carat.png" />
+        UserSQLFormatter Class Reference
+      </p>
+    </div>
+    <div class="content-wrapper">
+      <nav class="sidebar">
+        <ul class="nav-groups">
+          <li class="nav-group-name">
+            <a href="../Classes.html">Classes</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Classes/BrowseOperation.html">BrowseOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/DateCache.html">DateCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EnqueueOperation.html">EnqueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/EntriesOperation.html">EntriesOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedCache.html">FeedCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedKitOperation.html">FeedKitOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedRepository.html">FeedRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FeedsOperation.html">FeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchQueueOperation.html">FetchQueueOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/FetchSubscribedFeedsOperation.html">FetchSubscribedFeedsOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository.html">ImageRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ImageRepository/ScaledWithRoundedCorners.html">– ScaledWithRoundedCorners</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter.html">LibrarySQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LibrarySQLFormatter/FeedOrigin.html">– FeedOrigin</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/LocalCache.html">LocalCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/PrepareUpdateOperation.html">PrepareUpdateOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ReachHostOperation.html">ReachHostOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/RemoteRepository.html">RemoteRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SQLFormatter.html">SQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchOperation.html">SearchOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepoOperation.html">SearchRepoOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SearchRepository.html">SearchRepository</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation.html">SessionTaskOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SessionTaskOperation/CachePolicy.html">– CachePolicy</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/SuggestOperation.html">SuggestOperation</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserCache.html">UserCache</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserLibrary.html">UserLibrary</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/UserSQLFormatter.html">UserSQLFormatter</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Classes/ValueObject.html">ValueObject</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Enums.html">Enumerations</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Enums/CacheTTL.html">CacheTTL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/EnclosureType.html">EnclosureType</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/FeedKitError.html">FeedKitError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Find.html">Find</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ImageQuality.html">ImageQuality</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/ProvidingError.html">ProvidingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueError.html">QueueError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Queued.html">Queued</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueuedOwner.html">QueuedOwner</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/QueueingError.html">QueueingError</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Enums/Synced.html">Synced</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Functions.html">Functions</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit10djb2Hash326strings5Int32VSS_tF">djb2Hash32(string:)</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Functions.html#/s:7FeedKit13lowercasedURL6stringSSSgSS_tF">lowercasedURL(string:)</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Protocols.html">Protocols</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Protocols/Browsing.html">Browsing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Cachable.html">Cachable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Caching.html">Caching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/EntryQueueHost.html">EntryQueueHost</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedCaching.html">FeedCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/FeedURLsDependent.html">FeedURLsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Images.html">Images</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Imaginable.html">Imaginable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LibraryDelegate.html">LibraryDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/LocatorsDependent.html">LocatorsDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProdvidingFeeds.html">ProdvidingFeeds</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Providing.html">Providing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingEntries.html">ProvidingEntries</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingFeedURLs.html">ProvidingFeedURLs</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingLocators.html">ProvidingLocators</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ProvidingReachability.html">ProvidingReachability</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueCaching.html">QueueCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/QueueDelegate.html">QueueDelegate</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Queueing.html">Queueing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/ReachabilityDependent.html">ReachabilityDependent</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Receiving.html">Receiving</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Redirectable.html">Redirectable</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SearchCaching.html">SearchCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Searching.html">Searching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Subscribing.html">Subscribing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/SubscriptionCaching.html">SubscriptionCaching</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/Updating.html">Updating</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols/UserCacheSyncing.html">UserCacheSyncing</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Protocols.html#/s:7FeedKit11UserCachingP">UserCaching</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Structs.html">Structures</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Structs/Enclosure.html">Enclosure</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Entry.html">Entry</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/EntryLocator.html">EntryLocator</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FKImageLoadingOptions.html">FKImageLoadingOptions</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Feed.html">Feed</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/FeedID.html">FeedID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/ITunesItem.html">ITunesItem</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Queue.html">Queue</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/RecordMetadata.html">RecordMetadata</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Subscription.html">Subscription</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/Suggestion.html">Suggestion</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Structs/serialize.html">serialize</a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-group-name">
+            <a href="../Typealiases.html">Type Aliases</a>
+            <ul class="nav-group-tasks">
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit9EntryGUIDa">EntryGUID</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a>
+              </li>
+              <li class="nav-group-task">
+                <a href="../Typealiases.html#/s:7FeedKit12ImageRequesta">ImageRequest</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+      <article class="main-content">
+        <section>
+          <section class="section">
+            <h1>UserSQLFormatter</h1>
+              <div class="declaration">
+                <div class="language">
+                  <pre class="highlight swift"><code><span class="kd">final</span> <span class="kd">class</span> <span class="kt">UserSQLFormatter</span> <span class="p">:</span> <span class="kt"><a href="../Classes/SQLFormatter.html">SQLFormatter</a></span></code></pre>
+
+                </div>
+              </div>
+            <p>Undocumented</p>
+
+          </section>
+          <section class="section task-group-section">
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Queueing"></a>
+                <a name="//apple_ref/swift/Section/Queueing" class="dashAnchor"></a>
+                <a href="#/Queueing">
+                  <h3 class="section-name">Queueing</h3>
+                </a>
+              </div>
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC24SQLToSelectStalePreviousSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectStalePrevious" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC24SQLToSelectStalePreviousSSvpZ">SQLToSelectStalePrevious</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectStalePrevious</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC20SQLToSelectAllLatestSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectAllLatest" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC20SQLToSelectAllLatestSSvpZ">SQLToSelectAllLatest</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectAllLatest</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC20SQLToSelectAllQueuedSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectAllQueued" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC20SQLToSelectAllQueuedSSvpZ">SQLToSelectAllQueued</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectAllQueued</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC22SQLToSelectAllPreviousSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectAllPrevious" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC22SQLToSelectAllPreviousSSvpZ">SQLToSelectAllPrevious</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectAllPrevious</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC14SQLToTrimQueueSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToTrimQueue" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC14SQLToTrimQueueSSvpZ">SQLToTrimQueue</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToTrimQueue</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC20SQLToDeleteFromEntry5whereSSSaySSG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDeleteFromEntry(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC20SQLToDeleteFromEntry5whereSSSaySSG_tFZ">SQLToDeleteFromEntry(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDeleteFromEntry</span><span class="p">(</span><span class="k">where</span> <span class="nv">guids</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC17SQLToSelectQueued5whereS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToSelectQueued(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC17SQLToSelectQueued5whereS2S_tFZ">SQLToSelectQueued(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToSelectQueued</span><span class="p">(</span><span class="k">where</span> <span class="nv">guid</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC17SQLToDeleteQueued4feedS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDeleteQueued(feed:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC17SQLToDeleteQueued4feedS2S_tFZ">SQLToDeleteQueued(feed:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDeleteQueued</span><span class="p">(</span><span class="n">feed</span> <span class="nv">url</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC30SQLToSelectEntryGUIDFromQueued5whereS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToSelectEntryGUIDFromQueued(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC30SQLToSelectEntryGUIDFromQueued5whereS2S_tFZ">SQLToSelectEntryGUIDFromQueued(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToSelectEntryGUIDFromQueued</span><span class="p">(</span><span class="k">where</span> <span class="nv">guid</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC32SQLToSelectEntryGUIDFromPrevious5whereS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToSelectEntryGUIDFromPrevious(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC32SQLToSelectEntryGUIDFromPrevious5whereS2S_tFZ">SQLToSelectEntryGUIDFromPrevious(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToSelectEntryGUIDFromPrevious</span><span class="p">(</span><span class="k">where</span> <span class="nv">guid</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC23SQLToDeleteFromPrevious5whereSSSaySSG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDeleteFromPrevious(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC23SQLToDeleteFromPrevious5whereSSSaySSG_tFZ">SQLToDeleteFromPrevious(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDeleteFromPrevious</span><span class="p">(</span><span class="k">where</span> <span class="nv">guids</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12SQLToUnqueue5guidsSSSaySSG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToUnqueue(guids:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12SQLToUnqueue5guidsSSSaySSG_tFZ">SQLToUnqueue(guids:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToUnqueue</span><span class="p">(</span><span class="nv">guids</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12SQLToReplace6queuedSSAA6QueuedO_tKF"></a>
+                    <a name="//apple_ref/swift/Method/SQLToReplace(queued:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12SQLToReplace6queuedSSAA6QueuedO_tKF">SQLToReplace(queued:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="kt">SQLToReplace</span><span class="p">(</span><span class="nv">queued</span><span class="p">:</span> <span class="kt"><a href="../Enums/Queued.html">Queued</a></span><span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12entryLocator4fromAA05EntryF0VSDySSypG_tF"></a>
+                    <a name="//apple_ref/swift/Method/entryLocator(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12entryLocator4fromAA05EntryF0VSDySSypG_tF">entryLocator(from:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">entryLocator</span><span class="p">(</span><span class="n">from</span> <span class="nv">row</span><span class="p">:</span> <span class="kt">SkullRow</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/EntryLocator.html">EntryLocator</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC6queued4from5beingAA6QueuedOSDySSypG_SbtF"></a>
+                    <a name="//apple_ref/swift/Method/queued(from:being:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC6queued4from5beingAA6QueuedOSDySSypG_SbtF">queued(from:being:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns a queued item produced from a database <code>row</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">queued</span><span class="p">(</span><span class="n">from</span> <span class="nv">row</span><span class="p">:</span> <span class="kt">SkullRow</span><span class="p">,</span> <span class="n">being</span> <span class="nv">removed</span><span class="p">:</span> <span class="kt">Bool</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Enums/Queued.html">Queued</a></span></code></pre>
+
+                        </div>
+                      </div>
+                      <div>
+                        <h4>Parameters</h4>
+                        <table class="graybox">
+                          <tbody>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>row</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p>The database row providing values for the item to produce.</p>
+                                </div>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <code>
+                                <em>removed</em>
+                                </code>
+                              </td>
+                              <td>
+                                <div>
+                                  <p><code>true</code> to produce a <code>Queued.previous</code> item.</p>
+                                </div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Subscribing"></a>
+                <a name="//apple_ref/swift/Section/Subscribing" class="dashAnchor"></a>
+                <a href="#/Subscribing">
+                  <h3 class="section-name">Subscribing</h3>
+                </a>
+              </div>
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC24SQLToSelectSubscriptionsSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectSubscriptions" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC24SQLToSelectSubscriptionsSSvpZ">SQLToSelectSubscriptions</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>The SQL to fetch all feed subscriptions.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectSubscriptions</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC017SQLToSelectZombieA4URLsSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectZombieFeedURLs" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC017SQLToSelectZombieA4URLsSSvpZ">SQLToSelectZombieFeedURLs</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>SQL to select URLs of unrelated feeds that can safely be deleted.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectZombieFeedURLs</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC23SQLToSelectSubscription5whereS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToSelectSubscription(where:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC23SQLToSelectSubscription5whereS2S_tFZ">SQLToSelectSubscription(where:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToSelectSubscription</span><span class="p">(</span><span class="k">where</span> <span class="nv">url</span><span class="p">:</span> <span class="kt"><a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12SQLToReplace12subscriptionSSAA12SubscriptionV_tF"></a>
+                    <a name="//apple_ref/swift/Method/SQLToReplace(subscription:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12SQLToReplace12subscriptionSSAA12SubscriptionV_tF">SQLToReplace(subscription:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns SQL to replace <code>subscription</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="kt">SQLToReplace</span><span class="p">(</span><span class="nv">subscription</span><span class="p">:</span> <span class="kt"><a href="../Structs/Subscription.html">Subscription</a></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC11SQLToDelete10subscribedSSSaySSG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDelete(subscribed:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC11SQLToDelete10subscribedSSSaySSG_tFZ">SQLToDelete(subscribed:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns SQL to delete subscriptions for <code>urls</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDelete</span><span class="p">(</span><span class="n">subscribed</span> <span class="nv">urls</span><span class="p">:</span> <span class="p">[</span><span class="kt"><a href="../Typealiases.html#/s:7FeedKit0A3URLa">FeedURL</a></span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12subscription4fromAA12SubscriptionVSDySSypG_tF"></a>
+                    <a name="//apple_ref/swift/Method/subscription(from:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12subscription4fromAA12SubscriptionVSDySSypG_tF">subscription(from:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="nf">subscription</span><span class="p">(</span><span class="n">from</span> <span class="nv">row</span><span class="p">:</span> <span class="kt">SkullRow</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt"><a href="../Structs/Subscription.html">Subscription</a></span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="task-group">
+              <div class="task-name-container">
+                <a name="/Syncing"></a>
+                <a name="//apple_ref/swift/Section/Syncing" class="dashAnchor"></a>
+                <a href="#/Syncing">
+                  <h3 class="section-name">Syncing</h3>
+                </a>
+              </div>
+              <ul>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC25SQLToDeleteFromSubscribedSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToDeleteFromSubscribed" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC25SQLToDeleteFromSubscribedSSvpZ">SQLToDeleteFromSubscribed</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">SQLToDeleteFromSubscribed</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC26SQLToDeleteFromQueuedEntrySSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToDeleteFromQueuedEntry" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC26SQLToDeleteFromQueuedEntrySSvpZ">SQLToDeleteFromQueuedEntry</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">SQLToDeleteFromQueuedEntry</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC24SQLToDeleteFromPrevEntrySSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToDeleteFromPrevEntry" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC24SQLToDeleteFromPrevEntrySSvpZ">SQLToDeleteFromPrevEntry</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">SQLToDeleteFromPrevEntry</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC14SQLToDeleteAllSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToDeleteAll" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC14SQLToDeleteAllSSvpZ">SQLToDeleteAll</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">SQLToDeleteAll</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC18SQLToDeleteZombiesSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToDeleteZombies" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC18SQLToDeleteZombiesSSvpZ">SQLToDeleteZombies</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">var</span> <span class="nv">SQLToDeleteZombies</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC18SQLToDeleteRecords4withSSSaySSG_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDeleteRecords(with:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC18SQLToDeleteRecords4withSSSaySSG_tFZ">SQLToDeleteRecords(with:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns SQL to delete records with <code>names</code>, for example:</p>
+
+<p><code>[&quot;C494AD71-AB58-4A00-BFDE-2551A32BC3E4&quot;]</code>.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDeleteRecords</span><span class="p">(</span><span class="n">with</span> <span class="nv">names</span><span class="p">:</span> <span class="p">[</span><span class="kt">String</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC15SQLToDeleteZone5namedS2S_tFZ"></a>
+                    <a name="//apple_ref/swift/Method/SQLToDeleteZone(named:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC15SQLToDeleteZone5namedS2S_tFZ">SQLToDeleteZone(named:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Returns SQL deleting records in zone.</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="kd">func</span> <span class="kt">SQLToDeleteZone</span><span class="p">(</span><span class="n">named</span> <span class="nv">name</span><span class="p">:</span> <span class="kt">String</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC12SQLToReplace6syncedSSAA6SyncedO_tKF"></a>
+                    <a name="//apple_ref/swift/Method/SQLToReplace(synced:)" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC12SQLToReplace6syncedSSAA6SyncedO_tKF">SQLToReplace(synced:)</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">func</span> <span class="kt">SQLToReplace</span><span class="p">(</span><span class="nv">synced</span><span class="p">:</span> <span class="kt"><a href="../Enums/Synced.html">Synced</a></span><span class="p">)</span> <span class="k">throws</span> <span class="o">-&gt;</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC31SQLToSelectLocallyQueuedEntriesSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectLocallyQueuedEntries" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC31SQLToSelectLocallyQueuedEntriesSSvpZ">SQLToSelectLocallyQueuedEntries</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectLocallyQueuedEntries</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC27SQLSelectingLocallyDequeuedSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLSelectingLocallyDequeued" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC27SQLSelectingLocallyDequeuedSSvpZ">SQLSelectingLocallyDequeued</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLSelectingLocallyDequeued</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC27SQLToSelectAbandonedRecordsSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectAbandonedRecords" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC27SQLToSelectAbandonedRecordsSSvpZ">SQLToSelectAbandonedRecords</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectAbandonedRecords</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+                <li class="item">
+                  <div>
+                    <code>
+                    <a name="/s:7FeedKit16UserSQLFormatterC33SQLToSelectLocallySubscribedFeedsSSvpZ"></a>
+                    <a name="//apple_ref/swift/Variable/SQLToSelectLocallySubscribedFeeds" class="dashAnchor"></a>
+                    <a class="token" href="#/s:7FeedKit16UserSQLFormatterC33SQLToSelectLocallySubscribedFeedsSSvpZ">SQLToSelectLocallySubscribedFeeds</a>
+                    </code>
+                  </div>
+                  <div class="height-container">
+                    <div class="pointer-container"></div>
+                    <section class="section">
+                      <div class="pointer"></div>
+                      <div class="abstract">
+                        <p>Undocumented</p>
+
+                      </div>
+                      <div class="declaration">
+                        <h4>Declaration</h4>
+                        <div class="language">
+                          <p class="aside-title">Swift</p>
+                          <pre class="highlight swift"><code><span class="kd">static</span> <span class="k">let</span> <span class="nv">SQLToSelectLocallySubscribedFeeds</span><span class="p">:</span> <span class="kt">String</span></code></pre>
+
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </section>
+        </section>
+        <section id="footer">
+          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-20)</p>
+          <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.9.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
+        </section>
+      </article>
+    </div>
+  </body>
+</div>
+</html>
