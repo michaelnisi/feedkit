@@ -45,12 +45,12 @@ public final class ImageRepository {
       do {
         let oldName = "ink.codes.podest.images"
 
-        os_log("removing old cache: %{public}@",
+        os_log("removing retired cache: %{public}@",
                log: log, type: .info, oldName)
 
         try removeAllFromCache(named: oldName)
       } catch {
-        os_log("no old cache: %@", log: log, error.localizedDescription)
+        os_log("no retired cache: %@", log: log, error.localizedDescription)
       }
 
       let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
