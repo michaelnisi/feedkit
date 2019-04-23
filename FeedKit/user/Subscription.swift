@@ -42,9 +42,11 @@ extension Subscription: Equatable {
 }
 
 extension Subscription: Hashable {
-  public var hashValue: Int {
-    return url.hashValue
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(url)
   }
+  
 }
 
 extension Subscription: CustomStringConvertible {

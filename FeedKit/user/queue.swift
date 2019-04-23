@@ -122,7 +122,7 @@ public struct Queue<Item: Hashable> {
   private var currentIndex: Int? { get {
     guard
       let item = now,
-      let i = hashValues.index(of: item) else {
+      let i = hashValues.firstIndex(of: item) else {
       return nil
     }
     return i
@@ -179,7 +179,7 @@ public struct Queue<Item: Hashable> {
   public var nextUp: [Item] { get {
     guard
       let h = now,
-      let i = hashValues.index(of: h),
+      let i = hashValues.firstIndex(of: h),
       i != hashValues.count - 1 else {
       return []
     }
@@ -199,7 +199,7 @@ public struct Queue<Item: Hashable> {
   mutating func removeItem(with hashValue: Int) throws {
     guard
       itemsByHashValues.removeValue(forKey: hashValue) != nil,
-      let i = hashValues.index(of: hashValue) else {
+      let i = hashValues.firstIndex(of: hashValue) else {
       throw QueueError.notInQueue
     }
     

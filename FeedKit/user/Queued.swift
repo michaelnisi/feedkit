@@ -9,19 +9,25 @@
 import Foundation
 
 /// An item that can be in the user’s queue. At the moment these are entries,
-/// exclusively, but we might add seasons, etc.
+/// exclusively, but we might add other types like seasons, etc.
 public enum Queued {
+  
+  /// Temporary items are allowed to be removed.
   case temporary(EntryLocator, Date, ITunesItem?)
+  
+  /// Pinned items must only be removed by users.
   case pinned(EntryLocator, Date, ITunesItem?)
+  
+  /// Previous items are for tracking history.
   case previous(EntryLocator, Date)
   
-  /// Creates a temporarily queued `entry` including `iTunes` item.
+  /// Creates a temporarily queued `entry` including optional `iTunes` item.
   init(entry locator: EntryLocator, iTunes: ITunesItem? = nil) {
     self = .temporary(locator, Date(), iTunes)
   }
 }
 
-extension Queued: Equatable {
+extension Queued {
   static public func ==(lhs: Queued, rhs: Queued) -> Bool {
     return lhs.hashValue == rhs.hashValue
   }
@@ -72,20 +78,18 @@ extension Queued: CustomDebugStringConvertible {
 
 extension Queued: Hashable {
 
-  private static func makeHash(
-    marker: String, locator: EntryLocator, timestamp: Date
-    ) -> Int {
-    // Using timestamp’s hash value directly, doesn’t yield expected results.
-    let ts = Int(timestamp.timeIntervalSince1970)
-    return marker.hashValue ^ locator.hashValue ^ ts
-  }
-  
-  public var hashValue: Int {
+  /// Combines case and locator, ignoring timestamps and iTunes items.
+  public func hash(into hasher: inout Hasher) {
     switch self {
-    case .temporary(let loc, let ts, _),
-         .pinned(let loc, let ts, _),
-         .previous(let loc, let ts):
-      return Queued.makeHash(marker: description, locator: loc, timestamp: ts)
+    case .temporary(let loc, _, _):
+      hasher.combine(0)
+      hasher.combine(loc)
+    case .pinned(let loc, _, _):
+      hasher.combine(1)
+      hasher.combine(loc)
+    case .previous(let loc, _):
+      hasher.combine(2)
+      hasher.combine(loc)
     }
   }
   
