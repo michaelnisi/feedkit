@@ -51,7 +51,9 @@ extension Entry: Equatable {
 }
 
 extension Entry: Hashable {
-  public var hashValue: Int {
-    return guid.hashValue
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(guid)
   }
+  
 }

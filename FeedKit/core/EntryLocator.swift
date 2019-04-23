@@ -59,11 +59,14 @@ public struct EntryLocator {
 
 extension EntryLocator: Hashable {
 
-  public var hashValue: Int {
+  public func hash(into hasher: inout Hasher) {
     guard let guid = self.guid else {
-      return url.hashValue ^ since.hashValue
+      hasher.combine(url)
+      hasher.combine(since)
+      return
     }
-    return guid.hashValue
+
+    hasher.combine(guid)
   }
 
 }
