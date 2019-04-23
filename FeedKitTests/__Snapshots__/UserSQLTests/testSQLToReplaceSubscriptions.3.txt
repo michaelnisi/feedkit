@@ -1,0 +1,1 @@
+- "INSERT OR REPLACE INTO feed(feed_url, title) VALUES(\'https://abc.de/rss\', NULL);\nINSERT OR REPLACE INTO itunes(\n  feed_url, itunes_guid, img100, img30, img60, img600\n) VALUES(\n  \'https://abc.de/rss\', 123, \'img100\', \'img30\', \'img60\', \'img600\'\n);\nINSERT OR REPLACE INTO subscribed_feed(feed_url) VALUES(\'https://abc.de/rss\');"

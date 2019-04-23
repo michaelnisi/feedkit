@@ -1,0 +1,1 @@
+- "INSERT OR REPLACE INTO feed(feed_url, title) VALUES(\'https://abc.de/rss\', NULL);\n\nINSERT OR REPLACE INTO subscribed_feed(feed_url) VALUES(\'https://abc.de/rss\');"

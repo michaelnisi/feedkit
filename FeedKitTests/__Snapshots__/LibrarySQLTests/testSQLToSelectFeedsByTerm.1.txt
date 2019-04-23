@@ -1,0 +1,1 @@
+- "SELECT DISTINCT * FROM search_view WHERE searchid IN (\n  SELECT rowid FROM search_fts\n  WHERE term = \'abc\'\n) LIMIT 50;"

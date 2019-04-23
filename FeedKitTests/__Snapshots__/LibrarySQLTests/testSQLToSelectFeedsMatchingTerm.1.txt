@@ -1,0 +1,1 @@
+- "SELECT DISTINCT * FROM feed WHERE feed_id IN (\n  SELECT rowid FROM feed_fts\n  WHERE feed_fts MATCH \'abc*\'\n) ORDER BY ts DESC LIMIT 3;"

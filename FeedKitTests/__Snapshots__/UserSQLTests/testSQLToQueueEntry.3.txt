@@ -1,0 +1,1 @@
+- "INSERT OR REPLACE INTO feed(feed_url, title) VALUES(\'abc.de\', NULL);\nINSERT OR REPLACE INTO entry(\n  entry_guid, feed_url, since\n) VALUES(\n  \'12three\', \'abc.de\', \'2016-06-06 06:00:00\'\n);\nINSERT OR REPLACE INTO queued_entry(entry_guid) VALUES(\'12three\');\nINSERT OR REPLACE INTO prev_entry(entry_guid) VALUES(\'12three\');"

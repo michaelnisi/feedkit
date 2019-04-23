@@ -1,0 +1,1 @@
+- "UPDATE feed SET itunes_guid = 123, img100 = \'img100\', img30 = \'img30\', img60 = \'img60\', img600 = \'img600\' WHERE url = \'http://abc.de\';"

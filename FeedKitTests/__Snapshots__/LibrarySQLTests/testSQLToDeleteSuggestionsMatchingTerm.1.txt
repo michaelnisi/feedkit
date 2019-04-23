@@ -1,0 +1,1 @@
+- "DELETE FROM sug WHERE rowid IN (\n  SELECT rowid FROM sug_fts\n  WHERE term MATCH \'abc*\'\n);"

@@ -1,0 +1,1 @@
+- "SELECT * FROM sug WHERE rowid IN (\n  SELECT rowid FROM sug_fts\n  WHERE term MATCH \'abc*\'\n) ORDER BY ts DESC LIMIT 5;"
