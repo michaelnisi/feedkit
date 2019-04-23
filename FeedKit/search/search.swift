@@ -33,10 +33,12 @@ extension Suggestion: Equatable {
 }
 
 extension Suggestion: Hashable {
-  public var hashValue: Int {
-    return term.hashValue
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(term)
   }
 }
+
 
 // MARK: - Find
 
