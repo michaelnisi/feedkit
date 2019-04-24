@@ -65,7 +65,7 @@ extension LibrarySQLTests {
       summary: "summary",
       title: "title",
       ts: Date(timeIntervalSince1970: 1465192800),
-      uid: FeedID(rowid: 0, url: url),
+      uid: Feed.ID(rowid: 0, url: url),
       updated: nil,
       url: url
     )
@@ -87,11 +87,11 @@ extension LibrarySQLTests {
   func testSQLToSelectEntriesByIntervals() {
     let findings = [
       formatter.SQLToSelectEntries(within: [
-        (FeedID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0))
+        (Feed.ID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0))
         ]),
       formatter.SQLToSelectEntries(within: [
-        (FeedID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0)),
-        (FeedID(rowid: 2, url: "http://efg.hi"), Date(timeIntervalSince1970: 3600))
+        (Feed.ID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0)),
+        (Feed.ID(rowid: 2, url: "http://efg.hi"), Date(timeIntervalSince1970: 3600))
         ])
     ]
     let wantings = [
@@ -113,7 +113,7 @@ extension LibrarySQLTests {
   
   func testSQLToUpdateFeed() {
     let feed = Common.makeFeed(name: .gruber)
-    let feedID = FeedID(rowid: 1, url: feed.url)
+    let feedID = Feed.ID(rowid: 1, url: feed.url)
     let found = formatter.SQLToUpdate(feed: feed, with: feedID, from: .hosted)
     
     assertSnapshot(matching: found, as: .dump)
@@ -121,7 +121,7 @@ extension LibrarySQLTests {
   
   func testSQLToUpdateITunesFeed() {
     let feed = Common.makeFeed(name: .gruber)
-    let feedID = FeedID(rowid: 1, url: feed.url)
+    let feedID = Feed.ID(rowid: 1, url: feed.url)
     let found = formatter.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
 
     assertSnapshot(matching: found, as: .dump, named: "should keep link")
@@ -129,7 +129,7 @@ extension LibrarySQLTests {
   
   func testSQLToInsertEntry() {
     let entry = Common.makeEntry(name: .gruber)
-    let feedID = FeedID(rowid: 1, url: entry.feed)
+    let feedID = Feed.ID(rowid: 1, url: entry.feed)
     let found = formatter.SQLToInsert(entry: entry, for: feedID)
     
      assertSnapshot(matching: found, as: .dump)
@@ -186,7 +186,7 @@ extension LibrarySQLTests {
   }
   
   func testSQLToInsertFeedIDForTerm() {
-    let feedID = FeedID(rowid: 1, url: "http://abc.de")
+    let feedID = Feed.ID(rowid: 1, url: "http://abc.de")
     let found = LibrarySQLFormatter.SQLToInsert(feedID: feedID, for: "abc")
     let wanted = "INSERT OR REPLACE INTO search(feed_id, term) VALUES(1, 'abc');"
     XCTAssertEqual(found, wanted)

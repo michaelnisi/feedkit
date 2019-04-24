@@ -23,14 +23,14 @@ public final class FeedCache: LocalCache {
 
   private var noSearch = [String : Date]()
 
-  private var feedIDsCache = NSCache<NSString, ValueObject<FeedID>>()
+  private var feedIDsCache = NSCache<NSString, ValueObject<Feed.ID>>()
 
-  private func cachedFeedID(for url: String) -> FeedID? {
+  private func cachedFeedID(for url: String) -> Feed.ID? {
     return feedIDsCache.object(forKey: url as NSString)?.value
   }
 
-  private func cache(feedID: FeedID, for url: String) -> FeedID {
-    let obj = ValueObject<FeedID>(feedID)
+  private func cache(feedID: Feed.ID, for url: String) -> Feed.ID {
+    let obj = ValueObject<Feed.ID>(feedID)
     feedIDsCache.setObject(obj, forKey: url as NSString)
     return feedID
   }
@@ -42,7 +42,7 @@ public final class FeedCache: LocalCache {
   /// Returns the local feed identifier, its rowid in the database feed table,
   /// for the given URL. Retrieved identifiers are being cached in memory, for
   /// faster access, although this should probably be measured for prove.
-  func feedID(for url: String) throws -> FeedID {
+  func feedID(for url: String) throws -> Feed.ID {
     if url.last == "/" {
       os_log("problematic URL detected: %{public}@", log: log, type: .error, url)
     }
@@ -52,7 +52,7 @@ public final class FeedCache: LocalCache {
     }
 
     var er: Error?
-    var id: FeedID?
+    var id: Feed.ID?
     let sql = LibrarySQLFormatter.SQLToSelectFeedIDFromURLView(url)
     
     try db.query(sql) { error, row in
@@ -323,9 +323,9 @@ extension FeedCache: FeedCaching {
   }
 
   /// Updates feeds using a dynamic SQL formatting function.
-  public func update(
+  func update(
     feeds: [Feed],
-    using sqlToUpdateFeeds: @escaping (Feed, FeedID) -> String
+    using sqlToUpdateFeeds: @escaping (Feed, Feed.ID) -> String
   ) throws {
     return try queue.sync {
       let sql = try feeds.reduce([String]()) { acc, feed in
@@ -374,10 +374,10 @@ extension FeedCache: FeedCaching {
   /// considered a programming error and will crash.
   ///
   /// - Returns: An array of feeds currently in the cache.
-  func feedIDs(matching urls: [String]) throws -> [String : FeedID]? {
+  func feedIDs(matching urls: [String]) throws -> [String : Feed.ID]? {
     assert(!urls.isEmpty)
 
-    var result = [String : FeedID]()
+    var result = [String : Feed.ID]()
     try urls.forEach { url in
       do {
         let feedID = try self.feedID(for: url)
@@ -422,7 +422,7 @@ extension FeedCache: FeedCaching {
       var unidentified = [String]()
 
       let sql = entries.reduce([String]()) { acc, entry in
-        var feedID: FeedID?
+        var feedID: Feed.ID?
         do {
           feedID = try self.feedID(for: entry.feed)
         } catch {
@@ -457,7 +457,7 @@ extension FeedCache: FeedCaching {
         return []
       }
 
-      let intervals = locators.reduce([(FeedID, Date)]()) { acc, interval in
+      let intervals = locators.reduce([(Feed.ID, Date)]()) { acc, interval in
         let url = interval.url
         let since = interval.since
         if let feedID = feedIDsByURLs[url] {
@@ -586,7 +586,7 @@ extension FeedCache: SearchCaching {
       do {
         let delete = LibrarySQLFormatter.SQLToDeleteSearch(for: term)
         let insert = try feeds.reduce([String]()) { acc, feed in
-          let feedID: FeedID
+          let feedID: Feed.ID
           do {
             feedID = try feed.uid ?? self.feedID(for: feed.url)
           } catch {

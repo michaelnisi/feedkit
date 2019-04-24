@@ -9,7 +9,7 @@
 import Foundation
 
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
-public enum EnclosureType : Int {
+public enum EnclosureType: Int, Codable {
   case unknown
   
   case audioMPEG
@@ -45,25 +45,28 @@ public enum EnclosureType : Int {
   }
 }
 
-extension EnclosureType: Codable {}
-
 /// The infamous RSS enclosure tag is mapped to this structure.
-public struct Enclosure {
+public struct Enclosure: Codable {
+  
   public let url: String
   public let length: Int?
   public let type: EnclosureType
 }
 
-extension Enclosure: Codable {}
-
-extension Enclosure: Equatable {
-  public static func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
-    return lhs.url == rhs.url
+extension Enclosure : CustomStringConvertible {
+  
+  public var description: String {
+    return "Enclosure: \(url)"
   }
 }
 
-extension Enclosure : CustomStringConvertible {
-  public var description: String {
-    return "Enclosure: \(url)"
+extension Enclosure: Equatable, Hashable {
+  
+  public static func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
+    return lhs.url == rhs.url
+  }
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(url)
   }
 }

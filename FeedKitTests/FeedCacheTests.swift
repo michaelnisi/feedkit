@@ -52,7 +52,7 @@ final class FeedCacheTests: XCTestCase {
       feed = feeds.first!
       url = feed!.url
       let found = try! cache.feedID(for: url!)
-      let wanted = FeedID(rowid: 1, url: url!)
+      let wanted = Feed.ID(rowid: 1, url: url!)
       XCTAssertEqual(found, wanted)
     }
 
@@ -73,7 +73,7 @@ final class FeedCacheTests: XCTestCase {
     do {
       try! cache.update(feeds: [feed!])
       let found = try! cache.feedID(for: url!)
-      let wanted = FeedID(rowid: 11, url: url!)
+      let wanted = Feed.ID(rowid: 11, url: url!)
       XCTAssertEqual(found, wanted)
     }
   }

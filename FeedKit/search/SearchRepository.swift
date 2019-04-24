@@ -52,7 +52,7 @@ public final class SearchRepository: RemoteRepository, Searching {
     searching.perFindGroupBlock = perFindGroupBlock
     searching.searchCompletionBlock = searchCompletionBlock
     
-    if let url = FeedID.urlString(string: term) {
+    if let url = Feed.ID.urlString(string: term) {
       searching.addDependency(browser.feeds([url]))
     }
     

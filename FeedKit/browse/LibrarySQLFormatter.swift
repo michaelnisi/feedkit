@@ -42,7 +42,7 @@ extension LibrarySQLFormatter {
 
 extension LibrarySQLFormatter {
   
-  static func SQLToRemoveEntries(matching feedIDs: [FeedID]) -> String? {
+  static func SQLToRemoveEntries(matching feedIDs: [Feed.ID]) -> String? {
     guard !feedIDs.isEmpty else { return nil }
     let sql = "DELETE FROM entry WHERE feed_id IN(" + feedIDs.map {
       "\($0.rowid)"
@@ -71,7 +71,7 @@ extension LibrarySQLFormatter {
     }.joined(separator: " OR") + ";"
   }
   
-  func SQLToInsert(entry: Entry, for feedID: FeedID) -> String {
+  func SQLToInsert(entry: Entry, for feedID: Feed.ID) -> String {
     let author = SQLString(from: entry.author)
     let duration = SQLString(from: entry.duration)
     let guid = SQLFormatter.SQLString(from: entry.guid)
@@ -97,7 +97,7 @@ extension LibrarySQLFormatter {
     """
   }
   
-  func SQLToSelectEntries(within intervals: [(FeedID, Date)]) -> String? {
+  func SQLToSelectEntries(within intervals: [(Feed.ID, Date)]) -> String? {
     guard !intervals.isEmpty else {
       return nil
     }
@@ -182,7 +182,7 @@ extension LibrarySQLFormatter {
     return "DELETE FROM feed WHERE itunes_guid = \(guid);"
   }
   
-  static func SQLToSelectFeeds(by feedIDs: [FeedID]) -> String? {
+  static func SQLToSelectFeeds(by feedIDs: [Feed.ID]) -> String? {
     guard !feedIDs.isEmpty else {
       return nil
     }
@@ -193,7 +193,7 @@ extension LibrarySQLFormatter {
     return sql
   }
   
-  static func SQLToRemoveFeeds(with feedIDs: [FeedID]) -> String? {
+  static func SQLToRemoveFeeds(with feedIDs: [Feed.ID]) -> String? {
     guard !feedIDs.isEmpty else { return nil }
     let sql = "DELETE FROM feed WHERE rowid IN(" + feedIDs.map {
       "\($0.rowid)"
@@ -206,7 +206,7 @@ extension LibrarySQLFormatter {
     return "SELECT * FROM url_view WHERE url = \(s);"
   }
   
-  static func SQLToInsert(feedID: FeedID, for term: String) -> String {
+  static func SQLToInsert(feedID: Feed.ID, for term: String) -> String {
     let s = SQLFormatter.SQLString(from: term)
     return "INSERT OR REPLACE INTO search(feed_id, term) VALUES(\(feedID.rowid), \(s));"
   }
@@ -227,7 +227,7 @@ extension LibrarySQLFormatter {
     }
   }
   
-  func SQLToUpdate(feed: Feed, with feedID: FeedID, from type: FeedOrigin) -> String {
+  func SQLToUpdate(feed: Feed, with feedID: Feed.ID, from type: FeedOrigin) -> String {
     return SQLToUpdate(feed: feed, with: feedID, kept: type.columns)
   }
   
@@ -239,7 +239,7 @@ extension LibrarySQLFormatter {
   }
   
   private func SQLToUpdate(
-    feed: Feed, with feedID: FeedID, kept: [String]) -> String {
+    feed: Feed, with feedID: Feed.ID, kept: [String]) -> String {
     let author = SQLString(from: feed.author)
     let guid = SQLString(from: feed.iTunes?.iTunesID)
     let img = SQLString(from: feed.image)
@@ -312,13 +312,13 @@ extension LibrarySQLFormatter {
     """
   }
   
-  static func feedID(from row: SkullRow) throws -> FeedID {
+  static func feedID(from row: SkullRow) throws -> Feed.ID {
     guard
       let rowid = row["feed_id"] as? Int64,
       let url = row["url"] as? String else {
       throw FeedKitError.unidentifiedFeed
     }
-    return FeedID(rowid: rowid, url: url)
+    return Feed.ID(rowid: rowid, url: url)
   }
   
   func feedFromRow(_ row: SkullRow) throws -> Feed {

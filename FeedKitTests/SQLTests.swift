@@ -139,9 +139,9 @@ final class SQLTests: XCTestCase {
 
   func testSQLToRemoveFeedsWithFeedIDs() {
     let feedIDs = [
-      FeedID(rowid: 1, url: "http://abc.de"),
-      FeedID(rowid: 2, url: "http://fgh.ij"),
-      FeedID(rowid: 3, url: "http://klm.no")
+      Feed.ID(rowid: 1, url: "http://abc.de"),
+      Feed.ID(rowid: 2, url: "http://fgh.ij"),
+      Feed.ID(rowid: 3, url: "http://klm.no")
     ]
     let findings = [
       LibrarySQLFormatter.SQLToRemoveFeeds(with: Array(feedIDs.prefix(1))),

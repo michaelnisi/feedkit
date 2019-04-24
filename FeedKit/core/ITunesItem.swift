@@ -11,7 +11,7 @@ import Foundation
 // Additional per podcast information, aquired via iTunes search, entirely
 // optional. Especially `iTunesID` is not used within this framework, which is
 // identifying feeds by URLs.
-public struct ITunesItem {
+public struct ITunesItem: Codable {
   
   /// Identifies this item and associates it with a feed.
   public let url: FeedURL
@@ -51,21 +51,15 @@ public struct ITunesItem {
   
 }
 
-extension ITunesItem: Codable {}
-
-extension ITunesItem: Equatable {
-  public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
-    return lhs.url == rhs.url && lhs.iTunesID == rhs.iTunesID
-  }
-}
-
 extension ITunesItem: CustomStringConvertible {
+  
   public var description: String {
     return "ITunesItem: { \(iTunesID) }"
   }
 }
 
 extension ITunesItem: CustomDebugStringConvertible {
+  
   public var debugDescription: String {
     return """
     ITunesItem: {
@@ -77,5 +71,18 @@ extension ITunesItem: CustomDebugStringConvertible {
       img600: \(img600)
     }
     """
+  }
+}
+
+extension ITunesItem: Equatable, Hashable {
+  
+  public static func ==(lhs: ITunesItem, rhs: ITunesItem) -> Bool {
+    return lhs.url == rhs.url && lhs.iTunesID == rhs.iTunesID
+  }
+  
+  
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(url)
+    hasher.combine(iTunesID)
   }
 }
