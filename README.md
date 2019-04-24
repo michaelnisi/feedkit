@@ -20,7 +20,7 @@ FeedKit sits at the core of the [Podest](https://github.com/michaelnisi/podest) 
 
 ## Documentation
 
-Want to know more? 📚 Browse the [docs](https://michaelnisi.github.io/feedkit/).
+Want to know more? 📚 Browse the [docs](https://michaelnisi.github.io/feedkit/). FeedKit clusters its features into [protocols](https://michaelnisi.github.io/feedkit/Protocols.html), exploring those should give you an idea of this framework.
 
 ## Installation
 
