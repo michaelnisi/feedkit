@@ -1,5 +1,7 @@
-w:= $(shell echo $(workspace))
-scheme:= FeedKit
+# Makefile - Generate FeedKit docs
+
+w := $(shell echo $(workspace))
+scheme := FeedKit
 
 docs:
 ifdef w

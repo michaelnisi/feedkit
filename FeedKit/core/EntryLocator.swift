@@ -21,7 +21,7 @@ public struct EntryLocator {
   /// time interval, and optional guid.
   ///
   /// This object might be used to locate multiple entries within an interval
-  /// or to locate a single entry specifically using the guid.
+  /// or to locate a single entry specifically using its guid.
   ///
   /// - Parameters:
   ///   - url: The URL of the feed.
