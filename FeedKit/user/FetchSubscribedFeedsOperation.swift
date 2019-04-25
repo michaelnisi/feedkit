@@ -18,7 +18,7 @@ private let log = OSLog.disabled
 /// only fetches the subscribed feeds, but integrates the iTunes metadata into
 /// our local caches, mediating between the two tiers, `SubscriptionCaching`
 /// and `Browsing`.
-final class FetchSubscribedFeedsOperation: FeedKitOperation {
+final class FetchSubscribedFeedsOperation: ConcurrentOperation {
   
   let browser: Browsing
   let cache: SubscriptionCaching
@@ -141,7 +141,7 @@ final class FetchSubscribedFeedsOperation: FeedKitOperation {
     }
   }
   
-  // MARK: FeedKitOperation
+  // MARK: ConcurrentOperation
   
   override func cancel() {
     super.cancel()

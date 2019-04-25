@@ -15,7 +15,7 @@ private let log = OSLog.disabled
 
 /// A generic concurrent operation providing a URL session task. This abstract
 /// class is to be extended.
-class SessionTaskOperation: FeedKitOperation, ReachabilityDependent {
+class SessionTaskOperation: ConcurrentOperation, ReachabilityDependent {
 
   struct CachePolicy {
     let ttl: TimeInterval

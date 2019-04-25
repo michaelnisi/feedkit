@@ -1,5 +1,5 @@
 //
-//  FeedKitOperation.swift
+//  ConcurrentOperation.swift
 //  FeedKit
 //
 //  Created by Michael Nisi on 18.12.17.
@@ -9,25 +9,27 @@
 import Foundation
 
 /// An abstract super class to be extended by **concurrent** FeedKit operations.
-class FeedKitOperation: Operation {
+///
+/// Access to any data variables in the operation must be synchronized to
+/// prevent potential data corruption. You can use the `sQueue` DispatchQueue
+/// to achieve that.
+class ConcurrentOperation: Operation {
   
   /// An internal serial queue for synchronized (thread-safe) property access.
-  private let sQueue = DispatchQueue(
-    label: "ink.codes.feedkit.FeedKitOperation.\(UUID().uuidString)")
+  let sQueue = DispatchQueue(
+    label: "ink.codes.feedkit.ConcurrentOperation.\(UUID().uuidString)")
   
-  fileprivate var _executing: Bool = false
+  private var _executing: Bool = false
   
   override final var isExecuting: Bool {
     get {
-      return sQueue.sync {
-        return _executing
-      }
+      return sQueue.sync { _executing }
     }
 
     set {
       sQueue.sync {
         guard newValue != _executing else {
-          fatalError("FeedKitOperation: already executing")
+          fatalError("ConcurrentOperation: already executing")
         }
       }
 
@@ -41,19 +43,17 @@ class FeedKitOperation: Operation {
     }
   }
   
-  fileprivate var _finished: Bool = false
+  private var _finished: Bool = false
   
   override final var isFinished: Bool {
     get {
-      return sQueue.sync {
-        return _finished
-      }
+      return sQueue.sync { _finished }
     }
     
     set {
       sQueue.sync {
         guard newValue != _finished else {
-          fatalError("FeedKitOperation: already finished")
+          fatalError("ConcurrentOperation: already finished")
         }
       }
 

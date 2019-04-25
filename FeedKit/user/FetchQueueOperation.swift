@@ -11,7 +11,7 @@ import os.log
 
 private let log = OSLog.disabled
 
-final class FetchQueueOperation: FeedKitOperation {
+final class FetchQueueOperation: ConcurrentOperation {
 
   let browser: Browsing
   let cache: QueueCaching
@@ -246,7 +246,7 @@ final class FetchQueueOperation: FeedKitOperation {
     }
   }
   
-  // MARK: FeedKitOperation
+  // MARK: ConcurrentOperation
   
   override func cancel() {
     super.cancel()

@@ -14,7 +14,7 @@
 		4C39D57B2268DEB800EAA7CC /* SnapshotTesting.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C39D57A2268DEB800EAA7CC /* SnapshotTesting.framework */; };
 		4C405D111FE63BAC0031C4DB /* BrowseOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */; };
 		4C405D131FE63DF80031C4DB /* FeedsOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D121FE63DF80031C4DB /* FeedsOperation.swift */; };
-		4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D151FE77E960031C4DB /* FeedKitOperation.swift */; };
+		4C405D161FE77E960031C4DB /* ConcurrentOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D151FE77E960031C4DB /* ConcurrentOperation.swift */; };
 		4C405D181FE77EBA0031C4DB /* SessionTaskOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D171FE77EBA0031C4DB /* SessionTaskOperation.swift */; };
 		4C4C113A20A04DE7004231C9 /* Queued.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4C113920A04DE7004231C9 /* Queued.swift */; };
 		4C4C113C20A04E94004231C9 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4C113B20A04E94004231C9 /* Subscription.swift */; };
@@ -100,7 +100,7 @@
 		4C39D57A2268DEB800EAA7CC /* SnapshotTesting.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SnapshotTesting.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseOperation.swift; sourceTree = "<group>"; };
 		4C405D121FE63DF80031C4DB /* FeedsOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedsOperation.swift; sourceTree = "<group>"; };
-		4C405D151FE77E960031C4DB /* FeedKitOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedKitOperation.swift; sourceTree = "<group>"; };
+		4C405D151FE77E960031C4DB /* ConcurrentOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConcurrentOperation.swift; sourceTree = "<group>"; };
 		4C405D171FE77EBA0031C4DB /* SessionTaskOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTaskOperation.swift; sourceTree = "<group>"; };
 		4C4C113920A04DE7004231C9 /* Queued.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Queued.swift; sourceTree = "<group>"; };
 		4C4C113B20A04E94004231C9 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
@@ -264,7 +264,7 @@
 		4C405D141FE77E420031C4DB /* operation */ = {
 			isa = PBXGroup;
 			children = (
-				4C405D151FE77E960031C4DB /* FeedKitOperation.swift */,
+				4C405D151FE77E960031C4DB /* ConcurrentOperation.swift */,
 				4C405D171FE77EBA0031C4DB /* SessionTaskOperation.swift */,
 				4CA3B95E2011D66300BE9BD8 /* Providing.swift */,
 				4C5838782036B30B00BF8BFB /* ReachHostOperation.swift */,
@@ -527,7 +527,7 @@
 				4EB7EE491F5E8F9F00F418D5 /* FeedCache.swift in Sources */,
 				4CA3B95F2011D66300BE9BD8 /* Providing.swift in Sources */,
 				4C5838792036B30B00BF8BFB /* ReachHostOperation.swift in Sources */,
-				4C405D161FE77E960031C4DB /* FeedKitOperation.swift in Sources */,
+				4C405D161FE77E960031C4DB /* ConcurrentOperation.swift in Sources */,
 				4CA3D31E1A89E78900CA58E9 /* serialize.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
