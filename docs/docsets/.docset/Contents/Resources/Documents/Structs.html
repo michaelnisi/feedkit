@@ -14,7 +14,7 @@
     <a title="Structures  Reference"></a>
     <header>
       <div class="content-wrapper">
-        <p><a href="index.html"> Docs</a> (62% documented)</p>
+        <p><a href="index.html"> Docs</a> (63% documented)</p>
       </div>
     </header>
     <div class="content-wrapper">
@@ -192,9 +192,6 @@
                 <a href="Structs/Feed.html">Feed</a>
               </li>
               <li class="nav-group-task">
-                <a href="Structs/FeedID.html">FeedID</a>
-              </li>
-              <li class="nav-group-task">
                 <a href="Structs/ITunesItem.html">ITunesItem</a>
               </li>
               <li class="nav-group-task">
@@ -258,7 +255,7 @@
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">Enclosure</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">Enclosure</span> <span class="p">:</span> <span class="kt">Codable</span></code></pre>
 
                         </div>
                       </div>
@@ -282,7 +279,10 @@
                     <section class="section">
                       <div class="pointer"></div>
                       <div class="abstract">
-                        <p>RSS item or Atom entry. In this domain we speak of <code>entry</code>.</p>
+                        <p>RSS item or Atom entry. In this domain we speak of <code>entry</code> to talk about
+a child of a feed.</p>
+
+<p>Identified by <code>guid</code>, entries are equal if their guids are equal.</p>
 
                         <a href="Structs/Entry.html" class="slightly-smaller">See more</a>
                       </div>
@@ -337,34 +337,6 @@ of entries from a specific feed, between now and <code>since</code>.</p>
                 <li class="item">
                   <div>
                     <code>
-                    <a name="/s:7FeedKit0A2IDV"></a>
-                    <a name="//apple_ref/swift/Struct/FeedID" class="dashAnchor"></a>
-                    <a class="token" href="#/s:7FeedKit0A2IDV">FeedID</a>
-                    </code>
-                  </div>
-                  <div class="height-container">
-                    <div class="pointer-container"></div>
-                    <section class="section">
-                      <div class="pointer"></div>
-                      <div class="abstract">
-                        <p>Undocumented</p>
-
-                        <a href="Structs/FeedID.html" class="slightly-smaller">See more</a>
-                      </div>
-                      <div class="declaration">
-                        <h4>Declaration</h4>
-                        <div class="language">
-                          <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">FeedID</span> <span class="p">:</span> <span class="kt">Equatable</span></code></pre>
-
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </li>
-                <li class="item">
-                  <div>
-                    <code>
                     <a name="/s:7FeedKit0A0V"></a>
                     <a name="//apple_ref/swift/Struct/Feed" class="dashAnchor"></a>
                     <a class="token" href="#/s:7FeedKit0A0V">Feed</a>
@@ -382,7 +354,7 @@ directly</strong>. Instead users are expected to obtain their feeds from the
 repositories provided by this framework. Two feeds are equal if they
 have equal URLs.</p>
 
-<p>A feed is required to, at least, have <code>title</code> and <code>url</code>.</p>
+<p>A feed must have a <code>title</code> and an <code>url</code>.</p>
 
                         <a href="Structs/Feed.html" class="slightly-smaller">See more</a>
                       </div>
@@ -422,7 +394,7 @@ have equal URLs.</p>
                         <h4>Declaration</h4>
                         <div class="language">
                           <p class="aside-title">Swift</p>
-                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">ITunesItem</span></code></pre>
+                          <pre class="highlight swift"><code><span class="kd">public</span> <span class="kd">struct</span> <span class="kt">ITunesItem</span> <span class="p">:</span> <span class="kt">Codable</span></code></pre>
 
                         </div>
                       </div>
@@ -613,7 +585,7 @@ FeedKit</strong> framework.</p>
           </section>
         </section>
         <section id="footer">
-          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-24)</p>
+          <p>&copy; 2019 <a class="link" href="https://troubled.pro" target="_blank" rel="external">Michael Nisi</a>. All rights reserved. (Last updated: 2019-04-25)</p>
           <p>Generated by <a class="link" href="https://github.com/realm/jazzy" target="_blank" rel="external">jazzy ♪♫ v0.9.6</a>, a <a class="link" href="https://realm.io" target="_blank" rel="external">Realm</a> project.</p>
         </section>
       </article>

@@ -156,148 +156,134 @@
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Enclosure.swift",
-      "line": 52,
+      "line": 51,
       "symbol": "Enclosure.url",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Enclosure.swift",
-      "line": 53,
+      "line": 52,
       "symbol": "Enclosure.length",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Enclosure.swift",
-      "line": 54,
+      "line": 53,
       "symbol": "Enclosure.type",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 11,
-      "symbol": "EntryGUID",
-      "symbol_kind": "source.lang.swift.decl.typealias",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 15,
+      "line": 20,
       "symbol": "Entry.author",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 16,
+      "line": 21,
       "symbol": "Entry.duration",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 17,
+      "line": 22,
       "symbol": "Entry.enclosure",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 18,
+      "line": 23,
       "symbol": "Entry.feed",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 19,
+      "line": 24,
       "symbol": "Entry.feedImage",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 20,
+      "line": 25,
       "symbol": "Entry.feedTitle",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 21,
+      "line": 26,
       "symbol": "Entry.guid",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 22,
+      "line": 27,
       "symbol": "Entry.iTunes",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 23,
+      "line": 28,
       "symbol": "Entry.image",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 24,
+      "line": 29,
       "symbol": "Entry.link",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 25,
+      "line": 30,
       "symbol": "Entry.originalURL",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 26,
+      "line": 31,
       "symbol": "Entry.subtitle",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 27,
+      "line": 32,
       "symbol": "Entry.summary",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 28,
+      "line": 33,
       "symbol": "Entry.title",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 29,
+      "line": 34,
       "symbol": "Entry.ts",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 30,
+      "line": 35,
       "symbol": "Entry.updated",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/michael/swift/feedkit/FeedKit/core/Entry.swift",
-      "line": 36,
-      "symbol": "Entry.url",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
@@ -352,84 +338,70 @@
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 13,
-      "symbol": "FeedID",
-      "symbol_kind": "source.lang.swift.decl.struct",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 54,
+      "line": 62,
       "symbol": "Feed.author",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 55,
+      "line": 63,
       "symbol": "Feed.iTunes",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 56,
+      "line": 64,
       "symbol": "Feed.image",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 57,
+      "line": 65,
       "symbol": "Feed.link",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 58,
+      "line": 66,
       "symbol": "Feed.originalURL",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 59,
+      "line": 67,
       "symbol": "Feed.summary",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 60,
+      "line": 68,
       "symbol": "Feed.title",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 61,
+      "line": 69,
       "symbol": "Feed.ts",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 62,
-      "symbol": "Feed.uid",
-      "symbol_kind": "source.lang.swift.decl.var.instance",
-      "warning": "undocumented"
-    },
-    {
-      "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 63,
+      "line": 73,
       "symbol": "Feed.updated",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/core/Feed.swift",
-      "line": 64,
+      "line": 74,
       "symbol": "Feed.url",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
