@@ -85,7 +85,7 @@ public final class ImageRepository {
 extension ImageRepository {
 
   /// Produces a scaled image with rounded corners within a thin gray frame.
-  struct ScaledWithRoundedCorners: ImageProcessing {
+  struct ScaledWithRoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
 
     let size: CGSize
 
@@ -93,7 +93,7 @@ extension ImageRepository {
       self.size = size
     }
 
-    func process(image: Image, context: ImageProcessingContext) -> Image? {
+    func process(image: Image, context: ImageProcessingContext?) -> Image? {
       UIGraphicsBeginImageContextWithOptions(size, true, 0)
 
       guard let ctx = UIGraphicsGetCurrentContext() else {
@@ -123,14 +123,24 @@ extension ImageRepository {
 
       return rounded
     }
+    
+    public var identifier: String {
+      return "ImageRepository." + description
+    }
+    
+    public var hashableIdentifier: AnyHashable {
+      return self
+    }
+    
+    public var description: String {
+      return "ScaledWithRoundedCorners(size in pixels: \(size))"
+    }
 
     static func ==(
       lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
       return lhs.size == rhs.size
     }
-
   }
-
 }
 
 // MARK: - Choosing and Caching URLs
@@ -262,7 +272,7 @@ extension ImageRepository {
 extension ImageRepository: Images {
 
   public func cancel(displaying view: UIImageView) {
-    Nuke.cancelRequest(for: view)
+    view.nk.cancelImageRequest()
   }
 
   public func flush() {
@@ -287,12 +297,13 @@ extension ImageRepository: Images {
     let req = ImageRepository.makeImageRequest(identifier: id)
     let blocker = DispatchSemaphore(value: 0)
 
-    Nuke.ImagePipeline.shared.loadImage(with: req) { res, error in
-      if let er = error {
-        os_log("synchronously loading failed: %{public}@", er as CVarArg)
+    Nuke.ImagePipeline.shared.loadImage(with: req) { result in
+      switch result {
+      case let .success(response):
+        image = response.image
+      case let .failure(error):
+        os_log("synchronously loading failed: %{public}@", error as CVarArg)
       }
-
-      image = res?.image
 
       blocker.signal()
     }
@@ -322,7 +333,7 @@ extension ImageRepository: Images {
   ///
   /// The default processor adds rounded corners and a gray frame.
   private static func makeImageRequest(identifier id: FKImage.ID) -> ImageRequest {
-    var req = ImageRequest(url: id.url, targetSize: id.size, contentMode: .aspectFill)
+    var req = ImageRequest(url: id.url, processors: [ImageProcessor.Resize(size: id.size)])
 
     // Preferring smaller images, assuming they are placeholders or lists.
     if id.size.width <= 120 {
@@ -333,7 +344,7 @@ extension ImageRepository: Images {
       return req
     }
 
-    return req.processed(with: ScaledWithRoundedCorners(size: id.size))
+    return ImageRequest(url: id.url, processors: [ScaledWithRoundedCorners(size: id.size)])
   }
 
   private func cachedResponse(matching id: FKImage.ID) -> ImageResponse? {
@@ -399,15 +410,16 @@ extension ImageRepository: Images {
       )
 
       os_log("loading: %@", log: log, type: .debug, url.lastPathComponent)
-
-      Nuke.loadImage(with: req, options: opts, into: imageView) {
-        response, error in
-        dispatchPrecondition(condition: .onQueue(.main))
-
-        if let er = error {
-          os_log("image loading failed: %{public}@", log: log, er as CVarArg)
+      
+      imageView.nk.setImage(with: req, options: opts) { result in
+        switch result {
+        case .failure(let er):
+           os_log("image loading failed: %{public}@", log: log, er as CVarArg)
+        case .success:
+          break
         }
-
+        
+        dispatchPrecondition(condition: .onQueue(.main))
         cb?()
       }
     }
