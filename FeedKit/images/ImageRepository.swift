@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -33,7 +33,8 @@ public final class ImageRepository {
 
   /// Creates a new image pipeline and removes the previous data cache.
   ///
-  /// Removing the previous data cache will become unnecessary at some point.
+  /// Removing the previous, now deprecacted because renamed, data cache will 
+  /// become unnecessary at some point.
   private static func makeImagePipeline() -> ImagePipeline {
     return ImagePipeline {
       $0.imageCache = ImageCache.shared
@@ -77,7 +78,6 @@ public final class ImageRepository {
 
   /// A thread-safe temporary cache for URL objects.
   private var urls = NSCache<NSString, NSURL>()
-
 }
 
 // MARK: - Processing Images
@@ -284,6 +284,8 @@ extension ImageRepository: Images {
   }
 
   public func loadImage(item: Imaginable, size: CGSize) -> UIImage? {
+    dispatchPrecondition(condition: .notOnQueue(.main))
+    
     guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
