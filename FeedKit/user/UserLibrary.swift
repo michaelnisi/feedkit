@@ -43,7 +43,9 @@ public final class UserLibrary: EntryQueueHost {
 
   /// Internal serial queue for synchronizing access to shared state.
   private let sQueue = DispatchQueue(
-    label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial")
+    label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial",
+    target: .global()
+  )
 
   private var _subscriptions = Set<FeedURL>()
 

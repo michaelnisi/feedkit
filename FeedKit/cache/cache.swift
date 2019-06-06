@@ -134,8 +134,8 @@ public class LocalCache: Caching {
     }
   }
   
-  /// Strictly submit all blocks, accessing the database, to this serial queue
-  /// to serialize database access.
+  /// Strictly submit all blocks accessing the database to this serial queue
+  /// for synchronized database access.
   let queue: DispatchQueue
   
   fileprivate func open() throws -> Skull {
@@ -165,7 +165,7 @@ public class LocalCache: Caching {
     
     self.schema = schema
     self.url = url
-    self.queue = DispatchQueue(label: label, attributes: [])
+    self.queue = DispatchQueue(label: label, target: .global())
   }
 
   public func flush() throws {
@@ -227,12 +227,14 @@ extension LocalCache {
   /// an empty array.
   static func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
     guard !items.isEmpty else { return nil }
+    
     let sorted: [T]
+    
     if sorting {
       sorted = items.sorted {
         guard $0.ts != nil else { return false }
         guard $1.ts != nil else { return true }
-        return $0.ts!.compare($1.ts! as Date) == ComparisonResult.orderedDescending
+        return $0.ts!.compare($1.ts! as Date) == .orderedDescending
       }
     } else {
       sorted = items
@@ -243,5 +245,4 @@ extension LocalCache {
     
     return median as Date?
   }
-  
 }
