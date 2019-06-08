@@ -80,69 +80,6 @@ public final class ImageRepository {
   private var urls = NSCache<NSString, NSURL>()
 }
 
-// MARK: - Processing Images
-
-extension ImageRepository {
-
-  /// Produces a scaled image with rounded corners within a thin gray frame.
-  struct ScaledWithRoundedCorners: ImageProcessing, Hashable, CustomStringConvertible {
-
-    let size: CGSize
-
-    init(size: CGSize) {
-      self.size = size
-    }
-
-    func process(image: Image, context: ImageProcessingContext?) -> Image? {
-      UIGraphicsBeginImageContextWithOptions(size, true, 0)
-
-      guard let ctx = UIGraphicsGetCurrentContext() else {
-        return nil
-      }
-
-      UIColor.white.setFill()
-      ctx.fill(CGRect(x: 0, y: 0, width: size.width, height: size.height))
-
-      let cornerRadius: CGFloat = size.width <= 100 ? 3 : 6
-      let rect = CGRect(x: 0, y: 0, width: size.width, height: size.height)
-      let p = UIBezierPath(roundedRect:rect, cornerRadius: cornerRadius)
-
-      p.addClip()
-      image.draw(in: rect)
-
-      let gray = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.0)
-
-      ctx.setStrokeColor(gray.cgColor)
-      p.stroke()
-
-      guard let rounded = UIGraphicsGetImageFromCurrentImageContext() else {
-        return nil
-      }
-
-      UIGraphicsEndImageContext()
-
-      return rounded
-    }
-    
-    public var identifier: String {
-      return "ImageRepository." + description
-    }
-    
-    public var hashableIdentifier: AnyHashable {
-      return self
-    }
-    
-    public var description: String {
-      return "ScaledWithRoundedCorners(size in pixels: \(size))"
-    }
-
-    static func ==(
-      lhs: ScaledWithRoundedCorners, rhs: ScaledWithRoundedCorners) -> Bool {
-      return lhs.size == rhs.size
-    }
-  }
-}
-
 // MARK: - Choosing and Caching URLs
 
 extension ImageRepository {
@@ -272,7 +209,7 @@ extension ImageRepository {
 extension ImageRepository: Images {
 
   public func cancel(displaying view: UIImageView) {
-    view.nk.cancelImageRequest()
+    Nuke.cancelRequest(for: view)
   }
 
   public func flush() {
@@ -325,28 +262,33 @@ extension ImageRepository: Images {
       contentModes: nil
     )
   }
-
+  
+  private static func makeProcessors(id: FKImage.ID) -> [ImageProcessing] {
+    guard !id.isClean else {
+      return []
+    }
+    
+    return [
+      ImageProcessor.Resize(size: id.size, upscale: true), 
+      ImageProcessor.RoundedCorners(radius: 3)
+    ]
+  }
+  
   /// Returns a request for image `url` at `size`.
   ///
-  /// - Parameters:
-  ///   - url: The URL of the image to load.
-  ///   - size: The target size of the image.
-  ///   - isClean: Append no processors to this request.
+  /// - Parameter identifier: Identifies the image to load.
   ///
   /// The default processor adds rounded corners and a gray frame.
   private static func makeImageRequest(identifier id: FKImage.ID) -> ImageRequest {
-    var req = ImageRequest(url: id.url, processors: [ImageProcessor.Resize(size: id.size)])
-
+    let processors = makeProcessors(id: id)
+    var req = ImageRequest(url: id.url, processors: processors)
+    
     // Preferring smaller images, assuming they are placeholders or lists.
     if id.size.width <= 120 {
       req.priority = .veryHigh
     }
-
-    guard !id.isClean else {
-      return req
-    }
-
-    return ImageRequest(url: id.url, processors: [ScaledWithRoundedCorners(size: id.size)])
+    
+    return req
   }
 
   private func cachedResponse(matching id: FKImage.ID) -> ImageResponse? {
@@ -413,7 +355,7 @@ extension ImageRepository: Images {
 
       os_log("loading: %@", log: log, type: .debug, url.lastPathComponent)
       
-      imageView.nk.setImage(with: req, options: opts) { result in
+      Nuke.loadImage(with: req, options: opts, into: imageView) { result in
         switch result {
         case .failure(let er):
            os_log("image loading failed: %{public}@", log: log, er as CVarArg)
