@@ -270,7 +270,7 @@ extension ImageRepository: Images {
     
     return [
       ImageProcessor.Resize(size: id.size, upscale: true), 
-      ImageProcessor.RoundedCorners(radius: 3)
+      ImageProcessor.RoundedCorners(radius: id.size.width <= 100 ? 3 : 6)
     ]
   }
   
