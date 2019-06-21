@@ -61,9 +61,9 @@ public final class ImageRepository {
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
       $0.imageDecodingQueue.maxConcurrentOperationCount = 1
       $0.imageProcessingQueue.maxConcurrentOperationCount = 2
-
+      
+      $0.isDataCachingForProcessedImagesEnabled = true
       $0.isDeduplicationEnabled = true
-
       $0.isProgressiveDecodingEnabled = false
     }
   }
