@@ -53,8 +53,10 @@ public final class ImageRepository {
       } catch {
         os_log("no retired cache: %@", log: log, error.localizedDescription)
       }
-
-      let dataCache = try! DataCache(name: "ink.codes.feedkit.images")
+      
+      let name = "ink.codes.feedkit.images"
+      try! removeAllFromCache(named: name)
+      let dataCache = try! DataCache(name: name)
 
       $0.dataCache = dataCache
 
@@ -160,7 +162,6 @@ extension ImageRepository {
   /// Receiving an image response but no URL is impossible.
   private func makePlaceholder(
     item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageResponse?) {
-
     guard let iTunes = item.iTunes else {
       os_log("aborting placeholding: iTunes object not found", log: log)
       return (nil, nil)
@@ -265,12 +266,15 @@ extension ImageRepository: Images {
   
   private static func makeProcessors(id: FKImage.ID) -> [ImageProcessing] {
     guard !id.isClean else {
-      return []
+      return [ImageProcessor.Resize(size: id.size, upscale: true)]
     }
+    
+    let r: CGFloat = id.size.width <= 100 ? 3 : 6
+    let b = ImageProcessor.RoundedCorners.Border(color: .lightGray)
     
     return [
       ImageProcessor.Resize(size: id.size, upscale: true), 
-      ImageProcessor.RoundedCorners(radius: id.size.width <= 100 ? 3 : 6)
+      ImageProcessor.RoundedCorners(radius: r, border: b)
     ]
   }
   
@@ -385,6 +389,8 @@ extension ImageRepository: Images {
         completionBlock?()
       }
     }
+    
+    os_log("placeholding", log: log, type: .debug)
 
     if let image = placeholder?.image {
       let p = placeholderURL?.lastPathComponent ?? "weirdly got no URL"
