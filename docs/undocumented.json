@@ -667,14 +667,14 @@
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/images/ImageRepository.swift",
-      "line": 74,
+      "line": 84,
       "symbol": "ImageRepository.shared",
       "symbol_kind": "source.lang.swift.decl.var.static",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/images/ImageRepository.swift",
-      "line": 451,
+      "line": 420,
       "symbol": "ImageRepository.loadImage(representing:into:options:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
@@ -723,7 +723,7 @@
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/images/images.swift",
-      "line": 84,
+      "line": 83,
       "symbol": "Images.loadImage(representing:into:options:)",
       "symbol_kind": "source.lang.swift.decl.function.method.instance",
       "warning": "undocumented"
@@ -968,14 +968,14 @@
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/user/UserLibrary.swift",
-      "line": 376,
+      "line": 377,
       "symbol": "UserLibrary.isForwardable",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
     },
     {
       "file": "/Users/michael/swift/feedkit/FeedKit/user/UserLibrary.swift",
-      "line": 380,
+      "line": 381,
       "symbol": "UserLibrary.isBackwardable",
       "symbol_kind": "source.lang.swift.decl.var.instance",
       "warning": "undocumented"
