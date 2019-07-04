@@ -220,7 +220,7 @@ extension Common {
 
   static func makeManger(url: String = "http://localhost:8384") -> Manger {
     let conf = URLSessionConfiguration.default
-    conf.httpShouldUsePipelining = true
+    conf.httpShouldUsePipelining = false
     conf.requestCachePolicy = .reloadIgnoringLocalCacheData
     let session = URLSession(configuration: conf)
 

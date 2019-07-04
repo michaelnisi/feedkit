@@ -16,7 +16,7 @@ import os.log
 
 private func freshFanboy(url: URL) -> Fanboy {
   let conf = URLSessionConfiguration.default
-  conf.httpShouldUsePipelining = true
+  conf.httpShouldUsePipelining = false
   conf.requestCachePolicy = .reloadIgnoringLocalCacheData
   let session = URLSession(configuration: conf)
 

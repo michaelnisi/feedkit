@@ -342,7 +342,14 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       guard isAvailable else {
-        return done(FeedKitError.serviceUnavailable(nil))
+        switch availability {
+        case .no:
+          return done(FeedKitError.serviceUnavailable(nil))
+        case .offline:
+          return done(FeedKitError.offline)
+        case .presumably:
+          fatalError("impossible state")
+        }
       }
 
       if isSinglyForced {

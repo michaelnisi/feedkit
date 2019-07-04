@@ -22,26 +22,45 @@ class SessionTaskOperation: ConcurrentOperation, ReachabilityDependent {
     let http: NSURLRequest.CachePolicy
   }
   
+  /// Availability of a service.
+  enum Availability {
+    case offline
+    case presumably
+    case no
+  }
+
   let client: JSONService
   
   init(client: JSONService) {
     self.client = client
   }
+
+  /// Detailed availability of the remote service extending reachability with
+  /// service health.
+  lazy var availability: Availability = {
+    switch status {
+    case .cellular, .reachable:
+      if let (_, ts) = client.status {
+        return Date().timeIntervalSince1970 - ts > 300 ? .presumably : .no
+      } else {
+        return .presumably
+      }
+    case .unknown:
+      return .offline
+    }
+  }()
   
   /// Returns `true` if the remote `service` is reachable – and OK or if its
   /// last known error occured longer than 300 seconds ago.
   ///
   /// Combining reachability and service health in one property is incorrect,
-  /// we have to be more explicit here.
+  /// we have to be more explicit here. That’s why I have added `availability`
+  /// which should eventually replace this `Bool`.
   lazy var isAvailable: Bool = {
-    switch status {
-    case .cellular, .reachable:
-      if let (_, ts) = client.status {
-        return Date().timeIntervalSince1970 - ts > 300
-      } else {
-        return true
-      }
-    case .unknown:
+    switch availability {
+    case .presumably: 
+      return true
+    case .no, .offline:
       return false
     }
   }()

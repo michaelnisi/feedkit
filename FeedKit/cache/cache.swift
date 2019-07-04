@@ -29,13 +29,13 @@ public protocol Cachable {
 
 /// Housekeeping for local caching.
 public protocol Caching {
-  
+
   /// Flushes any dispensable resources to save memory.
   func flush() throws
-  
+
   /// Closes any underlying database files.
   func closeDatabase()
-  
+
 }
 
 /// Enumerate default time-to-live intervals used for caching.
@@ -51,7 +51,7 @@ public enum CacheTTL {
   case medium
   case long
   case forever
-  
+
   /// The default interpretation of this time interval in seconds.
   var defaults: TimeInterval {
     switch self {
@@ -65,7 +65,7 @@ public enum CacheTTL {
 }
 
 extension CacheTTL: CustomStringConvertible {
-  
+
   public var description: String {
     switch self {
     case .none: return "CacheTTL.none"
@@ -75,26 +75,26 @@ extension CacheTTL: CustomStringConvertible {
     case .forever: return "CacheTTL.forever"
     }
   }
-  
+
 }
 
 // MARK: - DateCache
 
 /// An in-memory date log.
 class DateCache {
-  
+
   private var dates = [String : Date]()
-  
+
   let ttl: TimeInterval
-  
+
   init(ttl: TimeInterval = CacheTTL.short.defaults) {
     self.ttl = ttl
   }
-  
+
   func removeAll() {
     dates.removeAll()
   }
-  
+
   /// Returns `true` if `key` has not been used or is stale.
   @discardableResult func update(_ key: String) -> Bool {
     if let prev = dates[key], prev.timeIntervalSinceNow < ttl {
@@ -103,20 +103,20 @@ class DateCache {
     dates[key] = Date()
     return true
   }
-  
+
 }
 
 // MARK: - Caching
 
 /// Abstract super class for embedded (SQLite) databases.
 public class LocalCache: Caching {
-  
+
   fileprivate let schema: String
-  
+
   var url: URL?
-  
+
   var _db: Skull?
-  
+
   /// An open database connection or a crashed program.
   var db: Skull {
     get {
@@ -133,18 +133,18 @@ public class LocalCache: Caching {
       return _db!
     }
   }
-  
+
   /// Strictly submit all blocks accessing the database to this serial queue
   /// for synchronized database access.
   let queue: DispatchQueue
-  
+
   fileprivate func open() throws -> Skull {
     let freshDB = try Skull(url)
     let sql = try String(contentsOfFile: schema, encoding: String.Encoding.utf8)
     try freshDB.exec(sql)
     return freshDB
   }
-  
+
   /// Initializes a newly created cache.
   ///
   /// - Parameters:
@@ -153,16 +153,10 @@ public class LocalCache: Caching {
   public init(schema: String, url: URL?) throws {
     let label = "ink.codes.feedkit.\(type(of: self))"
     let database = url?.debugDescription ?? "in-memory"
-    
-    os_log(
-      """
-      initializing: (
-        schema: %{public}@,
-        database: %{public}@,
-        queue: %{public}@
-      )
-      """, log: log, type: .debug, schema, database, label)
-    
+
+    os_log("initializing: ( %{public}@, %{public}@, %{public}@ )",
+           log: log, type: .info, schema, database, label)
+
     self.schema = schema
     self.url = url
     self.queue = DispatchQueue(label: label, target: .global())
@@ -173,7 +167,7 @@ public class LocalCache: Caching {
       try self._db?.flush()
     }
   }
-  
+
   public func closeDatabase() {
     queue.sync {
       self._db = nil
@@ -184,7 +178,7 @@ public class LocalCache: Caching {
 // MARK: - Utilities
 
 extension LocalCache {
-  
+
   /// Slices an array into fixed sized arrays.
   ///
   /// - Parameters:
@@ -196,27 +190,28 @@ extension LocalCache {
     guard elements.count > count else {
       return [elements]
     }
-    
+
     var i = 0
     var start = 0
     var end = 0
     var slices = [[T]]()
-    
+
     repeat {
       start = min(count * i, elements.count)
       end = min(start + count, elements.count)
-      
+
       let slice = elements[start..<end]
+
       if !slice.isEmpty {
         slices.append(Array(slice))
       }
-      
+
       i += 1
     } while start != end
-    
+
     return slices
   }
-  
+
   /// Returns the median timestamp of the specified cachable items.
   ///
   /// - Parameters:
@@ -227,22 +222,23 @@ extension LocalCache {
   /// an empty array.
   static func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
     guard !items.isEmpty else { return nil }
-    
+
     let sorted: [T]
-    
+
     if sorting {
       sorted = items.sorted {
         guard $0.ts != nil else { return false }
         guard $1.ts != nil else { return true }
+
         return $0.ts!.compare($1.ts! as Date) == .orderedDescending
       }
     } else {
       sorted = items
     }
-    
+
     let index = sorted.count / 2
     let median = sorted[index].ts
-    
+
     return median as Date?
   }
 }

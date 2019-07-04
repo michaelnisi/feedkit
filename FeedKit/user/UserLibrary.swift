@@ -153,7 +153,7 @@ extension UserLibrary: Subscribing {
       if let er = error {
         os_log("subscribing failed: %@", log: log, type: .error, er as CVarArg)
       } else {
-        os_log("subscribed: %@", log: log, type: .debug, feed.title)
+        os_log("subscribed: %@", log: log, type: .info, feed.title)
       }
 
       completionHandler?(error)
@@ -216,7 +216,7 @@ extension UserLibrary: Subscribing {
 
       do {
         let dequeued = try self.dequeue(entries: children)
-        os_log("dequeued: %@", log: log, type: .debug, dequeued)
+        
         self.commitQueue(enqueued: Set(), dequeued: dequeued)
       } catch {
         return er = error
@@ -253,7 +253,7 @@ extension UserLibrary: Subscribing {
   public func synchronize(
     completionBlock: ((Set<FeedURL>?, Set<EntryGUID>?, Error?) -> Void)? = nil) {
     operationQueue.addOperation {
-      os_log("synchronizing", log: log, type: .debug)
+      os_log("synchronizing", log: log, type: .info)
 
       do {
         let subscribed = try self.cache.subscribed()
@@ -263,9 +263,6 @@ extension UserLibrary: Subscribing {
         let queued = try self.cache.queued()
         let guids = Set(queued.compactMap { $0.entryLocator.guid })
         self.guids = guids
-
-        os_log("queue and subscriptions: (%{public}i, %{public}i)",
-               log: log, type: .debug, guids.count, s.count)
 
         // Does the queue line up with our assumptions?
 
@@ -317,9 +314,11 @@ extension UserLibrary: Updating {
   /// - Parameters:
   ///   - enqueued: Entries that have been added to the queue.
   ///   - dequeued: Entries that have been removed from the queue.
-  private func commitQueue(
+  private func commitQueue(    
     enqueued: Set<Entry> = Set(), dequeued: Set<Entry> = Set()) {
     guids = Set(queue.map { $0.guid } )
+    
+    os_log("commiting queue", log: log, type: .info)
 
     for e in enqueued {
       queueDelegate?.queue(self, enqueued: e.guid, enclosure: e.enclosure)
@@ -388,7 +387,7 @@ extension UserLibrary: Queueing {
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
-    os_log("populating queue", log: log, type: .debug)
+    os_log("populating queue", log: log, type: .info)
 
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
@@ -468,7 +467,6 @@ extension UserLibrary: Queueing {
   ///
   /// - Throws: Throws if not at least one entry in `entries` was removed.
   private func dequeue(entries: [Entry]) throws -> Set<Entry> {
-    os_log("dequeueing: %{public}@", log: log, type: .debug, entries)
     dispatchPrecondition(condition: .notOnQueue(.main))
 
     let wanted = entries.map { $0.guid }

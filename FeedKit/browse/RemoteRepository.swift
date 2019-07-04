@@ -14,12 +14,12 @@ public class RemoteRepository: NSObject {
   let queue: OperationQueue
   
   public init(queue: OperationQueue) {
-    dispatchPrecondition(condition: .onQueue(DispatchQueue.main))
+    dispatchPrecondition(condition: .onQueue(.main))
+    
     self.queue = queue
   }
   
   deinit {
     queue.cancelAllOperations()
   }
-  
 }
