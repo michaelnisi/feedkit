@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+private let log = OSLog.disabled
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -477,12 +477,11 @@ extension ImageRepository {
   }
 
   public func cancelPrefetching(
-    for items: [Imaginable], at size: CGSize, quality: ImageQuality) {
+    _ items: [Imaginable], at size: CGSize, quality: ImageQuality) {
     os_log("cancelling prefetching: %{public}i", log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
 
     preheater.stopPreheating(with: reqs)
   }
-
 }

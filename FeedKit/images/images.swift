@@ -58,7 +58,6 @@ public struct FKImageLoadingOptions {
     self.isDirect = isDirect
     self.isClean = isClean
   }
-
 }
 
 /// An image loading API.
@@ -102,7 +101,7 @@ public protocol Images {
 
   /// Cancels prefetching images for `items` at `size` of `quality`.
   func cancelPrefetching(
-    for items: [Imaginable], at size: CGSize, quality: ImageQuality)
+     _ items: [Imaginable], at size: CGSize, quality: ImageQuality)
 
   /// Cancels prefetching `requests`.
   func cancel(prefetching requests: [ImageRequest])
@@ -115,5 +114,4 @@ public protocol Images {
 
   /// Flushes in-memory caches.
   func flush()
-
 }
