@@ -33,9 +33,12 @@ public final class ImageRepository {
 
   /// Creates a new image pipeline and removes the previous data cache.
   ///
+  /// - Parameter removing: Start fresh, removing all files first. During 
+  /// development this may help to reason about caching.
+  ///
   /// Removing the previous, now deprecacted because renamed, data cache will 
   /// become unnecessary at some point.
-  private static func makeImagePipeline() -> ImagePipeline {
+  private static func makeImagePipeline(removing: Bool = false) -> ImagePipeline {
     return ImagePipeline {
       $0.imageCache = ImageCache.shared
 
@@ -51,11 +54,15 @@ public final class ImageRepository {
 
         try removeAllFromCache(named: oldName)
       } catch {
-        os_log("no retired cache: %@", log: log, error.localizedDescription)
+        os_log("no retired cache: %{public}@", log: log, error.localizedDescription)
       }
       
       let name = "ink.codes.feedkit.images"
-      try! removeAllFromCache(named: name)
+      
+      if removing {
+        try! removeAllFromCache(named: name)
+      }
+      
       let dataCache = try! DataCache(name: name)
 
       $0.dataCache = dataCache
@@ -78,7 +85,7 @@ public final class ImageRepository {
 
   fileprivate let preheater = Nuke.ImagePreheater()
 
-  /// A thread-safe temporary cache for URL objects.
+  /// A thread-safe temporary cache for URL objects. Those aren’t cheap.
   private var urls = NSCache<NSString, NSURL>()
 }
 
@@ -321,7 +328,7 @@ extension ImageRepository: Images {
 
     let originalSize = imageView.bounds.size
 
-    os_log("getting: ( %@, %@ )",
+    os_log("getting: ( %{public}@, %{public}@ )",
            log: log, type: .debug, item.title, originalSize as CVarArg)
 
     let relativeSize = ImageRepository.makeSize(
@@ -336,7 +343,7 @@ extension ImageRepository: Images {
     let id = FKImage.ID(url: itemURL, size: originalSize, isClean: options.isClean)
 
     if let res = cachedResponse(matching: id) {
-      os_log("cache hit: ( %@, %@ )",
+      os_log("cache hit: ( %{public}@, %{public}@ )",
              log: log, type: .debug, item.title, itemURL.lastPathComponent)
 
       imageView.image = res.image
@@ -357,7 +364,7 @@ extension ImageRepository: Images {
         failureImage: options.fallbackImage ?? imageView.image
       )
 
-      os_log("loading: %@", log: log, type: .debug, url.lastPathComponent)
+      os_log("loading: %{public}@", log: log, type: .debug, url.lastPathComponent)
       
       Nuke.loadImage(with: req, options: opts, into: imageView) { result in
         switch result {
@@ -394,7 +401,7 @@ extension ImageRepository: Images {
 
     if let image = placeholder?.image {
       let p = placeholderURL?.lastPathComponent ?? "weirdly got no URL"
-      os_log("cache hit: ( %@, %@ )", log: log, type: .debug, item.title, p)
+      os_log("cache hit: ( %{public}@, %{public}@ )", log: log, type: .debug, item.title, p)
       
       imageView.image = image
 
@@ -455,7 +462,7 @@ extension ImageRepository {
   public func prefetchImages(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
-    os_log("prefetching: %i", log: log, type: .debug, items.count)
+    os_log("prefetching: %{public}i", log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
     
@@ -471,7 +478,7 @@ extension ImageRepository {
 
   public func cancelPrefetching(
     for items: [Imaginable], at size: CGSize, quality: ImageQuality) {
-    os_log("cancelling prefetching: %i", log: log, type: .debug, items.count)
+    os_log("cancelling prefetching: %{public}i", log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
 
