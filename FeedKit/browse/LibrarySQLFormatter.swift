@@ -427,7 +427,7 @@ extension LibrarySQLFormatter {
     return """
     SELECT DISTINCT * FROM entry_view WHERE entry_id IN (
       SELECT rowid FROM entry_fts
-      WHERE summary MATCH \(exp) LIMIT 1000
+      WHERE entry_fts MATCH \(exp) LIMIT 1000
     ) ORDER BY updated DESC LIMIT \(limit);
     """
   }

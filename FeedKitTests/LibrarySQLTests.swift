@@ -25,7 +25,6 @@ class LibrarySQLTests: XCTestCase {
     formatter = nil
     super.tearDown()
   }
- 
 }
 
 // MARK: - Browsing (Shared)
@@ -88,11 +87,11 @@ extension LibrarySQLTests {
     let findings = [
       formatter.SQLToSelectEntries(within: [
         (Feed.ID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0))
-        ]),
+      ]),
       formatter.SQLToSelectEntries(within: [
         (Feed.ID(rowid: 1, url: "http://abc.de"), Date(timeIntervalSince1970: 0)),
         (Feed.ID(rowid: 2, url: "http://efg.hi"), Date(timeIntervalSince1970: 3600))
-        ])
+      ])
     ]
     let wantings = [
       "SELECT * FROM entry_view WHERE feed_id = 1 AND updated > '1970-01-01 00:00:00' ORDER BY feed_id, updated;",
@@ -108,7 +107,7 @@ extension LibrarySQLTests {
     let feed = Common.makeFeed(name: .gruber)
     let found = formatter.SQLToInsert(feed: feed)
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToUpdateFeed() {
@@ -123,7 +122,7 @@ extension LibrarySQLTests {
     let feed = Common.makeFeed(name: .gruber)
     let feedID = Feed.ID(rowid: 1, url: feed.url)
     let found = formatter.SQLToUpdate(feed: feed, with: feedID, from: .iTunes)
-
+    
     assertSnapshot(matching: found, as: .dump, named: "should keep link")
   }
   
@@ -132,9 +131,8 @@ extension LibrarySQLTests {
     let feedID = Feed.ID(rowid: 1, url: entry.feed)
     let found = formatter.SQLToInsert(entry: entry, for: feedID)
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
-  
 }
 
 // MARK: - Searching
@@ -175,14 +173,14 @@ extension LibrarySQLTests {
   
   func testSQLToSelectSuggestionsForTerm() {
     let found = LibrarySQLFormatter.SQLToSelectSuggestionsForTerm("abc", limit: 5)
-
-     assertSnapshot(matching: found, as: .dump)
+    
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToDeleteSuggestionsMatchingTerm() {
     let found = LibrarySQLFormatter.SQLToDeleteSuggestionsMatchingTerm("abc")
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToInsertFeedIDForTerm() {
@@ -195,19 +193,19 @@ extension LibrarySQLTests {
   func testSQLToSelectFeedsByTerm() {
     let found = LibrarySQLFormatter.SQLToSelectFeeds(for: "abc", limit: 50)
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToSelectFeedsMatchingTerm() {
     let found = LibrarySQLFormatter.SQLToSelectFeeds(matching: "abc", limit: 3)
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToSelectEntriesMatchingTerm() {
     let found = LibrarySQLFormatter.SQLToSelectEntries(matching: "abc", limit: 3)
     
-     assertSnapshot(matching: found, as: .dump)
+    assertSnapshot(matching: found, as: .dump)
   }
   
   func testSQLToDeleteSearchForTerm() {
@@ -216,7 +214,6 @@ extension LibrarySQLTests {
     
     XCTAssertEqual(found, wanted)
   }
-  
 }
 
 
@@ -240,5 +237,4 @@ extension LibrarySQLTests {
     
     assertSnapshot(matching: found, as: .dump)
   }
-  
 }

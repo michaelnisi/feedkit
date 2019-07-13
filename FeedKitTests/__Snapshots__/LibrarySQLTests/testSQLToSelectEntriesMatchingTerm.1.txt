@@ -1,1 +1,1 @@
-- "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (\n  SELECT rowid FROM entry_fts\n  WHERE summary MATCH \'abc*\' LIMIT 1000\n) ORDER BY updated DESC LIMIT 3;"
+- "SELECT DISTINCT * FROM entry_view WHERE entry_id IN (\n  SELECT rowid FROM entry_fts\n  WHERE entry_fts MATCH \'abc*\' LIMIT 1000\n) ORDER BY updated DESC LIMIT 3;"
