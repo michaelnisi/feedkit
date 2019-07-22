@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -273,14 +273,14 @@ extension ImageRepository: Images {
   
   private static func makeProcessors(id: FKImage.ID) -> [ImageProcessing] {
     guard !id.isClean else {
-      return [ImageProcessor.Resize(size: id.size, upscale: true)]
+      return [ImageProcessor.Resize(size: id.size, crop: true)]
     }
     
     let r: CGFloat = id.size.width <= 100 ? 3 : 6
     let b = ImageProcessor.RoundedCorners.Border(color: .lightGray)
     
     return [
-      ImageProcessor.Resize(size: id.size, upscale: true), 
+      ImageProcessor.Resize(size: id.size, crop: true), 
       ImageProcessor.RoundedCorners(radius: r, border: b)
     ]
   }
@@ -312,8 +312,7 @@ extension ImageRepository: Images {
   private static
   func makeSize(size: CGSize, quality: ImageQuality = .medium) -> CGSize {
     let q = quality.rawValue
-    let w = size.width / q
-    let h = size.height / q
+    let (w, h) = ((size.width / q).rounded(), (size.height / q).rounded())
 
     return CGSize(width: w, height: h)
   }
@@ -325,7 +324,7 @@ extension ImageRepository: Images {
     completionBlock: (() -> Void)? = nil
   ) {
     dispatchPrecondition(condition: .onQueue(.main))
-
+    
     let originalSize = imageView.bounds.size
 
     os_log("getting: ( %{public}@, %{public}@ )",
@@ -336,7 +335,7 @@ extension ImageRepository: Images {
 
     guard let itemURL = imageURL(representing: item, at: relativeSize) else {
       os_log("missing URL: %{public}@",
-             log: log,  type: .error, String(describing: item))
+             log: log, type: .error, String(describing: item))
       return
     }
 

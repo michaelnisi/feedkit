@@ -64,7 +64,7 @@ public struct FKImageLoadingOptions {
 public protocol Images {
 
   /// Loads an image representing`item` into `imageView`, scaling the image
-  /// to match the image view’s bounds size.
+  /// to match the image view’s bounds size, adjusting it to the larger square.
   ///
   /// Smallest possible latency is critical here.
   ///
