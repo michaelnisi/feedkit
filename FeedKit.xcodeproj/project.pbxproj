@@ -441,11 +441,11 @@
 			};
 			buildConfigurationList = 4C34858F1977C236008A6B53 /* Build configuration list for PBXProject "FeedKit" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				English,
 				en,
+				Base,
 			);
 			mainGroup = 4C34858B1977C236008A6B53;
 			productRefGroup = 4C3485961977C236008A6B53 /* Products */;
