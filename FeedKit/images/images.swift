@@ -107,7 +107,7 @@ public protocol Images {
   func cancel(prefetching requests: [ImageRequest])
 
   /// Cancels request associated with `view`.
-  func cancel(displaying view: UIImageView)
+  func cancel(displaying view: UIImageView?)
 
   /// Synchronously loads image for specificied `item` at `size`.
   func loadImage(item: Imaginable, size: CGSize) -> UIImage?

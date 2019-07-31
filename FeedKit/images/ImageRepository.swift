@@ -33,29 +33,13 @@ public final class ImageRepository {
 
   /// Creates a new image pipeline and removes the previous data cache.
   ///
-  /// - Parameter removing: Start fresh, removing all files first. During 
-  /// development this may help to reason about caching.
-  ///
-  /// Removing the previous, now deprecacted because renamed, data cache will 
-  /// become unnecessary at some point.
+  /// - Parameter removing: Clears the cache (for development).
   private static func makeImagePipeline(removing: Bool = false) -> ImagePipeline {
     return ImagePipeline {
       $0.imageCache = ImageCache.shared
-
+      
       let config = URLSessionConfiguration.default
-
       $0.dataLoader = DataLoader(configuration: config)
-
-      do {
-        let oldName = "ink.codes.podest.images"
-
-        os_log("removing retired cache: %{public}@",
-               log: log, type: .info, oldName)
-
-        try removeAllFromCache(named: oldName)
-      } catch {
-        os_log("no retired cache: %{public}@", log: log, error.localizedDescription)
-      }
       
       let name = "ink.codes.feedkit.images"
       
@@ -63,15 +47,10 @@ public final class ImageRepository {
         try! removeAllFromCache(named: name)
       }
       
-      let dataCache = try! DataCache(name: name)
-
-      $0.dataCache = dataCache
-
+      $0.dataCache = try! DataCache(name: name)
       $0.dataLoadingQueue.maxConcurrentOperationCount = 6
       $0.imageDecodingQueue.maxConcurrentOperationCount = 1
       $0.imageProcessingQueue.maxConcurrentOperationCount = 2
-      
-      $0.isDataCachingForProcessedImagesEnabled = true
       $0.isDeduplicationEnabled = true
       $0.isProgressiveDecodingEnabled = false
     }
@@ -216,8 +195,12 @@ extension ImageRepository {
 
 extension ImageRepository: Images {
 
-  public func cancel(displaying view: UIImageView) {
-    Nuke.cancelRequest(for: view)
+  public func cancel(displaying imageView: UIImageView?) {
+    guard let v = imageView else {
+      return
+    }
+    
+    Nuke.cancelRequest(for: v)
   }
 
   public func flush() {
