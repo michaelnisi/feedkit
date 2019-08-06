@@ -30,30 +30,40 @@ public final class ImageRepository {
 
     try FileManager.default.removeItem(at: url)
   }
+  
+  private static func makeDataLoader() -> DataLoading {
+    let conf = DataLoader.defaultConfiguration
+    let dice = Int.random(in: 1...6)
+    
+    if dice == 6 {
+      os_log("using protocol cache policy", log: log)
+      
+      conf.requestCachePolicy = .useProtocolCachePolicy
+    } else {
+      conf.requestCachePolicy = .returnCacheDataElseLoad
+    }
+    
+    return DataLoader(configuration: conf)
+  }
 
-  /// Creates a new image pipeline and removes the previous data cache.
+  /// Returns a new image pipeline.
+  ///
+  /// Sporadically follows `.useProtocolCachePolicy`, instead of 
+  /// `.returnCacheDataElseLoad`, for keeping up-to-date. This compromise can be
+  /// unfortunate for users offline during this session.
   ///
   /// - Parameter removing: Clears the cache (for development).
   private static func makeImagePipeline(removing: Bool = false) -> ImagePipeline {
-    return ImagePipeline {
-      $0.imageCache = ImageCache.shared
-      
-      let config = URLSessionConfiguration.default
-      $0.dataLoader = DataLoader(configuration: config)
-      
-      let name = "ink.codes.feedkit.images"
-      
-      if removing {
-        try! removeAllFromCache(named: name)
-      }
-      
-      $0.dataCache = try! DataCache(name: name)
-      $0.dataLoadingQueue.maxConcurrentOperationCount = 6
-      $0.imageDecodingQueue.maxConcurrentOperationCount = 1
-      $0.imageProcessingQueue.maxConcurrentOperationCount = 2
-      $0.isDeduplicationEnabled = true
-      $0.isProgressiveDecodingEnabled = false
+    let name = "ink.codes.feedkit.images"
+    
+    if removing {
+      try! removeAllFromCache(named: name)
     }
+    
+    var conf = ImagePipeline.Configuration()
+    conf.dataLoader = makeDataLoader()
+    
+    return ImagePipeline(configuration: conf)
   }
 
   init() {
@@ -188,7 +198,6 @@ extension ImageRepository {
 
     return (imageURL(representing: item, at: s), nil)
   }
-
 }
 
 // MARK: - Images
@@ -211,36 +220,24 @@ extension ImageRepository: Images {
     // elements when the app enters background.
   }
 
-  public func loadImage(item: Imaginable, size: CGSize) -> UIImage? {
+  public func cachedImage(item: Imaginable, size: CGSize) -> UIImage? {
     dispatchPrecondition(condition: .notOnQueue(.main))
     
     guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
-
-    os_log("synchronously loading: %{public}@",
+    
+    os_log("loading cached: %{public}@",
            log: log, type: .debug, url.lastPathComponent)
-
-    var image: UIImage?
-
-    let id = FKImage.ID(url: url, size: size, isClean: true)
-    let req = ImageRepository.makeImageRequest(identifier: id)
-    let blocker = DispatchSemaphore(value: 0)
-
-    Nuke.ImagePipeline.shared.loadImage(with: req) { result in
-      switch result {
-      case let .success(response):
-        image = response.image
-      case let .failure(error):
-        os_log("synchronously loading failed: %{public}@", error as CVarArg)
-      }
-
-      blocker.signal()
+    
+    let req = URLRequest(url: url)
+    let res = Nuke.DataLoader.sharedUrlCache.cachedResponse(for: req)
+    
+    guard let data = res?.data else {
+      return nil
     }
-
-    blocker.wait()
-
-    return image
+    
+    return ImageDecoder().decode(data: data)
   }
 
   private static func makeImageLoadingOptions(
@@ -262,10 +259,10 @@ extension ImageRepository: Images {
     let r: CGFloat = id.size.width <= 100 ? 3 : 6
     let b = ImageProcessor.RoundedCorners.Border(color: .lightGray)
     
-    return [
+    return [ImageProcessor.Composition([
       ImageProcessor.Resize(size: id.size, crop: true), 
       ImageProcessor.RoundedCorners(radius: r, border: b)
-    ]
+    ])]
   }
   
   /// Returns a request for image `url` at `size`.
@@ -351,7 +348,8 @@ extension ImageRepository: Images {
       Nuke.loadImage(with: req, options: opts, into: imageView) { result in
         switch result {
         case .failure(let er):
-           os_log("image loading failed: %{public}@", log: log, er as CVarArg)
+          os_log("image loading failed: %{public}@", log: log, er as CVarArg)
+
         case .success:
           break
         }
@@ -418,7 +416,6 @@ extension ImageRepository: Images {
 
     loadImage(representing: item, into: imageView, options: defaults)
   }
-
 }
 
 // MARK: - Prefetching

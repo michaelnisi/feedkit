@@ -109,8 +109,8 @@ public protocol Images {
   /// Cancels request associated with `view`.
   func cancel(displaying view: UIImageView?)
 
-  /// Synchronously loads image for specificied `item` at `size`.
-  func loadImage(item: Imaginable, size: CGSize) -> UIImage?
+  /// Returns a cached image for `item` appropriate for `size`.
+  func cachedImage(item: Imaginable, size: CGSize) -> UIImage?
 
   /// Flushes in-memory caches.
   func flush()
