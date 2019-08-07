@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.

@@ -151,6 +151,8 @@ public protocol Queueing {
   func contains(entry: Entry) -> Bool
   func next() -> Entry?
   func previous() -> Entry?
+  
+  /// Skips queue to `entry` throwing if `entry` is not in queue.
   func skip(to entry: Entry) throws
 
   var isEmpty: Bool { get }

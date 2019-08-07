@@ -94,6 +94,7 @@ public struct Queue<Item: Hashable> {
     }
     
     itemsByHashValues[h] = item
+    
     hashValues.append(h)
     
     if now == nil { now = h }
@@ -178,6 +179,9 @@ public struct Queue<Item: Hashable> {
     return itemsByHashValues[h]
   }
   
+  /// Skips to `item` if it is in the queue.
+  ///
+  /// - Throws: Throws if `item` is not enqueued.
   public mutating func skip(to item: Item) throws {
     guard contains(item) else {
       throw QueueError.notInQueue
