@@ -216,8 +216,19 @@ extension ImageRepository: Images {
     urls.removeAllObjects()
 
     // The Nuke image cache automatically removes all stored elements when it
-    // received a memory warning. It also automatically removes most of cached
-    // elements when the app enters background.
+    // received a memory warning. It also sweeps its cache when the app enters 
+    // the background.
+  }
+  
+  private func cachedImage(url: URL) -> UIImage? {
+    let req = URLRequest(url: url)
+    let res = Nuke.DataLoader.sharedUrlCache.cachedResponse(for: req)
+    
+    guard let data = res?.data else {
+      return nil
+    }
+    
+    return ImageDecoder().decode(data: data)
   }
 
   public func cachedImage(item: Imaginable, size: CGSize) -> UIImage? {
@@ -230,14 +241,16 @@ extension ImageRepository: Images {
     os_log("loading cached: %{public}@",
            log: log, type: .debug, url.lastPathComponent)
     
-    let req = URLRequest(url: url)
-    let res = Nuke.DataLoader.sharedUrlCache.cachedResponse(for: req)
-    
-    guard let data = res?.data else {
+    guard let img = cachedImage(url: url) else {
+      if let str = item.iTunes?.img100, let url = URL(string: str) {
+        os_log("attempting to fall back on smaller size", log: log)
+        return cachedImage(url: url)
+      }
+      
       return nil
     }
     
-    return ImageDecoder().decode(data: data)
+    return img
   }
 
   private static func makeImageLoadingOptions(

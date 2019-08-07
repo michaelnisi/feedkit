@@ -109,7 +109,9 @@ public protocol Images {
   /// Cancels request associated with `view`.
   func cancel(displaying view: UIImageView?)
 
-  /// Returns a cached image for `item` appropriate for `size`.
+  /// Returns a cached image for `item` appropriate for `size`. 
+  ///
+  /// If no image matching size is found, a smaller image may be returned.
   func cachedImage(item: Imaginable, size: CGSize) -> UIImage?
 
   /// Flushes in-memory caches.
