@@ -27,6 +27,8 @@ public struct Queue<Item: Hashable> {
   private var hashValues = [Int]()
 
   /// The sorted items in the queue at this moment.
+  ///
+  /// Mapping hash values, this computed property has O(n) time complexity.
   var items: [Item] {
     return hashValues.map {
       itemsByHashValues[$0]!
@@ -36,13 +38,15 @@ public struct Queue<Item: Hashable> {
   /// Removes all items from the queue.
   public mutating func removeAll() {
     itemsByHashValues.removeAll()
+    
     now = nil
+    
     hashValues.removeAll()
   }
   
-  public var isEmpty: Bool { get {
+  public var isEmpty: Bool { 
     return hashValues.isEmpty
-  }}
+  }
   
   /// Prepends `item` to queue, making it its head.
   ///
@@ -69,6 +73,7 @@ public struct Queue<Item: Hashable> {
   /// - Returns: Returns the prepended items.
   @discardableResult public mutating func prepend(items: [Item]) -> [Item] {
     var acc = [Item]()
+    
     for item in items.reversed() {
       do {
         acc.append(try prepend(item))
@@ -76,6 +81,7 @@ public struct Queue<Item: Hashable> {
         // Can be inferred from the accumulated items returned.
       }
     }
+    
     return acc
   }
   
@@ -96,6 +102,7 @@ public struct Queue<Item: Hashable> {
   /// Appends `items` as the tail of the queue.
   public mutating func append(items: [Item]) throws {
     var acc: Error?
+    
     for item in items {
       do {
         try append(item)
@@ -103,6 +110,7 @@ public struct Queue<Item: Hashable> {
         acc = error
       }
     }
+    
     if let error = acc {
       throw error
     }
@@ -116,6 +124,7 @@ public struct Queue<Item: Hashable> {
   /// - Parameter items: The items to enqueue, an empty array is OK.
   public init(items: [Item]) {
     prepend(items: items)
+    
     now = hashValues.first
   }
   
@@ -125,6 +134,7 @@ public struct Queue<Item: Hashable> {
       let i = hashValues.firstIndex(of: item) else {
       return nil
     }
+    
     return i
   }}
   
@@ -132,6 +142,7 @@ public struct Queue<Item: Hashable> {
     guard let i = currentIndex, i < hashValues.count - 1 else {
       return nil
     }
+    
     return i
   }
   
@@ -139,9 +150,11 @@ public struct Queue<Item: Hashable> {
     guard let i = validIndexAfter else {
       return nil
     }
+    
     let n = hashValues.index(after: i)
     let h = hashValues[n]
     now = h
+    
     return itemsByHashValues[h]
   }
   
@@ -149,6 +162,7 @@ public struct Queue<Item: Hashable> {
     guard let i = currentIndex, i > 0 else {
       return nil
     }
+    
     return i
   }
   
@@ -156,9 +170,11 @@ public struct Queue<Item: Hashable> {
     guard let i = validIndexBefore else {
       return nil
     }
+    
     let n = hashValues.index(before: i)
     let h = hashValues[n]
     now = h
+    
     return itemsByHashValues[h]
   }
   
@@ -166,6 +182,7 @@ public struct Queue<Item: Hashable> {
     guard contains(item) else {
       throw QueueError.notInQueue
     }
+    
     now = item.hashValue
   }
   
@@ -173,6 +190,7 @@ public struct Queue<Item: Hashable> {
     guard let hashValue = now else {
       return nil
     }
+    
     return itemsByHashValues[hashValue]
   }}
   
@@ -183,10 +201,12 @@ public struct Queue<Item: Hashable> {
       i != hashValues.count - 1 else {
       return []
     }
+    
     let keys = hashValues.split(separator: h)
     guard let last = keys.last else {
       return []
     }
+    
     return last.compactMap {
       itemsByHashValues[$0]
     }
@@ -204,6 +224,7 @@ public struct Queue<Item: Hashable> {
     }
     
     hashValues.remove(at: i)
+    
     if now == hashValue { now = nil }
   }
 
