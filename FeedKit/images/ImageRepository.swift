@@ -228,7 +228,7 @@ extension ImageRepository: Images {
       return nil
     }
     
-    return ImageDecoder().decode(data: data)
+    return UIImage(data: data, scale: UIScreen.main.scale)
   }
 
   public func cachedImage(item: Imaginable, size: CGSize) -> UIImage? {
