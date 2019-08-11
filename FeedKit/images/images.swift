@@ -89,6 +89,11 @@ public protocol Images {
   /// Loads an image using default options, falling back on existing image,
   /// medium quality, and preloading smaller images for large sizes.
   func loadImage(representing item: Imaginable, into imageView: UIImageView)
+  
+  /// Preloads images representing `items` at `size`.
+  ///
+  /// Keeps track of successfully loaded images producing no duplicates.
+  func preloadImages(representing items: [Imaginable], at size: CGSize)
 
   /// Prefetches images of `items`, preheating the image cache.
   ///
@@ -96,7 +101,7 @@ public protocol Images {
   /// this prefetching batch.
   @discardableResult
   func prefetchImages(
-    for items: [Imaginable], at size: CGSize, quality: ImageQuality
+    representing items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest]
 
   /// Cancels prefetching images for `items` at `size` of `quality`.
@@ -110,9 +115,7 @@ public protocol Images {
   func cancel(displaying view: UIImageView?)
 
   /// Returns a cached image for `item` appropriate for `size`. 
-  ///
-  /// If no image matching size is found, a smaller image may be returned.
-  func cachedImage(item: Imaginable, size: CGSize) -> UIImage?
+  func cachedImage(representing item: Imaginable, at size: CGSize) -> UIImage?
 
   /// Flushes in-memory caches.
   func flush()

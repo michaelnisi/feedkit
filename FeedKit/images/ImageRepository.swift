@@ -38,7 +38,7 @@ public final class ImageRepository {
     if dice == 6 {
       os_log("using protocol cache policy", log: log)
       
-      conf.requestCachePolicy = .useProtocolCachePolicy
+      conf.requestCachePolicy = .returnCacheDataElseLoad // TODO: .useProtocolCachePolicy
     } else {
       conf.requestCachePolicy = .returnCacheDataElseLoad
     }
@@ -57,7 +57,12 @@ public final class ImageRepository {
     let name = "ink.codes.feedkit.images"
     
     if removing {
-      try! removeAllFromCache(named: name)
+      do {
+        os_log("trying to remove cache", log: log, type: .info)
+        try removeAllFromCache(named: name)
+      } catch {
+        os_log("nothing to remove", log: log)
+      }
     }
     
     var conf = ImagePipeline.Configuration()
@@ -67,7 +72,7 @@ public final class ImageRepository {
   }
 
   init() {
-    ImagePipeline.shared = ImageRepository.makeImagePipeline()
+    ImagePipeline.shared = ImageRepository.makeImagePipeline(removing: true)
   }
 
   public static var shared: Images = ImageRepository()
@@ -76,6 +81,9 @@ public final class ImageRepository {
 
   /// A thread-safe temporary cache for URL objects. Those aren’t cheap.
   private var urls = NSCache<NSString, NSURL>()
+  
+  /// Hi-res images of these feeds have been preloaded.
+  var preloadedImages = Set<Int>()
 }
 
 // MARK: - Choosing and Caching URLs
@@ -230,26 +238,39 @@ extension ImageRepository: Images {
     
     return UIImage(data: data, scale: UIScreen.main.scale)
   }
+  
+  private static func matchingSize(image: UIImage, size rhs: CGSize) -> Bool {
+    let s = image.scale
+    let lhs = CGSize(width: image.size.width * s, height: image.size.height * s)
 
-  public func cachedImage(item: Imaginable, size: CGSize) -> UIImage? {
+    return lhs == rhs
+  }
+
+  public func cachedImage(
+    representing item: Imaginable, at size: CGSize) -> UIImage? {
     dispatchPrecondition(condition: .notOnQueue(.main))
     
     guard let url = imageURL(representing: item, at: size) else {
       return nil
     }
     
-    os_log("loading cached: %{public}@",
+    os_log("accessing cached: %{public}@",
            log: log, type: .debug, url.lastPathComponent)
-    
+
     guard let img = cachedImage(url: url) else {
-      if let str = item.iTunes?.img100, let url = URL(string: str) {
-        os_log("attempting to fall back on smaller size", log: log)
-        return cachedImage(url: url)
-      }
-      
+      os_log("not cached: %{public}@", log: log, String(describing: item))
       return nil
     }
     
+    guard ImageRepository.matchingSize(image: img, size: size) else {
+      os_log("resizing: %{public}@", 
+             log: log, type: .info, String(describing: item))
+      
+      return UIGraphicsImageRenderer(size: size).image { context in
+        img.draw(in: CGRect(origin: .zero, size: size))
+      }
+    }
+  
     return img
   }
 
@@ -452,7 +473,7 @@ extension ImageRepository {
   }
 
   public func prefetchImages(
-    for items: [Imaginable], at size: CGSize, quality: ImageQuality
+    representing items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
     os_log("prefetching: %{public}i", log: log, type: .debug, items.count)
 
@@ -470,10 +491,46 @@ extension ImageRepository {
 
   public func cancelPrefetching(
     _ items: [Imaginable], at size: CGSize, quality: ImageQuality) {
-    os_log("cancelling prefetching: %{public}i", log: log, type: .debug, items.count)
+    os_log("cancelling prefetching: %{public}i", 
+           log: log, type: .debug, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
 
     preheater.stopPreheating(with: reqs)
+  }
+}
+
+// MARK: - Preloading
+
+extension ImageRepository {
+  
+  public func preloadImages(representing items: [Imaginable], at size: CGSize) {
+    let ids = Set(items.compactMap { $0.iTunes?.iTunesID })
+    let diff = ids.subtracting(preloadedImages)
+    
+    let needed = items.filter { 
+      guard let id = $0.iTunes?.iTunesID else { return false }
+      return diff.contains(id) 
+    }
+    
+    let preloading: [Int] = needed.compactMap {
+      guard let id = $0.iTunes?.iTunesID, !preloadedImages.contains(id),
+        let url = imageURL(representing: $0, at: size) else {
+        return nil
+      }
+      
+      Nuke.ImagePipeline.shared.loadImage(with: url) { [weak self] result in
+        switch result {
+        case .failure:
+          os_log("preloading failed: %{public}@", log: log, url as CVarArg)
+        case .success:
+          self?.preloadedImages.insert(id)
+        }
+      }
+      
+      return id
+    }
+    
+    os_log("preloading: %{public}i", log: log, type: .info, preloading.count)
   }
 }
