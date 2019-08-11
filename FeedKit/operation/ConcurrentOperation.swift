@@ -18,7 +18,7 @@ class ConcurrentOperation: Operation {
   /// An internal serial queue for synchronized (thread-safe) property access.
   let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.ConcurrentOperation.\(UUID().uuidString)",
-    target: .global()
+    target: .global(qos: .userInitiated)
   )
 
   private var _executing: Bool = false

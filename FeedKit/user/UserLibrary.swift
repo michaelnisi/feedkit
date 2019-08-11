@@ -44,7 +44,7 @@ public final class UserLibrary: EntryQueueHost {
   /// Internal serial queue for synchronizing access to shared state.
   private let sQueue = DispatchQueue(
     label: "ink.codes.feedkit.user.UserLibrary-\(UUID().uuidString).serial",
-    target: .global()
+    target: .global(qos: .userInitiated)
   )
 
   private var _subscriptions = Set<FeedURL>()
@@ -184,7 +184,7 @@ extension UserLibrary: Subscribing {
     dequeueing: Bool = true,
     completionHandler: ((_ error: Error?) -> Void)? = nil) {
     guard !urls.isEmpty else {
-      return DispatchQueue.global().async {
+      return DispatchQueue.global(qos: .userInitiated).async {
         completionHandler?(nil)
       }
     }

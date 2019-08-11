@@ -159,7 +159,7 @@ public class LocalCache: Caching {
 
     self.schema = schema
     self.url = url
-    self.queue = DispatchQueue(label: label, target: .global())
+    self.queue = DispatchQueue(label: label, target: .global(qos: .userInitiated))
   }
 
   public func flush() throws {
