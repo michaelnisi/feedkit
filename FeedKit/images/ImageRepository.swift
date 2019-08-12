@@ -38,7 +38,7 @@ public final class ImageRepository {
     if dice == 6 {
       os_log("using protocol cache policy", log: log)
       
-      conf.requestCachePolicy = .returnCacheDataElseLoad // TODO: .useProtocolCachePolicy
+      conf.requestCachePolicy = .useProtocolCachePolicy
     } else {
       conf.requestCachePolicy = .returnCacheDataElseLoad
     }
@@ -72,7 +72,7 @@ public final class ImageRepository {
   }
 
   init() {
-    ImagePipeline.shared = ImageRepository.makeImagePipeline()
+    ImagePipeline.shared = ImageRepository.makeImagePipeline(removing: true)
   }
 
   public static var shared: Images = ImageRepository()
