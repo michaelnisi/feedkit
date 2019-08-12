@@ -72,7 +72,7 @@ public final class ImageRepository {
   }
 
   init() {
-    ImagePipeline.shared = ImageRepository.makeImagePipeline(removing: true)
+    ImagePipeline.shared = ImageRepository.makeImagePipeline()
   }
 
   public static var shared: Images = ImageRepository()
@@ -265,10 +265,7 @@ extension ImageRepository: Images {
     guard ImageRepository.matchingSize(image: img, size: size) else {
       os_log("resizing: %{public}@", 
              log: log, type: .info, String(describing: item))
-      
-      return UIGraphicsImageRenderer(size: size).image { context in
-        img.draw(in: CGRect(origin: .zero, size: size))
-      }
+      return ImageProcessor.Resize(size: size, crop: true).process(image: img)
     }
   
     return img
