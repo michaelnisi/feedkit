@@ -11,7 +11,7 @@ import Nuke
 import UIKit
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "images")
+private let log = OSLog.disabled
 
 /// Provides processed images as fast as possible.
 public final class ImageRepository {
@@ -288,7 +288,7 @@ extension ImageRepository: Images {
     }
     
     let r: CGFloat = id.size.width <= 100 ? 3 : 6
-    let b = ImageProcessor.RoundedCorners.Border(color: .lightGray)
+    let b = ImageProcessor.Border(color: .lightGray)
     
     return [ImageProcessor.Composition([
       ImageProcessor.Resize(size: id.size, crop: true), 
@@ -379,7 +379,7 @@ extension ImageRepository: Images {
       Nuke.loadImage(with: req, options: opts, into: imageView) { result in
         switch result {
         case .failure(let er):
-          os_log("image loading failed: %{public}@", log: log, er as CVarArg)
+          os_log("image loading failed: ( %{public}@, %{public}@ )", log: log, er as CVarArg, String(describing: req))
 
         case .success:
           break
