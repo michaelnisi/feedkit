@@ -24,9 +24,7 @@ class ConcurrentOperation: Operation {
   private var _executing: Bool = false
 
   override final var isExecuting: Bool {
-    get {
-      return sQueue.sync { _executing }
-    }
+    get { sQueue.sync { _executing } }
 
     set {
       sQueue.sync {
@@ -48,9 +46,7 @@ class ConcurrentOperation: Operation {
   private var _finished: Bool = false
 
   override final var isFinished: Bool {
-    get {
-      return sQueue.sync { _finished }
-    }
+    get { sQueue.sync { _finished } }
 
     set {
       sQueue.sync {

@@ -51,11 +51,8 @@ public final class UserLibrary: EntryQueueHost {
 
   /// The currently subscribed URLs.
   private var subscriptions: Set<FeedURL> {
-    get {
-      return sQueue.sync {
-        return _subscriptions
-      }
-    }
+    get { sQueue.sync { _subscriptions } }
+
     set {
       sQueue.sync {
         guard _subscriptions != newValue else {
@@ -73,11 +70,7 @@ public final class UserLibrary: EntryQueueHost {
 
   /// The actual queue of entries.
   var queue: Queue<Entry> {
-    get {
-      return sQueue.sync {
-        return _queue
-      }
-    }
+    get { sQueue.sync { _queue } }
 
     set {
       sQueue.sync {
@@ -90,11 +83,7 @@ public final class UserLibrary: EntryQueueHost {
 
   /// GUIDs of currently enqueued items.
   private var guids: Set<EntryGUID> {
-    get {
-      return sQueue.sync {
-        return _guids
-      }
-    }
+    get { sQueue.sync { _guids } }
 
     set {
       sQueue.sync {
