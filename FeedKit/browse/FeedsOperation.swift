@@ -11,7 +11,7 @@ import MangerKit
 import Ola
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "feeds")
 
 /// A concurrent `Operation` for accessing feeds.
 final class FeedsOperation: BrowseOperation,
@@ -116,12 +116,12 @@ FeedURLsDependent, ProdvidingFeeds {
       }
 
       do {
-        let (errors, feeds) = serialize.feeds(from: payload!)
+        let (_, feeds) = serialize.feeds(from: payload!)
         
         guard !me.isCancelled else { return me.done() }
 
         // https://github.com/michaelnisi/feedkit/issues/22
-        assert(errors.isEmpty, "unhandled: \(errors)")
+//        assert(errors.isEmpty, "unhandled: \(errors)")
 
         var freshURLs = Set(urls)
 
