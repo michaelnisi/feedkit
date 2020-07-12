@@ -148,9 +148,7 @@ extension FeedRepositoryTests {
       
       let wanted = [
         "http://feed.thisamericanlife.org/talpodcast",
-        "https://www.npr.org/rss/podcast.php?id=510298",
         "http://feeds.serialpodcast.org/serialpodcast",
-        "https://www.npr.org/rss/podcast.php?id=381444908",
         "http://feeds.wnyc.org/radiolab",
         "https://feeds.megaphone.fm/lore",
         "http://feeds.feedburner.com/dancarlin/history",
@@ -328,8 +326,8 @@ extension FeedRepositoryTests {
     // A very brittle test, the publisher might remove the entry with this
     // GUID at any time. If it fails, replace guid with an existing one.
     
-    let url = "http://feeds.gimletmedia.com/homecomingshow"
-    let guid = "6e80b95c2e64f995252fd18b22fc964a5f401b45"
+    let url = "https://feeds.megaphone.fm/homecoming"
+    let guid = "1a9628bfd0a94d0c0c5420e48e4d302e43519df6"
     let locators = [EntryLocator(url: url, guid: guid).including]
     
     var acc = [Entry]()

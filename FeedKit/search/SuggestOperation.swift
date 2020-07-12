@@ -249,7 +249,6 @@ final class SuggestOperation: SearchRepoOperation {
       
       // See timestamp comment in SearchOperation.
       guard let ts = cached.first?.ts else {
-        requestRequired = false
         return resume()
       }
       
