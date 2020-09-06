@@ -49,7 +49,7 @@ final class SearchOperation: SearchRepoOperation {
       return done(FeedKitError.serviceUnavailable(nil))
     }
     
-    os_log("requesting: %@", log: log, type: .debug, term)
+    os_log("requesting: %@", log: log, type: .info, term)
     
     // Capturing self as unowned to crash when we've mistakenly ended the
     // operation, here or somewhere else, inducing the system to release it.
@@ -147,7 +147,7 @@ final class SearchOperation: SearchRepoOperation {
         reachable: %i,
         ttl: %{public}@
       )
-      """, log: log, type: .debug, term, isAvailable, ttl.description
+      """, log: log, type: .info, term, isAvailable, ttl.description
     )
     
     isExecuting = true
@@ -168,7 +168,7 @@ final class SearchOperation: SearchRepoOperation {
     
     do {
       guard let cached = try cache.feeds(for: term, limit: 25) else {
-        os_log("nothing cached", log: log, type: .debug)
+        os_log("nothing cached", log: log, type: .info)
         return try request()
       }
 
@@ -179,7 +179,7 @@ final class SearchOperation: SearchRepoOperation {
         return try request()
       }
 
-      os_log("cached: %{public}@", log: log, type: .debug, cached)
+      os_log("cached: %{public}@", log: log, type: .info, cached)
       
       if isCancelled { return done() }
       

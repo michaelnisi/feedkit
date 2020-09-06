@@ -62,7 +62,7 @@ FeedURLsDependent, ProdvidingFeeds {
   private func done(_ error: Error? = nil) {
     let er: Error? = {
       guard !isCancelled else {
-        os_log("%{public}@: cancelled", log: log, type: .debug, self)
+        os_log("%{public}@: cancelled", log: log, type: .info, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
@@ -87,7 +87,7 @@ FeedURLsDependent, ProdvidingFeeds {
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
     os_log("%{public}@: requesting feeds: %{public}@",
-           log: log, type: .debug, self, urls)
+           log: log, type: .info, self, urls)
 
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
@@ -213,20 +213,20 @@ FeedURLsDependent, ProdvidingFeeds {
   }
   
   override func start() {
-    os_log("%{public}@: starting", log: log, type: .debug, self)
+    os_log("%{public}@: starting", log: log, type: .info, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
 
     guard error == nil, !urls.isEmpty else {
       os_log("%{public}@: aborting: no URLs provided",
-             log: log, type: .debug, self)
+             log: log, type: .info, self)
       return done(error)
     }
     
     do {
       os_log("%{public}@: trying cache: %{public}@",
-             log: log, type: .debug, self, urls)
+             log: log, type: .info, self, urls)
       
       let items = try cache.feeds(urls)
       let policy = recommend(for: ttl)
@@ -245,7 +245,7 @@ FeedURLsDependent, ProdvidingFeeds {
         stale: %{public}@,
         missing: %{public}@
       )
-      """, log: log, type: .debug,
+      """, log: log, type: .info,
            self,
            policy.ttl,
            cached.map { $0.url },

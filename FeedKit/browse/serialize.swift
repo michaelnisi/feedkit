@@ -170,7 +170,7 @@ struct serialize {
   /// - Throws: Doesn't throw but collects its errors and returns them in the
   /// result tuple alongside the feeds.
   static func feeds(from dicts: [[String : Any]]) -> ([Error], [Feed]) {
-    os_log("serializing feeds: %{public}@", log: log, type: .debug, dicts)
+    os_log("serializing feeds: %{public}@", log: log, type: .info, dicts)
     
     var errors = [Error]()
     let feeds = dicts.reduce([Feed]()) { acc, dict in
@@ -296,7 +296,7 @@ struct serialize {
   /// successfully serialized and returns them, additionally it also collects
   /// the occuring errors and returns them too. May its user act wisely!
   static func entries(from dicts: [[String: Any]], podcast: Bool = true) -> ([Error], [Entry]) {
-    os_log("serializing entries: %{public}@", log: log, type: .debug, dicts)
+    os_log("serializing entries: %{public}@", log: log, type: .info, dicts)
     
     var errors = [Error]()
     let entries = dicts.reduce([Entry]()) { acc, dict in

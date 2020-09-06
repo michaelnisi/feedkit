@@ -40,7 +40,7 @@ extension FeedRepository: Browsing {
 
   public func integrate(iTunesItems: [ITunesItem]) throws {
     os_log("integrating metadata: %{public}@",
-           log: log, type: .debug, iTunesItems)
+           log: log, type: .info, iTunesItems)
 
     try cache.integrate(iTunesItems: iTunesItems)
   }

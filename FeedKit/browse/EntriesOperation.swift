@@ -71,7 +71,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     }
 
     os_log("%@: submitting: ( %@, %@ )",
-           log: log, type: .debug, self, otherEntries, String(describing: error))
+           log: log, type: .info, self, otherEntries, String(describing: error))
 
     entries.formUnion(otherEntries)
     entriesBlock?(error, otherEntries)
@@ -80,11 +80,11 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   /// If we have been cancelled, it’s OK to just say `done()` and be done.
   private func done(_ error: Error? = nil) {
     os_log("%@: done: %@",
-           log: log, type: .debug, self, String(describing: error))
+           log: log, type: .info, self, String(describing: error))
 
     let er: Error? = {
       guard !isCancelled else {
-        os_log("%@: cancelled", log: log, type: .debug, self)
+        os_log("%@: cancelled", log: log, type: .info, self)
         return FeedKitError.cancelledByUser
       }
       self.error = self.error ?? error
@@ -115,7 +115,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     substantiating stock: [Entry] = []
   ) throws {
     os_log("%@: requesting entries: %@",
-           log: log, type: .debug, self, locators)
+           log: log, type: .info, self, locators)
 
     let cache = self.cache
     let policy = recommend(for: ttl)
@@ -129,7 +129,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
       guard error == nil else {
         if !stock.isEmpty {
-          os_log("** falling back on cached", log: log, type: .debug)
+          os_log("** falling back on cached", log: log, type: .info)
           self?.submit(stock)
         }
 
@@ -141,7 +141,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         os_log("%@: no payload", log: log, me)
 
         if !stock.isEmpty {
-          os_log("** falling back on cached", log: log, type: .debug)
+          os_log("** falling back on cached", log: log, type: .info)
           self?.submit(stock)
         }
 
@@ -167,7 +167,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         }
         
         os_log("%@: received entries: %@",
-               log: log, type: .debug, me, receivedEntries)
+               log: log, type: .info, me, receivedEntries)
         
         // Handling HTTP Redirects
 
@@ -193,7 +193,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
         if let url = me.singlyForced {
           os_log("%@: ** replacing entries: %@",
-                 log: log, type: .debug, me, url)
+                 log: log, type: .info, me, url)
           try cache.removeEntries(matching: [url])
         }
 
@@ -289,14 +289,14 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
   }
 
   override func start() {
-    os_log("%@: starting", log: log, type: .debug, self)
+    os_log("%@: starting", log: log, type: .info, self)
     
     guard !isCancelled else { return done() }
     isExecuting = true
     
     guard error == nil, !locators.isEmpty else {
       os_log("%@: aborting: no locators provided",
-             log: log, type: .debug, self)
+             log: log, type: .info, self)
       return done(error)
     }
     
@@ -308,7 +308,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     
     do {
       os_log("%@: trying cache: %@",
-             log: log, type: .debug, self, locators)
+             log: log, type: .info, self, locators)
 
       let (cached, missing) = try cache.fulfill(locators, ttl: policy.ttl)
 
@@ -321,7 +321,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         missing: %@
       )
       """, log: log,
-           type: .debug,
+           type: .info,
            self,
            policy.ttl,
            cached.map { $0.title },

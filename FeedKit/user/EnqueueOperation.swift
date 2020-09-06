@@ -90,7 +90,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   }
   
   override func main() {
-    os_log("starting EnqueueOperation", log: log, type: .debug)
+    os_log("starting EnqueueOperation", log: log, type: .info)
 
     do {
       guard error == nil else {
@@ -119,11 +119,11 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }()
       
       guard !qualifieds.isEmpty else {
-        os_log("nothing to enqueue", log: log, type: .debug)
+        os_log("nothing to enqueue", log: log, type: .info)
         return done([])
       }
       
-      os_log("enqueueing: %@", log: log, type: .debug, qualifieds)
+      os_log("enqueueing: %@", log: log, type: .info, qualifieds)
 
       let prepended = user.queue.prepend(items: qualifieds)
       entries.formUnion(prepended)
@@ -149,12 +149,12 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       let diffGuids = diff.compactMap { $0.entryLocator.guid }
       let newlyEnqueued = qualifieds.filter { diffGuids.contains($0.guid) }
 
-      os_log("** enqueued: %@", log: log, type: .debug, newlyEnqueued)
+      os_log("** enqueued: %@", log: log, type: .info, newlyEnqueued)
 
       done(newlyEnqueued)
     } catch {
       os_log("enqueueing failed: %{public}@",
-             log: log, type: .debug, error as CVarArg)
+             log: log, type: .info, error as CVarArg)
       return done([], error)
     }
   }

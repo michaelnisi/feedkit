@@ -26,7 +26,7 @@ extension UserCache: SubscriptionCaching {
     }
     
     os_log("adding subscriptions: %{public}@",
-           log: log, type: .debug, subscriptions)
+           log: log, type: .info, subscriptions)
     
     try queue.sync {
       let sql = [
@@ -47,7 +47,7 @@ extension UserCache: SubscriptionCaching {
     }
     
     os_log("removing urls: %{public}@",
-           log: log, type: .debug, urls)
+           log: log, type: .info, urls)
     
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDelete(subscribed: urls))
@@ -333,7 +333,7 @@ extension UserCache: UserCacheSyncing {
   
   public func add(synced: [Synced]) throws {
     guard !synced.isEmpty else {
-      os_log("aborting attempt to add empty array", log: log, type: .debug)
+      os_log("aborting attempt to add empty array", log: log, type: .info)
       return
     }
     
@@ -359,7 +359,7 @@ extension UserCache: UserCacheSyncing {
   
   public func remove(recordNames: [String]) throws {
     guard !recordNames.isEmpty else {
-      os_log("aborting attempt to remove empty array", log: log, type: .debug)
+      os_log("aborting attempt to remove empty array", log: log, type: .info)
       return
     }
     

@@ -3,15 +3,16 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		4C0549D51A8BDD5700104B3E /* browse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0549D41A8BDD5700104B3E /* browse.swift */; };
 		4C14D54721C2ABE900AF6908 /* ImageRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C14D54621C2ABE900AF6908 /* ImageRepository.swift */; };
+		4C17E4742503691D0022EF0F /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 4C17E4732503691D0022EF0F /* Nuke */; };
+		4C17E4772503EF3A0022EF0F /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 4C17E4762503EF3A0022EF0F /* SnapshotTesting */; };
 		4C372BF91A08133F00D22A9A /* cache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C372BF81A08133F00D22A9A /* cache.swift */; };
 		4C394B7F1FEA35DE004394EC /* FeedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C394B7E1FEA35DE004394EC /* FeedRepository.swift */; };
-		4C39D57B2268DEB800EAA7CC /* SnapshotTesting.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C39D57A2268DEB800EAA7CC /* SnapshotTesting.framework */; };
 		4C405D111FE63BAC0031C4DB /* BrowseOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D101FE63BAC0031C4DB /* BrowseOperation.swift */; };
 		4C405D131FE63DF80031C4DB /* FeedsOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D121FE63DF80031C4DB /* FeedsOperation.swift */; };
 		4C405D161FE77E960031C4DB /* ConcurrentOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D151FE77E960031C4DB /* ConcurrentOperation.swift */; };
@@ -54,7 +55,6 @@
 		4E49B7391F07A552004668FD /* user.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4E49B7371F07A524004668FD /* user.sql */; };
 		4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */; };
 		4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F091EF2C77600B090EF /* images.swift */; };
-		4E5C0F0C1EF2C80200B090EF /* Nuke.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E5C0F0B1EF2C80200B090EF /* Nuke.framework */; };
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
 		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
@@ -166,11 +166,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4E5C0F0C1EF2C80200B090EF /* Nuke.framework in Frameworks */,
 				4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */,
 				4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */,
 				4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */,
 				4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */,
+				4C17E4742503691D0022EF0F /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,8 +178,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4C39D57B2268DEB800EAA7CC /* SnapshotTesting.framework in Frameworks */,
 				4EF5E0F61E91389F00A95D3D /* FeedKit.framework in Frameworks */,
+				4C17E4772503EF3A0022EF0F /* SnapshotTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,6 +394,9 @@
 			dependencies = (
 			);
 			name = FeedKit;
+			packageProductDependencies = (
+				4C17E4732503691D0022EF0F /* Nuke */,
+			);
 			productName = FeedKit;
 			productReference = 4C3485951977C236008A6B53 /* FeedKit.framework */;
 			productType = "com.apple.product-type.framework";
@@ -412,6 +415,9 @@
 				4EF5E0F81E91389F00A95D3D /* PBXTargetDependency */,
 			);
 			name = FeedKitTests;
+			packageProductDependencies = (
+				4C17E4762503EF3A0022EF0F /* SnapshotTesting */,
+			);
 			productName = BetterFeedKitTests;
 			productReference = 4EF5E0F11E91389F00A95D3D /* FeedKitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -424,7 +430,7 @@
 			attributes = {
 				LastSwiftMigration = 0700;
 				LastSwiftUpdateCheck = 0830;
-				LastUpgradeCheck = 1100;
+				LastUpgradeCheck = 1200;
 				ORGANIZATIONNAME = "Michael Nisi";
 				TargetAttributes = {
 					4C3485941977C236008A6B53 = {
@@ -448,6 +454,10 @@
 				Base,
 			);
 			mainGroup = 4C34858B1977C236008A6B53;
+			packageReferences = (
+				4C17E4702503689D0022EF0F /* XCRemoteSwiftPackageReference "Nuke" */,
+				4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
 			productRefGroup = 4C3485961977C236008A6B53 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -585,6 +595,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -611,7 +622,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -647,6 +658,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -666,11 +678,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 13.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_INSTALL_OBJC_HEADER = YES;
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -694,7 +707,11 @@
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.michaelnisi.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -721,7 +738,11 @@
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				INFOPLIST_FILE = FeedKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.michaelnisi.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -741,7 +762,11 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = FeedKitTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = ink.codes.FeedKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -761,7 +786,11 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = FeedKitTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = ink.codes.FeedKitTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -800,6 +829,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4C17E4702503689D0022EF0F /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.2;
+			};
+		};
+		4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4C17E4732503691D0022EF0F /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C17E4702503689D0022EF0F /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		4C17E4762503EF3A0022EF0F /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4C34858C1977C236008A6B53 /* Project object */;
 }

@@ -149,7 +149,7 @@ final class FetchSubscribedFeedsOperation: ConcurrentOperation {
   }
   
   override func start() {
-    os_log("starting FetchSubscribedFeedsOperation", log: log, type: .debug)
+    os_log("starting FetchSubscribedFeedsOperation", log: log, type: .info)
     
     guard !isCancelled else {
       return done()

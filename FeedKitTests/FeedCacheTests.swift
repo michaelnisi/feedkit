@@ -527,7 +527,7 @@ extension FeedCacheTests {
 
     try! cache.update(suggestions: [], for: "apple")
 
-    XCTAssertNil(try! cache.suggestions(for: "a", limit: 5))
+    XCTAssertEqual(try! cache.suggestions(for: "a", limit: 5), input, "keeping suggestions now")
 
     do {
       let terms = ["apple", "apple ", "apple p", "apple pi", "apple pie"]
@@ -548,7 +548,7 @@ extension FeedCacheTests {
     try! cache.update(suggestions: input, for: "apple")
     try! cache.update(suggestions: [], for: "pie")
     if let found = try! cache.suggestions(for: "apple", limit: 5) {
-      XCTAssertEqual(found.count, 2)
+      XCTAssertEqual(found.count, 3, "keeping suggestions now")
       for (i, sug) in found.enumerated() {
         XCTAssertEqual(sug, input[i])
       }

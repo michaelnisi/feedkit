@@ -165,7 +165,7 @@ extension ImageRepository {
   ///
   /// Receiving an image response but no URL is impossible.
   private func makePlaceholder(
-    item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageResponse?) {
+    item: Imaginable, size: CGSize, isClean: Bool) -> (URL?, ImageContainer?) {
     guard let iTunes = item.iTunes else {
       os_log("aborting placeholding: iTunes object not found", log: log)
       return (nil, nil)
@@ -255,7 +255,7 @@ extension ImageRepository: Images {
     }
     
     os_log("accessing cached: %{public}@",
-           log: log, type: .debug, url.lastPathComponent)
+           log: log, type: .info, url.lastPathComponent)
 
     guard let img = cachedImage(url: url) else {
       os_log("not cached: %{public}@", log: log, String(describing: item))
@@ -265,7 +265,7 @@ extension ImageRepository: Images {
     guard ImageRepository.matchingSize(image: img, size: size) else {
       os_log("resizing: %{public}@", 
              log: log, type: .info, String(describing: item))
-      return ImageProcessor.Resize(size: size, crop: true).process(image: img)
+      return ImageProcessors.Resize(size: size, crop: true).process(img)
     }
   
     return img
@@ -284,15 +284,15 @@ extension ImageRepository: Images {
   
   private static func makeProcessors(id: FKImage.ID) -> [ImageProcessing] {
     guard !id.isClean else {
-      return [ImageProcessor.Resize(size: id.size, crop: true)]
+      return [ImageProcessors.Resize(size: id.size, crop: true)]
     }
     
     let r: CGFloat = id.size.width <= 100 ? 3 : 6
-    let b = ImageProcessor.Border(color: .lightGray)
+    let b = ImageProcessingOptions.Border(color: .lightGray)
     
-    return [ImageProcessor.Composition([
-      ImageProcessor.Resize(size: id.size, crop: true), 
-      ImageProcessor.RoundedCorners(radius: r, border: b)
+    return [ImageProcessors.Composition([
+      ImageProcessors.Resize(size: id.size, crop: true),
+      ImageProcessors.RoundedCorners(radius: r, border: b)
     ])]
   }
   
@@ -313,10 +313,10 @@ extension ImageRepository: Images {
     return req
   }
 
-  private func cachedResponse(matching id: FKImage.ID) -> ImageResponse? {
+  private func cachedResponse(matching id: FKImage.ID) -> ImageContainer? {
     let req = ImageRepository.makeImageRequest(identifier: id)
 
-    return Nuke.ImageCache.shared.cachedResponse(for: req)
+    return ImagePipeline.shared.cachedImage(for: req)
   }
 
   /// Scales `size` for`quality`.
@@ -339,7 +339,7 @@ extension ImageRepository: Images {
     let originalSize = imageView.bounds.size
 
     os_log("getting: ( %{public}@, %{public}@ )",
-           log: log, type: .debug, item.title, originalSize as CVarArg)
+           log: log, type: .info, item.title, originalSize as CVarArg)
 
     let relativeSize = ImageRepository.makeSize(
       size: originalSize, quality: options.quality)
@@ -354,7 +354,7 @@ extension ImageRepository: Images {
 
     if let res = cachedResponse(matching: id) {
       os_log("cache hit: ( %{public}@, %{public}@ )",
-             log: log, type: .debug, item.title, itemURL.lastPathComponent)
+             log: log, type: .info, item.title, itemURL.lastPathComponent)
 
       imageView.image = res.image
 
@@ -374,9 +374,9 @@ extension ImageRepository: Images {
         failureImage: options.fallbackImage ?? imageView.image
       )
 
-      os_log("loading: %{public}@", log: log, type: .debug, url.lastPathComponent)
+      os_log("loading: %{public}@", log: log, type: .info, url.lastPathComponent)
       
-      Nuke.loadImage(with: req, options: opts, into: imageView) { result in
+      Nuke.loadImage(with: req, options: opts, into: imageView, completion: { result in
         switch result {
         case .failure(let er):
           os_log("image loading failed: ( %{public}@, %{public}@ )", log: log, er as CVarArg, String(describing: req))
@@ -384,10 +384,10 @@ extension ImageRepository: Images {
         case .success:
           break
         }
-        
+
         dispatchPrecondition(condition: .onQueue(.main))
         cb?()
-      }
+      })
     }
 
     // If this isn’t specifically direct, no cached response is available, and
@@ -408,11 +408,11 @@ extension ImageRepository: Images {
       }
     }
     
-    os_log("placeholding", log: log, type: .debug)
+    os_log("placeholding", log: log, type: .info)
 
     if let image = placeholder?.image {
       let p = placeholderURL?.lastPathComponent ?? "weirdly got no URL"
-      os_log("cache hit: ( %{public}@, %{public}@ )", log: log, type: .debug, item.title, p)
+      os_log("cache hit: ( %{public}@, %{public}@ )", log: log, type: .info, item.title, p)
       
       imageView.image = image
 
@@ -472,7 +472,7 @@ extension ImageRepository {
   public func prefetchImages(
     representing items: [Imaginable], at size: CGSize, quality: ImageQuality
   ) -> [ImageRequest] {
-    os_log("prefetching: %{public}i", log: log, type: .debug, items.count)
+    os_log("prefetching: %{public}i", log: log, type: .info, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
     
@@ -482,14 +482,14 @@ extension ImageRepository {
   }
 
   public func cancel(prefetching requests: [ImageRequest]) {
-    os_log("cancelling prefetching", log: log, type: .debug)
+    os_log("cancelling prefetching", log: log, type: .info)
     preheater.stopPreheating(with: requests)
   }
 
   public func cancelPrefetching(
     _ items: [Imaginable], at size: CGSize, quality: ImageQuality) {
     os_log("cancelling prefetching: %{public}i", 
-           log: log, type: .debug, items.count)
+           log: log, type: .info, items.count)
 
     let reqs = makeRequests(items: items, size: size, quality: quality)
 
@@ -516,14 +516,14 @@ extension ImageRepository {
         return nil
       }
       
-      Nuke.ImagePipeline.shared.loadImage(with: url) { [weak self] result in
+      Nuke.ImagePipeline.shared.loadImage(with: url, completion: { [weak self] result in
         switch result {
         case .failure:
           os_log("preloading failed: %{public}@", log: log, url as CVarArg)
         case .success:
           self?.preloadedImages.insert(id)
         }
-      }
+      })
       
       return id
     }

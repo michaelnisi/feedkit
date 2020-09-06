@@ -36,7 +36,7 @@ final class FetchQueueOperation: ConcurrentOperation {
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
-    os_log("done: %{public}@", log: log, type: .debug,
+    os_log("done: %{public}@", log: log, type: .info,
            er != nil ? String(reflecting: er) : "OK")
     
     fetchQueueCompletionBlock?(er)
@@ -106,13 +106,13 @@ final class FetchQueueOperation: ConcurrentOperation {
       with: entries, for: guids, respecting: error)
     
     guard !missing.isEmpty else {
-      os_log("queue complete", log: log, type: .debug)
+      os_log("queue complete", log: log, type: .info)
       return user.queue.items
     }
     
     do {
       os_log("removing missing entries: %{public}@",
-             log: log, type: .debug, String(reflecting: missing))
+             log: log, type: .info, String(reflecting: missing))
       
       // Removing queued from cache first, removing items from queue very
       // likely will throw uncritical not-in-queue errors.
@@ -192,7 +192,7 @@ final class FetchQueueOperation: ConcurrentOperation {
       }()
       
       os_log("setting new queue: %{public}@",
-             log: log, type: .debug, String(reflecting: sorted))
+             log: log, type: .info, String(reflecting: sorted))
       
       // Getting current entry first which might be not be enqueued.
       let prevCurrent = self.user.queue.current
@@ -201,7 +201,7 @@ final class FetchQueueOperation: ConcurrentOperation {
       if let entry = prevCurrent {
         do {
           os_log("skipping queue to previous entry: %{public}@",
-                 log: log, type: .debug, entry.title)
+                 log: log, type: .info, entry.title)
           
           try self.user.queue.skip(to: entry)
         } catch {
@@ -215,7 +215,7 @@ final class FetchQueueOperation: ConcurrentOperation {
       let entries = self.queuedEntries(
         with: sorted, for: guids, respecting: accError ?? error)
       
-      os_log("entries in queue: %{public}@", log: log, type: .debug,
+      os_log("entries in queue: %{public}@", log: log, type: .info,
              String(reflecting: entries))
       
       func leave(_ error: Error? = nil) {
@@ -283,7 +283,7 @@ final class FetchQueueOperation: ConcurrentOperation {
   private var iTunesItems: [ITunesItem]?
   
   override func start() {
-    os_log("starting FetchQueueOperation", log: log, type: .debug)
+    os_log("starting FetchQueueOperation", log: log, type: .info)
     
     guard !isCancelled else {
       return done()

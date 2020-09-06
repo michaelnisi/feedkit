@@ -70,7 +70,7 @@ class SessionTaskOperation: ConcurrentOperation, ReachabilityDependent {
 
   final var task: URLSessionTask? {
     willSet {
-      os_log("cancelling task", log: log, type: .debug)
+      os_log("cancelling task", log: log, type: .info)
       task?.cancel()
     }
 

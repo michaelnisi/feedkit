@@ -225,7 +225,7 @@ extension FeedCache: FeedCaching {
       locators: %{public}@,
       ttl: %f
     )
-    """, log: log, type: .debug, locators, ttl)
+    """, log: log, type: .info, locators, ttl)
     
     let optimized = EntryLocator.reduce(locators)
     
@@ -259,7 +259,7 @@ extension FeedCache: FeedCaching {
       stale: %{public}@,
       needed: %{public}@
     )
-    """, log: log, type: .debug, cached, stale, needed ?? "none")
+    """, log: log, type: .info, cached, stale, needed ?? "none")
 
     assert(stale.isEmpty, "entries cannot be stale")
     
@@ -383,7 +383,7 @@ extension FeedCache: FeedCaching {
         let feedID = try self.feedID(for: url)
         result[url] = feedID
       } catch FeedKitError.feedNotCached {
-        os_log("feed not cached: %{public}@", log: log,  type: .debug, url)
+        os_log("feed not cached: %{public}@", log: log,  type: .info, url)
       }
     }
 
@@ -669,12 +669,12 @@ extension FeedCache: SearchCaching {
   /// signal that the remote server didn‘t supply any suggestions for this term.
   /// This state would than also be cache, so that the server doesn‘t has to be
   /// hit again, within the respective time-to-live interval.
+  ///
+  /// Empty `suggestions` does not remove cached suggestions for `term`.
   public func update(suggestions: [Suggestion], for term: String) throws {
     try queue.sync {
       guard !suggestions.isEmpty else {
         noSuggestions[term] = Date()
-        let sql = LibrarySQLFormatter.SQLToDeleteSuggestionsMatchingTerm(term)
-        try self.db.exec(sql)
         return
       }
 
@@ -709,11 +709,11 @@ extension FeedCache: SearchCaching {
     return try queue.sync {
       if let (cachedTerm, ts) = FeedCache.subcached(term, dict: noSuggestions) {
         if FeedCache.stale(ts, ttl: CacheTTL.long.defaults) {
-          os_log("subcached expired: %{public}@", log: log, type: .debug, term)
+          os_log("subcached expired: %{public}@", log: log, type: .info, term)
           noSuggestions[cachedTerm] = nil
           return nil
         } else {
-          os_log("nothing cached: %{public}@", log: log, type: .debug, term)
+          os_log("nothing cached: %{public}@", log: log, type: .info, term)
           return []
         }
       }
