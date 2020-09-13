@@ -32,6 +32,7 @@
 		4C7910912028C2AA00521921 /* Enclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7910902028C2AA00521921 /* Enclosure.swift */; };
 		4C7910952028C3AB00521921 /* FeedKitError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7910942028C3AB00521921 /* FeedKitError.swift */; };
 		4C7910972028C55000521921 /* Redirectable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7910962028C55000521921 /* Redirectable.swift */; };
+		4C825BC1250BD435004B2350 /* Skull in Frameworks */ = {isa = PBXBuildFile; productRef = 4C825BC0250BD435004B2350 /* Skull */; };
 		4C86F73620297D7E005BAEF6 /* SQLFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C86F73520297D7E005BAEF6 /* SQLFormatter.swift */; };
 		4C86F73820297D8F005BAEF6 /* LibrarySQLFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C86F73720297D8F005BAEF6 /* LibrarySQLFormatter.swift */; };
 		4C86F73A20297DB3005BAEF6 /* UserSQLFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C86F73920297DB3005BAEF6 /* UserSQLFormatter.swift */; };
@@ -50,7 +51,6 @@
 		4CF1A5A3200C88F8008C2550 /* SearchRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF1A5A2200C88F8008C2550 /* SearchRepository.swift */; };
 		4CF53BBA1C5DF35700B85CA1 /* user.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF53BB91C5DF35700B85CA1 /* user.swift */; };
 		4E2AEB651F59666D004BC34A /* UserCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2AEB641F59666D004BC34A /* UserCache.swift */; };
-		4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E34B5171E3CB58B007517FB /* Skull.framework */; };
 		4E49B7381F07A524004668FD /* user.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4E49B7371F07A524004668FD /* user.sql */; };
 		4E49B7391F07A552004668FD /* user.sql in Resources */ = {isa = PBXBuildFile; fileRef = 4E49B7371F07A524004668FD /* user.sql */; };
 		4E5C0EBF1EEADD9000B090EF /* QueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0EBE1EEADD9000B090EF /* QueueTests.swift */; };
@@ -166,10 +166,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C825BC1250BD435004B2350 /* Skull in Frameworks */,
 				4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */,
 				4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */,
 				4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */,
-				4E34B5181E3CB58B007517FB /* Skull.framework in Frameworks */,
 				4C17E4742503691D0022EF0F /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -396,6 +396,7 @@
 			name = FeedKit;
 			packageProductDependencies = (
 				4C17E4732503691D0022EF0F /* Nuke */,
+				4C825BC0250BD435004B2350 /* Skull */,
 			);
 			productName = FeedKit;
 			productReference = 4C3485951977C236008A6B53 /* FeedKit.framework */;
@@ -457,6 +458,7 @@
 			packageReferences = (
 				4C17E4702503689D0022EF0F /* XCRemoteSwiftPackageReference "Nuke" */,
 				4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				4C825BBF250BD435004B2350 /* XCRemoteSwiftPackageReference "skull" */,
 			);
 			productRefGroup = 4C3485961977C236008A6B53 /* Products */;
 			projectDirPath = "";
@@ -847,6 +849,14 @@
 				minimumVersion = 1.8.2;
 			};
 		};
+		4C825BBF250BD435004B2350 /* XCRemoteSwiftPackageReference "skull" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/michaelnisi/skull";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -859,6 +869,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
 			productName = SnapshotTesting;
+		};
+		4C825BC0250BD435004B2350 /* Skull */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C825BBF250BD435004B2350 /* XCRemoteSwiftPackageReference "skull" */;
+			productName = Skull;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
