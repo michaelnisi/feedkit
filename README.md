@@ -4,31 +4,22 @@ The FeedKit framework provides feeds and entries. It implements searching, brows
 
 FeedKit sits at the core of the [Podest](https://github.com/michaelnisi/podest) podcast app.
 
-## Dependencies
-
-- [kean/Nuke](https://github.com/kean/Nuke), A powerful image loading and caching system
-- [michaelnisi/fanboy-kit](https://github.com/michaelnisi/fanboy-kit), Search podcasts via proxy
-- [michaelnisi/manger-kit](https://github.com/michaelnisi/manger-kit), Request podcasts via proxy
-- [michaelnisi/ola](https://github.com/michaelnisi/ola), Check reachability
-- [michaelnisi/skull](https://github.com/michaelnisi/skull), Swift SQLite
-- [pointfreeco/swift-snapshot-testing](https://github.com/pointfreeco/swift-snapshot-testing), 📸 Delightful Swift snapshot testing
-
 ## Services
 
 - [michaelnisi/fanboy-http](https://github.com/michaelnisi/fanboy-http), Search podcasts
 - [michaelnisi/manger-http](https://github.com/michaelnisi/manger-http), Browse podcasts
 
-## Documentation
+## Test
 
-Want to know more? 📚 Browse the [docs](https://michaelnisi.github.io/feedkit/). FeedKit clusters its features into [protocols](https://michaelnisi.github.io/feedkit/Protocols.html), exploring those should give you an idea of this framework.
+With **fanboy-http** and **manger-http** running, do:
 
-## Installation
+```
+$ swift test
+```
 
-Add the FeedKit framework and its dependencies to your Xcode workspace.
+## Install
 
-## Testing
-
-Most tests expect to find [fanboy-http](https://github.com/michaelnisi/fanboy-http) and [manger-http](https://github.com/michaelnisi/manger-http) locally.
+Add `https://github.com/michaelnisi/feedkit`  to your package manifest.
 
 ## License
 

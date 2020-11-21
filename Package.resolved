@@ -1,0 +1,61 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "FanboyKit",
+        "repositoryURL": "/Users/michael/swift/fanboy-kit",
+        "state": {
+          "branch": "pkg",
+          "revision": "74a1a84cb38be84da7ebcfe0e19062b2d63b7a14",
+          "version": null
+        }
+      },
+      {
+        "package": "MangerKit",
+        "repositoryURL": "/Users/michael/swift/manger-kit",
+        "state": {
+          "branch": "pkg",
+          "revision": "3c841bf8de1bcc7cd9b2295b4d16a79d00488e1e",
+          "version": null
+        }
+      },
+      {
+        "package": "Nuke",
+        "repositoryURL": "https://github.com/kean/nuke",
+        "state": {
+          "branch": null,
+          "revision": "7df01b0d5b42b3fa8930cf0803264116c4e219e1",
+          "version": "9.1.3"
+        }
+      },
+      {
+        "package": "Ola",
+        "repositoryURL": "/Users/michael/swift/ola",
+        "state": {
+          "branch": "pkg",
+          "revision": "2157628d7c42feadede8255cae4baef5f982602b",
+          "version": null
+        }
+      },
+      {
+        "package": "Patron",
+        "repositoryURL": "/Users/michael/swift/patron",
+        "state": {
+          "branch": "pkg",
+          "revision": "56f5e3215b43a0bcc4ac4b15caafde467f86b610",
+          "version": null
+        }
+      },
+      {
+        "package": "Skull",
+        "repositoryURL": "https://github.com/michaelnisi/skull",
+        "state": {
+          "branch": null,
+          "revision": "97024a5ba72db4317e5efe49542dfdef208bd230",
+          "version": "11.0.4"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
