@@ -94,6 +94,11 @@ public protocol Images {
   ///
   /// Keeps track of successfully loaded images producing no duplicates.
   func preloadImages(representing items: [Imaginable], at size: CGSize)
+  
+  func loadImage(
+    representing item: Imaginable,
+    at size: CGSize,
+    completed: ((UIImage?) -> Void)?)
 
   /// Prefetches images of `items`, preheating the image cache.
   ///

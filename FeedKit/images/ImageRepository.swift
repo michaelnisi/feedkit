@@ -198,7 +198,7 @@ extension ImageRepository {
     }
 
     // Got no cached response, scaling placeholder to a quarter of the original
-    // size, dividided by the screen scale factor to compensate multiplication
+    // size, divided by the screen scale factor to compensate multiplication
     // in imageURL(representing:at:).
 
     let l =  1 / 4 / UIScreen.main.scale
@@ -292,7 +292,7 @@ extension ImageRepository: Images {
     
     return [ImageProcessors.Composition([
       ImageProcessors.Resize(size: id.size, crop: true),
-      ImageProcessors.RoundedCorners(radius: r, border: b)
+      ImageProcessors.RoundedCorners(radius: r, border: .none)
     ])]
   }
   
@@ -375,7 +375,7 @@ extension ImageRepository: Images {
       )
 
       os_log("loading: %{public}@", log: log, type: .info, url.lastPathComponent)
-      
+
       Nuke.loadImage(with: req, options: opts, into: imageView, completion: { result in
         switch result {
         case .failure(let er):
@@ -446,6 +446,28 @@ extension ImageRepository: Images {
     let defaults = FKImageLoadingOptions()
 
     loadImage(representing: item, into: imageView, options: defaults)
+  }
+}
+
+// MARK: - Loading without UIView
+
+extension ImageRepository {
+  
+  public func loadImage(
+    representing item: Imaginable,
+    at size: CGSize,
+    completed: ((UIImage?) -> Void)?) {
+    guard let request = makeRequests(items: [item], size: size, quality: .medium).first else {
+      return
+    }
+    
+    Nuke.ImagePipeline.shared.loadImage(with: request, completion: { result in
+      if case .success(let data) = result {
+        completed?(data.image)
+      } else {
+        completed?(nil)
+      }
+    })
   }
 }
 

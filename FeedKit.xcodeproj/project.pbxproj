@@ -17,6 +17,7 @@
 		4C405D131FE63DF80031C4DB /* FeedsOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D121FE63DF80031C4DB /* FeedsOperation.swift */; };
 		4C405D161FE77E960031C4DB /* ConcurrentOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D151FE77E960031C4DB /* ConcurrentOperation.swift */; };
 		4C405D181FE77EBA0031C4DB /* SessionTaskOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C405D171FE77EBA0031C4DB /* SessionTaskOperation.swift */; };
+		4C44BDEA25619028004E95C7 /* Ola in Frameworks */ = {isa = PBXBuildFile; productRef = 4C44BDE925619028004E95C7 /* Ola */; };
 		4C4C113A20A04DE7004231C9 /* Queued.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4C113920A04DE7004231C9 /* Queued.swift */; };
 		4C4C113C20A04E94004231C9 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4C113B20A04E94004231C9 /* Subscription.swift */; };
 		4C5838792036B30B00BF8BFB /* ReachHostOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C5838782036B30B00BF8BFB /* ReachHostOperation.swift */; };
@@ -57,7 +58,6 @@
 		4E5C0F0A1EF2C77600B090EF /* images.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E5C0F091EF2C77600B090EF /* images.swift */; };
 		4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D821E3D12D900B7F229 /* FanboyKit.framework */; };
 		4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D831E3D12D900B7F229 /* MangerKit.framework */; };
-		4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E7B1D841E3D12D900B7F229 /* Ola.framework */; };
 		4E7D10B11F6256CA0048CB43 /* UserLibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7D10B01F6256CA0048CB43 /* UserLibraryTests.swift */; };
 		4EB7EE491F5E8F9F00F418D5 /* FeedCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB7EE481F5E8F9F00F418D5 /* FeedCache.swift */; };
 		4ED2D6BB1F960C41000DA71B /* hash.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED2D6BA1F960C41000DA71B /* hash.swift */; };
@@ -168,8 +168,8 @@
 			files = (
 				4C825BC1250BD435004B2350 /* Skull in Frameworks */,
 				4E7B1D851E3D12D900B7F229 /* FanboyKit.framework in Frameworks */,
+				4C44BDEA25619028004E95C7 /* Ola in Frameworks */,
 				4E7B1D861E3D12D900B7F229 /* MangerKit.framework in Frameworks */,
-				4E7B1D871E3D12D900B7F229 /* Ola.framework in Frameworks */,
 				4C17E4742503691D0022EF0F /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -397,6 +397,7 @@
 			packageProductDependencies = (
 				4C17E4732503691D0022EF0F /* Nuke */,
 				4C825BC0250BD435004B2350 /* Skull */,
+				4C44BDE925619028004E95C7 /* Ola */,
 			);
 			productName = FeedKit;
 			productReference = 4C3485951977C236008A6B53 /* FeedKit.framework */;
@@ -869,6 +870,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4C17E4752503EF3A0022EF0F /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
 			productName = SnapshotTesting;
+		};
+		4C44BDE925619028004E95C7 /* Ola */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Ola;
 		};
 		4C825BC0250BD435004B2350 /* Skull */ = {
 			isa = XCSwiftPackageProductDependency;
