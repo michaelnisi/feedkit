@@ -1,21 +1,19 @@
 # FeedKit
 
-The FeedKit framework provides feeds and entries. It implements searching, browsing, and caching feeds, as well as subscription management for a single user.
+The FeedKit Swift Package for iOS is a feed reading client specialized for podcast feeds. It implements searching, browsing, and caching feeds, as well as subscription management for a single user.
 
-FeedKit sits at the core of the [Podest](https://github.com/michaelnisi/podest) podcast app.
+FeedKit is why [Podest](https://github.com/michaelnisi/podest) is the most efficient podcast app.
 
 ## Services
 
-- [michaelnisi/fanboy-http](https://github.com/michaelnisi/fanboy-http), Search podcasts
-- [michaelnisi/manger-http](https://github.com/michaelnisi/manger-http), Browse podcasts
+FeedKit does not connect with feed providers or iTunes directly, instead it consumes JSON from two optimized REST APIs for browsing and searching.
+
+- Browsing: [michaelnisi/manger-http](https://github.com/michaelnisi/manger-http)
+- Searching:  [michaelnisi/fanboy-http](https://github.com/michaelnisi/fanboy-http)
 
 ## Test
 
-With **fanboy-http** and **manger-http** running, do:
-
-```
-$ swift test
-```
+With **fanboy-http** and **manger-http** running locally, test with Xcode.
 
 ## Install
 

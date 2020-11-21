@@ -8,8 +8,8 @@
 
 import Foundation
 import Nuke
-import UIKit
 import os.log
+import UIKit
 
 private let log = OSLog.disabled
 
@@ -272,8 +272,10 @@ extension ImageRepository: Images {
   }
 
   private static func makeImageLoadingOptions(
-    placeholder: UIImage?, failureImage: UIImage?) -> ImageLoadingOptions {
-    return ImageLoadingOptions(
+    placeholder: UIImage?,
+    failureImage: UIImage?
+  ) -> ImageLoadingOptions {
+    ImageLoadingOptions(
       placeholder: placeholder,
       transition: nil,
       failureImage: failureImage,
@@ -288,7 +290,6 @@ extension ImageRepository: Images {
     }
     
     let r: CGFloat = id.size.width <= 100 ? 3 : 6
-    let b = ImageProcessingOptions.Border(color: .lightGray)
     
     return [ImageProcessors.Composition([
       ImageProcessors.Resize(size: id.size, crop: true),

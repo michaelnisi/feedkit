@@ -186,9 +186,8 @@ final class SearchRepositoryTests: XCTestCase {
   // MARK: Suggest
 
   func feedsFromFile(_ name: String = "feeds") throws -> [Feed] {
-    let bundle = Bundle(for: self.classForCoder)
-    let feedsURL = bundle.url(forResource: name, withExtension: "json")
-    return try Common.loadFeeds(url: feedsURL!)
+    let feedsURL = Bundle.module.url(forResource: name, withExtension: "json")!
+    return try Common.loadFeeds(url: feedsURL)
   }
 
   @discardableResult func populate() throws -> ([Feed], [Entry]) {

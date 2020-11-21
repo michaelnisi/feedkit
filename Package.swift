@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
   name: "FeedKit",
   platforms: [
-    .iOS(.v13), .macOS(.v10_15)
+    .iOS(.v13)
   ],
   products: [
     .library(
@@ -16,22 +16,23 @@ let package = Package(
     .package(name: "MangerKit", url: "/Users/michael/swift/manger-kit", .branch("pkg")),
     .package(name: "FanboyKit", url: "/Users/michael/swift/fanboy-kit", .branch("pkg")),
     .package(name: "Ola", url: "/Users/michael/swift/ola", .branch("pkg")),
-    .package(name: "Skull", url: "https://github.com/michaelnisi/skull", from: "11.0.0"),
-    .package(name: "Nuke", url: "https://github.com/kean/nuke", from: "9.0.0")
+    .package(name: "Skull", url: "/Users/michael/swift/skull", .branch("master")),
+    .package(name: "Nuke", url: "https://github.com/kean/nuke", from: "9.0.0"),
+    .package(name: "SnapshotTesting", url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.8.0")
   ],
   targets: [
     .target(
       name: "FeedKit",
       dependencies: ["MangerKit", "FanboyKit", "Ola", "Skull", "Nuke"],
       resources: [
-        .copy("Resources")
+        .process("Resources")
       ]),
     .testTarget(
       name: "FeedKitTests",
-      dependencies: ["FeedKit"],
+      dependencies: ["FeedKit", "SnapshotTesting"],
       resources: [
-        .copy("__Snapshots__"),
-        .copy("Resources")
+        .process("__Snapshots__"),
+        .process("Resources")
       ])
   ]
 )

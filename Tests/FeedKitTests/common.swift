@@ -173,9 +173,8 @@ extension Common {
 
   static func loadEntries(url: URL? = nil) throws -> [Entry] {
     let entriesURL = url ?? {
-      let bundle = Bundle(identifier: "ink.codes.FeedKitTests")!
-      return bundle.url(forResource: "entries", withExtension: "json")!
-      }()
+      Bundle.module.url(forResource: "entries", withExtension: "json")!
+    }()
     let json = try JSON(contentsOf: entriesURL)
     let (errors, entries) = serialize.entries(from: json)
     XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
@@ -196,7 +195,8 @@ extension Common {
   /// Returns feeds from a file in this bundle with the matching `name` without
   /// extension.
   static func feedsFromFile(named name: String = "feeds") throws -> [Feed] {
-    let feedsURL = bundle.url(forResource: name, withExtension: "json")!
+    let feedsURL = Bundle.module.url(forResource: name, withExtension: "json")!
+    
     return try loadFeeds(url: feedsURL)
   }
 
@@ -256,8 +256,7 @@ extension Common {
       try! fm.removeItem(at: url)
     }
 
-    let schema = bundle.path(forResource: "cache", ofType: "sql")!
-    return try! FeedCache(schema: schema, url: nil)
+    return try! FeedCache(schema: cacheURL.path, url: nil)
   }
 
   static func makeUserCache() -> UserCache {
@@ -270,8 +269,7 @@ extension Common {
       try! fm.removeItem(at: url)
     }
 
-    let schema = bundle.path(forResource: "user", ofType: "sql")!
-    return try! UserCache(schema: schema, url: nil)
+    return try! UserCache(schema: userURL.path, url: nil)
   }
 
   static func makeBrowser() -> FeedRepository {

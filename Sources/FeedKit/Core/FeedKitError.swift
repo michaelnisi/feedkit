@@ -8,6 +8,9 @@
 
 import Foundation
 
+public let cacheURL = Bundle.module.url(forResource: "cache", withExtension: "sql")!
+public let userURL = Bundle.module.url(forResource: "user", withExtension: "sql")!
+
 /// Enumerate all error types possibly thrown within the FeedKit framework.
 public enum FeedKitError: Error {
   case unknown

@@ -34,8 +34,8 @@ final class FeedRepositoryTests: XCTestCase {
   
   lazy var urls: [String] = {
     let bundle = Bundle(for: self.classForCoder)
-    let url = bundle.url(forResource: "feed_query", withExtension: "json")
-    let json = try! Common.JSON(contentsOf: url!)
+    let url = Bundle.module.url(forResource: "feed_query", withExtension: "json")!
+    let json = try! Common.JSON(contentsOf: url)
     let urls = json.map { $0["url"] as! String }
     return urls
   }()
