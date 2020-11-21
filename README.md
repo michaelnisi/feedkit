@@ -19,7 +19,7 @@ $ swift test
 
 ## Install
 
-Add `https://github.com/michaelnisi/feedkit`  to your package manifest.
+📦 Add `https://github.com/michaelnisi/feedkit`  to your package manifest.
 
 ## License
 

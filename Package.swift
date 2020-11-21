@@ -22,9 +22,16 @@ let package = Package(
   targets: [
     .target(
       name: "FeedKit",
-      dependencies: ["MangerKit", "FanboyKit", "Ola", "Skull", "Nuke"]),
+      dependencies: ["MangerKit", "FanboyKit", "Ola", "Skull", "Nuke"],
+      resources: [
+        .copy("Resources")
+      ]),
     .testTarget(
       name: "FeedKitTests",
-      dependencies: ["FeedKit"]),
+      dependencies: ["FeedKit"],
+      resources: [
+        .copy("__Snapshots__"),
+        .copy("Resources")
+      ])
   ]
 )
