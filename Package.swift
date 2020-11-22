@@ -13,10 +13,10 @@ let package = Package(
       targets: ["FeedKit"]),
   ],
   dependencies: [
-    .package(name: "MangerKit", url: "/Users/michael/swift/manger-kit", .branch("pkg")),
-    .package(name: "FanboyKit", url: "/Users/michael/swift/fanboy-kit", .branch("pkg")),
-    .package(name: "Ola", url: "/Users/michael/swift/ola", .branch("pkg")),
-    .package(name: "Skull", url: "/Users/michael/swift/skull", .branch("master")),
+    .package(name: "MangerKit", url: "https://github.com/michaelnisi/manger-kit", from: "8.0.0"),
+    .package(name: "FanboyKit", url: "https://github.com/michaelnisi/fanboy-kit", from: "9.0.0"),
+    .package(name: "Ola", url: "https://github.com/michaelnisi/ola", from: "12.0.0"),
+    .package(name: "Skull", url: "https://github.com/michaelnisi/skull", from: "11.0.0"),
     .package(name: "Nuke", url: "https://github.com/kean/nuke", from: "9.0.0"),
     .package(name: "SnapshotTesting", url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.8.0")
   ],
