@@ -2,4 +2,4 @@
 
 FeedKit is a Swift package now 🙌 
 
-- Image loading was extended to be applicable within SwiftUI
+- UIKit dependency removed

@@ -3,47 +3,38 @@
     "pins": [
       {
         "package": "FanboyKit",
-        "repositoryURL": "/Users/michael/swift/fanboy-kit",
+        "repositoryURL": "https://github.com/michaelnisi/fanboy-kit",
         "state": {
-          "branch": "pkg",
-          "revision": "74a1a84cb38be84da7ebcfe0e19062b2d63b7a14",
-          "version": null
+          "branch": null,
+          "revision": "8b71a756e59fb1e91a3aaf05c0aa3ec7d1b66c65",
+          "version": "9.0.0"
         }
       },
       {
         "package": "MangerKit",
-        "repositoryURL": "/Users/michael/swift/manger-kit",
-        "state": {
-          "branch": "pkg",
-          "revision": "3c841bf8de1bcc7cd9b2295b4d16a79d00488e1e",
-          "version": null
-        }
-      },
-      {
-        "package": "Nuke",
-        "repositoryURL": "https://github.com/kean/nuke",
+        "repositoryURL": "https://github.com/michaelnisi/manger-kit",
         "state": {
           "branch": null,
-          "revision": "7df01b0d5b42b3fa8930cf0803264116c4e219e1",
-          "version": "9.1.3"
+          "revision": "4b024a2236117d022890b5b208bbd10e9908b7a2",
+          "version": "8.0.0"
         }
       },
       {
         "package": "Ola",
-        "repositoryURL": "/Users/michael/swift/ola",
+        "repositoryURL": "https://github.com/michaelnisi/ola",
         "state": {
-          "branch": "pkg",
-          "revision": "2157628d7c42feadede8255cae4baef5f982602b",
-          "version": null
+          "branch": null,
+          "revision": "61379a00e4020b4e58241e972e9a1b0af8582232",
+          "version": "12.0.0"
         }
       },
       {
         "package": "Patron",
-        "repositoryURL": "/Users/michael/swift/patron",
+        "repositoryURL": "https://github.com/michaelnisi/patron",
         "state": {
-          "branch": "pkg",
-          "revision": "56f5e3215b43a0bcc4ac4b15caafde467f86b610",
-          "version": null
+          "branch": null,
+          "revision": "b2e1b6e385c27da926f4d4743e1f084bf9ea70d6",
+          "version": "11.0.0"
         }
       },
       {
@@ -53,6 +44,15 @@
           "branch": null,
           "revision": "97024a5ba72db4317e5efe49542dfdef208bd230",
           "version": "11.0.4"
+        }
+      },
+      {
+        "package": "SnapshotTesting",
+        "repositoryURL": "https://github.com/pointfreeco/swift-snapshot-testing",
+        "state": {
+          "branch": null,
+          "revision": "c466812aa2e22898f27557e2e780d3aad7a27203",
+          "version": "1.8.2"
         }
       }
     ]

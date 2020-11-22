@@ -18,7 +18,7 @@ public typealias FeedURL = String
 /// have equal URLs.
 ///
 /// A feed must have a `title` and an `url`.
-public struct Feed: Cachable, Redirectable, Imaginable {
+public struct Feed: Cachable, Redirectable {
   
   /// Identifies the feed locally for quick access within the cache.
   ///

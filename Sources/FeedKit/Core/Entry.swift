@@ -15,7 +15,7 @@ public typealias EntryGUID = String
 /// a child of a feed.
 ///
 /// Identified by `guid`, entries are equal if their guids are equal.
-public struct Entry: Redirectable, Imaginable {
+public struct Entry: Redirectable {
   
   public let author: String?
   public let duration: Int?
