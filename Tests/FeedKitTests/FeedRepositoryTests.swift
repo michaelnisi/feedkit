@@ -77,26 +77,28 @@ extension FeedRepositoryTests {
   
   func testFeedsRecursively() {
     let exp = self.expectation(description: "feeds")
-    var count = 0
     var urls = self.urls
-    let initialCount = urls.count
+    var found = [String]()
+    
     func go() {
       guard !urls.isEmpty else {
         return exp.fulfill()
       }
+      
       let url = urls.popLast()!
       let _ = repo.feeds([url], feedsBlock: { er, feeds in
         XCTAssertNil(er)
-        count += feeds.count
+        found.append(url)
       }) { er in
         XCTAssertNil(er)
         go()
       }
     }
+    
     go()
-    self.waitForExpectations(timeout: 10) { er in
+    waitForExpectations(timeout: 10) { er in
       XCTAssertNil(er)
-      XCTAssertEqual(count, initialCount)
+      XCTAssertEqual(self.urls, found.reversed())
     }
   }
   
@@ -146,14 +148,7 @@ extension FeedRepositoryTests {
       var found = [String]()
       var feedsBlockCount = 0
       
-      let wanted = [
-        "http://feed.thisamericanlife.org/talpodcast",
-        "http://feeds.serialpodcast.org/serialpodcast",
-        "http://feeds.wnyc.org/radiolab",
-        "https://feeds.megaphone.fm/lore",
-        "http://feeds.feedburner.com/dancarlin/history",
-        "http://feeds.wnyc.org/newyorkerradiohour"
-      ]
+      let wanted = self.urls
       
       repo.feeds(urls, feedsBlock: { er, feeds in
         XCTAssertNil(er)
@@ -326,9 +321,9 @@ extension FeedRepositoryTests {
     // A very brittle test, the publisher might remove the entry with this
     // GUID at any time. If it fails, replace guid with an existing one.
     
-    let url = "https://feeds.megaphone.fm/homecoming"
-    let guid = "1a9628bfd0a94d0c0c5420e48e4d302e43519df6"
-    let locators = [EntryLocator(url: url, guid: guid).including]
+    let url = "http://rss.acast.com/fatmascara"
+    let guid = "c0b8650dd96d4d5160c62fc17d789faee3320815"
+    let locators = [EntryLocator(url: url, guid: guid)]
     
     var acc = [Entry]()
     

@@ -85,7 +85,7 @@ public enum QueueingError: Error {
 }
 
 /// Receives queue changes.
-public protocol QueueDelegate: class {
+public protocol QueueDelegate: AnyObject {
 
   /// Receives the `guids` currently in the queue.
   func queue(_ queue: Queueing, changed guids: Set<EntryGUID>)
@@ -196,7 +196,7 @@ public protocol SubscriptionCaching {
 }
 
 /// Receives library changes.
-public protocol LibraryDelegate: class {
+public protocol LibraryDelegate: AnyObject {
 
   func library(_ library: Subscribing, changed urls: Set<FeedURL>)
 

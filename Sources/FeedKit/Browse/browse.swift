@@ -156,7 +156,7 @@ extension FeedCaching {
         cachedItems.append(item)
         return acc
       }
-      if !stale(item.ts!, ttl: ttl) {
+      if !stale(item.ts ?? .distantPast, ttl: ttl) {
         cachedItems.append(item)
         return acc + [item.url]
       } else {

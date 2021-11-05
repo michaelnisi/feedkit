@@ -1,5 +1,5 @@
 //
-//  common.swift
+//  Common.swift
 //  FeedKit
 //
 //  Created by Michael Nisi on 10.10.14.
@@ -29,7 +29,6 @@ final class Common {
 // MARK: - Making Basic Types
 
 extension Common {
-
   /// Returns a random String of `length`.
   static func makeString(length: Int) -> String {
     let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -141,7 +140,6 @@ extension Common {
 // MARK: - Loading Things
 
 extension Common {
-
   static func decodeFeeds(reading url: URL) throws -> [Feed] {
     let data = try! Data(contentsOf: url)
     return try JSONDecoder().decode([Feed].self, from: data)
@@ -180,13 +178,11 @@ extension Common {
     XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
     return entries
   }
-
 }
 
 // MARK: - FeedCaching
 
 extension Common {
-
   static var bundle: Bundle {
     class Stooge {}
     return Bundle(for: type(of: Stooge()))
@@ -211,13 +207,11 @@ extension Common {
 
     return (feeds, entries)
   }
-
 }
 
 // MARK: - Making Services
 
 extension Common {
-
   static func makeManger(url: String = "http://localhost:8384") -> Manger {
     let conf = URLSessionConfiguration.default
     conf.httpShouldUsePipelining = false
@@ -228,13 +222,11 @@ extension Common {
 
     return Manger(client: client)
   }
-
 }
 
 // MARK: Making Complex Things
 
 extension Common {
-
   private static func makeCacheURL(string: String) -> URL {
     let fm = FileManager.default
     let dir = try! fm.url(
@@ -277,13 +269,11 @@ extension Common {
     let svc = Common.makeManger(url: "http://localhost:8384")
     return FeedRepository(cache: cache, svc: svc, queue: OperationQueue())
   }
-
 }
 
 // MARK: - Destroying Things
 
 extension Common {
-
   static func destroyCache(_ cache: LocalCache) throws {
     if let url = cache.url {
       let fm = FileManager.default
@@ -291,7 +281,4 @@ extension Common {
       XCTAssertFalse(fm.fileExists(atPath: url.path), "should remove database file")
     }
   }
-
 }
-
-

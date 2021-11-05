@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 final class FetchQueueOperation: ConcurrentOperation {
 
@@ -155,6 +155,8 @@ final class FetchQueueOperation: ConcurrentOperation {
   }
   
   private func fetchEntries(for locators: [EntryLocator]) {
+    os_log("fetching entries: %{public}@", log: log, type: .debug, locators.map(\.url))
+    
     guard !isCancelled, !locators.isEmpty,
       let guids = self.sortedIds else {
         return done()

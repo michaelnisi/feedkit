@@ -290,33 +290,15 @@ extension FeedCache: FeedCaching {
       return ([], neededLocators)
     }
     
-    // Provisionally only for single locators, we are restricting the resulting
-    // needed locators to the latest we got from the cache, minimizing request
-    // frequency and response size. Without this, we’d rely on URLCache, which
-    // works, but using GET requests, resulting in fetching entire feeds.
-    
-//    if neededLocators.count == 1,
-//      !cached.isEmpty,
-//      let url = neededLocators.first?.url,
-//      let latest = (cached.filter {
-//        $0.url == url }.sorted { $0.updated > $1.updated }.first),
-//      let ts = latest.ts {
-//
-//      if FeedCache.stale(ts, ttl: ttl) {
-//        return (cached, [EntryLocator(entry: latest)])
-//      } else {
-//        return (cached, [])
-//      }
-//    }
-
     return (cached, neededLocators)
   }
   
   public func integrate(iTunesItems: [ITunesItem]) throws {
     try queue.sync {
       let sql = iTunesItems.reduce([String]()) { acc, iTunes in
-        return acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes)]
-      }.joined(separator: "\n")
+        acc + [sqlFormatter.SQLToUpdate(iTunes: iTunes)]
+      }
+      .joined(separator: "\n")
 
       try db.exec(sql)
     }

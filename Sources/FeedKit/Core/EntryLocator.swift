@@ -11,7 +11,6 @@ import Foundation
 /// Entry locators identify a specific entry by `guid`, or skirt intervals
 /// of entries from a specific feed, between now and `since`.
 public struct EntryLocator {
-  
   public let url: FeedURL
   public let since: Date
   public let guid: String?
@@ -58,7 +57,6 @@ public struct EntryLocator {
 }
 
 extension EntryLocator: Hashable {
-
   public func hash(into hasher: inout Hasher) {
     guard let guid = self.guid else {
       hasher.combine(url)
@@ -68,11 +66,15 @@ extension EntryLocator: Hashable {
 
     hasher.combine(guid)
   }
+}
 
+extension EntryLocator: Comparable {
+  public static func < (lhs: EntryLocator, rhs: EntryLocator) -> Bool {
+    lhs.since < rhs.since
+  }
 }
 
 extension EntryLocator: Equatable {
-
   public static func ==(lhs: EntryLocator, rhs: EntryLocator) -> Bool {
     return lhs.hashValue == rhs.hashValue
   }
@@ -80,7 +82,6 @@ extension EntryLocator: Equatable {
 }
 
 extension EntryLocator {
-  
   public func encode(with coder: NSCoder) {
     coder.encode(self.guid, forKey: "guid")
     coder.encode(self.url, forKey: "url")
@@ -105,7 +106,6 @@ extension EntryLocator {
 }
 
 extension EntryLocator {
-  
   /// Removes doublets, having the same GUID, and merges locators with similar
   /// URLs into a single locator with the longest time-to-live for that URL.
   static func reduce(

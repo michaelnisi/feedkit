@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// Synced data from iCloud might contain additional information, we don’t
 /// have yet, and cannot aquire otherwise, like iTunes GUIDs and URLs of
@@ -159,6 +159,7 @@ final class FetchSubscribedFeedsOperation: ConcurrentOperation {
     
     do {
       let subscriptions = try cache.subscribed()
+      
       fetchFeeds(of: subscriptions)
     } catch {
       done(error)

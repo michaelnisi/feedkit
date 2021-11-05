@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
@@ -73,22 +73,6 @@ final class EnqueueOperation: Operation, ProvidingEntries {
     enqueueCompletionBlock?(enqueued, error)
   }
   
-  /// Returns the latest entries per feed in `entries`.
-  static func latest(entries: [Entry]) -> [Entry] {
-    let latestEntriesByFeeds = entries.reduce([String: Entry]()) { acc, entry in
-      let feed = entry.feed
-      guard let prev = acc[feed], prev.updated > entry.updated else {
-        var tmp = acc
-        tmp[feed] = entry
-        return tmp
-      }
-      
-      return acc
-    }
-
-    return Array(latestEntriesByFeeds.values)
-  }
-  
   override func main() {
     os_log("starting EnqueueOperation", log: log, type: .info)
 
@@ -102,7 +86,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         let notQueued = try candidates.filter {
           try !cache.isQueued($0.guid)
         }
-
+        
         switch owner {
         case .user:
           return notQueued
@@ -110,11 +94,11 @@ final class EnqueueOperation: Operation, ProvidingEntries {
           // For automatic updates, enqueueing not directly initiated by users,
           // we are only accepting the latest, not previously enqueued, entry
           // per feed.
-          return try EnqueueOperation.latest(entries: notQueued).filter {
+          return try notQueued.latest().filter {
             try !cache.isPrevious($0.guid)
           }
         case .subscriber:
-          return EnqueueOperation.latest(entries: notQueued)
+          return notQueued.latest()
         }
       }()
       
@@ -139,9 +123,6 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       }
       
       try cache.add(queued: prependedQueued)
-
-      // This is new, having removed the TrimQueueOperation, we are trimming
-      // the cache here now. No code is the best code.
       try cache.trim()
 
       let queued = try cache.queued()
@@ -149,7 +130,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       let diffGuids = diff.compactMap { $0.entryLocator.guid }
       let newlyEnqueued = qualifieds.filter { diffGuids.contains($0.guid) }
 
-      os_log("** enqueued: %@", log: log, type: .info, newlyEnqueued)
+      os_log("enqueued: %@", log: log, type: .info, newlyEnqueued)
 
       done(newlyEnqueued)
     } catch {
@@ -158,5 +139,23 @@ final class EnqueueOperation: Operation, ProvidingEntries {
       return done([], error)
     }
   }
-  
+}
+
+extension Array where Element == Entry {
+  /// Returns the latest entries per feed.
+  func latest() -> [Entry] {
+    let latestEntriesByFeeds = reduce([String: Entry]()) { acc, entry in
+      let feed = entry.feed
+      guard let prev = acc[feed], prev.updated > entry.updated else {
+        var tmp = acc
+        tmp[feed] = entry
+        
+        return tmp
+      }
+      
+      return acc
+    }
+
+    return Array(latestEntriesByFeeds.values)
+  }
 }

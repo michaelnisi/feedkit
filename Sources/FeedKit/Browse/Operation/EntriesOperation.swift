@@ -11,7 +11,7 @@ import MangerKit
 import Ola
 import os.log
 
-private let log = OSLog.disabled
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
@@ -129,7 +129,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
       guard error == nil else {
         if !stock.isEmpty {
-          os_log("** falling back on cached", log: log, type: .info)
+          os_log("falling back on cached", log: log, type: .info)
           self?.submit(stock)
         }
 
@@ -141,7 +141,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         os_log("%@: no payload", log: log, me)
 
         if !stock.isEmpty {
-          os_log("** falling back on cached", log: log, type: .info)
+          os_log("falling back on cached", log: log, type: .info)
           self?.submit(stock)
         }
 

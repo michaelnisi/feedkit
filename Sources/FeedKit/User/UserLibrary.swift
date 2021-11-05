@@ -9,7 +9,7 @@
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "user")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -322,22 +322,15 @@ extension UserLibrary: Updating {
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: log,  type: .info)
 
-    let cache = self.cache
-    let operationQueue = self.operationQueue
-    let browser = self.browser
+    // Synchronizing first, for including the latest subscriptions from other devices.
 
-    // Synchronizing first, for including the latest subscriptions.
-
-    synchronize { _, _, error in
-      if error != nil {
-        os_log("continuing update despite error", log: log)
+    synchronize { [unowned self] _, _, error in
+      if let error = error {
+        os_log("continuing update despite error: %{public}@", log: log, error as CVarArg)
       }
 
       let preparing = PrepareUpdateOperation(cache: cache)
       let fetching = browser.entries(satisfying: preparing)
-
-      // Enqueueing
-
       let enqueuing = EnqueueOperation(user: self, cache: cache)
 
       enqueuing.enqueueCompletionBlock = { enqueued, error in
@@ -345,30 +338,28 @@ extension UserLibrary: Updating {
           os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
         }
 
-        // The dequeued, we don’t know.
-        self.commitQueue(enqueued: Set(enqueued), dequeued: Set())
+        commitQueue(enqueued: Set(enqueued))
         updateComplete?(!enqueued.isEmpty, error)
       }
 
+      fetching.addDependency(preparing)
       enqueuing.addDependency(fetching)
 
       operationQueue.addOperation(preparing)
       operationQueue.addOperation(enqueuing)
     }
   }
-
 }
 
 // MARK: - Queueing
 
 extension UserLibrary: Queueing {
-
   public var isForwardable: Bool {
-    return queue.validIndexAfter != nil
+    queue.validIndexAfter != nil
   }
 
   public var isBackwardable: Bool {
-    return queue.validIndexBefore != nil
+    queue.validIndexBefore != nil
   }
 
   @discardableResult
@@ -523,23 +514,22 @@ extension UserLibrary: Queueing {
   }
 
   public func contains(entry: Entry) -> Bool {
-    return guids.contains(entry.guid)
+    guids.contains(entry.guid)
   }
 
   public var isEmpty: Bool {
-    return guids.isEmpty
+    guids.isEmpty
   }
 
   public func next() -> Entry? {
-    return queue.forward()
+    queue.forward()
   }
 
   public func previous() -> Entry? {
-    return queue.backward()
+    queue.backward()
   }
 
   public func skip(to entry: Entry) throws {
     try queue.skip(to: entry)
   }
-
 }

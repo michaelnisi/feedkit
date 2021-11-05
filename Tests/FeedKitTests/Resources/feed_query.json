@@ -1,8 +1,5 @@
 [
-  { "url": "http://feed.thisamericanlife.org/talpodcast" },
-  { "url": "http://feeds.serialpodcast.org/serialpodcast" },
-  { "url": "http://feeds.wnyc.org/radiolab" },
-  { "url": "https://feeds.megaphone.fm/lore" },
-  { "url": "http://feeds.feedburner.com/dancarlin/history" },
-  { "url": "http://feeds.wnyc.org/newyorkerradiohour" }
+  { "url": "https://feeds.megaphone.fm/the-wired-podcast" },
+  { "url": "http://rss.acast.com/ctrlaltdelete" },
+  { "url": "https://feed.podbean.com/howtofail/feed.xml" }
 ]

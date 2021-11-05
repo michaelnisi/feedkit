@@ -320,7 +320,7 @@ extension UserLibraryTests {
     do {
       let locators = [EntryLocator]()
       let subscriptions = [Subscription]()
-      let found = PrepareUpdateOperation.merge(locators, with: subscriptions)
+      let found = locators.merge(with: subscriptions)
       XCTAssertEqual(found, [])
     }
     
@@ -329,7 +329,7 @@ extension UserLibraryTests {
       let url = "http://abc.de"
       let ts = Date.init(timeIntervalSince1970: 0)
       let subscriptions = [Subscription(url: url, ts: ts)]
-      let found = PrepareUpdateOperation.merge(locators, with: subscriptions)
+      let found = locators.merge(with: subscriptions)
       let wanted = [EntryLocator(url: url, since: ts)]
       XCTAssertEqual(found, wanted)
     }
@@ -337,7 +337,7 @@ extension UserLibraryTests {
   
   func testEnqueueLatest() {
     let many = try! Common.loadEntries()
-    let latest = EnqueueOperation.latest(entries: many)
+    let latest = many.latest()
     let urls = latest.map { $0.feed }
     let unique = Set(urls)
     XCTAssertEqual(unique.count, urls.count, "should be unique")
