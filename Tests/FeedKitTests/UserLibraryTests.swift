@@ -181,7 +181,9 @@ extension UserLibraryTests {
     addComplete: @escaping (Error?) -> Void
   ) -> [Subscription] {
     let subscriptions = [Subscription(url: url)]
+    
     library.add(subscriptions: subscriptions, completionBlock: addComplete)
+    
     return subscriptions
   }
   
@@ -320,7 +322,8 @@ extension UserLibraryTests {
     do {
       let locators = [EntryLocator]()
       let subscriptions = [Subscription]()
-      let found = locators.merge(with: subscriptions)
+      let found = locators.merged(with: subscriptions)
+      
       XCTAssertEqual(found, [])
     }
     
@@ -329,9 +332,10 @@ extension UserLibraryTests {
       let url = "http://abc.de"
       let ts = Date.init(timeIntervalSince1970: 0)
       let subscriptions = [Subscription(url: url, ts: ts)]
-      let found = locators.merge(with: subscriptions)
+      let found = locators.merged(with: subscriptions)
       let wanted = [EntryLocator(url: url, since: ts)]
-      XCTAssertEqual(found, wanted)
+      
+      XCTAssertEqual(Array(found), wanted)
     }
   }
   
@@ -340,6 +344,7 @@ extension UserLibraryTests {
     let latest = many.latest()
     let urls = latest.map { $0.feed }
     let unique = Set(urls)
+    
     XCTAssertEqual(unique.count, urls.count, "should be unique")
     
     let found = latest.sorted { $0.updated > $1.updated }.map { $0.title }

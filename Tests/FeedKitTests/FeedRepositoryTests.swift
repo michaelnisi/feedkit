@@ -321,8 +321,8 @@ extension FeedRepositoryTests {
     // A very brittle test, the publisher might remove the entry with this
     // GUID at any time. If it fails, replace guid with an existing one.
     
-    let url = "http://rss.acast.com/fatmascara"
-    let guid = "c0b8650dd96d4d5160c62fc17d789faee3320815"
+    let url = "https://feed.podbean.com/howtofail/feed.xml"
+    let guid = "e9f4372954dfddcf26c28d7489f10d88413b7a67"
     let locators = [EntryLocator(url: url, guid: guid)]
     
     var acc = [Entry]()

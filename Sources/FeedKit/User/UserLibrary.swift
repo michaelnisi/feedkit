@@ -321,33 +321,25 @@ extension UserLibrary: Updating {
   public func update(
     updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
     os_log("updating queue", log: log,  type: .info)
-
-    // Synchronizing first, for including the latest subscriptions from other devices.
-
-    synchronize { [unowned self] _, _, error in
-      if let error = error {
-        os_log("continuing update despite error: %{public}@", log: log, error as CVarArg)
+    
+    let preparing = PrepareUpdateOperation(cache: cache)
+    let fetching = browser.entries(satisfying: preparing)
+    let enqueuing = EnqueueOperation(user: self, cache: cache)
+    
+    enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
+      if let er = error {
+        os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
       }
-
-      let preparing = PrepareUpdateOperation(cache: cache)
-      let fetching = browser.entries(satisfying: preparing)
-      let enqueuing = EnqueueOperation(user: self, cache: cache)
-
-      enqueuing.enqueueCompletionBlock = { enqueued, error in
-        if let er = error {
-          os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
-        }
-
-        commitQueue(enqueued: Set(enqueued))
-        updateComplete?(!enqueued.isEmpty, error)
-      }
-
-      fetching.addDependency(preparing)
-      enqueuing.addDependency(fetching)
-
-      operationQueue.addOperation(preparing)
-      operationQueue.addOperation(enqueuing)
+      
+      commitQueue(enqueued: Set(enqueued))
+      updateComplete?(!enqueued.isEmpty, error)
     }
+    
+    fetching.addDependency(preparing)
+    enqueuing.addDependency(fetching)
+    
+    operationQueue.addOperation(preparing)
+    operationQueue.addOperation(enqueuing)
   }
 }
 
