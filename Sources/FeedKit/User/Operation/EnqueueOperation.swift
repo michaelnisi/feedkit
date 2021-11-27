@@ -1,36 +1,37 @@
+//===----------------------------------------------------------------------===//
 //
-//  EnqueueOperation.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 18.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "EnqueueOperation")
 
 /// Enqueues `entries` or entries found in `ProvidingEntries` dependencies.
 final class EnqueueOperation: Operation, ProvidingEntries {
-  
-  // MARK: ProvidingEntries
-  
   private(set) var error: Error?
   private(set) var entries = Set<Entry>()
   
-  // MARK: -
-  
   private func findEntries() throws -> [Entry] {
     var found = Set<Entry>()
+    
     for dep in dependencies {
       if case let req as ProvidingEntries = dep {
         guard req.error == nil else {
           throw req.error!
         }
+        
         found.formUnion(req.entries)
       }
     }
+    
     return Array(found)
   }
   
@@ -38,18 +39,18 @@ final class EnqueueOperation: Operation, ProvidingEntries {
   
   /// Initially passed or dependently provided entries to enqueue.
   private var candidates: [Entry] {
-    get {
-      guard let c = _candidates else {
-        do {
-          _candidates = try findEntries()
-        } catch {
-          self.error = error
-          _candidates = []
-        }
-        return _candidates!
+    guard let c = _candidates else {
+      do {
+        _candidates = try findEntries()
+      } catch {
+        self.error = error
+        _candidates = []
       }
-      return c
+      
+      return _candidates!
     }
+    
+    return c
   }
   
   private var user: EntryQueueHost
@@ -90,6 +91,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         switch owner {
         case .user:
           return notQueued
+          
         case .nobody:
           // For automatic updates, enqueueing not directly initiated by users,
           // we are only accepting the latest, not previously enqueued, entry
@@ -97,6 +99,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
           return try notQueued.latest().filter {
             try !cache.isPrevious($0.guid)
           }
+          
         case .subscriber:
           return notQueued.latest()
         }
@@ -127,15 +130,14 @@ final class EnqueueOperation: Operation, ProvidingEntries {
 
       let queued = try cache.queued()
       let diff = Set(queued).intersection(Set(prependedQueued))
-      let diffGuids = diff.compactMap { $0.entryLocator.guid }
+      let diffGuids = diff.compactMap(\.entryLocator.guid)
       let newlyEnqueued = qualifieds.filter { diffGuids.contains($0.guid) }
 
       os_log("enqueued: %@", log: log, type: .info, newlyEnqueued)
 
       done(newlyEnqueued)
     } catch {
-      os_log("enqueueing failed: %{public}@",
-             log: log, type: .info, error as CVarArg)
+      os_log("enqueueing failed: %{public}@", log: log, type: .info, error as CVarArg)
       return done([], error)
     }
   }

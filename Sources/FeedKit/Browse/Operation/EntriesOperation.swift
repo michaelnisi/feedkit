@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  EntriesOperation.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 15.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import MangerKit
@@ -15,7 +18,6 @@ private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
-  
   /// URLs that have been reloaded ignoring the cache in the last hour.
   static var ignorants = DateCache(ttl: 3600)
 
@@ -70,8 +72,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
     }
 
-    os_log("%@: submitting: ( %@, %@ )",
-           log: log, type: .info, self, otherEntries, String(describing: error))
+    os_log("%@: submitting: ( %i, %@ )",
+           log: log, type: .info, self, otherEntries.count, String(describing: error))
 
     entries.formUnion(otherEntries)
     entriesBlock?(error, otherEntries)
@@ -150,7 +152,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
 
       do {
-        let (errors, receivedEntries) = serialize.entries(from: p)
+        let (errors, receivedEntries) = Serialize.entries(from: p)
         
         guard !me.isCancelled else { return me.done() }
 
@@ -307,8 +309,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     }
     
     do {
-      os_log("%@: trying cache: %@",
-             log: log, type: .info, self, locators)
+      os_log("%@: trying cache: %i", log: log, type: .info, self, locators.count)
 
       let (cached, missing) = try cache.fulfill(locators, ttl: policy.ttl)
 
@@ -317,16 +318,10 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       os_log("""
       %@: (
         ttl: %f,
-        cached: %@,
+        cached: %i,
         missing: %@
       )
-      """, log: log,
-           type: .info,
-           self,
-           policy.ttl,
-           cached.map { $0.title },
-           missing
-      )
+      """, log: log, type: .info, self, policy.ttl, cached.count, missing)
 
       // Not submitting cached for singly forced reloads, because these might
       // be attempting to get rid of doublets.

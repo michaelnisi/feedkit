@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  FeedsOperation.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 17.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import MangerKit
@@ -14,9 +17,7 @@ import os.log
 private let log = OSLog(subsystem: "ink.codes.feedkit", category: "feeds")
 
 /// A concurrent `Operation` for accessing feeds.
-final class FeedsOperation: BrowseOperation,
-FeedURLsDependent, ProdvidingFeeds {
-  
+final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds {
   static var urlCache = DateCache(ttl: 3600)
   
   // MARK: ProvidingFeeds
@@ -86,8 +87,7 @@ FeedURLsDependent, ProdvidingFeeds {
   ///   - urls: The URLs of the feeds to request.
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
-    os_log("%{public}@: requesting feeds: %{public}@",
-           log: log, type: .info, self, urls)
+    os_log("%{public}@: requesting feeds: %{public}@", log: log, type: .info, self, urls)
 
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
@@ -116,7 +116,7 @@ FeedURLsDependent, ProdvidingFeeds {
       }
 
       do {
-        let (_, feeds) = serialize.feeds(from: payload!)
+        let (_, feeds) = Serialize.feeds(from: payload!)
         
         guard !me.isCancelled else { return me.done() }
 
@@ -225,8 +225,7 @@ FeedURLsDependent, ProdvidingFeeds {
     }
     
     do {
-      os_log("%{public}@: trying cache: %{public}@",
-             log: log, type: .info, self, urls)
+      os_log("%{public}@: trying cache: %{public}i", log: log, type: .info, self, urls.count)
       
       let items = try cache.feeds(urls)
       let policy = recommend(for: ttl)
@@ -241,17 +240,11 @@ FeedURLsDependent, ProdvidingFeeds {
       os_log("""
       %{public}@: (
         ttl: %f,
-        cached: %{public}@,
+        cached: %{public}i,
         stale: %{public}@,
         missing: %{public}@
       )
-      """, log: log, type: .info,
-           self,
-           policy.ttl,
-           cached.map { $0.url },
-           stale,
-           needed ?? []
-      )
+      """, log: log, type: .info, self, policy.ttl, cached.count, stale, needed ?? [])
 
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {
@@ -281,4 +274,3 @@ FeedURLsDependent, ProdvidingFeeds {
     }
   }
 }
-

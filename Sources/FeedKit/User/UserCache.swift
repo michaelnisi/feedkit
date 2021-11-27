@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  UserCache.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael on 9/1/17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import Skull
@@ -19,23 +22,23 @@ public class UserCache: LocalCache, UserCaching {
 // MARK: - SubscriptionCaching
 
 extension UserCache: SubscriptionCaching {
-  
   public func add(subscriptions: [Subscription]) throws {
     guard !subscriptions.isEmpty else {
       return
     }
     
-    os_log("adding subscriptions: %{public}@",
-           log: log, type: .info, subscriptions)
+    os_log("adding subscriptions: %{public}@", log: log, type: .info, subscriptions)
     
     try queue.sync {
       let sql = [
         "BEGIN;",
         subscriptions.map {
           sqlFormatter.SQLToReplace(subscription: $0)
-        }.joined(separator: "\n"),
+        }
+        .joined(separator: "\n"),
         "COMMIT;"
-      ].joined(separator: "\n")
+      ]
+      .joined(separator: "\n")
       
       try db.exec(sql)
     }
@@ -46,8 +49,7 @@ extension UserCache: SubscriptionCaching {
       return
     }
     
-    os_log("removing urls: %{public}@",
-           log: log, type: .info, urls)
+    os_log("removing urls: %{public}@", log: log, type: .info, urls)
     
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDelete(subscribed: urls))
@@ -55,15 +57,17 @@ extension UserCache: SubscriptionCaching {
   }
   
   fileprivate func subscribed(sql: String) throws -> [Subscription] {
-    return try queue.sync {
+    try queue.sync {
       var er: Error?
       var subscriptions = [Subscription]()
       
       try db.query(sql) { error, row in
         guard error == nil else {
           er = error
+          
           return 1
         }
+        
         guard let r = row else {
           return 1
         }
@@ -80,28 +84,34 @@ extension UserCache: SubscriptionCaching {
   }
   
   public func subscribed() throws -> [Subscription] {
-    return try subscribed(sql: UserSQLFormatter.SQLToSelectSubscriptions)
+    try subscribed(sql: UserSQLFormatter.SQLToSelectSubscriptions)
   }
   
   public func isSubscribed(_ url: FeedURL) throws -> Bool {
-    return try queue.sync {
+    try queue.sync {
       var dbError: SkullError?
       var yes = false
       let sql = UserSQLFormatter.SQLToSelectSubscription(where: url)
+      
       try db.exec(sql) { error, row in
         guard error == nil else {
           dbError = error
           return 1
         }
+        
         guard let found = row["feed_url"] else {
           return 0
         }
+        
         yes = found == url
+        
         return 0
       }
+      
       guard dbError == nil else {
         throw dbError!
       }
+      
       return yes
     }
   }
@@ -110,9 +120,8 @@ extension UserCache: SubscriptionCaching {
 // MARK: - QueueCaching
 
 extension UserCache: QueueCaching {
-
   private func queryForQueued(using sql: String, previous: Bool) throws -> [Queued] {
-    return try queue.sync {
+    try queue.sync {
       var acc = [Queued]()
 
       do {
@@ -122,13 +131,17 @@ extension UserCache: QueueCaching {
             dbError = error
             return 1
           }
+          
           guard let r = row else {
             return 0
           }
+          
           let locator = sqlFormatter.queued(from: r, being: previous)
           acc.append(locator)
+          
           return 0
         }
+        
         guard dbError == nil else {
           throw dbError!
         }
@@ -141,63 +154,75 @@ extension UserCache: QueueCaching {
   }
   
   public func queued() throws -> [Queued] {
-    return try queryForQueued(
-      using: UserSQLFormatter.SQLToSelectAllQueued, previous: false)
+    try queryForQueued(using: UserSQLFormatter.SQLToSelectAllQueued, previous: false)
   }
   
   public func previous() throws -> [Queued] {
-    return try queryForQueued(
-      using: UserSQLFormatter.SQLToSelectAllPrevious, previous: true)
+    try queryForQueued(using: UserSQLFormatter.SQLToSelectAllPrevious, previous: true)
   }
   
   public func all() throws -> [Queued] {
     let prev = try previous()
     let current = try queued()
     let all = Set(prev + current)
+    
     return Array(all)
   }
   
   public func newest() throws -> [EntryLocator] {
-    return try queue.sync {
+    try queue.sync {
       var dbError: SkullError?
       var acc = [EntryLocator]()
+    
       try db.query(UserSQLFormatter.SQLToSelectAllLatest) { error, row -> Int in
         guard error == nil else {
           dbError = error
           return 1
         }
+      
         guard let r = row else {
           return 0
         }
+        
         let locator = sqlFormatter.entryLocator(from: r)
         acc.append(locator)
+        
         return 0
       }
+      
       guard dbError == nil else {
         throw dbError!
       }
+      
       return acc
     }
   }
   
   func stalePreviousGUIDs() throws -> [String] {
-    return try queue.sync {
+    try queue.sync {
       var dbError: SkullError?
       var acc = [String]()
+    
       try db.exec(UserSQLFormatter.SQLToSelectStalePrevious) { error, row in
         guard error == nil else {
           dbError = error
+        
           return 1
         }
+      
         guard let guid = row["entry_guid"] else {
           return 1
         }
+        
         acc.append(guid)
+        
         return 0
       }
+      
       guard dbError == nil else {
         throw dbError!
       }
+      
       return acc
     }
   }
@@ -206,6 +231,7 @@ extension UserCache: QueueCaching {
     guard !guids.isEmpty else {
       return
     }
+    
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDeleteFromEntry(where: guids))
     }
@@ -213,9 +239,11 @@ extension UserCache: QueueCaching {
   
   public func removeStalePrevious() throws {
     let guids = try stalePreviousGUIDs()
+    
     guard !guids.isEmpty else {
       return
     }
+    
     try remove(guids)
   }
   
@@ -269,14 +297,17 @@ extension UserCache: QueueCaching {
     try queue.sync {
       let sql = try queued.reduce([String]()) { acc, queued in
         let token = try sqlFormatter.SQLToReplace(queued: queued)
+        
         return acc + [token]
-      }.joined(separator: "\n")
+      }
+      .joined(separator: "\n")
+      
       try db.exec(sql)
     }
   }
   
   private func query(entryGUID: EntryGUID, with sql: String) throws -> Bool {
-    return try queue.sync {
+    try queue.sync {
       var yes = false
       
       var dbError: SkullError?
@@ -284,6 +315,7 @@ extension UserCache: QueueCaching {
       try db.query(sql) { error, row in
         guard error == nil else {
           dbError = error
+    
           return 1
         }
         
@@ -295,6 +327,7 @@ extension UserCache: QueueCaching {
         
         return 0
       }
+      
       guard dbError == nil else {
         throw dbError!
       }
@@ -305,20 +338,20 @@ extension UserCache: QueueCaching {
   
   public func isQueued(_ guid: EntryGUID) throws -> Bool {
     let sql = UserSQLFormatter.SQLToSelectEntryGUIDFromQueued(where: guid)
+    
     return try query(entryGUID: guid, with: sql)
   }
   
   public func isPrevious(_ guid: EntryGUID) throws -> Bool {
     let sql = UserSQLFormatter.SQLToSelectEntryGUIDFromPrevious(where: guid)
+    
     return try query(entryGUID: guid, with: sql)
   }
-  
 }
 
 // MARK: - UserCacheSyncing
 
 extension UserCache: UserCacheSyncing {
-
   public func purgeZone(named name: String) throws {
     try queue.sync {
       try db.exec(UserSQLFormatter.SQLToDeleteZone(named: name))
@@ -343,8 +376,10 @@ extension UserCache: UserCacheSyncing {
       do {
         let sql = try synced.reduce([String]()) { acc, item in
           let sql = try sqlFormatter.SQLToReplace(synced: item)
+          
           return acc + [sql]
-        }.joined(separator: "\n")
+        }
+        .joined(separator: "\n")
         
         try db.exec(["BEGIN;", sql, "COMMIT;"].joined(separator: "\n"))
       } catch {
@@ -360,6 +395,7 @@ extension UserCache: UserCacheSyncing {
   public func remove(recordNames: [String]) throws {
     guard !recordNames.isEmpty else {
       os_log("aborting attempt to remove empty array", log: log, type: .info)
+      
       return
     }
     
@@ -369,13 +405,11 @@ extension UserCache: UserCacheSyncing {
   }
   
   public func locallyQueued() throws -> [Queued] {
-    return try queryForQueued(using:
-      UserSQLFormatter.SQLToSelectLocallyQueuedEntries, previous: false)
+    try queryForQueued(using: UserSQLFormatter.SQLToSelectLocallyQueuedEntries, previous: false)
   }
   
   public func locallyDequeued() throws -> [Queued] {
-    return try queryForQueued(using:
-      UserSQLFormatter.SQLSelectingLocallyDequeued, previous: true)
+    try queryForQueued(using: UserSQLFormatter.SQLSelectingLocallyDequeued, previous: true)
   }
   
   public func zombieRecords() throws -> [(String, String)] {
@@ -389,13 +423,16 @@ extension UserCache: UserCacheSyncing {
       try db.query(sql) { error, row -> Int in
         guard error == nil else {
           er = error
+    
           return 1
         }
+        
         guard
           let r = row,
           let record = r["record_name"] as? String,
           let zone = r["zone_name"] as? String else {
           er = FeedKitError.unexpectedDatabaseRow
+        
           return 1
         }
         
@@ -411,7 +448,6 @@ extension UserCache: UserCacheSyncing {
   }
   
   public func locallySubscribed() throws -> [Subscription] {
-    return try subscribed(sql: UserSQLFormatter.SQLToSelectLocallySubscribedFeeds)
+    try subscribed(sql: UserSQLFormatter.SQLToSelectLocallySubscribedFeeds)
   }
-  
 }

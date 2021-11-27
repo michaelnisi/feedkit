@@ -1,18 +1,20 @@
+//===----------------------------------------------------------------------===//
 //
-//  FetchQueueOperation.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 15.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
+private let log: OSLog = .init(subsystem: "ink.codes.feedkit", category: "FetchQueueOperation")
 
 final class FetchQueueOperation: ConcurrentOperation {
-
   let browser: Browsing
   let cache: QueueCaching
   var user: UserLibrary
@@ -36,8 +38,7 @@ final class FetchQueueOperation: ConcurrentOperation {
   private func done(but error: Error? = nil) {
     let er = isCancelled ? FeedKitError.cancelledByUser : error
     
-    os_log("done: %{public}@", log: log, type: .info,
-           er != nil ? String(reflecting: er) : "OK")
+    os_log("done: %{public}@", log: log, type: .info, er != nil ? String(reflecting: er) : "OK")
     
     fetchQueueCompletionBlock?(er)
 
@@ -111,8 +112,7 @@ final class FetchQueueOperation: ConcurrentOperation {
     }
     
     do {
-      os_log("removing missing entries: %{public}@",
-             log: log, type: .info, String(reflecting: missing))
+      os_log("removing missing entries: %{public}@", log: log, type: .info, String(reflecting: missing))
       
       // Removing queued from cache first, removing items from queue very
       // likely will throw uncritical not-in-queue errors.
@@ -137,8 +137,12 @@ final class FetchQueueOperation: ConcurrentOperation {
       return entries
     }
     
-    os_log("dequeuing entries of redirected feeds: %{public}@",
-           log: log, entries.filter { guids.contains($0.guid) })
+    os_log(
+      "dequeuing entries of redirected feeds: %{public}@",
+      log: log,
+      type: .debug,
+      entries.filter { guids.contains($0.guid) }
+    )
     
     do {
       try cache.removeQueued(guids)
@@ -155,7 +159,7 @@ final class FetchQueueOperation: ConcurrentOperation {
   }
   
   private func fetchEntries(for locators: [EntryLocator]) {
-    os_log("fetching entries: %{public}@", log: log, type: .debug, locators.map(\.url))
+    os_log("fetching entries: %{public}i", log: log, type: .debug, locators.count)
     
     guard !isCancelled, !locators.isEmpty,
       let guids = self.sortedIds else {
@@ -177,24 +181,24 @@ final class FetchQueueOperation: ConcurrentOperation {
     }) { error in
       if let er = error {
         guard !acc.isEmpty else {
-          os_log("fetching entries failed: %{public}@",
-                 log: log, type: .error, String(describing: er))
+          os_log("fetching entries failed: %{public}@", log: log, type: .error, String(describing: er))
+          
           return self.done(but: error)
         }
-        os_log("got entries and error: %{public}@",
-               log: log, type: .error, String(describing: er))
+        os_log("got entries and error: %{public}@", log: log, type: .error, String(describing: er))
       }
       
       let cleaned = self.dequeue(redirected: acc)
 
       let sorted: [Entry] = {
         var entriesByGuids = [String : Entry]()
+        
         cleaned.forEach { entriesByGuids[$0.guid] = $0 }
+        
         return guids.compactMap { entriesByGuids[$0] }
       }()
       
-      os_log("setting new queue: %{public}@",
-             log: log, type: .info, String(reflecting: sorted))
+      os_log("setting new queue: %{public}i", log: log, type: .info, sorted.count)
       
       // Getting current entry first which might be not be enqueued.
       let prevCurrent = self.user.queue.current
@@ -202,13 +206,11 @@ final class FetchQueueOperation: ConcurrentOperation {
       
       if let entry = prevCurrent {
         do {
-          os_log("skipping queue to previous entry: %{public}@",
-                 log: log, type: .info, entry.title)
+          os_log("skipping queue to previous entry: %{public}@", log: log, type: .info, entry.title)
           
           try self.user.queue.skip(to: entry)
         } catch {
-          os_log("could not skip queue to previous entry %{public}@",
-                 log: log, error as CVarArg)
+          os_log("could not skip queue to previous entry %{public}@", log: log, error as CVarArg)
           
           // Not sure what could be done here.
         }
@@ -217,8 +219,7 @@ final class FetchQueueOperation: ConcurrentOperation {
       let entries = self.queuedEntries(
         with: sorted, for: guids, respecting: accError ?? error)
       
-      os_log("entries in queue: %{public}@", log: log, type: .info,
-             String(reflecting: entries))
+      os_log("entries in queue: %{public}i", log: log, type: .info, entries.count)
       
       func leave(_ error: Error? = nil) {
         self.submit(resulting: entries, error: accError)
@@ -264,7 +265,7 @@ final class FetchQueueOperation: ConcurrentOperation {
         return
       }
       
-      let queuedGuids = user.queue.map { $0.guid }
+      let queuedGuids = user.queue.map(\.guid)
       let guidsToRemove = Array(Set(queuedGuids).subtracting(guids))
       
       var queuedEntriesByGuids = [String : Entry]()

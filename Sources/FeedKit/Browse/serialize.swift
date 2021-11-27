@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  serialize.swift - transform things into other things
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 10.02.15.
-//  Copyright (c) 2015 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import Skull
@@ -41,7 +44,7 @@ fileprivate func feedURL(from json: [String : Any]) -> FeedURL? {
 }
 
 /// A collection of serialization functions.
-struct serialize {
+struct Serialize {
   
   /// Create Cocoa time interval from JavaScript time.
   ///
@@ -94,12 +97,12 @@ struct serialize {
   static func date(
     from dictionary: [String : Any],
     forKey key: String,
-    newer ts: TimeInterval = serialize.watershed
+    newer ts: TimeInterval = Serialize.watershed
   ) -> Date? {
     guard let ms = dictionary[key] as? NSNumber else {
       return nil
     }
-    let s = serialize.timeIntervalFromJS(ms)
+    let s = Serialize.timeIntervalFromJS(ms)
     
     guard s > ts else { // > 1989
       os_log("ignoring invalid date in %{public}@", log: log, dictionary)
@@ -135,12 +138,12 @@ struct serialize {
       throw FeedKitError.invalidFeed(reason: "excessive author: \(url)")
     }
     
-    let iTunes = serialize.makeITunesItem(url: url, payload: json)
+    let iTunes = Serialize.makeITunesItem(url: url, payload: json)
     let image = json["image"] as? String
     let link = json["link"] as? String
     let summary = json["summary"] as? String
     let originalURL = json["originalURL"] as? String
-    let updated = serialize.date(from: json, forKey: "updated")
+    let updated = Serialize.date(from: json, forKey: "updated")
   
     return Feed(
       author: author,
@@ -175,7 +178,7 @@ struct serialize {
     var errors = [Error]()
     let feeds = dicts.reduce([Feed]()) { acc, dict in
       do {
-        let f = try serialize.feed(from: dict)
+        let f = try Serialize.feed(from: dict)
         guard !acc.contains(f) else {
           if #available(iOS 10.0, *) {
             // Feed doublets can occure when iTunes search returns objects with
@@ -242,7 +245,7 @@ struct serialize {
       throw FeedKitError.invalidEntry(reason: "missing id: \(feed)")
     }
 
-    let updated = serialize.date(from: json, forKey: "updated") ??
+    let updated = Serialize.date(from: json, forKey: "updated") ??
       Date(timeIntervalSince1970: 0)
     
     let author = json["author"] as? String
@@ -255,7 +258,7 @@ struct serialize {
     
     var enclosure: Enclosure?
     if let enc = json["enclosure"] as? [String : AnyObject] {
-      enclosure = try serialize.enclosure(from: enc)
+      enclosure = try Serialize.enclosure(from: enc)
     }
     
     if podcast {
@@ -301,7 +304,7 @@ struct serialize {
     var errors = [Error]()
     let entries = dicts.reduce([Entry]()) { acc, dict in
       do {
-        let entry = try serialize.entry(from: dict, podcast: podcast)
+        let entry = try Serialize.entry(from: dict, podcast: podcast)
         return acc + [entry]
       } catch let er {
         errors.append(er)

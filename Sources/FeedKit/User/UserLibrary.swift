@@ -1,15 +1,18 @@
+//===----------------------------------------------------------------------===//
 //
-//  UserLibrary.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 18.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "UserLibrary")
 
 /// The `UserLibrary` manages the user‘s data, for example, feed subscriptions
 /// and queue.
@@ -61,7 +64,7 @@ public final class UserLibrary: EntryQueueHost {
 
         _subscriptions = newValue
 
-        libraryDelegate?.library(self, changed: _subscriptions)
+        libraryDelegate?.library(self, subscribed: _subscriptions)
       }
     }
   }
@@ -93,7 +96,7 @@ public final class UserLibrary: EntryQueueHost {
 
         _guids = newValue
 
-        queueDelegate?.queue(self, changed: _guids)
+        queueDelegate?.queue(self, enqueued: _guids)
       }
     }
   }
@@ -246,16 +249,16 @@ extension UserLibrary: Subscribing {
 
       do {
         let subscribed = try self.cache.subscribed()
-        let s = Set(subscribed.map { $0.url })
+        let s = Set(subscribed.map(\.url))
         self.subscriptions = s
 
         let queued = try self.cache.queued()
-        let guids = Set(queued.compactMap { $0.entryLocator.guid })
+        let guids = Set(queued.compactMap(\.entryLocator.guid))
         self.guids = guids
 
         // Does the queue line up with our assumptions?
 
-        let q = Set(self.queue.map { $0.guid })
+        let q = Set(self.queue.map(\.guid))
 
         let er: Error? = {
           guard q.count == guids.count, // prechecking
@@ -303,9 +306,8 @@ extension UserLibrary: Updating {
   /// - Parameters:
   ///   - enqueued: Entries that have been added to the queue.
   ///   - dequeued: Entries that have been removed from the queue.
-  private func commitQueue(    
-    enqueued: Set<Entry> = Set(), dequeued: Set<Entry> = Set()) {
-    guids = Set(queue.map { $0.guid } )
+  private func commitQueue(enqueued: Set<Entry> = Set(), dequeued: Set<Entry> = Set()) {
+    guids = Set(queue.map(\.guid))
     
     os_log("commiting queue", log: log, type: .info)
 
@@ -318,28 +320,27 @@ extension UserLibrary: Updating {
     }
   }
 
-  public func update(
-    updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
-    os_log("updating queue", log: log,  type: .info)
-    
-    let preparing = PrepareUpdateOperation(cache: cache)
-    let fetching = browser.entries(satisfying: preparing)
-    let enqueuing = EnqueueOperation(user: self, cache: cache)
-    
-    enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
-      if let er = error {
-        os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
+  public func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
+    queueDelegate?.queue(self) { [unowned self] in
+      os_log("updating queue", log: log,  type: .info)
+      
+      let preparing = PrepareUpdateOperation(cache: cache)
+      let fetching = browser.entries(satisfying: preparing)
+      let enqueuing = EnqueueOperation(user: self, cache: cache)
+      
+      enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
+        if let er = error {
+          os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
+        }
+        
+        commitQueue(enqueued: Set(enqueued))
+        updateComplete?(!enqueued.isEmpty, error)
       }
       
-      commitQueue(enqueued: Set(enqueued))
-      updateComplete?(!enqueued.isEmpty, error)
+      enqueuing.addDependency(fetching)
+      operationQueue.addOperation(preparing)
+      operationQueue.addOperation(enqueuing)
     }
-    
-    fetching.addDependency(preparing)
-    enqueuing.addDependency(fetching)
-    
-    operationQueue.addOperation(preparing)
-    operationQueue.addOperation(enqueuing)
   }
 }
 
@@ -359,7 +360,7 @@ extension UserLibrary: Queueing {
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
-    os_log("populating queue", log: log, type: .info)
+    os_log("** populating queue", log: log, type: .info)
 
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock
@@ -426,9 +427,11 @@ extension UserLibrary: Queueing {
   public func enqueue(
     entries: [Entry],
     enqueueCompletionBlock: ((_ enqueued: Set<Entry>, _ error: Error?) -> Void)? = nil) {
-    enqueue(entries: entries,
-            belonging: .nobody,
-            enqueueCompletionBlock: enqueueCompletionBlock)
+    enqueue(
+      entries: entries,
+      belonging: .nobody,
+      enqueueCompletionBlock: enqueueCompletionBlock
+    )
   }
 
   /// Dequeues `entries` and commits the changes. Trying to dequeue a single
@@ -448,10 +451,7 @@ extension UserLibrary: Queueing {
     let newValue = try cache.queued()
 
     let removed = Set(oldValue).subtracting(Set(newValue))
-
-    let found = removed.compactMap {
-      $0.entryLocator.guid
-    }
+    let found = removed.compactMap(\.entryLocator.guid)
 
     var result = Set<Entry>()
 

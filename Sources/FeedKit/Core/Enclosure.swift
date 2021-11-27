@@ -1,17 +1,19 @@
+//===----------------------------------------------------------------------===//
 //
-//  Enclosure.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 05.02.18.
-//  Copyright © 2018 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 
 /// Enumerate supported enclosure media types. Note that unknown is legit here.
 public enum EnclosureType: Int, Codable {
   case unknown
-  
   case audioMPEG
   case audioXMPEG
   case videoXM4V
@@ -19,7 +21,7 @@ public enum EnclosureType: Int, Codable {
   case xm4A
   case videoMP4
   
-  public init (withString type: String) {
+  public init(withString type: String) {
     switch type {
     case "audio/mpeg": self = .audioMPEG
     case "audio/x-mpeg": self = .audioXMPEG
@@ -30,40 +32,37 @@ public enum EnclosureType: Int, Codable {
     default: self = .unknown
     }
   }
-
+  
   /// Returns `true` if the enclosure claims to be video. Of course, total
   /// bullshit, I would prefer not having `EnclosureType` at all.
   public var isVideo: Bool {
-    get {
-      switch self {
-      case .videoXM4V, .videoMP4, .unknown:
-        return true
-      default:
-        return false
-      }
+    assert(self != .unknown, "add case")
+    
+    switch self {
+    case .videoXM4V, .videoMP4, .unknown:
+      return true
+    default:
+      return false
     }
   }
 }
 
 /// The infamous RSS enclosure tag is mapped to this structure.
 public struct Enclosure: Codable {
-  
   public let url: String
   public let length: Int?
   public let type: EnclosureType
 }
 
 extension Enclosure : CustomStringConvertible {
-  
   public var description: String {
-    return "Enclosure: \(url)"
+    "Enclosure: \(url)"
   }
 }
 
 extension Enclosure: Equatable, Hashable {
-  
   public static func ==(lhs: Enclosure, rhs: Enclosure) -> Bool {
-    return lhs.url == rhs.url
+    lhs.url == rhs.url
   }
   
   public func hash(into hasher: inout Hasher) {

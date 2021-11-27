@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  PrepareUpdateOperation.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 15.12.17.
-//  Copyright © 2017 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import Foundation
 import os.log
@@ -12,8 +15,8 @@ import os.log
 private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
 
 /// Prepares updating of the queue, producing entry locators from subscriptions
-/// and currently qu. The resulting entry locators are published via
-/// the `ProvidingLocators` interface.
+/// and currently newest episodes in queue. The resulting entry locators are
+/// published via the `ProvidingLocators` interface.
 final class PrepareUpdateOperation: Operation, ProvidingLocators {
   private(set) var error: Error?
   private(set) var locators = [EntryLocator]()

@@ -1,10 +1,13 @@
+//===----------------------------------------------------------------------===//
 //
-//  user.swift
-//  FeedKit
+// This source file is part of the FeedKit open source project
 //
-//  Created by Michael Nisi on 31/01/16.
-//  Copyright © 2016 Michael Nisi. All rights reserved.
+// Copyright (c) 2017 Michael Nisi and collaborators
+// Licensed under MIT License
 //
+// See https://github.com/michaelnisi/feedkit/blob/main/LICENSE for license information
+//
+//===----------------------------------------------------------------------===//
 
 import AVFoundation
 import Foundation
@@ -15,7 +18,6 @@ import os.log
 
 /// Cache the user`s queue locally.
 public protocol QueueCaching {
-
   /// Adds `queued` items.
   func add(queued: [Queued]) throws
 
@@ -64,7 +66,6 @@ public protocol QueueCaching {
   /// Checks if an entry with `guid` is currently contained in the local cache
   /// of previously queued entries.
   func isPrevious(_ guid: EntryGUID) throws -> Bool
-
 }
 
 // MARK: - Queueing
@@ -86,22 +87,21 @@ public enum QueueingError: Error {
 
 /// Receives queue changes.
 public protocol QueueDelegate: AnyObject {
-
   /// Receives the `guids` currently in the queue.
-  func queue(_ queue: Queueing, changed guids: Set<EntryGUID>)
+  func queue(_ queue: Queueing, enqueued: Set<EntryGUID>)
 
   /// Receives the newly `enqueued` GUID and its respective `enclosure`.
   func queue(_ queue: Queueing, enqueued: EntryGUID, enclosure: Enclosure?)
 
   /// Receives the newly `dequeued` GUID and its respective `enclosure`.
   func queue(_ queue: Queueing, dequeued: EntryGUID, enclosure: Enclosure?)
-
+  
+  func queue(_ queue: Queueing, willUpdate: (() -> Void)?)
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
-
   /// Receives queue changes.
   var queueDelegate: QueueDelegate? { get set }
 
@@ -164,7 +164,6 @@ public protocol Queueing {
 
 /// Updating things users care about.
 public protocol Updating {
-
   /// Updates entries of subscribed feeds. Errors passed to the completion
   /// block may be partial and not necessarily critical.
   ///
@@ -173,14 +172,12 @@ public protocol Updating {
   ///   - newData: `true` if new data has been received.
   ///   - error: Optionally, not conclusively critical, error.
   func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?)
-
 }
 
 // MARK: - Subscribing
 
 /// Local caching of subscriptions.
 public protocol SubscriptionCaching {
-
   /// Adds `subscriptions`.
   func add(subscriptions: [Subscription]) throws
 
@@ -192,19 +189,15 @@ public protocol SubscriptionCaching {
 
   /// Returns current subscriptions.
   func subscribed() throws -> [Subscription]
-
 }
 
 /// Receives library changes.
 public protocol LibraryDelegate: AnyObject {
-
-  func library(_ library: Subscribing, changed urls: Set<FeedURL>)
-
+  func library(_ library: Subscribing, subscribed urls: Set<FeedURL>)
 }
 
 /// Manages the user’s feed subscriptions.
 public protocol Subscribing: Updating {
-
   /// Receives library changes.
   var libraryDelegate: LibraryDelegate? { get set }
 
@@ -312,7 +305,6 @@ extension RecordMetadata: Equatable {
 
 /// Enumerates data structures that are synchronized with iCloud.
 public enum Synced {
-
   /// A queued item that has been synchronized with the iCloud database.
   case queued(Queued, RecordMetadata)
 
@@ -335,7 +327,6 @@ extension Synced: Equatable {
 
 /// Sychronizes with iCloud.
 public protocol UserCacheSyncing: QueueCaching, SubscriptionCaching {
-
   /// Saves `synced`, synchronized user items, to the local cache.
   func add(synced: [Synced]) throws
 
@@ -363,7 +354,4 @@ public protocol UserCacheSyncing: QueueCaching, SubscriptionCaching {
 
   /// Purges zone with `name`.
   func purgeZone(named name: String) throws
-
 }
-
-
