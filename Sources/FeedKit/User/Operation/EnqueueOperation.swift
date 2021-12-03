@@ -92,15 +92,7 @@ final class EnqueueOperation: Operation, ProvidingEntries {
         case .user:
           return notQueued
           
-        case .nobody:
-          // For automatic updates, enqueueing not directly initiated by users,
-          // we are only accepting the latest, not previously enqueued, entry
-          // per feed.
-          return try notQueued.latest().filter {
-            try !cache.isPrevious($0.guid)
-          }
-          
-        case .subscriber:
+        case .subscriber, .nobody:
           return notQueued.latest()
         }
       }()

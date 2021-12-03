@@ -319,27 +319,39 @@ extension UserLibrary: Updating {
       queueDelegate?.queue(self, dequeued: e.guid, enclosure: e.enclosure)
     }
   }
-
+  
   public func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
-    queueDelegate?.queue(self) { [unowned self] in
-      os_log("updating queue", log: log,  type: .info)
-      
-      let preparing = PrepareUpdateOperation(cache: cache)
-      let fetching = browser.entries(satisfying: preparing)
-      let enqueuing = EnqueueOperation(user: self, cache: cache)
-      
-      enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
-        if let er = error {
-          os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
-        }
-        
-        commitQueue(enqueued: Set(enqueued))
-        updateComplete?(!enqueued.isEmpty, error)
+    os_log("updating queue", log: log,  type: .info)
+    
+    let preparing = PrepareUpdateOperation(cache: cache)
+    let fetching = browser.entries(satisfying: preparing)
+    let enqueuing = EnqueueOperation(user: self, cache: cache)
+    
+    enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
+      if let er = error {
+        os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
       }
       
-      enqueuing.addDependency(fetching)
+      commitQueue(enqueued: Set(enqueued))
+      updateComplete?(!enqueued.isEmpty, error)
+      queueDelegate?.didUpdate(self)
+    }
+    
+    enqueuing.addDependency(fetching)
+    enqueuing.addDependency(preparing)
+
+    func go() {
       operationQueue.addOperation(preparing)
       operationQueue.addOperation(enqueuing)
+    }
+    
+    guard let queueDelegate = queueDelegate else {
+      go()
+      return
+    }
+    
+    queueDelegate.queue(self) { 
+      go()
     }
   }
 }

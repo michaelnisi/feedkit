@@ -94,8 +94,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
     let cache = self.cache
     let policy = recommend(for: ttl)
 
-    task = try svc.feeds(queries, cachePolicy: policy.http) {
-      [weak self] error, payload in
+    task = try svc.feeds(queries, cachePolicy: policy.http) { [weak self] error, payload in
       guard let me = self, !me.isCancelled else {
         self?.done()
         return

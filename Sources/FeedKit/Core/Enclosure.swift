@@ -36,8 +36,6 @@ public enum EnclosureType: Int, Codable {
   /// Returns `true` if the enclosure claims to be video. Of course, total
   /// bullshit, I would prefer not having `EnclosureType` at all.
   public var isVideo: Bool {
-    assert(self != .unknown, "add case")
-    
     switch self {
     case .videoXM4V, .videoMP4, .unknown:
       return true

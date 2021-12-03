@@ -96,7 +96,17 @@ public protocol QueueDelegate: AnyObject {
   /// Receives the newly `dequeued` GUID and its respective `enclosure`.
   func queue(_ queue: Queueing, dequeued: EntryGUID, enclosure: Enclosure?)
   
-  func queue(_ queue: Queueing, willUpdate: (() -> Void)?)
+  /// Receives the `startUpdate` closure that must be called to start updates.
+  func queue(_ queue: Queueing, startUpdate: (() -> Void)?)
+ 
+  /// Called after updating the queue completed.
+  func didUpdate(_ queue: Queueing)
+}
+
+extension QueueDelegate {
+  func queue(_ queue: Queueing, startUpdate: (() -> Void)?) {
+    startUpdate?()
+  }
 }
 
 /// Coordinates the queue data structure, local persistence, and propagation of
