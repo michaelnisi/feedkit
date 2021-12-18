@@ -35,7 +35,7 @@ final class PrepareUpdateOperation: Operation, ProvidingLocators {
       let latest = try cache.newest()
       locators = latest.merged(with: subscriptions).sorted()
       
-      os_log("prepared: %{public}@", log: log, type: .info, locators)
+      os_log("prepared: %{public}i", log: log, type: .info, locators.count)
     } catch {
       self.error = error
     }

@@ -117,6 +117,7 @@ extension FeedRepository: Browsing {
     fetchFeeds.addDependency(provider)
 
     let fetchEntries = EntriesOperation(cache: cache, svc: svc)
+    fetchEntries.addDependency(reach)
     fetchEntries.addDependency(provider)
     fetchEntries.addDependency(fetchFeeds)
 

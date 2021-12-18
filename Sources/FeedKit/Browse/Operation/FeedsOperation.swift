@@ -87,37 +87,37 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
   ///   - urls: The URLs of the feeds to request.
   ///   - stale: The stale feeds to fall back on if the remote request fails.
   private func request(_ urls: [String], stale: [Feed]) throws {
-    os_log("%{public}@: requesting feeds: %{public}@", log: log, type: .info, self, urls)
+    os_log("%{public}@: requesting feeds: %{public}i", log: log, type: .info, self, urls.count)
 
     let queries: [MangerQuery] = urls.map { EntryLocator(url: $0) }
 
     let cache = self.cache
     let policy = recommend(for: ttl)
 
-    task = try svc.feeds(queries, cachePolicy: policy.http) { [weak self] error, payload in
-      guard let me = self, !me.isCancelled else {
-        self?.done()
+    task = try svc.feeds(queries, cachePolicy: policy.http) { [unowned self] error, payload in
+      guard !isCancelled else {
+        done()
         return
       }
 
       guard error == nil else {
         let er = FeedKitError.serviceUnavailable(error!)
         if !stale.isEmpty {
-          self?.submit(stale)
+          submit(stale)
         }
-        self?.done(er)
+        done(er)
         return
       }
 
       guard payload != nil else {
-        self?.done()
+        done()
         return
       }
 
       do {
         let (_, feeds) = Serialize.feeds(from: payload!)
         
-        guard !me.isCancelled else { return me.done() }
+        guard !isCancelled else { return done() }
 
         // https://github.com/michaelnisi/feedkit/issues/22
 //        assert(errors.isEmpty, "unhandled: \(errors)")
@@ -130,7 +130,7 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
         var orginalURLsByURLs = [String: String]()
         
         if !redirects.isEmpty {
-          os_log("handling redirects: %{public}@", log: log, redirects)
+          os_log("handling redirects: %{public}i", log: log, redirects.count)
           
           var redirectedURLs = [String]()
           for r in redirects {
@@ -146,23 +146,23 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
           
           if !redirectedURLs.isEmpty {
             try cache.remove(redirectedURLs)
-            self?.redirects = Set(redirectedURLs)
-            self?.redirectsBlock?(redirectedURLs)
+            self.redirects = Set(redirectedURLs)
+            redirectsBlock?(redirectedURLs)
           }
         }
 
         try cache.update(feeds: feeds)
         
-        guard !me.isCancelled else { return me.done() }
+        guard !isCancelled else { return done() }
         
         // Preparing Result
         
         let cachedFeeds = try cache.feeds(Array(freshURLs))
         if !cachedFeeds.isEmpty {
           if orginalURLsByURLs.isEmpty {
-            self?.submit(cachedFeeds)
+            submit(cachedFeeds)
           } else {
-            self?.submit(cachedFeeds.map {
+            submit(cachedFeeds.map {
               guard let originalURL = orginalURLsByURLs[$0.url] else {
                 return $0
               }
@@ -185,9 +185,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
             })
           }
         }
-        self?.done()
+        done()
       } catch {
-        self?.done(error)
+        done(error)
       }
     }
   }
@@ -232,7 +232,9 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
         items, from: urls, with: policy.ttl
       )
 
-      guard !isCancelled else { return done() }
+      guard !isCancelled else {
+        return done()
+      }
       
       // Why, compared to EntriesOperation, is needed optional?
       
@@ -240,10 +242,10 @@ final class FeedsOperation: BrowseOperation, FeedURLsDependent, ProdvidingFeeds 
       %{public}@: (
         ttl: %f,
         cached: %{public}i,
-        stale: %{public}@,
-        missing: %{public}@
+        stale: %{public}i,
+        missing: %{public}i
       )
-      """, log: log, type: .info, self, policy.ttl, cached.count, stale, needed ?? [])
+      """, log: log, type: .info, self, policy.ttl, cached.count, stale.count, (needed ?? []).count)
 
       guard let urlsToRequest = needed else {
         if !cached.isEmpty {

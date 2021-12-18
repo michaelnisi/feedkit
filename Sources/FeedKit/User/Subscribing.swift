@@ -90,17 +90,12 @@ public protocol QueueDelegate: AnyObject {
   /// Receives the `guids` currently in the queue.
   func queue(_ queue: Queueing, enqueued: Set<EntryGUID>)
 
-  /// Receives the newly `enqueued` GUID and its respective `enclosure`.
-  func queue(_ queue: Queueing, enqueued: EntryGUID, enclosure: Enclosure?)
-
-  /// Receives the newly `dequeued` GUID and its respective `enclosure`.
-  func queue(_ queue: Queueing, dequeued: EntryGUID, enclosure: Enclosure?)
   
   /// Receives the `startUpdate` closure that must be called to start updates.
   func queue(_ queue: Queueing, startUpdate: (() -> Void)?)
  
   /// Called after updating the queue completed.
-  func didUpdate(_ queue: Queueing)
+  func didUpdate(_ queue: Queueing, newData: Bool, error: Error?)
 }
 
 extension QueueDelegate {
@@ -109,11 +104,21 @@ extension QueueDelegate {
   }
 }
 
+public protocol EnclosureDelegate: AnyObject {
+  /// Receives the newly `enqueued` GUID and its respective `enclosure`.
+  func queue(_ queue: Queueing, enqueued: EntryGUID, enclosure: Enclosure?)
+
+  /// Receives the newly `dequeued` GUID and its respective `enclosure`.
+  func queue(_ queue: Queueing, dequeued: EntryGUID, enclosure: Enclosure?)
+}
+
 /// Coordinates the queue data structure, local persistence, and propagation of
 /// change events regarding the user’s queue.
 public protocol Queueing {
   /// Receives queue changes.
   var queueDelegate: QueueDelegate? { get set }
+  
+  var enclosureDelegate: EnclosureDelegate? { get set }
 
   /// Adds `entries` to the queue, belonging to `owner`.
   func enqueue(

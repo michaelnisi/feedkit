@@ -20,9 +20,8 @@ private let log = OSLog(subsystem: "ink.codes.feedkit", category: "UserLibrary")
 /// All actions emerge from imperative operation trees combining explicit
 /// Operation classes with inline block operations.
 public final class UserLibrary: EntryQueueHost {
-
   public weak var queueDelegate: QueueDelegate?
-
+  public weak var enclosureDelegate: EnclosureDelegate?
   public weak var libraryDelegate: LibraryDelegate?
 
   private let cache: UserCaching
@@ -312,35 +311,35 @@ extension UserLibrary: Updating {
     os_log("commiting queue", log: log, type: .info)
 
     for e in enqueued {
-      queueDelegate?.queue(self, enqueued: e.guid, enclosure: e.enclosure)
+      enclosureDelegate?.queue(self, enqueued: e.guid, enclosure: e.enclosure)
     }
 
     for e in dequeued {
-      queueDelegate?.queue(self, dequeued: e.guid, enclosure: e.enclosure)
+      enclosureDelegate?.queue(self, dequeued: e.guid, enclosure: e.enclosure)
     }
   }
   
   public func update(updateComplete: ((_ newData: Bool, _ error: Error?) -> Void)?) {
-    os_log("updating queue", log: log,  type: .info)
-    
-    let preparing = PrepareUpdateOperation(cache: cache)
-    let fetching = browser.entries(satisfying: preparing)
-    let enqueuing = EnqueueOperation(user: self, cache: cache)
-    
-    enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
-      if let er = error {
-        os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
-      }
-      
-      commitQueue(enqueued: Set(enqueued))
-      updateComplete?(!enqueued.isEmpty, error)
-      queueDelegate?.didUpdate(self)
-    }
-    
-    enqueuing.addDependency(fetching)
-    enqueuing.addDependency(preparing)
-
     func go() {
+      os_log("updating queue", log: log,  type: .info)
+      
+      let preparing = PrepareUpdateOperation(cache: cache)
+      let fetching = browser.entries(satisfying: preparing)
+      let enqueuing = EnqueueOperation(user: self, cache: cache)
+      
+      enqueuing.addDependency(fetching)
+      
+      enqueuing.enqueueCompletionBlock = { [unowned self] enqueued, error in
+        if let er = error {
+          os_log("enqueue warning: %{public}@", log: log, er as CVarArg)
+        }
+        
+        let newData = !enqueued.isEmpty
+        
+        commitQueue(enqueued: Set(enqueued))
+        updateComplete?(newData, error)
+        queueDelegate?.didUpdate(self, newData: newData, error: error)
+      }
       operationQueue.addOperation(preparing)
       operationQueue.addOperation(enqueuing)
     }

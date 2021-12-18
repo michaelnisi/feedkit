@@ -72,8 +72,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       }
     }
 
-    os_log("%@: submitting: ( %i, %@ )",
-           log: log, type: .info, self, otherEntries.count, String(describing: error))
+    os_log("%@: submitting: ( %i, error: %i )",
+           log: log, type: .info, self, otherEntries.count, error != nil)
 
     entries.formUnion(otherEntries)
     entriesBlock?(error, otherEntries)
@@ -116,8 +116,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
     _ locators: [EntryLocator],
     substantiating stock: [Entry] = []
   ) throws {
-    os_log("%@: requesting entries: %@",
-           log: log, type: .info, self, locators)
+    os_log("%@: requesting entries: %i", log: log, type: .info, self, locators.count)
 
     let cache = self.cache
     let policy = recommend(for: ttl)
@@ -168,8 +167,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
           return
         }
         
-        os_log("%@: received entries: %@",
-               log: log, type: .info, me, receivedEntries)
+        os_log("%@: received entries: %i", log: log, type: .info, me, receivedEntries.count)
         
         // Handling HTTP Redirects
 
@@ -177,8 +175,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         var orginalURLsByURLs = [FeedURL: FeedURL]()
 
         if !redirects.isEmpty {
-          os_log("%@: handling redirects: %@",
-                 log: log, me, redirects)
+          os_log("%@: handling redirects: %i", log: log, me, redirects.count)
           
           let originalURLs: [FeedURL] = redirects.compactMap {
             guard let originalURL = $0.originalURL else {
@@ -319,9 +316,9 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
       %@: (
         ttl: %f,
         cached: %i,
-        missing: %@
+        missing: %i
       )
-      """, log: log, type: .info, self, policy.ttl, cached.count, missing)
+      """, log: log, type: .info, self, policy.ttl, cached.count, missing.count)
 
       // Not submitting cached for singly forced reloads, because these might
       // be attempting to get rid of doublets.

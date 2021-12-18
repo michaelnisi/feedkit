@@ -62,8 +62,7 @@ final class FetchSubscribedFeedsOperation: ConcurrentOperation {
       return
     }
     
-    os_log("updating redirected subscriptions: %{public}@", log: log,
-           redirects.map {($0.originalURL, $0.url) })
+    os_log("updating redirected subscriptions: %{public}i", log: log, redirects.count)
     
     var originals = [FeedURL]()
     var resubscriptions = [Subscription]()
