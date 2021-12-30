@@ -371,7 +371,7 @@ extension UserLibrary: Queueing {
     entriesBlock: ((_ queued: [Entry], _ entriesError: Error?) -> Void)? = nil,
     fetchQueueCompletionBlock: ((_ error: Error?) -> Void)? = nil
   ) -> Operation {
-    os_log("** populating queue", log: log, type: .info)
+    os_log("populating queue", log: log, type: .info)
 
     let fetchingQueue = FetchQueueOperation(browser: browser, cache: cache, user: self)
     fetchingQueue.entriesBlock = entriesBlock

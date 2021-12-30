@@ -14,7 +14,7 @@ import MangerKit
 import Ola
 import os.log
 
-private let log = OSLog(subsystem: "ink.codes.feedkit", category: "User")
+private let log = OSLog(subsystem: "ink.codes.feedkit", category: "Browse")
 
 /// A concurrent `Operation` for accessing entries.
 final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntries {
@@ -106,7 +106,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
     isFinished = true
   }
-
+  
   /// Request all entries of listed feed URLs remotely.
   ///
   /// - Parameters:
@@ -175,7 +175,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         var orginalURLsByURLs = [FeedURL: FeedURL]()
 
         if !redirects.isEmpty {
-          os_log("%@: handling redirects: %i", log: log, me, redirects.count)
+          os_log("%@: handling redirects", log: log, me)
           
           let originalURLs: [FeedURL] = redirects.compactMap {
             guard let originalURL = $0.originalURL else {
@@ -191,8 +191,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         }
 
         if let url = me.singlyForced {
-          os_log("%@: ** replacing entries: %@",
-                 log: log, type: .info, me, url)
+          os_log("%@: ** replacing entries: %@", log: log, type: .info, me, url)
           try cache.removeEntries(matching: [url])
         }
 
@@ -200,15 +199,9 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         
         guard !me.isCancelled else { return me.done() }
         
-        // Preparing Result
-
-        // The cached entries, contrary to the freshly received entries, have
-        // more properties. Also, we should not dispatch more entries than
-        // those that actually have been requested. To match these requirements
-        // centrally, we retrieve the freshly updated entries from the cache,
-        // relying on SQLite’s speed.
-
-        let (cached, missing) = try cache.fulfill(locators, ttl: .infinity)
+        os_log("** locators, redirects: %@", log: log, type: .debug, String(describing: (locators, redirects)))
+        let relocated = locators.relocated(redirects)
+        let (cached, missing) = try cache.fulfill(relocated, ttl: .infinity)
         
         guard !me.isCancelled else { return me.done() }
 
@@ -257,8 +250,7 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
 
         self?.done()
       } catch FeedKitError.feedNotCached(let urls) {
-        os_log("%@: feeds not cached: %@",
-               log: log, me, urls)
+        os_log("%@: feeds not cached: %@", log: log, me, urls)
         self?.done()
       } catch {
         self?.done(error)

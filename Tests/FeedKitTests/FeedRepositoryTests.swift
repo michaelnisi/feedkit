@@ -322,7 +322,7 @@ extension FeedRepositoryTests {
     // GUID at any time. If it fails, replace guid with an existing one.
     
     let url = "https://feed.podbean.com/howtofail/feed.xml"
-    let guid = "e9f4372954dfddcf26c28d7489f10d88413b7a67"
+    let guid = "fdde437652f3696dbbc836ca7e8fefd3d2da2367"
     let locators = [EntryLocator(url: url, guid: guid)]
     
     var acc = [Entry]()

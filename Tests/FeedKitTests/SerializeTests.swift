@@ -27,9 +27,9 @@ final class SerializeTests: XCTestCase {
 
   func testTimeIntervalFromJS() {
     let found = [
-      serialize.timeIntervalFromJS(-1000),
-      serialize.timeIntervalFromJS(0),
-      serialize.timeIntervalFromJS(1000)
+      Serialize.timeIntervalFromJS(-1000),
+      Serialize.timeIntervalFromJS(0),
+      Serialize.timeIntervalFromJS(1000)
     ]
     let wanted = [
       -1.0,
@@ -44,19 +44,19 @@ final class SerializeTests: XCTestCase {
   func testDateFromDictionary() {
     let k = "key"
     
-    XCTAssertNil(serialize.date(from: [k: -1], forKey: k))
-    XCTAssertNil(serialize.date(from: [k: -0], forKey: k))
-    XCTAssertNil(serialize.date(from: [k: 1], forKey: k))
-    XCTAssertNil(serialize.date(from: [String : AnyObject](), forKey: k))
-    XCTAssertNil(serialize.date(from: [k: 1000], forKey: k))
+    XCTAssertNil(Serialize.date(from: [k: -1], forKey: k))
+    XCTAssertNil(Serialize.date(from: [k: -0], forKey: k))
+    XCTAssertNil(Serialize.date(from: [k: 1], forKey: k))
+    XCTAssertNil(Serialize.date(from: [String : AnyObject](), forKey: k))
+    XCTAssertNil(Serialize.date(from: [k: 1000], forKey: k))
     
-    let found = Date(timeIntervalSince1970: serialize.watershed).description
+    let found = Date(timeIntervalSince1970: Serialize.watershed).description
     XCTAssertEqual(found, "1990-01-01 00:00:00 +0000")
     
-    XCTAssertNil(serialize.date(from: [k: serialize.watershed], forKey: k))
+    XCTAssertNil(Serialize.date(from: [k: Serialize.watershed], forKey: k))
     
-    let newer = serialize.watershed * 1000 + 1
-    XCTAssertNotNil(serialize.date(from: [k: newer], forKey: k))
+    let newer = Serialize.watershed * 1000 + 1
+    XCTAssertNotNil(Serialize.date(from: [k: newer], forKey: k))
   }
 
   func testFeedImagesFromDictionary() {
@@ -68,7 +68,7 @@ final class SerializeTests: XCTestCase {
       "img600": "jkl"
     ]
     
-    let found = serialize.makeITunesItem(url: "http://abc.de", payload: dict)!
+    let found = Serialize.makeITunesItem(url: "http://abc.de", payload: dict)!
     
     let wanted = ITunesItem(
       url: "http://abc.de",
@@ -96,7 +96,7 @@ final class SerializeTests: XCTestCase {
       let (json, wanted) = $0
       var ok = false
       do {
-        let _ = try serialize.feed(from: json as [String : AnyObject])
+        let _ = try Serialize.feed(from: json as [String : AnyObject])
       } catch FeedKitError.invalidFeed(let reason) {
         XCTAssertEqual(reason, wanted)
         ok = true
@@ -122,7 +122,7 @@ final class SerializeTests: XCTestCase {
       updated: nil,
       url: "http://abc.de/hellO"
     )
-    let found = try! serialize.feed(from: dict)
+    let found = try! Serialize.feed(from: dict)
     XCTAssertEqual(found, wanted)
   }
   
@@ -142,7 +142,7 @@ final class SerializeTests: XCTestCase {
       url: "http://abc.de"
     )]
     let payload = [dict, dict]
-    let (errors, feeds) = serialize.feeds(from: payload)
+    let (errors, feeds) = Serialize.feeds(from: payload)
     XCTAssert(errors.isEmpty)
     XCTAssertEqual(feeds, wanted)
   }
@@ -185,7 +185,7 @@ final class SerializeTests: XCTestCase {
   func testEntryFromDictionary() {
     let (dict, wanted) = dictAndEntry()
     do {
-      let found = try serialize.entry(from: dict, podcast: false)
+      let found = try Serialize.entry(from: dict, podcast: false)
       XCTAssertEqual(found, wanted)
     } catch {
       XCTFail("should not throw")
@@ -199,7 +199,7 @@ final class SerializeTests: XCTestCase {
       let payload = [dict]
       let wanted = [entry]
       let podcast = n > 0
-      let (errors, found) = serialize.entries(from: payload, podcast: podcast)
+      let (errors, found) = Serialize.entries(from: payload, podcast: podcast)
       if !podcast {
         XCTAssert(errors.isEmpty)
         XCTAssertEqual(found, wanted)
@@ -213,7 +213,7 @@ final class SerializeTests: XCTestCase {
 
   func testEnclosureFromDictionary() {
     func f(_ json: [String : Any]) throws -> Enclosure? { // lazyiness
-      return try serialize.enclosure(from: json)
+      return try Serialize.enclosure(from: json)
     }
     do {
       let _ = try f([:])

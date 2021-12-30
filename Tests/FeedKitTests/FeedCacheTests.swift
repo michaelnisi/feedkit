@@ -138,29 +138,30 @@ extension FeedCacheTests {
     struct Thing: Cachable {
       let url: String
       let ts: Date?
+      
       func equals(_ rhs: Thing) -> Bool {
-        return url == rhs.url
+        url == rhs.url
       }
     }
-    let a = Thing(url: "abc", ts: Date(timeIntervalSince1970: 0))
-    let b = Thing(url: "def", ts: Date(timeIntervalSince1970: 3600))
-    let c = Thing(url: "ghi", ts: Date(timeIntervalSince1970: 7200))
-    let found = [
-      FeedCache.latest([a, b, c]),
-      FeedCache.latest([c, b, a]),
-      FeedCache.latest([a, c, b]),
-      FeedCache.latest([b, c, a])
+    
+    let items: [Thing] = [
+      .init(url: "abc", ts: Date(timeIntervalSince1970: 0)),
+      .init(url: "def", ts: Date(timeIntervalSince1970: 3600)),
+      .init(url: "ghi", ts: Date(timeIntervalSince1970: 7200)),
+      .init(url: "jkl", ts: nil)
     ]
-    let wanted = [
-      c,
-      c,
-      c,
-      c
-    ]
-    for (i, b) in wanted.enumerated() {
-      let a = found[i]
-      XCTAssert(a.equals(b))
+    let wanted = items[2]
+    
+    for _ in 0...64 {
+      let sorted = items
+        .sorted { _, _ in
+          .random(in: 0...1) > 0.5
+        }
+      
+      XCTAssert(FeedCache.latest(sorted)!.equals(wanted))
     }
+  
+    XCTAssertNil(FeedCache.latest([Thing]()))
   }
   
   func testKeepImages() {

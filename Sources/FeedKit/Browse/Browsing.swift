@@ -91,16 +91,15 @@ public protocol FeedCaching {
 extension FeedCaching {
 
   /// Find and return the newest item in the specified array of cachable items.
-  /// Attention: this intentionally crashes if you pass an empty items array or
-  /// if one of the items doesn't bear a timestamp.
   ///
   /// - Parameter items: The cachable items to iterate and compare.
   ///
   /// - Returns: The item with the latest timestamp.
-  static func latest<T: Cachable> (_ items: [T]) -> T {
-    return items.sorted {
-      return $0.ts!.compare($1.ts! as Date) == .orderedDescending
-      }.first!
+  static func latest<T: Cachable>(_ items: [T]) -> T? {
+    items.sorted {
+        $0.ts ?? .distantPast > $1.ts ?? .distantPast
+    }
+    .first
   }
 
   /// Returns `true` if the specified timestamp is older than the specified time
@@ -169,16 +168,17 @@ extension FeedCaching {
     }
 
     let cachedEntryURLs = urls.filter {
-      guard let entries = entriesByURLs[$0], !entries.isEmpty else {
+      guard let entries = entriesByURLs[$0], let entry = latest(entries) else {
         return false
       }
-      let entry = latest(entries)
-      return !stale(entry.ts!, ttl: ttl)
+      
+      return !stale(entry.ts ?? .distantPast, ttl: ttl)
     }
 
-    let notCachedURLs = Array(Set(urls).subtracting(
-      cachedURLs + cachedEntryURLs
-    ))
+    let notCachedURLs = Array(
+      Set(urls)
+        .subtracting(cachedURLs + cachedEntryURLs)
+    )
 
     if notCachedURLs.isEmpty {
       return (cachedItems, [], nil)

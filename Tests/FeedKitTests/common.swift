@@ -164,7 +164,7 @@ extension Common {
 
   static func loadFeeds(url: URL) throws -> [Feed] {
     let json = try JSON(contentsOf: url as URL)
-    let (errors, feeds) = serialize.feeds(from: json)
+    let (errors, feeds) = Serialize.feeds(from: json)
     XCTAssert(errors.isEmpty, "should return no errors")
     return feeds
   }
@@ -174,7 +174,7 @@ extension Common {
       Bundle.module.url(forResource: "entries", withExtension: "json")!
     }()
     let json = try JSON(contentsOf: entriesURL)
-    let (errors, entries) = serialize.entries(from: json)
+    let (errors, entries) = Serialize.entries(from: json)
     XCTAssertEqual(errors.count, 9, "should contain 9 invalid entries")
     return entries
   }
