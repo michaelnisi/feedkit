@@ -88,7 +88,7 @@ extension Common {
         originalURL: nil,
         summary: nil,
         title: "Roderick on the Line",
-        ts: nil,
+        ts: .distantPast,
         uid: nil,
         updated: Date(timeIntervalSince1970: 0),
         url: "http://feeds.feedburner.com/RoderickOnTheLine"
@@ -127,7 +127,7 @@ extension Common {
         subtitle: "Andy and Dan talk about the new Microsoft Surface Tablet, the iPad Pro, the new Magic devices, the new iMacs, and more.",
         summary: "Serenity Caldwell returns to the show. Topics include this week’s new iMacs; the new “Magic” mouse, trackpad, and keyboard; an overview of Apple Music and iCloud Photos; Facebook’s outrageous background battery usage on iOS; Elon Musk’s gibes on Apple getting into the car industry; and my take on the new *Steve Jobs* movie.",
         title: "Ep. 133: ‘The MacGuffin Tractor’, With Guest Serenity Caldwell",
-        ts: nil,
+        ts: .distantPast,
         updated: updated
       )
     default:

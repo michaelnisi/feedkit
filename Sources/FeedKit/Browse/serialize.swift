@@ -153,7 +153,7 @@ struct Serialize {
       originalURL: originalURL,
       summary: summary,
       title: title,
-      ts: nil,
+      ts: .distantPast,
       uid: nil,
       updated: updated,
       url: url
@@ -282,7 +282,7 @@ struct Serialize {
       subtitle: subtitle,
       summary: summary,
       title: title,
-      ts: nil,
+      ts: .distantPast,
       updated: updated
     )
   }

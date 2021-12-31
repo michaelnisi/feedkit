@@ -17,7 +17,7 @@ let package = Package(
     .package(name: "FanboyKit", url: "https://github.com/michaelnisi/fanboy-kit", from: "9.0.0"),
     .package(name: "Ola", url: "https://github.com/michaelnisi/ola", from: "12.0.0"),
     .package(name: "Skull", url: "https://github.com/michaelnisi/skull", from: "11.0.0"),
-    .package(name: "SnapshotTesting", url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.8.0")
+    .package(name: "SnapshotTesting", url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.9.0")
   ],
   targets: [
     .target(

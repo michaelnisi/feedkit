@@ -26,7 +26,7 @@ class ValueObject<T>: NSObject {
 /// Cachable objects, currently feeds and entries, must adopt this protocol,
 /// which requires a globally unique resource locator (url) and a timestamp (ts).
 public protocol Cachable {
-  var ts: Date? { get }
+  var ts: Date { get }
   var url: FeedURL { get }
 }
 
@@ -178,32 +178,22 @@ public class LocalCache: Caching {
   }
 }
 
-// MARK: - Utilities
-
-extension LocalCache {
-
-  /// Slices an array into fixed sized arrays.
-  ///
-  /// - Parameters:
-  ///   - elements: The array to slice.
-  ///   - count: The number of elements in the returned arrays.
-  ///
-  /// - Returns: An array of arrays with count`.
-  static func slice<T>(elements: [T], with count: Int) -> [Array<T>] {
-    guard elements.count > count else {
-      return [elements]
+extension Array {
+  func sliced(into size: Int) -> [Self] {
+    guard count > size else {
+      return [self]
     }
 
     var i = 0
     var start = 0
     var end = 0
-    var slices = [[T]]()
+    var slices = [[Element]]()
 
     repeat {
-      start = min(count * i, elements.count)
-      end = min(start + count, elements.count)
+      start = Swift.min(size * i, count)
+      end = Swift.min(start + size, count)
 
-      let slice = elements[start..<end]
+      let slice = self[start..<end]
 
       if !slice.isEmpty {
         slices.append(Array(slice))
@@ -214,29 +204,16 @@ extension LocalCache {
 
     return slices
   }
+}
 
-  /// Returns the median timestamp of the specified cachable items.
-  ///
-  /// - Parameters:
-  ///   - items: The cachable items of which to locate the median.
-  ///   - sorting: To skip the sorting, but lose warranty of correctness.
-  ///
-  /// - Returns: The median timestamp of these cachable items; or nil, if you pass
-  /// an empty array.
-  static func medianTS <T: Cachable> (_ items: [T], sorting: Bool = true) -> Date? {
-    guard !items.isEmpty else { return nil }
+extension Array where Element: Cachable {
+  func medianTS() -> Date? {
+    guard !isEmpty else {
+      return nil
+    }
 
-    let sorted: [T]
-
-    if sorting {
-      sorted = items.sorted {
-        guard $0.ts != nil else { return false }
-        guard $1.ts != nil else { return true }
-
-        return $0.ts!.compare($1.ts! as Date) == .orderedDescending
-      }
-    } else {
-      sorted = items
+    let sorted = sorted {
+      $0.ts > $1.ts
     }
 
     let index = sorted.count / 2

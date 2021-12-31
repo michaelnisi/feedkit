@@ -137,7 +137,7 @@ extension FeedCacheTests {
   func testLatest() {
     struct Thing: Cachable {
       let url: String
-      let ts: Date?
+      let ts: Date
       
       func equals(_ rhs: Thing) -> Bool {
         url == rhs.url
@@ -148,7 +148,7 @@ extension FeedCacheTests {
       .init(url: "abc", ts: Date(timeIntervalSince1970: 0)),
       .init(url: "def", ts: Date(timeIntervalSince1970: 3600)),
       .init(url: "ghi", ts: Date(timeIntervalSince1970: 7200)),
-      .init(url: "jkl", ts: nil)
+      .init(url: "jkl", ts: .distantPast)
     ]
     let wanted = items[2]
     
@@ -177,14 +177,14 @@ extension FeedCacheTests {
     )
     
     let a = Feed(author: nil, iTunes: iTunes, image: nil, link: nil,
-                 originalURL: url, summary: nil, title: "Title", ts: nil,
+                 originalURL: url, summary: nil, title: "Title", ts: .distantPast,
                  uid: nil, updated: nil, url: url)
     
     try! cache.update(feeds: [a])
     
     do {
       let b = Feed(author: nil, iTunes: nil, image: nil, link: nil,
-                   originalURL: url, summary: nil, title: "Title", ts: nil,
+                   originalURL: url, summary: nil, title: "Title", ts: .distantPast,
                    uid: nil, updated: nil, url: url)
       
       try! cache.update(feeds: [b])
@@ -195,7 +195,7 @@ extension FeedCacheTests {
     
     do {
       let c = Feed(author: "not null", iTunes: nil, image: nil, link: nil,
-                   originalURL: url, summary: nil, title: "Title", ts: nil,
+                   originalURL: url, summary: nil, title: "Title", ts: .distantPast,
                    uid: nil, updated: nil, url: url)
       
       try! cache.update(feeds: [c])
@@ -586,7 +586,7 @@ extension FeedCacheTests {
 
 private struct Item: Cachable {
   let url: FeedURL
-  let ts: Date?
+  let ts: Date
   let id: Int
 }
 
@@ -665,10 +665,10 @@ extension FeedCacheTests {
   
   func testSliceElements() {
     let fixtures = [
-      (FeedCache.slice(elements: [1, 2, 3], with: 1), [[1], [2], [3]]),
-      (FeedCache.slice(elements: [1, 2, 3], with: 2), [[1, 2], [3]]),
-      (FeedCache.slice(elements: [1, 2, 3], with: 3), [[1, 2, 3]]),
-      (FeedCache.slice(elements: [1, 2, 3], with: 4), [[1, 2, 3]])
+      ([1, 2, 3].sliced(into: 1), [[1], [2], [3]]),
+      ([1, 2, 3].sliced(into: 2), [[1, 2], [3]]),
+      ([1, 2, 3].sliced(into: 3), [[1, 2, 3]]),
+      ([1, 2, 3].sliced(into: 4), [[1, 2, 3]])
     ]
    
     fixtures.forEach { fixture in

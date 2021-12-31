@@ -191,7 +191,7 @@ final class SearchOperation: SearchRepoOperation {
       // multiple differing timestamps. Using the median timestamp to determine
       // age works for both: equaling and matching.
       
-      guard let ts = FeedCache.medianTS(cached) else {
+      guard let ts = cached.medianTS() else {
         return done()
       }
       

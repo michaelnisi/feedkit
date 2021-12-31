@@ -33,7 +33,7 @@ public struct Entry: Redirectable {
   public let subtitle: String?
   public let summary: String?
   public let title: String
-  public let ts: Date?
+  public let ts: Date
   public let updated: Date
 }
 

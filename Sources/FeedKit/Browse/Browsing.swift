@@ -97,7 +97,7 @@ extension FeedCaching {
   /// - Returns: The item with the latest timestamp.
   static func latest<T: Cachable>(_ items: [T]) -> T? {
     items.sorted {
-        $0.ts ?? .distantPast > $1.ts ?? .distantPast
+        $0.ts > $1.ts
     }
     .first
   }
@@ -158,7 +158,7 @@ extension FeedCaching {
         cachedItems.append(item)
         return acc
       }
-      if !stale(item.ts ?? .distantPast, ttl: ttl) {
+      if !stale(item.ts, ttl: ttl) {
         cachedItems.append(item)
         return acc + [item.url]
       } else {
@@ -172,7 +172,7 @@ extension FeedCaching {
         return false
       }
       
-      return !stale(entry.ts ?? .distantPast, ttl: ttl)
+      return !stale(entry.ts, ttl: ttl)
     }
 
     let notCachedURLs = Array(

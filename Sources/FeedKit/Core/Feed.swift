@@ -69,7 +69,7 @@ public struct Feed: Cachable, Redirectable {
   public let originalURL: String?
   public let summary: String?
   public let title: String
-  public let ts: Date?
+  public let ts: Date
 
   let uid: ID?
 

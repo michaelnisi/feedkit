@@ -170,7 +170,7 @@ extension LibrarySQLFormatter {
       subtitle: subtitle,
       summary: summary,
       title: title,
-      ts: ts,
+      ts: ts ?? .distantPast,
       updated: updated
     )
   }
@@ -352,7 +352,7 @@ extension LibrarySQLFormatter {
       originalURL: nil,
       summary: summary,
       title: title,
-      ts: ts,
+      ts: ts ?? .distantPast,
       uid: uid,
       updated: updated,
       url: url

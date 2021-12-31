@@ -117,7 +117,7 @@ final class SerializeTests: XCTestCase {
       originalURL: nil,
       summary: nil,
       title: "A title",
-      ts: nil,
+      ts: .distantPast,
       uid: nil,
       updated: nil,
       url: "http://abc.de/hellO"
@@ -136,7 +136,7 @@ final class SerializeTests: XCTestCase {
       originalURL: nil,
       summary: nil,
       title: "A title",
-      ts: nil,
+      ts: .distantPast,
       uid: nil,
       updated: nil,
       url: "http://abc.de"
@@ -175,7 +175,7 @@ final class SerializeTests: XCTestCase {
       subtitle: nil,
       summary: nil,
       title: title,
-      ts: nil,
+      ts: .distantPast,
       updated: updated
     )
     

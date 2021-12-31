@@ -175,7 +175,8 @@ final class EntriesOperation: BrowseOperation, LocatorsDependent, ProvidingEntri
         var orginalURLsByURLs = [FeedURL: FeedURL]()
 
         if !redirects.isEmpty {
-          os_log("%@: handling redirects", log: log, me)
+          os_log("%@: handling redirects", log: log, me
+          )
           
           let originalURLs: [FeedURL] = redirects.compactMap {
             guard let originalURL = $0.originalURL else {

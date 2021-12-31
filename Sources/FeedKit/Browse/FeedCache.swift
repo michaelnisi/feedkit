@@ -465,7 +465,7 @@ extension FeedCache: FeedCaching {
 
   public func entries(_ guids: [String]) throws -> [Entry] {
     return try queue.sync {
-      let chunks = FeedCache.slice(elements: guids, with: 512)
+      let chunks = guids.sliced(into: 512)
 
       return try chunks.reduce([Entry]()) { acc, guids in
         guard let sql = LibrarySQLFormatter.SQLToSelectEntries(by: guids) else {
